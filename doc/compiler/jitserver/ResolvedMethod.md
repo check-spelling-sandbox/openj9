@@ -24,7 +24,7 @@ SPDX-License-Identifier: EPL-2.0 OR Apache-2.0 OR GPL-2.0 WITH Classpath-excepti
 ## What are resolved methods?
 
 Resolved methods are wrappers around Java methods which exist for the duration of a single compilation. They collect and manage information about a method and related classes.
-Resolved methods are some of the most commonly used entitites by the JIT compiler, thus it is important to handle them correctly and efficiently on JITServer.
+Resolved methods are some of the most commonly used entities by the JIT compiler, thus it is important to handle them correctly and efficiently on JITServer.
 
 For non-JITServer, we mostly care about 2 classes representing a resolved method - `TR_ResolvedJ9Method` and `TR_ResolvedRelocatableJ9Method`.
 The former represents resolved methods in a regular compilation, and the latter in an AOT compilation.

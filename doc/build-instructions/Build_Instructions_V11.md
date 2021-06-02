@@ -1044,7 +1044,7 @@ poweroff
 ```
 
 :bulb:
-It is advised that you prepare two Fodora OS images with the same packages installed for development. One image is exclusive for QEMU while another is only used in the cross-compilation, in which case there is no need to frequently power on/off the OS image via QEMU.
+It is advised that you prepare two Fedora OS images with the same packages installed for development. One image is exclusive for QEMU while another is only used in the cross-compilation, in which case there is no need to frequently power on/off the OS image via QEMU.
 
 [6] Mount the Fedora OS image to your host system for the cross-compilation.
 

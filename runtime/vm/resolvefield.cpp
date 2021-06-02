@@ -819,7 +819,7 @@ fieldOffsetsStartDo(J9JavaVM *vm, J9ROMClass *romClass, J9Class *superClazz, J9R
 
 		state->finalizeLinkOffset = 0;
 		if ((NULL != superClazz) && (0!= superClazz->finalizeLinkOffset)) {
-			/* Superclass is finalizeable */
+			/* Superclass is finalizable */
 			state->finalizeLinkOffset = superClazz->finalizeLinkOffset;
 		} else {
 			/*

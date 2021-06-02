@@ -86,7 +86,7 @@ with the Java specifications, to close security holes, or to address the
 need to update / modify the architecture.  Some regressions may simply be 
 found too late in a release to address them.  
 The project may decide to trade performance - whether throughput, startup 
-or fooprint - for another important measure. 
+or footprint - for another important measure. 
 Any regressions should be documented as part of the release plan.
 
 Note, detecting regressions will be difficult in the open project 

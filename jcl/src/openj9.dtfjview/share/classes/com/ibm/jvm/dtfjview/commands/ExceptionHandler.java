@@ -198,7 +198,7 @@ public class ExceptionHandler {
 
 			} catch (Exception e) {
 				logger.log(Level.FINE, "Error examining stack trace to determine failing method.", e);
-				//fall through and allow it to examin the next stack frame
+				//fall through and allow it to examine the next stack frame
 			}
 		}
 		return null;

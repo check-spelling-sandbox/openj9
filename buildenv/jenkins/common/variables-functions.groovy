@@ -53,7 +53,7 @@ class Buildspec {
     }
 
     /* perform a repeated map lookup of a given '.' separated name in my def
-     * eg. getNestedField('foo.bar.baz') is equivilent to
+     * eg. getNestedField('foo.bar.baz') is equivalent to
      * my_def['foo']['bar']['baz'], with the added benefit that if any lookup
      * along the path fails, null is returned rather than throwing an exception
      */
@@ -106,7 +106,7 @@ class Buildspec {
         return field
     }
 
-    /* Get a list of values composed by concatinating the values of the
+    /* Get a list of values composed by concatenating the values of the
      * following fields in order:
      * - <parent>.getVectorField()
      * if <name> is a map:
@@ -845,7 +845,7 @@ def set_basic_artifactory_config(id="Nightly") {
     echo "Configure Artifactory..."
 
     if (VARIABLES.artifactory.defaultGeo) {
-        // Allow default geo to be overridden with a param. Used by the Clenaup script to target a specific server.
+        // Allow default geo to be overridden with a param. Used by the Cleanup script to target a specific server.
         ARTIFACTORY_CONFIG['defaultGeo'] = params.ARTIFACTORY_GEO ?: VARIABLES.artifactory.defaultGeo
         ARTIFACTORY_CONFIG['geos'] = VARIABLES.artifactory.server.keySet()
         ARTIFACTORY_CONFIG['repo'] = get_value(VARIABLES.artifactory.repo, id) ?: get_value(VARIABLES.artifactory.repo, 'default')

@@ -34,7 +34,7 @@ import java.util.TreeMap;
 
 /**
  * The {@link BuildSpec} class describes the details of a J9 specification.  It defines the flags,
- * sources, and featuers which make up the specification as well as any other relevant information.
+ * sources, and features which make up the specification as well as any other relevant information.
  *
  * @author 	Maciek Klimkowski
  * @author 	Gabriel Castro

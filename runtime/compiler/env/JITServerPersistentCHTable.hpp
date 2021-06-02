@@ -188,7 +188,7 @@ public:
  * This class is a extension of the TR_PersistentClassInfo class that is
  * used by JITClient to mark classInfo as dirty/removed.
  * This is how JITClient determines what the delta update to JITServer is
- * everytime. Once the marking operation is completed, the corresponding 
+ * every time. Once the marking operation is completed, the corresponding 
  * parent method is called and original functionality is preserved.
  */
 

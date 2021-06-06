@@ -795,7 +795,7 @@ MM_MetronomeDelegate::reportSyncGCEnd(MM_EnvironmentBase *env)
 	UDATA packetOverflowCount = _extensions->globalGCStats.metronomeStats.getWorkPacketOverflowCount();
 	UDATA objectOverflowCount = _extensions->globalGCStats.metronomeStats.getObjectOverflowCount();
 			
-	Trc_MM_SynchGCEnd(env->getLanguageVMThread(),
+	Trc_MM_SyncGCEnd(env->getLanguageVMThread(),
 		approximateFreeMemorySize,
 		0,
 		classLoaderUnloadCount,

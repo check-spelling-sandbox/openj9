@@ -72,7 +72,7 @@ public:
 	UDATA _monitorReferenceCandidates; /**< The number of monitor references that have been visited in monitor table during marking */
 
 #if defined(J9VM_GC_ENABLE_DOUBLE_MAP)
-	UDATA _doubleMappedArrayletsCleared; /**< The number of double mapped arraylets that have been cleared durign marking */
+	UDATA _doubleMappedArrayletsCleared; /**< The number of double mapped arraylets that have been cleared during marking */
 	UDATA _doubleMappedArrayletsCandidates; /**< The number of double mapped arraylets that have been visited during marking */
 #endif /* J9VM_GC_ENABLE_DOUBLE_MAP */	
 

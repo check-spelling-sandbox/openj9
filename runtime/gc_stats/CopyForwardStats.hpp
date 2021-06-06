@@ -68,7 +68,7 @@ public:
 	uintptr_t _monitorReferenceCandidates; /**< The number of monitor references that have been visited in monitor table during marking */
 
 #if defined(J9VM_GC_ENABLE_DOUBLE_MAP)
-	uintptr_t _doubleMappedArrayletsCleared; /**< The number of double mapped arraylets that have been cleared durign marking */
+	uintptr_t _doubleMappedArrayletsCleared; /**< The number of double mapped arraylets that have been cleared during marking */
 	uintptr_t _doubleMappedArrayletsCandidates; /**< The number of double mapped arraylets that have been visited during marking */
 #endif /* J9VM_GC_ENABLE_DOUBLE_MAP */
 

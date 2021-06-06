@@ -615,7 +615,7 @@ moveStoreOutOfLoopForward(TR_CISCTransformer *trans)
    // check if descendants of p include an array load
    if (!getThreeNodesForArray(p, &ixload, &aload, &iload, true))
       {
-      if (DISPTRACE(trans)) traceMsg(comp, "moveStoreOutOfLoopForward failed because decendents of pid:%d don't include an array load.\n", p->getID());
+      if (DISPTRACE(trans)) traceMsg(comp, "moveStoreOutOfLoopForward failed because descendants of pid:%d don't include an array load.\n", p->getID());
       success0 = false;
       }
 

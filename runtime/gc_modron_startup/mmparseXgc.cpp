@@ -880,7 +880,7 @@ j9gc_initialize_parse_gc_colon(J9JavaVM *javaVM, char **scan_start)
 
 	if(try_scan(scan_start, "concurrentSlack=")) {
 	
-		/* if concurrentSlack=macrofrag is set, we will count estimateFragmentation when deciding concurrentgc kickoff , concurrentSlackFragmentationAdjustmentWeight is set as 1.0 as default */
+		/* if concurrentSlack=macrofrag is set, we will count estimateFragmentation when deciding concurrentGC kickoff , concurrentSlackFragmentationAdjustmentWeight is set as 1.0 as default */
 		if (try_scan(scan_start, "macrofrag")) {
 			extensions->estimateFragmentation = (GLOBALGC_ESTIMATE_FRAGMENTATION | LOCALGC_ESTIMATE_FRAGMENTATION);
 			extensions->processLargeAllocateStats = true;

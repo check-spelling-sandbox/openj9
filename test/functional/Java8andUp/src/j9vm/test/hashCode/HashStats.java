@@ -147,7 +147,7 @@ public class HashStats {
 		out.println("Minimum hash: " + Integer.toHexString(hashMin));
 		out.println(ascendingRunCount + " ascending runs, average length "
 				+ getAverageRunLength(true));
-		out.println(descendingRunCount + " decending runs, average length "
+		out.println(descendingRunCount + " descending runs, average length "
 				+ getAverageRunLength(false));
 		if (numPositiveDiffs != 0) {
 			out.println(numPositiveDiffs + " positive differences, average ="

@@ -2307,7 +2307,7 @@ J9::Options::fePreProcess(void * base)
    // Disable lock reservation due to a functional problem causing a deadlock situation in an ODM workload in Java 8
    // SR5. In addition several performance issues on SPARK workloads have been reported which seem to concurrently
    // access StringBuffer objects from multiple threads.
-   self()->setOption(TR_DisableLockResevation);
+   self()->setOption(TR_DisableLockReservation);
    // Setting number of onsite cache slots for instanceOf node to 4 on IBM Z
    self()->setMaxOnsiteCacheSlotForInstanceOf(4);
 #endif

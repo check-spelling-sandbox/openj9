@@ -7628,9 +7628,9 @@ reservationLockExit(TR::Node *node, int32_t lwOffset, TR::Register *objectClassR
       if (debugObj)
          {
          if (isPrimitive)
-            debugObj->addInstructionComment(instr, "Denotes end of OOL primitive reversation exit sequence: return to mainline");
+            debugObj->addInstructionComment(instr, "Denotes end of OOL primitive reservation exit sequence: return to mainline");
          else
-            debugObj->addInstructionComment(instr, "Denotes end of OOL non-primitive reversation exit sequence: return to mainline");
+            debugObj->addInstructionComment(instr, "Denotes end of OOL non-primitive reservation exit sequence: return to mainline");
          }
       outlinedSlowPath->swapInstructionListsWithCompilation(); // Toggle instruction list
       instr = generateS390LabelInstruction(cg,TR::InstOpCode::label,node,doneOOLLabel);

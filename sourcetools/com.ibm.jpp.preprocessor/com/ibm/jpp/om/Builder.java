@@ -400,7 +400,7 @@ public class Builder {
 			List<String> buildResources = buildResourcesBySourceDir.get(sourceDir);
 			if (buildResources != null && buildResources.size() != 0) {
 				int copiedResourcesCount = 0;
-				int deletedResorucesCount = 0;
+				int deletedResourcesCount = 0;
 				String outputpath;
 				if (isTestsBootPath) {
 					outputpath = configObject.getBootTestsOutputPath();
@@ -415,13 +415,13 @@ public class Builder {
 						copiedResourcesCount++;
 					} else {
 						resource_out.delete();
-						deletedResorucesCount++;
+						deletedResourcesCount++;
 					}
 				}
 
 				getLogger().log("Total Build Resource Count : " + buildResourcesCount, 1);
 				getLogger().log("  - " + copiedResourcesCount + " resource" + (copiedResourcesCount > 1 ? "s are " : " is ") + "copied to " + outputpath, 1);
-				getLogger().log("  - " + deletedResorucesCount + " resource" + (deletedResorucesCount > 1 ? "s are " : " is ") + "deleted from " + outputpath, 1);
+				getLogger().log("  - " + deletedResourcesCount + " resource" + (deletedResourcesCount > 1 ? "s are " : " is ") + "deleted from " + outputpath, 1);
 			}
 
 			notifyBuildEnd();

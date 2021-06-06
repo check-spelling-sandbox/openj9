@@ -245,27 +245,27 @@ public class UMA {
 	class LineWrapMakefileDirective {
 		int itemCount = 0;
 		int maxItems = NUM_OBJECTS_PER_LINE;
-		String underMaxSeperator = " ";
-		String overMaxSeperator = "\\\n  ";
+		String underMaxSeparator = " ";
+		String overMaxSeparator = "\\\n  ";
 		StringBuffer stringBuffer;
 		
 		LineWrapMakefileDirective(StringBuffer stringBuffer) {
 			this.stringBuffer = stringBuffer;
 		}
 		
-		LineWrapMakefileDirective(StringBuffer stringBuffer, String underMaxSeperator, String overMaxSeperator) {
+		LineWrapMakefileDirective(StringBuffer stringBuffer, String underMaxSeparator, String overMaxSeparator) {
 			this.stringBuffer = stringBuffer;
-			this.underMaxSeperator = underMaxSeperator;
-			this.overMaxSeperator = overMaxSeperator;
+			this.underMaxSeparator = underMaxSeparator;
+			this.overMaxSeparator = overMaxSeparator;
 		}
 		
 		void addItem(String item) {
 			if (itemCount<maxItems) {
 				itemCount++;
-				stringBuffer.append(underMaxSeperator);
+				stringBuffer.append(underMaxSeparator);
 			} else {
 				itemCount = 1;
-				stringBuffer.append(overMaxSeperator);
+				stringBuffer.append(overMaxSeparator);
 			}
 			stringBuffer.append(item);
 		}

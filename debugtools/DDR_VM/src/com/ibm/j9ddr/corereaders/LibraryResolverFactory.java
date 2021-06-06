@@ -81,7 +81,7 @@ public class LibraryResolverFactory
 	 * of File.pathSeparator. = is used to separate multiple pairs of mappings.)
 	 */
 	public static final String PATH_MAPPING_SYSTEM_PROPERTY = "com.ibm.j9ddr.path.mapping";
-	private static final String MAPPING_SEPERATOR = "=";
+	private static final String MAPPING_SEPARATOR = "=";
 
 	//This list determines library resolver search order
 	public static final String RESOLVER_LIST_PROPERTY = "com.ibm.j9ddr.library.resolvers";
@@ -125,13 +125,13 @@ public class LibraryResolverFactory
 			}
 		});
 		
-		final String pathSeperator = File.pathSeparator;
+		final String pathSeparator = File.pathSeparator;
 		
 		List<File> localPath = new LinkedList<File>();
 		
 		if (specifiedPath != null) {
 			logger.logp(FINE, "LibraryResolverFactory", "<clinit>", "Library search path set as: {0} by property {1}",new Object[]{specifiedPath,LIBRARY_PATH_SYSTEM_PROPERTY});
-			String pathSections[] = specifiedPath.split(pathSeperator);
+			String pathSections[] = specifiedPath.split(pathSeparator);
 			
 			for (String path : pathSections) {
 				localPath.add(new File(path));
@@ -144,10 +144,10 @@ public class LibraryResolverFactory
 		
 		if (mappingPath != null) {
 			logger.logp(FINE, "LibraryResolverFactory", "<clinit>", "Library path mappings paths set as: {0} by property {1}",new Object[]{specifiedPath,PATH_MAPPING_SYSTEM_PROPERTY});
-			String pathSections[] = mappingPath.split(pathSeperator);
+			String pathSections[] = mappingPath.split(pathSeparator);
 			
 			for (String replacePath : pathSections) {
-				String[] target_subst = replacePath.split(MAPPING_SEPERATOR); 
+				String[] target_subst = replacePath.split(MAPPING_SEPARATOR); 
 				mPaths.put(target_subst[0], target_subst[1]);
 				logger.logp(FINE, "LibraryResolverFactory", "<clinit>", "Mapping libraries paths containing {0} to {1}",target_subst);
 			}

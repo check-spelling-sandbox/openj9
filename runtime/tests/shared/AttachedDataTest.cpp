@@ -1199,7 +1199,7 @@ AttachedDataTest::UpdateAttachedUDATASuccess(J9JavaVM *vm)
 	currentThread = vm->internalVMFunctions->currentVMThread(vm);
 
 	updateData = (UDATA)nextValue++;
-	/* make sure updataOffset is UDATA aligned */
+	/* make sure updateOffset is UDATA aligned */
 	updateOffset = ((I_32)dataList[1].data.length/2 > align) ? (I_32)((dataList[1].data.length/2) & (~(align-1))) : 0;
 
 	rc = (IDATA) vm->sharedClassConfig->updateAttachedUDATA(currentThread, dataList[1].keyAddress, dataList[1].data.type, updateOffset, updateData);

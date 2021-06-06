@@ -29,7 +29,7 @@
 #
 #   Usage: perf script | perf-hottest <attr> [<attr>=<regex>...]
 #        attr: attributes that contain information about the compiler. Attributes include pc(program counter), 
-#              sym(function symbol), offs(offset within a funtion),so (shared object), thread (thread name)
+#              sym(function symbol), offs(offset within a function),so (shared object), thread (thread name)
 #        Examples: 
 #          perf script | <path-to-script> perf-hottest sym
 #          perf script -G -F comm,tid,ip,sym,dso | <path-to-script> perf-hottest sym

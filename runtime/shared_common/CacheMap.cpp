@@ -4953,7 +4953,7 @@ SH_CacheMap::printAllCacheStats(J9VMThread* currentThread, UDATA showFlags, SH_C
 }
 
 /*
- * Helper funtion to print the statistics of the top layer cache.
+ * Helper function to print the statistics of the top layer cache.
  *
  * @param[in] currentThread  The current thread
  * @param[in] showFlags  Flags controlling information printed
@@ -5069,7 +5069,7 @@ SH_CacheMap::printCacheStatsTopLayerStatsHelper(J9VMThread* currentThread, UDATA
 	CACHEMAP_FMTPRINT1(J9NLS_DO_NOT_PRINT_MESSAGE_TAG, J9NLS_SHRC_CM_PRINTSTATS_DEBUGAREA_USED, javacoreData->debugAreaUsed);
 }
 /*
- * Helper funtion to print the statistics summary of the top layer cache.
+ * Helper function to print the statistics summary of the top layer cache.
  *
  * @param[in] currentThread  the current thread
  * @param[in] showFlags Flags controlling information printed
@@ -5109,7 +5109,7 @@ SH_CacheMap::printCacheStatsTopLayerSummaryStatsHelper(J9VMThread* currentThread
 }
 
 /*
- * Helper funtion to print the cache statistics of all layers.
+ * Helper function to print the cache statistics of all layers.
  *
  * @param[in] currentThread  the current thread
  * @param[in] showFlags Flags controlling information printed

@@ -1718,7 +1718,7 @@ gcParseCommandLineAndInitializeWithValues(J9JavaVM *vm, IDATA *memoryParameters)
 		return JNI_EINVAL;
 	}
 
-	/* parse -XX: option that logicially belong to GC */
+	/* parse -XX: option that logically belong to GC */
 	if (0 == gcParseXXArguments(vm)) {
 		return JNI_EINVAL;
 	}

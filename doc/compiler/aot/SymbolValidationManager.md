@@ -160,7 +160,7 @@ unambiguous.
 
 Because Primitive Classes (and their associated array classes) are always
 guaranteed to exist, and because the Root Class and method from root class
-have already been validated prior to even attempting to perfom the AOT
+have already been validated prior to even attempting to perform the AOT
 load, these values don't need to be validation records stored in
 the SCC. Therefore, the SVM, in its constructor, initializes the maps
 with these IDs and the associated values.

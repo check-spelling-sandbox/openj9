@@ -38,7 +38,7 @@ namespace TR { class Block; }
  *
  *  \details
  *  The transformation is based on a light-weight Escape Analysis based on symbol references:
- *  -# peform a quick pass through the treetops to see if there are any Vector API calls in the method,
+ *  -# perform a quick pass through the treetops to see if there are any Vector API calls in the method,
  *     return if there are no any to avoid unnecessary analysis
  *  -# use the following data structures:
  *      - \c _aliasTable: alias table, indexed by symbol reference number. It is used for aliasing and class validation

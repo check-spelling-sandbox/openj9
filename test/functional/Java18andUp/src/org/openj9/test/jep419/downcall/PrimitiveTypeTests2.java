@@ -266,7 +266,7 @@ public class PrimitiveTypeTests2 {
 	public void test_strlenFromDefaultLibWithMemAddr_2() throws Throwable {
 		/* Temporarily disable the default library loading on AIX till we figure out a way
 		 * around to handle the case as the official implementation in OpenJDK17 doesn't
-		 * help to load the static libray (libc.a).
+		 * help to load the static library (libc.a).
 		 */
 		if (!isAixOS) {
 			NativeSymbol strlenSymbol = clinker.lookup("strlen").get();
@@ -282,7 +282,7 @@ public class PrimitiveTypeTests2 {
 	public void test_memoryAllocFreeFromDefaultLib_2() throws Throwable {
 		/* Temporarily disable the default library loading on AIX till we figure out a way
 		 * around to handle the case as the official implementation in OpenJDK17 doesn't
-		 * help to load the static libray (libc.a).
+		 * help to load the static library (libc.a).
 		 */
 		if (!isAixOS) {
 			NativeSymbol allocSymbol = clinker.lookup("malloc").get();
@@ -303,7 +303,7 @@ public class PrimitiveTypeTests2 {
 	public void test_printfFromDefaultLibWithMemAddr_2() throws Throwable {
 		/* Temporarily disable the default library loading on AIX till we figure out a way
 		 * around to handle the case as the official implementation in OpenJDK17 doesn't
-		 * help to load the static libray (libc.a).
+		 * help to load the static library (libc.a).
 		 */
 		if (!isAixOS) {
 			NativeSymbol functionSymbol = clinker.lookup("printf").get();

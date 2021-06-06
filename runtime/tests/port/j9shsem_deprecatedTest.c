@@ -48,7 +48,7 @@
 #define TEST7_NUM_CHILDPROCESSES 30
 
 /* The define FD_BIAS is defined in portpriv.h ... however we can't and shouldn't use this here ... so for now we redefine.
- * In the long run fstat will be implemented in the port librart for test 7 so we don't need this.
+ * In the long run fstat will be implemented in the port library for test 7 so we don't need this.
  */
 #ifdef J9ZOS390
 /*CMVC 99667: Introducing FD-biasing to fix MVS started-tasks and POSIX file-descriptors*/

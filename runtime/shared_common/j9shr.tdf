@@ -969,7 +969,7 @@ TraceExit=Trc_SHR_CM_existsCachedCodeForROMMethod_Exit2 Overhead=1 Level=6 Templ
 TraceEntry=Trc_SHR_OSC_Mmap_Constructor_Entry NoEnv Overhead=1 Level=1 Template="SH_OSCachemmap::SH_OSCachemmap: Entering cache name = %s, cache size = %zu, numSems = %zd, create flags = 0x%zx, verbose flags = 0x%zx"
 TraceExit=Trc_SHR_OSC_Mmap_Constructor_Exit NoEnv Overhead=1 Level=1 Template="SH_OSCachemmap::SH_OSCachemmap: Exiting"
 
-TraceEntry=Trc_SHR_OSC_Mmap_initialize_Entry NoEnv Overhead=1 Level=1 Template="SH_OSCachemmap::initialize: Entering portLibray = %p, memForConstructor = %p"
+TraceEntry=Trc_SHR_OSC_Mmap_initialize_Entry NoEnv Overhead=1 Level=1 Template="SH_OSCachemmap::initialize: Entering portLibrary = %p, memForConstructor = %p"
 TraceExit=Trc_SHR_OSC_Mmap_initialize_Exit NoEnv Overhead=1 Level=1 Template="SH_OSCachemmap::initialize: Exiting"
 
 TraceEntry=Trc_SHR_OSC_Mmap_finalise_Entry NoEnv Overhead=1 Level=1 Template="SH_OSCachemmap::finalise: Entering"
@@ -2370,7 +2370,7 @@ TraceExit=Trc_SHR_OSC_Virt_isCacheHeaderValid_Exit Obsolete NoEnv Overhead=1 Lev
 TraceEntry=Trc_SHR_OSC_Virt_Constructor_Entry Obsolete NoEnv Overhead=1 Level=5 Template="SH_OSCachevirt::SH_OSCachevirt: Function entered, cache name = %s, cache size = %zu, numSems = %zd, create flags = 0x%zx, verbose flags = 0x%zx"
 TraceExit=Trc_SHR_OSC_Virt_Constructor_Exit Obsolete NoEnv Overhead=1 Level=5 Template="SH_OSCachevirt::SH_OSCachevirt: Returning successfully"
 
-TraceEntry=Trc_SHR_OSC_Virt_initialize_Entry Obsolete NoEnv Overhead=1 Level=5 Template="SH_OSCachevirt::initialize: Function entered, portLibray = %p, memForConstructor = %p"
+TraceEntry=Trc_SHR_OSC_Virt_initialize_Entry Obsolete NoEnv Overhead=1 Level=5 Template="SH_OSCachevirt::initialize: Function entered, portLibrary = %p, memForConstructor = %p"
 TraceExit=Trc_SHR_OSC_Virt_initialize_Exit Obsolete NoEnv Overhead=1 Level=5 Template="SH_OSCachevirt::initialize: Returning successfully"
 
 TraceEntry=Trc_SHR_OSC_Virt_finalise_Entry Obsolete NoEnv Overhead=1 Level=5 Template="SH_OSCachevirt::finalise: Function entered"

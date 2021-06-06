@@ -410,7 +410,7 @@ public class PrimitiveTypeTests2 {
 	public void test_strlenFromDefaultLibWithMemAddr_2() throws Throwable {
 		/* Temporarily disable the default library loading on AIX till we figure out a way
 		 * around to handle the case as the official implementation in OpenJDK17 doesn't
-		 * help to load the static libray (libc.a).
+		 * help to load the static library (libc.a).
 		 */
 		if (!isAixOS) {
 			Addressable strlenSymbol = defaultLibLookup.lookup("strlen").get();
@@ -427,7 +427,7 @@ public class PrimitiveTypeTests2 {
 	public void test_strlenFromDefaultLibWithMemAddr_fromMemAddr_2() throws Throwable {
 		/* Temporarily disable the default library loading on AIX till we figure out a way
 		 * around to handle the case as the official implementation in OpenJDK17 doesn't
-		 * help to load the static libray (libc.a).
+		 * help to load the static library (libc.a).
 		 */
 		if (!isAixOS) {
 			Addressable strlenSymbol = defaultLibLookup.lookup("strlen").get();
@@ -445,7 +445,7 @@ public class PrimitiveTypeTests2 {
 	public void test_memoryAllocFreeFromDefaultLib_2() throws Throwable {
 		/* Temporarily disable the default library loading on AIX till we figure out a way
 		 * around to handle the case as the official implementation in OpenJDK17 doesn't
-		 * help to load the static libray (libc.a).
+		 * help to load the static library (libc.a).
 		 */
 		if (!isAixOS) {
 			Addressable allocSymbol = defaultLibLookup.lookup("malloc").get();
@@ -469,7 +469,7 @@ public class PrimitiveTypeTests2 {
 	public void test_memoryAllocFreeFromDefaultLib_fromMemAddr_2() throws Throwable {
 		/* Temporarily disable the default library loading on AIX till we figure out a way
 		 * around to handle the case as the official implementation in OpenJDK17 doesn't
-		 * help to load the static libray (libc.a).
+		 * help to load the static library (libc.a).
 		 */
 		if (!isAixOS) {
 			Addressable allocSymbol = defaultLibLookup.lookup("malloc").get();
@@ -495,7 +495,7 @@ public class PrimitiveTypeTests2 {
 	public void test_memoryAllocFreeFromCLinkerMethod_2() throws Throwable {
 		/* Temporarily disable the default library loading on AIX till we figure out a way
 		 * around to handle the case as the official implementation in OpenJDK17 doesn't
-		 * help to load the static libray (libc.a).
+		 * help to load the static library (libc.a).
 		 */
 		if (!isAixOS) {
 			MemoryAddress allocMemAddr = CLinker.allocateMemory(10L);
@@ -510,7 +510,7 @@ public class PrimitiveTypeTests2 {
 	public void test_printfFromDefaultLibWithMemAddr_2() throws Throwable {
 		/* Temporarily disable the default library loading on AIX till we figure out a way
 		 * around to handle the case as the official implementation in OpenJDK17 doesn't
-		 * help to load the static libray (libc.a).
+		 * help to load the static library (libc.a).
 		 */
 		if (!isAixOS) {
 			Addressable functionSymbol = defaultLibLookup.lookup("printf").get();
@@ -526,7 +526,7 @@ public class PrimitiveTypeTests2 {
 	public void test_printfFromDefaultLibWithMemAddr_fromMemAddr_2() throws Throwable {
 		/* Temporarily disable the default library loading on AIX till we figure out a way
 		 * around to handle the case as the official implementation in OpenJDK17 doesn't
-		 * help to load the static libray (libc.a).
+		 * help to load the static library (libc.a).
 		 */
 		if (!isAixOS) {
 			Addressable functionSymbol = defaultLibLookup.lookup("printf").get();

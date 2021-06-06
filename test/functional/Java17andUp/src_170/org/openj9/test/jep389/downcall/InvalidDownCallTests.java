@@ -360,7 +360,7 @@ public class InvalidDownCallTests {
 	public void test_invalidMemoryLayoutForMemoryAddress() throws Throwable {
 		/* Temporarily disable the default library loading on AIX till we figure out a way
 		 * around to handle the case as the official implementation in OpenJDK17 doesn't
-		 * help to load the static libray (libc.a).
+		 * help to load the static library (libc.a).
 		 */
 		if (isAixOS) {
 			throw new IllegalArgumentException("ValueLayout is expected");
@@ -386,7 +386,7 @@ public class InvalidDownCallTests {
 	public void test_mismatchedLayoutSizeForMemoryAddress() throws Throwable {
 		/* Temporarily disable the default library loading on AIX till we figure out a way
 		 * around to handle the case as the official implementation in OpenJDK17 doesn't
-		 * help to load the static libray (libc.a).
+		 * help to load the static library (libc.a).
 		 */
 		if (isAixOS) {
 			throw new IllegalArgumentException("Mismatched size ");

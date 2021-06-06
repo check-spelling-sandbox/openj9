@@ -533,7 +533,7 @@ typedef struct J9JITExceptionTable {
 	I_16 objectTempSlots;
 	U_16 prologuePushes;
 	I_16 tempOffset;
-	U_16 numExcptionRanges;
+	U_16 numExceptionRanges;
 	I_32 size;
 	UDATA flags;
 	UDATA registerSaveDescription;

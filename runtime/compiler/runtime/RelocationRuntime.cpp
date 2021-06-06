@@ -661,17 +661,17 @@ TR_RelocationRuntime::relocateAOTCodeAndData(U_8 *tempDataStart,
       // replace this with meta-data relocations above when we implement it
 
       /* Fix up inlined exception table ram method entries if wide */
-      if (((UDATA)_exceptionTable->numExcptionRanges) & J9_JIT_METADATA_WIDE_EXCEPTIONS)
+      if (((UDATA)_exceptionTable->numExceptionRanges) & J9_JIT_METADATA_WIDE_EXCEPTIONS)
          {
          // Highest 2 bits indicate wide exceptions and FSD, unset them and extract
          // the number of exception ranges
-         uint16_t numExcptionRanges =
-               _exceptionTable->numExcptionRanges
+         uint16_t numExceptionRanges =
+               _exceptionTable->numExceptionRanges
                & ~(J9_JIT_METADATA_WIDE_EXCEPTIONS | J9_JIT_METADATA_HAS_BYTECODE_PC);
 
          /* 4 byte exception range entries */
          J9JIT32BitExceptionTableEntry *excptEntry32 = (J9JIT32BitExceptionTableEntry *)(_exceptionTable + 1);
-         while (numExcptionRanges > 0)
+         while (numExceptionRanges > 0)
             {
             J9Method *actualMethod = _method;
             UDATA inlinedSiteIndex = (UDATA)excptEntry32->ramMethod;
@@ -686,7 +686,7 @@ TR_RelocationRuntime::relocateAOTCodeAndData(U_8 *tempDataStart,
             if (_comp->getOption(TR_FullSpeedDebug))
                excptEntry32 = (J9JIT32BitExceptionTableEntry *) ((uint8_t *) excptEntry32 + 4);
 
-            numExcptionRanges--;
+            numExceptionRanges--;
             }
          }
 

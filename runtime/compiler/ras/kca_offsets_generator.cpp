@@ -105,7 +105,7 @@ J9::Options::kcaOffsets(char *option, void *, TR::OptionTable *entry)
       fprintf( file, "#define METADATA_COLDSTART         (%" OMR_PRIuSIZE ")\n", offsetof(J9JITExceptionTable,startColdPC) );
       fprintf( file, "#define METADATA_COLDEND           (%" OMR_PRIuSIZE ")\n", offsetof(J9JITExceptionTable,endPC) );
       fprintf( file, "#define METADATA_FRAMESIZE         (%" OMR_PRIuSIZE ")\n", offsetof(J9JITExceptionTable,totalFrameSize) );
-      fprintf( file, "#define METADATA_NUM_EXC_RANGES    (%" OMR_PRIuSIZE ")\n", offsetof(J9JITExceptionTable,numExcptionRanges) );
+      fprintf( file, "#define METADATA_NUM_EXC_RANGES    (%" OMR_PRIuSIZE ")\n", offsetof(J9JITExceptionTable,numExceptionRanges) );
       fprintf( file, "#define METADATA_INLINEDCALLS      (%" OMR_PRIuSIZE ")\n", offsetof(J9JITExceptionTable,inlinedCalls) );
       fprintf( file, "#define METADATA_BODYINFO          (%" OMR_PRIuSIZE ")\n", offsetof(J9JITExceptionTable,bodyInfo) );
       fprintf( file, "#define METADATA_SIZE              (%" OMR_PRIuSIZE ")\n", sizeof(J9JITExceptionTable) );

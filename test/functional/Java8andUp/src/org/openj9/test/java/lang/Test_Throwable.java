@@ -1280,7 +1280,7 @@ public class Test_Throwable {
 			//	currently Throwable.initCause is called and throw exception message "Cause already initialized"
 			String eMsg = e.getMessage();
 			if (eMsg != null) {
-				AssertJUnit.assertFalse("Found unexpected excepton message: Cause already initialized",
+				AssertJUnit.assertFalse("Found unexpected exception message: Cause already initialized",
 						eMsg.equalsIgnoreCase("Cause already initialized"));
 			}
 			StackTraceElement[] eST = e.getStackTrace();

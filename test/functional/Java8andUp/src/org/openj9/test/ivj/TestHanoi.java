@@ -45,7 +45,7 @@ public class TestHanoi {
 			puzzle.solve();
 			logger.info("Puzzle solved!");
 		} catch (Exception e) {
-			Assert.fail("Unexpected exceptioun " + e, e);
+			Assert.fail("Unexpected exception " + e, e);
 		}
 	}
 

@@ -978,7 +978,7 @@ public void test_getField() {
 		//Correct
 		return;
 		}
-		AssertJUnit.assertTrue("Private field access failed to throw exceprion", false);
+		AssertJUnit.assertTrue("Private field access failed to throw exception", false);
 	} catch (Exception e) {
 		AssertJUnit.assertTrue("Exception getting fields: " + e.toString(), false);
 	}

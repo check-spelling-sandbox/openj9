@@ -79,7 +79,7 @@ public class JitMetadataFromPcCommand extends Command
 		CommandUtils.dbgPrint(out, "    I_16 parm.objectTempSlots = %s;\n", parm.objectTempSlots().getHexValue());
 		CommandUtils.dbgPrint(out, "    U_16 parm.prologuePushes = %s;\n", parm.prologuePushes().getHexValue());
 		CommandUtils.dbgPrint(out, "    I_16 parm.tempOffset = %s;\n", parm.tempOffset().getHexValue());
-		CommandUtils.dbgPrint(out, "    U_16 parm.numExcptionRanges = %s;\n", parm.numExcptionRanges().getHexValue());
+		CommandUtils.dbgPrint(out, "    U_16 parm.numExceptionRanges = %s;\n", parm.numExceptionRanges().getHexValue());
 		CommandUtils.dbgPrint(out, "    I_32 parm.size = %s;\n", parm.size().getHexValue());
 		CommandUtils.dbgPrint(out, "    UDATA parm.registerSaveDescription = %s;\n", parm.registerSaveDescription().getHexValue());
 		CommandUtils.dbgPrint(out, "    void* gcStackAtlas = !void %s \n", parm.gcStackAtlas().getHexAddress());

@@ -1275,7 +1275,7 @@ public class LookupAPITests_Unreflect {
 		
 		try {
 			level2InnerClassLookup.unreflect( innerclassMethod_Level1 );
-			System.out.println("IllegalAccessExcetpion NOT thrown while attempting to unreflect a protected inner class " +
+			System.out.println("IllegalAccessException NOT thrown while attempting to unreflect a protected inner class " +
 					"method from a different class");
 		} catch ( IllegalAccessException e ) {
 			illegalAccessException = true;

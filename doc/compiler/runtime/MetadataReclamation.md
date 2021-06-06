@@ -51,8 +51,8 @@ This design aims to reclaim the *J9JITExceptionTable* when a body gets reclaimed
 and replace it with a "stub" *J9JITExceptionTable* to describe a code stub.
 
 
-*J9JITExeptionTable* reclamation occurs when `jitReleaseCodeCollectMetaData` is
-called, the JIT tries to allocate a new *J9JITExeptionTable* without any
+*J9JITExceptionTable* reclamation occurs when `jitReleaseCodeCollectMetaData` is
+called, the JIT tries to allocate a new *J9JITExceptionTable* without any
 variable length section
 * If it fails, it reuses the existing *J9JITExceptionTable* and does nothing
 else.

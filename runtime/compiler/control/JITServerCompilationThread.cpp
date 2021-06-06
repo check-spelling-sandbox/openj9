@@ -521,7 +521,7 @@ TR::CompilationInfoPerThreadRemote::processEntry(TR_MethodToBeCompiled &entry, J
    // numActiveThreads is incremented after it waits for its turn to execute
    // and before the thread processes unloaded classes and CHTable init and update.
    // A stream exception could be thrown at any time such as reading the compilation
-   // request (numActiveThreads hasn't been incremented), or an exeption could be
+   // request (numActiveThreads hasn't been incremented), or an exception could be
    // thrown when a message such as MessageType::getUnloadedClassRangesAndCHTable
    // is sent to the client (numActiveThreads has been incremented).
    // hasIncNumActiveThreads is used to determine if decNumActiveThreads() should be

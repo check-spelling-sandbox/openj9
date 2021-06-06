@@ -1504,7 +1504,7 @@ createMethodMetaData(
    data->scalarTempSlots = methodSymbol->getScalarTempSlots();
    data->objectTempSlots = methodSymbol->getObjectTempSlots();
    data->prologuePushes = methodSymbol->getProloguePushSlots();
-   data->numExcptionRanges = numberOfExceptionRangesWithBits;
+   data->numExceptionRanges = numberOfExceptionRangesWithBits;
    data->tempOffset = comp->cg()->getStackAtlas()->getNumberOfPendingPushSlots();
    data->size = tableSize;
 

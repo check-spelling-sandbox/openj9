@@ -455,7 +455,7 @@ char              *traceFilename;          /* Trace file name                 */
 char              *generationChar;         /* Trace generation character      */
 char              *exceptFilename;         /* Exception trace file name       */
 char              *traceFormatSpec;        /* Printf template filespec        */
-UtThreadData      *exceptionContext;       /* UtThreadData for last excptn    */
+UtThreadData      *exceptionContext;       /* UtThreadData for last exception    */
 UtThreadData      *lastPrint;              /* UtThreadData for last print     */
 UtTraceListener   *traceListeners;         /* List of external listeners      */
 UtTraceBuffer     *traceGlobal;            /* Queue of all trace buffers      */

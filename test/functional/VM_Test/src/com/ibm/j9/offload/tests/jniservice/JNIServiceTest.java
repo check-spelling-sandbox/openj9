@@ -69,7 +69,7 @@ public class JNIServiceTest extends TestCase {
 			Object objectCreated = testClass.testAllocObject(TestNatives.testClass.class);
 			assertTrue("AllocObject did not created instance of right class", objectCreated.getClass() == TestNatives.testClass.class);
 		} catch (InstantiationException e){
-			fail("Unexpected exeption calling AllocObject"); 
+			fail("Unexpected exception calling AllocObject"); 
 		}
 		
 		try {

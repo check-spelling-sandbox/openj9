@@ -114,7 +114,7 @@
 			In addition to Variation 3 this test runs gc on resolving constant dynamic. This will test JIT to make sure it correctly prepares
 			GC map in code.
 		Variation 5:
-			This variation runs test under -XX:RecreateClassfileOnload option which means VM should first recreate an idential classfile with
+			This variation runs test under -XX:RecreateClassfileOnload option which means VM should first recreate an identical classfile with
 			classFileWriter and test with the recreated classfile. This should test if the classFileWriter is generating the correct classfile
 			output.
 	-->

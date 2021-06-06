@@ -2183,7 +2183,7 @@ TR::TreeTop* generateArraycopyFromSequentialLoads(TR::Compilation* comp, bool tr
       }
 
    /*
-    * This is an example transformation. 4 consective byte loads from a byte array are used to construct an int.
+    * This is an example transformation. 4 consecutive byte loads from a byte array are used to construct an int.
     * After the transformation a Little Endian int load is used to directly create the int.
     * Big Endian has support as well but the bytes in the original array need to be in the opposite order or a byteswap is inserted.
     *

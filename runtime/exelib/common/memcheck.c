@@ -356,7 +356,7 @@ memoryCheck_initialize(J9PortLibrary *j9portLibrary, char const *modeStr, char *
 	}
 
 	/* check to see if we have legal options */
-	/* noscan is only supported with callsite, callsitesmall, failat, and zero */
+	/* noscan is only supported with callsite, callsite_small, failat, and zero */
 	if (0 != (mode & J9_MCMODE_NO_SCAN)) {
 		/* disable full scan and pad blocks (which are set by default) */
 		mode = mode & ~(J9_MCMODE_PAD_BLOCKS | J9_MCMODE_FULL_SCANS);
@@ -364,7 +364,7 @@ memoryCheck_initialize(J9PortLibrary *j9portLibrary, char const *modeStr, char *
 		if (0 != (mode&(~J9_MCMODE_PRINT_CALLSITES_SMALL)&(~J9_MCMODE_PRINT_CALLSITES)&(~J9_MCMODE_ZERO)
 					&(~J9_MCMODE_NO_SCAN)&(~J9_MCMODE_SUB_ALLOCATOR)&(~J9_MCMODE_FAIL_AT))) {
 			/* TODO - this should be an NLS message */
-			portLib->tty_err_printf(portLib, "-Xcheck:memory:noscan is only supported with 'callsitesmall', 'callsite', 'failat' and 'zero'. Calling exit(3)\n", mode);
+			portLib->tty_err_printf(portLib, "-Xcheck:memory:noscan is only supported with 'callsite_small', 'callsite', 'failat' and 'zero'. Calling exit(3)\n", mode);
 			exit(3);		
 		}
 	}
@@ -515,7 +515,7 @@ static BOOLEAN memoryCheck_parseOption(OMRPortLibrary *portLib, char const *opti
 	size_t optLenTopDown = strlen(optTopDown);
 	char const *optStrCallPrint = "callsite=";
 	size_t optLenCallPrint = strlen(optStrCallPrint);
-	char const *optStrCallPrintSmall = "callsitesmall=";
+	char const *optStrCallPrintSmall = "callsite_small=";
 	size_t optLenCallPrintSmall = strlen(optStrCallPrintSmall);
 	char const *optStrZero = "zero";
 	size_t optLenZero = strlen(optStrZero);

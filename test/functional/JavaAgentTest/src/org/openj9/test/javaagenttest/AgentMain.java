@@ -60,7 +60,7 @@ public class AgentMain {
 				e.printStackTrace();
 			}
 		} catch (java.lang.NullPointerException ex) {
-			Assert.fail("Unexpected exception occored " + ex.getMessage(), ex);
+			Assert.fail("Unexpected exception occurred " + ex.getMessage(), ex);
 		}
 	}
 }

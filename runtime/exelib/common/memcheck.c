@@ -2745,10 +2745,10 @@ memoryCheck_print_summary(OMRPortLibrary *portLib, I_32 shutdownMode)
 	/* If an AVL Tree was created free the memory for the tree */
 	if(avl_tree) {
 		if (mode & J9_MCMODE_PRINT_CALLSITES) {
-			/* Report callsite informtation */
+			/* Report callsite information */
 			memoryCheck_dump_callSites(portLib, avl_tree);
 		} else if (mode & J9_MCMODE_PRINT_CALLSITES_SMALL) {
-			/* Report callsite informtation */
+			/* Report callsite information */
 			memoryCheck_dump_callSites_small(portLib, avl_tree);
 		}
 		/* Free the avl tree and nodes*/

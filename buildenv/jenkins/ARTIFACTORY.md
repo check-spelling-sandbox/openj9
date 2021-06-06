@@ -199,7 +199,7 @@ Log into OpenStack (https://openpower-controller.osuosl.org/auth/login/?next=/pr
 Click on `http` (if it is not created, create the rule)
 Create a new rule with these settings
 ```
-Custome TCP Rule
+Custom TCP Rule
 Ingres
 Port
 443

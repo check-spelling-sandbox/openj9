@@ -509,7 +509,7 @@ fillIterateAndRemove(J9PortLibrary *portLib, UDATA *passCount, UDATA *failCount)
 		/* verify that simplepool_numElements == 0 */
 		i = simplepool_numElements(resultData->simplePool);
 		if ( i != 0 ) {
-			j9tty_printf(PORTLIB, "Error: fillIterateAndRemove() - simplepool_numElements returned %u instead of 0 for simplePool # %u after iterating with simpelpool_do and attempting to remove all elements\n", i, poolCntr);
+			j9tty_printf(PORTLIB, "Error: fillIterateAndRemove() - simplepool_numElements returned %u instead of 0 for simplePool # %u after iterating with simplepool_do and attempting to remove all elements\n", i, poolCntr);
 			(*failCount)++;
 			return FALSE;
 		}
@@ -597,7 +597,7 @@ fillIterateAndRemove2(J9PortLibrary *portLib, UDATA *passCount, UDATA *failCount
 		/* verify that simplepool_numElements == 0 */
 		i = simplepool_numElements(resultData->simplePool);
 		if ( i != 0 ) {
-			j9tty_printf(PORTLIB, "Error: fillIterateAndRemove2() - simplepool_numElements returned %u instead of 0 for simplePool # %u after iterating with simpelpool_do and attempting to remove all elements\n", i, poolCntr);
+			j9tty_printf(PORTLIB, "Error: fillIterateAndRemove2() - simplepool_numElements returned %u instead of 0 for simplePool # %u after iterating with simplepool_do and attempting to remove all elements\n", i, poolCntr);
 			(*failCount)++;
 			return FALSE;
 		}

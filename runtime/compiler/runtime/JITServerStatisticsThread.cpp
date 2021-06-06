@@ -24,7 +24,7 @@
 #include "runtime/JITClientSession.hpp" // for purgeOldDataIfNeeded()
 #include "env/VMJ9.h" // for TR_JitPrivateConfig
 #include "env/VerboseLog.hpp"
-#include "control/CompilationRuntime.hpp" // for CompilatonInfo
+#include "control/CompilationRuntime.hpp" // for CompilationInfo
 #include "control/JITServerCompilationThread.hpp"
 
 JITServerStatisticsThread::JITServerStatisticsThread()

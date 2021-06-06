@@ -63,7 +63,7 @@ public class rc016 {
 	}
 
 	public String helpReflectMethodIDRedefineExtended() {
-		return "Tests whether invocation of reflected method is virtually dispatched after redfining the class in exteded mode";
+		return "Tests whether invocation of reflected method is virtually dispatched after redfining the class in extended mode";
 	}
 
 

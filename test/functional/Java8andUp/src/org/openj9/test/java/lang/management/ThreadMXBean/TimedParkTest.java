@@ -255,14 +255,14 @@ public class TimedParkTest extends ThreadMXBeanTestCase {
 		ExitStatus rc = ExitStatus.PASS;
 		long millis = 5 * 1000;
 		long nanos = millis * 1000 * 1000;
-		Object exitsig = new Object();
-		Thread th = new ParkWithTimeout("park 5s", nanos, exitsig);
+		Object exitSig = new Object();
+		Thread th = new ParkWithTimeout("park 5s", nanos, exitSig);
 		ThreadInfo ti;
 		ThreadInfo ti2;
 		ThreadInfo ti3;
 
 		try {
-			synchronized (exitsig) {
+			synchronized (exitSig) {
 				synchronized (th) {
 					th.start();
 
@@ -314,7 +314,7 @@ public class TimedParkTest extends ThreadMXBeanTestCase {
 					rc = ExitStatus.FAIL;
 				}
 
-				exitsig.wait();
+				exitSig.wait();
 			}
 			th.join();
 
@@ -340,14 +340,14 @@ public class TimedParkTest extends ThreadMXBeanTestCase {
 		logger.debug("== testParkUntil ==");
 
 		ExitStatus rc = ExitStatus.PASS;
-		Object exitsig = new Object();
+		Object exitSig = new Object();
 		long deltaMillis = 10 * 1000;
-		ParkUntil th = new ParkUntil("park 10s", deltaMillis, exitsig);
+		ParkUntil th = new ParkUntil("park 10s", deltaMillis, exitSig);
 		ThreadInfo ti;
 		ThreadInfo ti2;
 
 		try {
-			synchronized (exitsig) {
+			synchronized (exitSig) {
 				synchronized (th) {
 					th.start();
 					do {
@@ -376,7 +376,7 @@ public class TimedParkTest extends ThreadMXBeanTestCase {
 					/* check ThreadInfo after thread has finished parking */
 					ti2 = mxb.getThreadInfo(th.getId(), 8);
 				}
-				exitsig.wait();
+				exitSig.wait();
 			}
 			th.join();
 
@@ -572,12 +572,12 @@ public class TimedParkTest extends ThreadMXBeanTestCase {
 	class ParkWithTimeout extends Thread {
 		long nanos = 0;
 
-		Object exitsig;
+		Object exitSig;
 
-		ParkWithTimeout(String name, long nanos, Object exitsig) {
+		ParkWithTimeout(String name, long nanos, Object exitSig) {
 			super(name);
 			this.nanos = nanos;
-			this.exitsig = exitsig;
+			this.exitSig = exitSig;
 		}
 
 		public void run() {
@@ -585,8 +585,8 @@ public class TimedParkTest extends ThreadMXBeanTestCase {
 			synchronized (this) {
 				this.notify();
 			}
-			synchronized (exitsig) {
-				exitsig.notify();
+			synchronized (exitSig) {
+				exitSig.notify();
 			}
 		}
 	}
@@ -605,21 +605,21 @@ public class TimedParkTest extends ThreadMXBeanTestCase {
 		/** time when thread wakes from parkUntil() */
 		long wakeMillis = 0;
 
-		Object exitsig;
+		Object exitSig;
 
 		/**
 		 * @param name
 		 *            thread name
 		 * @param deltaMillis
 		 *            set the park deadline to (now + deltaMillis)
-		 * @param exitsig
+		 * @param exitSig
 		 *            monitor to hold the thread alive so that the main test
 		 *            thread can collect its {@link ThreadMXBean.ThreadInfo}
 		 */
-		ParkUntil(String name, long deltaMillis, Object exitsig) {
+		ParkUntil(String name, long deltaMillis, Object exitSig) {
 			super(name);
 			this.deltaMillis = deltaMillis;
-			this.exitsig = exitsig;
+			this.exitSig = exitSig;
 		}
 
 		public void run() {
@@ -629,8 +629,8 @@ public class TimedParkTest extends ThreadMXBeanTestCase {
 			synchronized (this) {
 				this.notify();
 			}
-			synchronized (exitsig) {
-				exitsig.notify();
+			synchronized (exitSig) {
+				exitSig.notify();
 			}
 		}
 

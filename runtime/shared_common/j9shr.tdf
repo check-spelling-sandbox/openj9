@@ -2820,7 +2820,7 @@ TraceEvent=Trc_SHR_CM_j9shr_dontNeedMetadata  Overhead=1 Level=10 Template="SH_C
 
 TraceEntry=Trc_SHR_CM_protectPartiallyFilledPages_Entry Overhead=1 Level=4 Template="SH_CacheMap::protectPartiallyFilledPages Entered"
 TraceException=Trc_SHR_CM_protectPartiallyFilledPages_FailedToAcquireWriteMutex Overhead=1 Level=1 Template="SH_CacheMap::protectPartiallyFilledPages Failed to acquire write mutex"
-TraceEvent=Trc_SHR_CM_protectPartiallyFilledPages_mprotectPartialPagesNotSet Overhead=1 Level=1 Template="SH_CacheMap::protectPartiallyFilledPages Runtimeflag for protecting partiall filled pages is not set"
+TraceEvent=Trc_SHR_CM_protectPartiallyFilledPages_mprotectPartialPagesNotSet Overhead=1 Level=1 Template="SH_CacheMap::protectPartiallyFilledPages Runtimeflag for protecting partially filled pages is not set"
 TraceExit=Trc_SHR_CM_protectPartiallyFilledPages_Exit Overhead=1 Level=4 Template="SH_CacheMap::protectPartiallyFilledPages Exit"
 
 TraceEntry=Trc_SHR_CC_changePartialPageProtection_Entry Overhead=1 Level=4 Template="CC changePartialPageProtection: Entering with addr=%p, readOnly=%u, phaseCheck=%u, jvmPhase=%zu"

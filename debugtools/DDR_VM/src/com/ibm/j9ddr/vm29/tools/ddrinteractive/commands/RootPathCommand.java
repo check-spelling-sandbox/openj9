@@ -250,7 +250,7 @@ public class RootPathCommand extends Command
 					out.println("verbose output disabled for rootpath command.  run !rootpathverbose to enable verbose output");
 					_verboseEnabled = false;
 				} else {
-					throw new UnsupportedOperationException("Unrecognized command passed to RoothPathCommand");
+					throw new UnsupportedOperationException("Unrecognized command passed to RootPathCommand");
 				}
 			}
 			break;

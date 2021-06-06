@@ -1287,7 +1287,7 @@ TraceEvent=Trc_PRT_virt_j9hypervisor_map_shared_object_goodMap Obsolete Group=j9
 TraceExit=Trc_PRT_virt_j9hypervisor_map_shared_object_Exit Obsolete Group=j9hypervisor Overhead=1 Level=5 NoEnv Template="Trc_PRT_virt_j9hypervisor_map_shared_object_Exit: Returning - allocation header=%p, handle=%p "
 
 TraceEntry=Trc_PRT_virt_j9hypervisor_unmap_shared_object_Entry Obsolete Group=j9hypervisor Overhead=1 Level=5 NoEnv Template="Trc_PRT_virt_j9hypervisor_unmap_shared_object_Entry: Function entered, handle=%x"
-TraceEvent=Trc_PRT_virt_j9hypervisor_unmap_shared_object_values Obsolete Group=j9hypervisor Overhead=1 Level=5 NoEnv Template="Trc_PRT_virt_j9hypervisor_unmap_shared_object_values: Unmaping cross guest shared object, Alloc pointer=%x, Size=%d"
+TraceEvent=Trc_PRT_virt_j9hypervisor_unmap_shared_object_values Obsolete Group=j9hypervisor Overhead=1 Level=5 NoEnv Template="Trc_PRT_virt_j9hypervisor_unmap_shared_object_values: Unmapping cross guest shared object, Alloc pointer=%x, Size=%d"
 TraceException=Trc_PRT_virt_j9hypervisor_unmap_shared_object_munmapFailed Obsolete Group=j9hypervisor Overhead=1 Level=1 NoEnv Template="Trc_PRT_virt_j9hypervisor_unmap_shared_object_munmapFailed: Failed unmapping cross guest shared object, errno = %d"
 TraceExit=Trc_PRT_virt_j9hypervisor_unmap_shared_object_Exit Obsolete Group=j9hypervisor Overhead=1 Level=5 NoEnv Template="Trc_PRT_virt_j9hypervisor_unmap_shared_object_Exit: Returning with error code = %d"
 

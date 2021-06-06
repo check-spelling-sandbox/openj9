@@ -1417,10 +1417,10 @@ findDirContainingFile(J9StringBuffer *buffer, char *paths, char pathSeparator, c
 }
 
 J9StringBuffer*
-findDirUplevelToDirContainingFile(J9StringBuffer *buffer, char *pathEnvar, char pathSeparator, char *fileInPath, int upLevels)
+findDirUplevelToDirContainingFile(J9StringBuffer *buffer, char *pathEnvVar, char pathSeparator, char *fileInPath, int upLevels)
 {
 	/* Get the list of paths */
-	char *paths = getenv(pathEnvar);
+	char *paths = getenv(pathEnvVar);
 	if (NULL == paths) {
 		return NULL;
 	}

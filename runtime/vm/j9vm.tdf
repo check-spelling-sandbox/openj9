@@ -657,7 +657,7 @@ TraceEvent=Trc_VM_classInitStateMachine_waitComplete Group=classinit Overhead=1 
 TraceEvent=Trc_VM_classInitStateMachine_waitFailed Group=classinit Overhead=1 Level=3 Template="wait complete - exception or async pending - exit"
 TraceEvent=Trc_VM_classInitStateMachine_clinitFailed Group=classinit Overhead=1 Level=3 Template="<clinit> failed - record the exception"
 TraceEvent=Trc_VM_classInitStateMachine_mtClinit Group=classinit Overhead=1 Level=3 Template="MT enabled - call initializeNonIsolatedClass"
-TraceEvent=Trc_VM_classInitStateMachine_prepareTenant Group=classinit Overhead=1 Level=3 Template="islolated class - prepare tenant slots"
+TraceEvent=Trc_VM_classInitStateMachine_prepareTenant Group=classinit Overhead=1 Level=3 Template="isolated class - prepare tenant slots"
 TraceEvent=Trc_VM_classInitStateMachine_packedArray Group=classinit Overhead=1 Level=3 Template="packed array class - initialize component type"
 TraceEvent=Trc_VM_classInitStateMachine_nestedPacked Group=classinit Overhead=1 Level=3 Template="initialize nested packed type"
 TraceEvent=Trc_VM_classInitStateMachine_initSuperclass Group=classinit Overhead=1 Level=3 Template="initialize superclass"

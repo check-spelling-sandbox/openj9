@@ -153,7 +153,7 @@ TraceExit=Trc_BCU_findLocallyDefinedClass_Failed Noenv Overhead=1 Level=3 Templa
 TraceExit=Trc_BCU_findLocallyDefinedClass_Exit Noenv Overhead=1 Level=3 Template="BCU j9bcutil_findLocallyDefinedClass: <found %s in: %s>"
 TraceEvent=Trc_BCU_findLocallyDefinedClass_UnknownCPE Noenv Overhead=1 Level=3 Template="BCU j9bcutil_findLocallyDefinedClass: <error initializing class path entry %s type %i>"
 TraceEvent=Trc_BCU_loadZip_vmZipCachePoolHookInterfaceInitFailure Noenv Overhead=1 Level=3 Template="BCU j9bcutil_loadZip: Failed to init vmZipCachePoolHookInterface"
-TraceEvent=Trc_BCU_loadZip_vmZipCachePoolHookInterfaceInitSuccess Noenv Overhead=1 Level=3 Template="BCU j9bcutil_loadZip: vmZipCachePoolHookInterface initiliazed"
+TraceEvent=Trc_BCU_loadZip_vmZipCachePoolHookInterfaceInitSuccess Noenv Overhead=1 Level=3 Template="BCU j9bcutil_loadZip: vmZipCachePoolHookInterface initialized"
 TraceException=Trc_BCU_loadJXE_loadJXEfileIOerror Noenv Overhead=1 Level=3 Template="BCU j9bcutil_loadJXE: %s: IVE_RELO_RC_FILE_ERROR"
 TraceException=Trc_BCU_loadJXE_loadJXEunknownDataError Noenv Overhead=1 Level=3 Template="BCU j9bcutil_loadJXE: %s: IVE_RELO_RC_UNKNOWN_DATA"
 TraceException=Trc_BCU_loadJXE_loadJXEimageHeaderCorruption Noenv Overhead=1 Level=3 Template="BCU j9bcutil_loadJXE: %s: ROM image header corruption"

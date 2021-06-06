@@ -170,7 +170,7 @@ public class CommandlineBuilder {
 					System.exit(0);
 				}
 			} else {
-				StringBuilder msg = new StringBuilder("No configuration or non-existant configuration specified (Configurations are case sensitive)");
+				StringBuilder msg = new StringBuilder("No configuration or nonexistent configuration specified (Configurations are case sensitive)");
 				msg.append("\nPREPROCESS WAS NOT SUCCESSFUL");
 				System.err.println(msg.toString());
 			}

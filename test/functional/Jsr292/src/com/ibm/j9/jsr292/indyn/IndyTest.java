@@ -190,7 +190,7 @@ public class IndyTest {
 		}
 		
 		if ( bootstrapMethodErrorThrown == false ) {
-			Assert.fail( "BootstrapMethodError not thrown when bootstrap method tries to create method handle for a non-existant method" );
+			Assert.fail( "BootstrapMethodError not thrown when bootstrap method tries to create method handle for a nonexistent method" );
 		}
 	}
 	

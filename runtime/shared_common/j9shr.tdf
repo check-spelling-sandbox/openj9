@@ -665,7 +665,7 @@ TraceEntry=Trc_SHR_CPI_writeToAddress_Entry Noenv Overhead=1 Level=1 Template="C
 TraceExit=Trc_SHR_CPI_writeToAddress_Exit Noenv Overhead=1 Level=1 Template="CPI writeToAddress: Done serializing ClasspathItem"
 
 TraceEntry=Trc_SHR_CPI_itemAt_Entry Noenv Overhead=1 Level=6 Template="CPI itemAt: Requesting item at %d"
-TraceExit=Trc_SHR_CPI_itemAt_ExitError Noenv Overhead=1 Level=6 Template="CPI itemAt: ERROR - Requested non-existant item - itemsAdded=%d"
+TraceExit=Trc_SHR_CPI_itemAt_ExitError Noenv Overhead=1 Level=6 Template="CPI itemAt: ERROR - Requested nonexistent item - itemsAdded=%d"
 TraceExit=Trc_SHR_CPI_itemAt_NotInitialized Noenv Overhead=1 Level=6 Template="CPI itemAt: ClasspathItem is not initialized yet. Returning null"
 TraceExit=Trc_SHR_CPI_itemAt_ExitLocal Noenv Overhead=1 Level=6 Template="CPI itemAt: Returning local entry"
 TraceExit=Trc_SHR_CPI_itemAt_ExitInCache Noenv Overhead=1 Level=6 Template="CPI itemAt: Returning entry in cache"

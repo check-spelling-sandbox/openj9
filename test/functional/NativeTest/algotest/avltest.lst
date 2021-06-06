@@ -46,7 +46,7 @@ Single rotate: left; including root; balanced; via deletion, {L10{R5@{=7@@}}{=15
 Single rotate: right; including root; balanced; via deletion, {R10{=7@@}{L20{=15@@}@}}, 20, 25, 10, 15, 7, -25, 0
 double rotation; height 3; left heavy, {L20{=7{=1@@}{=10@@}}{=25@@}}, 20, 25, 10, 1, 7, 0
 Single rotate: right; not root; no graft, {=30{=5{=1@@}{=10@@}}{L40{=35@@}@}}, 30, 10, 40, 5, 20, 35, 1, -20, 0
-Delete non-existant node, {R10@{=15@@}}, 10, 15, -20, 0
+Delete nonexistent node, {R10@{=15@@}}, 10, 15, -20, 0
 Delete node twice, {=10@@}, 10, 15, -15, -15, 0
 Delete node; no root , @, -15, 0
 single rotation test1, {L20{=5{=1@@}{=10@@}}{=40@@}}, 20, 10, 40, 5, 1, 0

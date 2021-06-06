@@ -917,7 +917,7 @@ j9process_fireAndForget(struct J9PortLibrary *portLibrary)
 	command[1] = "";
 	retVal = j9process_fireAndForgetImpl(portLibrary, command, commandLength);
 	if(retVal == TEST_PASS){
-		outputErrorMessage(PORTTEST_ERROR_ARGS, "fake_pltest is an inexisting process");
+		outputErrorMessage(PORTTEST_ERROR_ARGS, "fake_pltest is a nonexistent process");
 	}
 #endif
 	

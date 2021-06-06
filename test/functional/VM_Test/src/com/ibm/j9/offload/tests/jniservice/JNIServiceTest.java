@@ -2815,7 +2815,7 @@ public class JNIServiceTest extends TestCase {
 		
 		try {
 			testClass.testFindClass(2);
-			fail("Did not get exception looking up non-existant class");
+			fail("Did not get exception looking up nonexistent class");
 		} catch(NoClassDefFoundError e){
 			// this is the expected behavior
 		} catch (Exception e){

@@ -619,7 +619,7 @@ createNewMap(J9JSRIData * inlineBuffers)
 				for (j = 0; j < localVariableTableAttribute->localVariableTableLength; j++) {
 					inlineBuffers->map->reachable[localVariableTableAttribute->localVariableTable[j].startPC] |= J9JSRI_MAP_MARKED_END_BLOCK;
 					endPC = localVariableTableAttribute->localVariableTable[j].startPC + localVariableTableAttribute->localVariableTable[j].length;
-					/* reachable oversized by 1 to handle local variable end points one beyoind the code array */
+					/* reachable oversized by 1 to handle local variable end points one beyond the code array */
 					inlineBuffers->map->reachable[endPC] |= J9JSRI_MAP_MARKED_END_BLOCK;
 				}
 			}

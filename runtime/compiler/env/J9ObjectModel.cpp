@@ -553,7 +553,7 @@ J9::ObjectModel::offsetOfIndexableSizeField()
 bool
 J9::ObjectModel::isDiscontiguousArray(TR::Compilation* comp, uintptr_t objectPointer)
    {
-   TR_ASSERT(TR::Compiler->vm.hasAccess(comp), "isDicontiguousArray requires VM access");
+   TR_ASSERT(TR::Compiler->vm.hasAccess(comp), "isDiscontiguousArray requires VM access");
    TR_ASSERT(TR::Compiler->cls.isClassArray(comp, TR::Compiler->cls.objectClass(comp, (objectPointer))), "Object is not an array");
 
    int32_t length = *(int32_t*)(objectPointer + TR::Compiler->om.offsetOfContiguousArraySizeField());

@@ -256,7 +256,7 @@ public:
 
 #if defined(J9VM_GC_ENABLE_DOUBLE_MAP)
 	/**
-	 * Checks if arraylet falls into corner case of discontigous data
+	 * Checks if arraylet falls into corner case of discontiguous data
 	 * Arraylet possible cases:
 	 * 0: Empty arraylets, in this case the array is represented as
 	 *		an arraylet however it does not contain any data, but it
@@ -1055,7 +1055,7 @@ public:
 	/**
 	 * External fixup dataAddr API to update pointer of indexable objects.
 	 * Used in concurrent GCs in case of mutator and GC thread races.
-	 * Sets the dataAddr of either a contiguous or discomtiguous indexable
+	 * Sets the dataAddr of either a contiguous or discontiguous indexable
 	 * object.
 	 *
 	 * @param forwardedHeader Forwarded header of arrayPtr
@@ -1076,7 +1076,7 @@ public:
 	}
 	/**
 	 * External fixup dataAddr API to update pointer of indexable objects.
-	 * Sets the dataAddr of either a contiguous or discomtiguous indexable
+	 * Sets the dataAddr of either a contiguous or discontiguous indexable
 	 * object.
 	 *
 	 * @param arrayPtr      Pointer to the indexable object whose size is required

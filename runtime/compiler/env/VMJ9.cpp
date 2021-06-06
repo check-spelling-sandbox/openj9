@@ -2384,7 +2384,7 @@ TR_MarkHotField::markHotField(J9Class * clazz, bool rootClass)
       descriptorWord = descriptorPtr[0];
 
    // Check that the field is a member of the class.  At the time this code was written there were cases
-   // when value propation would call this function with the class being Object and the field being String.value
+   // when value propagation would call this function with the class being Object and the field being String.value
    //
    if (!(descriptorWord & _bitValue))
       return false;

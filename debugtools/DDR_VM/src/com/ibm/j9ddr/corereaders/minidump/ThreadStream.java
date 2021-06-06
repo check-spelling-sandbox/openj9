@@ -206,7 +206,7 @@ class ThreadStream extends LateInitializedStream
 			case PROCESSOR_ARCHITECTURE_INTEL:
 					return getValueOfNamedRegister(getRegisters(), "eip");
 			default:
-					String msg = "Unknow processor architecture: " + reader.getProcessorArchitecture();
+					String msg = "Unknown processor architecture: " + reader.getProcessorArchitecture();
 					throw new RuntimeException(msg);
 			}
 		}
@@ -218,7 +218,7 @@ class ThreadStream extends LateInitializedStream
 			case PROCESSOR_ARCHITECTURE_INTEL:
 					return getValueOfNamedRegister(getRegisters(), "ebp");
 			default:
-					String msg = "Unknow processor architecture: " + reader.getProcessorArchitecture();
+					String msg = "Unknown processor architecture: " + reader.getProcessorArchitecture();
 					throw new RuntimeException(msg);
 			}
 		}
@@ -230,7 +230,7 @@ class ThreadStream extends LateInitializedStream
 			case PROCESSOR_ARCHITECTURE_INTEL:
 					return getValueOfNamedRegister(getRegisters(), "esp");
 			default:
-					String msg = "Unknow processor architecture: " + reader.getProcessorArchitecture();
+					String msg = "Unknown processor architecture: " + reader.getProcessorArchitecture();
 					throw new RuntimeException(msg);
 			}
 		}

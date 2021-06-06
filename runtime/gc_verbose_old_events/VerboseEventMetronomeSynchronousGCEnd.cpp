@@ -53,7 +53,7 @@ MM_VerboseEventMetronomeSynchronousGCEnd::newInstance(MM_MetronomeSynchronousGCE
 void
 MM_VerboseEventMetronomeSynchronousGCEnd::initialize(MM_MetronomeSynchronousGCEndEvent *event)
 {
-	_reason = UNKOWN_REASON;
+	_reason = UNKNOWN_REASON;
 	_timestamp[0] = 0;
 }
 

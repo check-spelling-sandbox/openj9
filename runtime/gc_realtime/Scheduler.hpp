@@ -263,7 +263,7 @@ public:
 		_gcPhaseSet(GC_PHASE_IDLE),
 		_completeCurrentGCSynchronously(false),
 		_completeCurrentGCSynchronouslyMainThreadCopy(false),
-		_completeCurrentGCSynchronouslyReason(UNKOWN_REASON),
+		_completeCurrentGCSynchronouslyReason(UNKNOWN_REASON),
 		_completeCurrentGCSynchronouslyReasonParameter(0),
 		_mainThreadMonitor(NULL),
 		_osInterface(NULL),

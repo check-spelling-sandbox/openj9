@@ -147,7 +147,7 @@ private:
 	{
 		_syncGCTriggered = false;
 		_syncGCStartTime = 0;
-		_syncGCReason = UNKOWN_REASON;
+		_syncGCReason = UNKNOWN_REASON;
 		_syncGCReasonParameter = 0;
 		_syncGCExclusiveAccessTime = 0;
 		_syncGCStartHeapFree = 0;
@@ -231,7 +231,7 @@ protected:
 		_previousGCPhase(INACTIVE),
 		_syncGCTriggered(false),
 		_syncGCStartTime(0),
-		_syncGCReason(UNKOWN_REASON),
+		_syncGCReason(UNKNOWN_REASON),
 		_syncGCReasonParameter(0),
 		_syncGCExclusiveAccessTime(0),
 		_syncGCStartHeapFree(0),

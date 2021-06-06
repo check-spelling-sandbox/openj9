@@ -79,11 +79,11 @@ J9NLS_PORT_FILE_MEMORY_ALLOCATE_FAILURE.user_response=Increase the amount of mem
 #***********************/
 #* J9NLS_PORT_SL */
 #***********************/
-J9NLS_PORT_SL_UNKOWN_ERROR=\uacf5\uc720 \ub77c\uc774\ube0c\ub7ec\ub9ac\ub97c \ub85c\ub4dc\ud558\ub294 \uc911\uc5d0 \uc54c \uc218 \uc5c6\ub294 \uc624\ub958\uac00 \ubc1c\uc0dd\ud588\uc2b5\ub2c8\ub2e4.
+J9NLS_PORT_SL_UNKNOWN_ERROR=\uacf5\uc720 \ub77c\uc774\ube0c\ub7ec\ub9ac\ub97c \ub85c\ub4dc\ud558\ub294 \uc911\uc5d0 \uc54c \uc218 \uc5c6\ub294 \uc624\ub958\uac00 \ubc1c\uc0dd\ud588\uc2b5\ub2c8\ub2e4.
 # START NON-TRANSLATABLE
-J9NLS_PORT_SL_UNKOWN_ERROR.explanation=There was an unknown error loading a shared library
-J9NLS_PORT_SL_UNKOWN_ERROR.system_action=Process shuts down
-J9NLS_PORT_SL_UNKOWN_ERROR.user_response=This message will be accompanied by another message providing more detail. Verify that the shared library exists and contact your service representative if it does.
+J9NLS_PORT_SL_UNKNOWN_ERROR.explanation=There was an unknown error loading a shared library
+J9NLS_PORT_SL_UNKNOWN_ERROR.system_action=Process shuts down
+J9NLS_PORT_SL_UNKNOWN_ERROR.user_response=This message will be accompanied by another message providing more detail. Verify that the shared library exists and contact your service representative if it does.
 
 # END NON-TRANSLATABLE
 

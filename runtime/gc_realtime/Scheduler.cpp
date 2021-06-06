@@ -554,7 +554,7 @@ MM_Scheduler::reportStopGCIncrement(MM_EnvironmentRealtime *env, bool isCycleEnd
 				_completeCurrentGCSynchronouslyMainThreadCopy = false;
 			}
 			_completeCurrentGCSynchronously = false;
-			_completeCurrentGCSynchronouslyReason = UNKOWN_REASON;
+			_completeCurrentGCSynchronouslyReason = UNKNOWN_REASON;
 		}
 	}
 

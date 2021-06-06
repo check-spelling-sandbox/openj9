@@ -1090,7 +1090,7 @@ TR_SharedCacheRelocationRuntime::checkAOTHeaderFlags(const TR_AOTHeader *hdrInCa
       defaultMessage = generateError(J9NLS_RELOCATABLE_CODE_HEADER_END_SANITY_BIT_MANGLED, "AOT header validation failed: Trailing sanity bit mismatch.");
 
    if (defaultMessage)
-      generateError(J9NLS_RELOCATABLE_CODE_UNKNOWN_PROBLEM, "AOT header validation failed: Unkown problem with processor features.");
+      generateError(J9NLS_RELOCATABLE_CODE_UNKNOWN_PROBLEM, "AOT header validation failed: Unknown problem with processor features.");
    }
 
 // The method CS::Hash_FNV is being used to compute the hash value

@@ -2220,7 +2220,7 @@ TraceExit=Trc_SHR_ClassDebugData_protectMemory_Exit Obsolete Overhead=1 Level=4 
 TraceEvent=Trc_SHR_CC_startup_Init_UnprotectForWin32_Event Overhead=1 Level=4 Template="CC startup: Unprotecting the entire cache for win32 (cacheStart=%p, cacheEnd=%p, Size=%u)"
 
 TraceEntry=Trc_SHR_INIT_storeAttachedData_entry Overhead=1 Level=2 Template="INIT HOOK STORE DATA: Entering j9shr_storeAttachedData"
-TraceExit=Trc_SHR_INIT_storeAttachedData_exit_TypeUnknown Overhead=1 Level=2 Template="INIT HOOK STORE DATA: Exiting j9shr_storeAttachedData because of unknow type, type=%zu"
+TraceExit=Trc_SHR_INIT_storeAttachedData_exit_TypeUnknown Overhead=1 Level=2 Template="INIT HOOK STORE DATA: Exiting j9shr_storeAttachedData because of unknown type, type=%zu"
 TraceExit=Trc_SHR_INIT_storeAttachedData_exit_SccN Overhead=1 Level=2 Template="INIT HOOK STORE DATA: Exiting j9shr_storeAttachedData because shared class config is null"
 TraceExit=Trc_SHR_INIT_storeAttachedData_exit_localRTF Overhead=1 Level=2 Template="INIT HOOK STORE DATA: Exiting j9shr_storeAttachedData because of cache deny or cache initialization is incomplete, localRuntimeFlags=0x%llx"
 TraceExit=Trc_SHR_INIT_storeAttachedData_exit_CacheFull Overhead=1 Level=2 Template="INIT HOOK STORE DATA: Exiting j9shr_storeAttachedData as cache is full"

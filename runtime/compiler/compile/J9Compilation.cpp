@@ -399,7 +399,7 @@ J9::Compilation::findNullChkInfo(TR::Node *node)
          break;
          }
       }
-   TR_ASSERT(newNode, "checkcastAndNullChk node doesnt have a corresponding null chk bytecodeinfo\n");
+   TR_ASSERT(newNode, "checkcastAndNullChk node doesn't have a corresponding null chk bytecodeinfo\n");
    return newNode;
    }
 

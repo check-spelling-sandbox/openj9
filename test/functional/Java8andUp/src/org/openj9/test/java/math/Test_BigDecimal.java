@@ -265,7 +265,7 @@ public class Test_BigDecimal {
 		AssertJUnit.assertTrue("the double representation of bigDecimal is not correct",
 				bigDB.doubleValue() == 1.79E308 && bigDB.scale() == 0);
 		bigDB = new BigDecimal(-2.33E102);
-		AssertJUnit.assertTrue("the double representation of bigDecmal -2.33E102 is not correct",
+		AssertJUnit.assertTrue("the double representation of bigDecimal -2.33E102 is not correct",
 				bigDB.doubleValue() == -2.33E102 && bigDB.scale() == 0);
 		bigDB = new BigDecimal(Double.MAX_VALUE);
 		bigDB = bigDB.add(bigDB);

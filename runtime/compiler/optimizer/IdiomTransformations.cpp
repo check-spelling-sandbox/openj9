@@ -200,14 +200,14 @@ ChangeAlignmentOfRegion(TR_CISCTransformer *trans)
    // Find the last non-negligible node
    if (lastNode->isNegligible())
       {
-      TR_CISCNode *lastNonNegligble = NULL;
+      TR_CISCNode *lastNonNegligible = NULL;
       for (t = firstNode; ;t = t->getSucc(0))
          {
-         if (!t->isNegligible()) lastNonNegligble = t;
+         if (!t->isNegligible()) lastNonNegligible = t;
          if (t == lastNode) break;
          }
-      if (!lastNonNegligble) return changed;
-      lastNode = lastNonNegligble;
+      if (!lastNonNegligible) return changed;
+      lastNode = lastNonNegligible;
       }
 
    // Add nodes from firstNode to lastNode into the region r

@@ -33,7 +33,7 @@ import java.lang.ref.SoftReference;
  */
 public class DynamicConfigurationExtractor
 {
-	private static final String OUPUT_ARG = "-output";
+	private static final String OUTPUT_ARG = "-output";
 	private static final String RETURN_ARG = "-return";
 
 	private static final String KEY_HALF_EMPTY_CLASS_LOADERS = "halfEmptyClassLoaders";
@@ -88,7 +88,7 @@ public class DynamicConfigurationExtractor
 		{
 			String arg = args[i];
 
-			if (arg.equals(OUPUT_ARG))
+			if (arg.equals(OUTPUT_ARG))
 			{
 				outputKey = args[i+1];
 			}

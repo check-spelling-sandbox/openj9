@@ -1333,7 +1333,7 @@ TR::Register *J9::X86::AMD64::JNILinkage::buildDirectJNIDispatch(TR::Node *callN
 
    // Anchor the Java frame here to establish the top of the frame.  The reason this must occur here
    // is because the subsequent manual adjustments of the stack pointer confuse the vfp logic.
-   // This should be fixed in a subsquent revision of that code.
+   // This should be fixed in a subsequent revision of that code.
    //
    TR::X86VFPDedicateInstruction *vfpDedicateInstruction =
       generateVFPDedicateInstruction(machine()->getRealRegister(_JNIDispatchInfo.dedicatedFrameRegisterIndex), callNode, cg());

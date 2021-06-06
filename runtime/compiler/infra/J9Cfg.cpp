@@ -1675,7 +1675,7 @@ J9::CFG::getBranchCountersFromProfilingData(TR::Node *node, TR::Block *block, in
                   if( (*taken > *notTaken && fallthruBlockFreq > branchBlockFreq ) || (*notTaken > *taken && branchBlockFreq > fallthruBlockFreq) )
                      {
                      if (comp->getOption(TR_TraceBFGeneration))
-                        traceMsg(comp, "For block %d fallthru block %d and branch block %d  iprofiler says taken = %d notTaken = %d jitprofiler says currentBlockfreq = %d "
+                        traceMsg(comp, "For block %d fallthru block %d and branch block %d  iprofiler says taken = %d notTaken = %d jitprofiler says currentBlockFreq = %d "
                            "taken = %d notTaken = %d. Scaling iprofiler info.\n",block->getNumber(),fallThroughBlock->getNumber(),branchToBlock->getNumber(),*taken,*notTaken,
                             currentBlockFreq,branchBlockFreq,fallthruBlockFreq);
                      *taken =  ((*taken) * fallthruBlockFreq ) / (fallthruBlockFreq + branchBlockFreq) ;

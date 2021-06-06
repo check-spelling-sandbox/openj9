@@ -786,7 +786,7 @@ exit:
 
 
 /**
- * Verify that we don't get any errors decomitting memory
+ * Verify that we don't get any errors decommitting memory
  * 
  * Get all the page sizes and make sure we can allocate a memory chunk for each page size
  * 

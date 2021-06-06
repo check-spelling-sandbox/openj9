@@ -411,7 +411,7 @@ typedef struct J9SharedVerifyStringTable {
 } J9SharedCheckStringTable;
 
 
-/* Imples build flag J9VM_OPT_ZIP_SUPPORT - if we don't have this, we're stuffed */
+/* Implies build flag J9VM_OPT_ZIP_SUPPORT - if we don't have this, we're stuffed */
 void
 j9shr_hookZipLoadEvent(J9HookInterface** hook, UDATA eventNum, void* eventData, void* userData)
 {

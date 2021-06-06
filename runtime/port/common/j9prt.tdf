@@ -639,7 +639,7 @@ TraceExit=Trc_PRT_heap_port_j9heap_free_exit Obsolete Group=j9heap Overhead=1 Le
 
 TraceEntry=Trc_PRT_heap_port_j9heap_allocate_entry Obsolete Group=j9heap Overhead=1 Level=10 NoEnv Template="j9heap_allocate entry heapBase=%p, requestSize=%zu"
 TraceExit-Exception=Trc_PRT_heap_port_j9heap_allocate_heap_full_exit Obsolete Group=j9heap Overhead=10 Level=1 NoEnv Template="j9heap_allocate exit the entire heap is full"
-TraceExit-Exception=Trc_PRT_heap_port_j9heap_allocate_cannot_satisfy_reuqest_exit Obsolete Group=j9heap Overhead=1 Level=10 NoEnv Template="j9heap_allocate exit the requested size is too large"
+TraceExit-Exception=Trc_PRT_heap_port_j9heap_allocate_cannot_satisfy_request_exit Obsolete Group=j9heap Overhead=1 Level=10 NoEnv Template="j9heap_allocate exit the requested size is too large"
 TraceExit=Trc_PRT_heap_port_j9heap_allocate_exit Obsolete Group=j9heap Overhead=1 Level=10 NoEnv Template="j9heap_allocate exit returned memory = %p"
 
 TraceAssert=Assert_PRT_true noEnv Overhead=1 Level=1 Assert="(P1)"

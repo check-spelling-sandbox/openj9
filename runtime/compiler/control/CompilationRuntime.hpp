@@ -965,10 +965,10 @@ public:
    void incrementMethodQueueSize();
    int32_t getPeakMethodQueueSize() const { return _maxQueueSize; }
    int32_t getNumQueuedFirstTimeCompilations() const { return _numQueuedFirstTimeCompilations; }
-   void decNumGCRReqestsQueued(TR_MethodToBeCompiled *entry);
+   void decNumGCRRequestsQueued(TR_MethodToBeCompiled *entry);
    void incNumGCRRequestsQueued(TR_MethodToBeCompiled *entry);
    int32_t getNumGCRRequestsQueued() const { return _numGCRQueued; }
-   void decNumInvReqestsQueued(TR_MethodToBeCompiled *entry);
+   void decNumInvRequestsQueued(TR_MethodToBeCompiled *entry);
    void incNumInvRequestsQueued(TR_MethodToBeCompiled *entry);
    void updateCompQueueAccountingOnDequeue(TR_MethodToBeCompiled *entry);
    int32_t getNumCompThreadsActive() const { return _numCompThreadsActive; }

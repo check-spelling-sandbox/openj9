@@ -97,7 +97,7 @@ FFITypeHelpers::getStructFFITypeElements(char **layout, bool inPtr)
 		}
 		default: /* primitive */
 			if (!localInPtr) {
-				elements[nElements] = getPrimativeFFITypeElement(symb);
+				elements[nElements] = getPrimitiveFFITypeElement(symb);
 				nElements++;
 			} else if (!inPtr) {
 				localInPtr = false;

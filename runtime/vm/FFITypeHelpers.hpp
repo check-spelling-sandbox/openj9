@@ -154,7 +154,7 @@ doneGetCustomFFIType:
 				elementType = result;
 			}
 		} else {
-			elementType = getPrimativeFFITypeElement(**layout);
+			elementType = getPrimitiveFFITypeElement(**layout);
 		}
 
 		if (!inPtr && (elementType != NULL)) {
@@ -188,7 +188,7 @@ doneGetArrayFFIType:
 	 * @return The pointer to the ffi_type corresponding to the symbol
 	 */
 	VMINLINE ffi_type*
-	getPrimativeFFITypeElement(char symb)
+	getPrimitiveFFITypeElement(char symb)
 	{
 		ffi_type* typeFFI = NULL;
 

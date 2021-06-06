@@ -955,7 +955,6 @@ public final class MethodType implements Serializable
 		combinedParameters.addAll(classes);
 		return methodType(rtype, combinedParameters);
 	}
-
 	/*
 	 * Implements JSR 292 serialization spec.
 	 * Write the MethodType without writing the field names.

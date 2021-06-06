@@ -65,37 +65,37 @@ final class MethodTypeHelper {
 	 * @param primitiveClass The class to convert to a wrapper class
 	 * @return The wrapper class or the original class if no wrapper is available
 	 */
-	static Class<?> wrapPrimitive(Class<?> primitveClass) {
-		if (primitveClass.isPrimitive()) {
-			if (int.class == primitveClass) { //I
+	static Class<?> wrapPrimitive(Class<?> primitiveClass) {
+		if (primitiveClass.isPrimitive()) {
+			if (int.class == primitiveClass) { //I
 				return Integer.class;
 			}
-			if (long.class == primitveClass) { //J
+			if (long.class == primitiveClass) { //J
 				return Long.class;
 			}
-			if (byte.class == primitveClass) { //B
+			if (byte.class == primitiveClass) { //B
 				return Byte.class;
 			}
-			if (char.class == primitveClass) { //C
+			if (char.class == primitiveClass) { //C
 				return Character.class;
 			}
-			if (double.class == primitveClass) { //D
+			if (double.class == primitiveClass) { //D
 				return Double.class;
 			}
-			if (float.class == primitveClass) { //F
+			if (float.class == primitiveClass) { //F
 				return Float.class;
 			}
-			if (boolean.class == primitveClass) { //Z
+			if (boolean.class == primitiveClass) { //Z
 				return Boolean.class;
 			}
-			if (void.class == primitveClass) {
+			if (void.class == primitiveClass) {
 				return Void.class;
 			}
-			if (short.class == primitveClass) { //S
+			if (short.class == primitiveClass) { //S
 				return Short.class;
 			}
 		}
-		return primitveClass;
+		return primitiveClass;
 	}
 
 	/**

@@ -1678,7 +1678,7 @@ U_8 * getJitStackSlots(J9TR_MethodMetaData * metaData, void * stackMap)
    return cursor;
    }
 
-U_8 * getNextDecriptionCursor(J9TR_MethodMetaData * metaData, void * stackMap, U_8 * jitDescriptionCursor)
+U_8 * getNextDescriptionCursor(J9TR_MethodMetaData * metaData, void * stackMap, U_8 * jitDescriptionCursor)
    {
    return getJitStackSlots(metaData, stackMap); /* deprecated ... use getJitStackSlots */
    }

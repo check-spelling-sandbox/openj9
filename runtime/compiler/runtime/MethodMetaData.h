@@ -85,7 +85,7 @@
 #define getFirstInternalPtrMapPinningArrayCursor getFirstInternalPtrMapPinningArrayCursorVerbose
 #define getNextInternalPtrMapPinningArrayCursor getNextInternalPtrMapPinningArrayCursorVerbose
 #define getJitRegisterMap getJitRegisterMapVerbose
-#define getNextDecriptionCursor getNextDecriptionCursorVerbose
+#define getNextDescriptionCursor getNextDescriptionCursorVerbose
 #define getJitStackSlots getJitStackSlotsVerbose
 #define getJitLiveMonitors getJitLiveMonitorsVerbose
 #define getMonitorMask getMonitorMaskVerbose
@@ -299,7 +299,7 @@ U_8 * getNextInternalPtrMapPinningArrayCursor(U_8 * internalPtrMapPinningArrayCu
 UDATA hasFourByteOffset(J9TR_MethodMetaData * md);
 
 U_32 getJitRegisterMap(J9TR_MethodMetaData *md, void * stackMap);
-U_8 * getNextDecriptionCursor(J9TR_MethodMetaData * md, void * stackMap, U_8 * jitDescriptionCursor);
+U_8 * getNextDescriptionCursor(J9TR_MethodMetaData * md, void * stackMap, U_8 * jitDescriptionCursor);
 U_8 * getJitStackSlots(J9TR_MethodMetaData * metadata, void * stackMap);
 U_8 * getJitLiveMonitors(J9TR_MethodMetaData * metaData, void * stackMap);
 U_8 * getMonitorMask(J9TR_StackAtlas *, void * inlinedCallSite);

@@ -594,7 +594,7 @@ MM_VLHGCAccessBarrier::jniReleaseStringCritical(J9VMThread* vmThread, jstring st
 		} else
 #endif /* J9VM_GC_ENABLE_DOUBLE_MAP */
 		{
-			/* an array having discontiguous extents is another reason to force the critical section to be a copy in case double mapping is desabled */
+			/* an array having discontiguous extents is another reason to force the critical section to be a copy in case double mapping is disabled */
 			freeStringCritical(vmThread, functions, elems);
 		}
 	} else {

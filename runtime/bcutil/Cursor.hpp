@@ -71,7 +71,7 @@ public:
 		SOURCE_DEBUG_EXT_DATA,
 		// Optional file name information
 		OPTINFO_SOURCE_FILE_NAME,
-		// All the class modiers
+		// All the class modifiers
 		ROM_CLASS_MODIFIERS,
 		// Line number data for a rom class method
 		LINE_NUMBER_DATA,

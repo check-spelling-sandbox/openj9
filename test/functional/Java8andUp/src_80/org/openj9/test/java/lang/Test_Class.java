@@ -2879,7 +2879,7 @@ public class Test_Class {
 	static class Helper {
 		private static final String CLASS_SYNTHETIC = "SyntheticClass";
 		private static final String OUTER_CLASS = "OuterClass";
-		private static final String INNER_CLASS_DIFFERENT_MODIFIERS = "InnerClassDifferentModifers";
+		private static final String INNER_CLASS_DIFFERENT_MODIFIERS = "InnerClassDifferentModifiers";
 
 		static ClassLoader cl;
 		static Class<?> syntheticClass;
@@ -2952,7 +2952,7 @@ public class Test_Class {
 				}
 
 				/*
-				 * Returns an outer class for InnerClassDifferentModifers.
+				 * Returns an outer class for InnerClassDifferentModifiers.
 				 */
 				private byte[] getOuterClass() {
 					ClassWriter cw = new ClassWriter(ClassWriter.COMPUTE_FRAMES | ClassWriter.COMPUTE_MAXS);

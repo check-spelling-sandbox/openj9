@@ -1166,7 +1166,7 @@ uint32_t getInstanceOfOrCheckCastTopProfiledClass(TR::CodeGenerator *cg, TR::Nod
    TR_ValueProfileInfoManager *valueProfileInfo = TR_ValueProfileInfoManager::get(comp);
 
    // We do not have validation record to verify that relocated profiled class
-   // in the load run is instanceof castclass or not. So without that
+   // in the load run is instanceof castClass or not. So without that
    // verification, we could end up generating code where we have a defined
    // relationship between profiled class and cast class which could not be
    // true in load run and we could end up with incorrect execution in the

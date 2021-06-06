@@ -363,7 +363,7 @@ class AcmpTransformer: public TR::TreeLowering::Transformer
  * with the exception of any register (x, above) holding the result of the compare
  *
  * @param node is the current node in the tree walk
- * @param tt is the treetop at the root of the tree ancoring the current node
+ * @param tt is the treetop at the root of the tree anchoring the current node
  *
  */
 void
@@ -662,7 +662,7 @@ class NonNullableArrayNullStoreCheckTransformer: public TR::TreeLowering::Transf
  * non-null at this point in the compilation, the call is simply removed.
  *
  * @param node is the current node in the tree walk
- * @param tt is the treetop at the root of the tree ancoring the current node
+ * @param tt is the treetop at the root of the tree anchoring the current node
  */
 void
 NonNullableArrayNullStoreCheckTransformer::lower(TR::Node* const node, TR::TreeTop* const tt)

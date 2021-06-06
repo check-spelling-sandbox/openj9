@@ -172,7 +172,7 @@ public class TestDDRExtensionGeneral extends DDRExtTesterBase {
 	public void testRanges() {
 		if (SetupConfig.getDDRContext() != null
 				&& SetupConfig.getDDRInstance() == null) {
-			log.info("This test is not applicable in context of DDR pluigin for native debuggers");
+			log.info("This test is not applicable in context of DDR plugin for native debuggers");
 			return;
 		}
 		String output = exec(Constants.RANGES_CMD, new String[] {});
@@ -206,7 +206,7 @@ public class TestDDRExtensionGeneral extends DDRExtTesterBase {
 	public void testContext() {
 		if (SetupConfig.getDDRContext() != null
 				&& SetupConfig.getDDRInstance() == null) {
-			log.info("This test is not applicable in context of DDR pluigin for native debuggers");
+			log.info("This test is not applicable in context of DDR plugin for native debuggers");
 			return;
 		}
 		String output = exec(Constants.CONTEXT_CMD, new String[] {});

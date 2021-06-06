@@ -267,7 +267,7 @@ target_include_directories(j9vm_interface
 		${CMAKE_BINARY_DIR}
 )
 # Inject copyright file if building a shared library or executable
-set(is_executable "$<STREQUAL:$<TARGET_PROPERTY:TYPE>,EXECUTRABLE>")
+set(is_executable "$<STREQUAL:$<TARGET_PROPERTY:TYPE>,EXECUTABLE>")
 set(is_shlib "$<STREQUAL:$<TARGET_PROPERTY:TYPE>,SHARED_LIBRARY>")
 target_sources(j9vm_interface
 	INTERFACE

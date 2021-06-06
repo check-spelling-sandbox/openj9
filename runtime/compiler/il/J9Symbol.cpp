@@ -264,7 +264,7 @@ J9::Symbol::searchRecognizedField(TR::Compilation * comp, TR_ResolvedMethod * ow
              knownField->id != TR::Symbol::Java_lang_StringBuffer_value &&
              knownField->id != TR::Symbol::Java_lang_StringBuilder_value)
             {
-            TR_ASSERT(strncmp(knownField->sigStr, fieldSig, sigLen) == 0, "Signature is altered unexpectly!");
+            TR_ASSERT(strncmp(knownField->sigStr, fieldSig, sigLen) == 0, "Signature is altered unexpectedly!");
             }
 
          return knownField->id;

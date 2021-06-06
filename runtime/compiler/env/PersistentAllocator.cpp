@@ -414,7 +414,7 @@ PersistentAllocator::freeBlockToIndexedList(Block * blockToBeFreed)
       _freeBlocks[LARGE_BLOCK_LIST_INDEX] = reinterpret_cast<Block*>(block);
       if (block->next())
          block->next()->setPrevious(block);
-      // Adjust the interval bounderies
+      // Adjust the interval boundaries
       _startInterval[index] = block;
       if (!_endInterval[index])
          _endInterval[index] = block;
@@ -450,7 +450,7 @@ PersistentAllocator::freeBlockToIndexedList(Block * blockToBeFreed)
                TR_ASSERT(blockIterator->previous(), "blockIterator->previous() must exist because we already treated the case where we insert at the beginning of the list");
                blockIterator->previous()->setNext(block);
                blockIterator->setPrevious(block);
-               // Adjust the interval bounderies
+               // Adjust the interval boundaries
                if (_startInterval[index]->size() > block->size())
                   {
                   // block becomes the first entry in this interval

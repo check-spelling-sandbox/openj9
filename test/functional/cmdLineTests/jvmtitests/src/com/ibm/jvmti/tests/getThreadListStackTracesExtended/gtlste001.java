@@ -39,7 +39,7 @@ public class gtlste001
 
 	public String helpGetThreadListStackTracesExtended()
 	{
-		return "Check the jvmtiGetThreaListdStackTracesExtended API for at least 1 jitted frame after a relatively large number of iterations " +
+		return "Check the jvmtiGetThreadListStackTracesExtended API for at least 1 jitted frame after a relatively large number of iterations " +
 		       "Added as a unit test for J9 VM design ID 771";		
 	}			
 	

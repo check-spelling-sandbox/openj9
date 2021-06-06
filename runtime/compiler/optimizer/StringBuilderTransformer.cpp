@@ -222,7 +222,7 @@ TR::Node* TR_StringBuilderTransformer::findStringBuilderInit(TR::TreeTopIterator
          ++iter;
          }
 
-      // The call node should have the same bytecodeinfo as the related nodes and the additional reference should have
+      // The call node should have the same ByteCodeInfo as the related nodes and the additional reference should have
       // been found
       TR_ByteCodeInfo &callBCI = iter.currentNode()->getByteCodeInfo();
       if (!foundNewReference

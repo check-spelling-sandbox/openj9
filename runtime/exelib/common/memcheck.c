@@ -256,7 +256,7 @@ static void memoryCheck_update_callSites_free (J9MEMAVLTreeNode *node, UDATA byt
 static void memoryCheck_null_mem_free_memory(OMRPortLibrary *portLib, void *memoryPointer);
 static BOOLEAN memoryCheck_describe_freed_block(OMRPortLibrary *portLib, char const *operationName, J9MemoryCheckHeader *blockHeader);
 static void OMRNORETURN memoryCheck_abort(OMRPortLibrary *portLib);
-static UDATA memoryCheck_filter_nonVM_unFreed_Blcoks(OMRPortLibrary *portLib);
+static UDATA memoryCheck_filter_nonVM_unFreed_Blocks(OMRPortLibrary *portLib);
 static void memoryCheck_print_summary(OMRPortLibrary *portLib, I_32 shutdownMode);
 static void memoryCheck_shutdown_internal(OMRPortLibrary *portLib, I_32 shutdownMode);
 static void memoryCheck_print_stats(OMRPortLibrary *portLib);
@@ -2619,7 +2619,7 @@ memoryCheck_exit_shutdown_and_exit(OMRPortLibrary *portLib, I_32 exitCode)
  */
 
 static UDATA
-memoryCheck_filter_nonVM_unFreed_Blcoks(OMRPortLibrary *portLib)
+memoryCheck_filter_nonVM_unFreed_Blocks(OMRPortLibrary *portLib)
 {
 	UDATA result = 0;
 	J9MemoryCheckHeader *blockHeader, *previous, *next;
@@ -2718,7 +2718,7 @@ memoryCheck_print_summary(OMRPortLibrary *portLib, I_32 shutdownMode)
 	if ( (shutdownMode == J9_MEMCHECK_SHUTDOWN_NORMAL) && (mostRecentBlock)) {
 		UDATA unfreedBlocks = memStats.totalBlocksAllocated - memStats.totalBlocksFreed;
 		portLib->tty_printf(portLib, "WARNING: %d unfreed blocks remaining at shutdown!\n", unfreedBlocks);
-		ignored = memoryCheck_filter_nonVM_unFreed_Blcoks(portLib);
+		ignored = memoryCheck_filter_nonVM_unFreed_Blocks(portLib);
 		if (unfreedBlocks > J9_MEMCHECK_MAX_DUMP_LEAKED_BLOCKS) {
 			unfreedBlocks = J9_MEMCHECK_MAX_DUMP_LEAKED_BLOCKS;
 			portLib->tty_printf(portLib, "WARNING: only %d most recent leaked blocks will be described\n",

@@ -2853,7 +2853,7 @@ TR_MultipleCallTargetInliner::eliminateTailRecursion(
             block2->setFrequency(block->getFrequency());
          else
             {
-            if (guard->isHighProbablityProfiledGuard())
+            if (guard->isHighProbabilityProfiledGuard())
                block2->setFrequency(MAX_COLD_BLOCK_COUNT+1);
             else
                block2->setFrequency(TR::Block::getScaledSpecializedFrequency(block->getFrequency()));
@@ -7043,7 +7043,7 @@ TR_J9InlinerPolicy::suitableForRemat(TR::Compilation *comp, TR::Node *callNode, 
 
    bool suitableForRemat = true;
    TR_AddressInfo *valueInfo = static_cast<TR_AddressInfo*>(TR_ValueProfileInfoManager::getProfiledValueInfo(callNode, comp, AddressInfo));
-   if (guard->isHighProbablityProfiledGuard())
+   if (guard->isHighProbabilityProfiledGuard())
       {
       if (comp->getMethodHotness() <= warm && comp->getPersistentInfo()->getJitState() == STARTUP_STATE)
          {

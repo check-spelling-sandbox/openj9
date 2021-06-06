@@ -2105,7 +2105,7 @@ public class JavaPreprocessor {
 				return;
 			}
 			if (posIdentifierEnd <= posIdentifierStart) {
-				error("A macro identifer must be at least one character long");
+				error("A macro identifier must be at least one character long");
 				return;
 			}
 

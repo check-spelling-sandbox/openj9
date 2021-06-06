@@ -100,7 +100,7 @@ public class BoolPointer extends Pointer {
 	}
 
 	public BoolPointer untag() {
-		throw new UnsupportedOperationException("Use BoolPointer.untag(long mask) insetead");
+		throw new UnsupportedOperationException("Use BoolPointer.untag(long mask) instead");
 	}
 	
 	public BoolPointer untag(long mask) {

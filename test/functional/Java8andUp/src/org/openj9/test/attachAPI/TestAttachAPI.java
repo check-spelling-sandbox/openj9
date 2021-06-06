@@ -315,7 +315,7 @@ public class TestAttachAPI extends AttachApiTest {
 
 	/**
 	 * @testcase attprops01
-	 * @procedure launch a targt VM which sets agent properties, get the agent
+	 * @procedure launch a target VM which sets agent properties, get the agent
 	 *            properties
 	 * @expect correct value
 	 * @variations none

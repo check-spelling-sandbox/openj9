@@ -5106,7 +5106,7 @@ TR_J9ByteCodeIlGenerator::loadAuto(TR::DataType type, int32_t slot, bool isAdjun
 /**
  * @brief Returns whether a field ref in the constant pool resolved
  *
- * Importantly, when this function returns false, a ResolveCHK is guarenteed to be needed.
+ * Importantly, when this function returns false, a ResolveCHK is guaranteed to be needed.
  *
  * @param comp is a pointer the current compilation object
  * @param owningMethod is the method that owns the constant pool

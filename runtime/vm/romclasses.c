@@ -47,7 +47,7 @@
 #define LONG_CLASS_NAME "long"
 #define OBJECT_CLASS_NAME "java/lang/Object"
 #define CLONEABLE_CLASS_NAME "java/lang/Cloneable"
-#define SERIALIZEABLE_CLASS_NAME "java/io/Serializable"
+#define SERIALIZABLE_CLASS_NAME "java/io/Serializable"
 
 #define INLINE_UTF(name, value) struct { U_16 length; U_8 data[sizeof(value) - 1]; } name
 
@@ -64,7 +64,7 @@ typedef struct {
 	J9ROMArrayClass longArrayROMClass;
 	struct {
 		J9SRP cloneable;
-		J9SRP serializeable;
+		J9SRP serializable;
 	} interfaceClasses;
 	INLINE_UTF(objectArrayClassName, OBJECT_ARRAY_NAME);
 	INLINE_UTF(booleanArrayClassName, BOOLEAN_ARRAY_NAME);
@@ -77,7 +77,7 @@ typedef struct {
 	INLINE_UTF(longArrayClassName, LONG_ARRAY_NAME);
 	INLINE_UTF(objectClassName, OBJECT_CLASS_NAME);
 	INLINE_UTF(cloneableClassName, CLONEABLE_CLASS_NAME);
-	INLINE_UTF(serializeableClassName, SERIALIZEABLE_CLASS_NAME);
+	INLINE_UTF(serializableClassName, SERIALIZABLE_CLASS_NAME);
 } J9ArrayROMClasses;
 
 typedef struct {
@@ -174,13 +174,13 @@ initializeROMClasses(J9JavaVM *vm)
 	INIT_UTF8(arrayROMClasses.longArrayClassName, LONG_ARRAY_NAME);
 	INIT_UTF8(arrayROMClasses.objectClassName, OBJECT_CLASS_NAME);
 	INIT_UTF8(arrayROMClasses.cloneableClassName, CLONEABLE_CLASS_NAME);
-	INIT_UTF8(arrayROMClasses.serializeableClassName, SERIALIZEABLE_CLASS_NAME);
+	INIT_UTF8(arrayROMClasses.serializableClassName, SERIALIZABLE_CLASS_NAME);
 	/* Initialize the required fields in the array class ROM image header */
 	arrayROMClasses.header.romSize = sizeof(arrayROMClasses) - sizeof(arrayROMClasses.header);
 	NNSRP_SET(arrayROMClasses.header.firstClass, &arrayROMClasses.objectArrayROMClass);
 	/* Set up the SRPs in the interface array */
 	NNSRP_SET(arrayROMClasses.interfaceClasses.cloneable, &arrayROMClasses.cloneableClassName);
-	NNSRP_SET(arrayROMClasses.interfaceClasses.serializeable, &arrayROMClasses.serializeableClassName);
+	NNSRP_SET(arrayROMClasses.interfaceClasses.serializable, &arrayROMClasses.serializableClassName);
 	/* Initialize the array classes */
 	initializeArrayROMClass(&arrayROMClasses.objectArrayROMClass, (J9UTF8*)&arrayROMClasses.objectArrayClassName, (sizeof(U_32) == referenceSize) ? J9ArrayShape32Bit : J9ArrayShape64Bit, OBJECT_HEADER_SHAPE_POINTERS, sizeof(J9ROMArrayClass));
 	initializeArrayROMClass(&arrayROMClasses.booleanArrayROMClass, (J9UTF8*)&arrayROMClasses.booleanArrayClassName, J9ArrayShape8Bit, OBJECT_HEADER_SHAPE_BYTES, sizeof(J9ROMArrayClass));

@@ -42,7 +42,7 @@ public final class DeadlockCoreGenerator {
 	 *
 	 */	
 	
-	public static final long WAIT_TIME_MILIS = 5000; // 5 seconds.
+	public static final long WAIT_TIME_MILLIS = 5000; // 5 seconds.
 	
 	static 
 	{
@@ -84,7 +84,7 @@ public final class DeadlockCoreGenerator {
 		testThread.start();
 				
 		System.out.println("Waiting...");
-		Thread.sleep(WAIT_TIME_MILIS); // This is a guesstimate, but should be long enough to reach the desired state.
+		Thread.sleep(WAIT_TIME_MILLIS); // This is a guesstimate, but should be long enough to reach the desired state.
 		
 		try {
 			throw new HelperExceptionForCoreGeneration();

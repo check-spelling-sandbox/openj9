@@ -142,7 +142,7 @@ public class BuildInfoParser extends AbstractParser {
 			_buildInfo.setParentStream(_parsedValue);
 		} else if (qName.equalsIgnoreCase("streamSplitDate")) { //$NON-NLS-1$
 			try {
-				SimpleDateFormat formater = new SimpleDateFormat(BuildInfo.DATE_FORMAT_PATTERN);
+				SimpleDateFormat formatter = new SimpleDateFormat(BuildInfo.DATE_FORMAT_PATTERN);
 				StringBuilder sb = new StringBuilder();
 
 				// Switch sign since Etc/GMT notation is inversed GMT-0500 is TimeZone of ID = Etc/GMT+5
@@ -161,11 +161,11 @@ public class BuildInfoParser extends AbstractParser {
 
 				// Get generic timezone by ID
 				TimeZone tz = TimeZone.getTimeZone("Etc/GMT" + sb.toString()); //$NON-NLS-1$
-				// Set formater timezone to ensure date is not converted to local time
-				formater.setTimeZone(tz);
+				// Set formatter timezone to ensure date is not converted to local time
+				formatter.setTimeZone(tz);
 
 				// Create calendar date
-				Date date = formater.parse(_parsedValue);
+				Date date = formatter.parse(_parsedValue);
 				Calendar calendar = Calendar.getInstance(tz);
 				calendar.setTime(date);
 

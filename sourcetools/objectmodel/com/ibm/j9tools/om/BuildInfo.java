@@ -183,10 +183,10 @@ public class BuildInfo extends OMObject {
 	 * @return	the stream split date in XML format
 	 */
 	public String getXMLStreamSplitDate() {
-		// Create a formater with the proper timezone
-		SimpleDateFormat formater = new SimpleDateFormat(DATE_FORMAT_PATTERN);
-		formater.setTimeZone(streamSplitDate.getTimeZone());
-		StringBuilder sb = new StringBuilder(formater.format(streamSplitDate.getTime()));
+		// Create a formatter with the proper timezone
+		SimpleDateFormat formatter = new SimpleDateFormat(DATE_FORMAT_PATTERN);
+		formatter.setTimeZone(streamSplitDate.getTimeZone());
+		StringBuilder sb = new StringBuilder(formatter.format(streamSplitDate.getTime()));
 
 		// Format timezone as per the XML spec (+|-)zz:zz
 		int offset = streamSplitDate.getTimeZone().getRawOffset();

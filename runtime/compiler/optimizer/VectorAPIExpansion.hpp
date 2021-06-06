@@ -127,7 +127,7 @@ class TR_VectorAPIExpansion : public TR::Optimization
    static int32_t const BT_gt = 1;
 
   /** \brief
-   *  Is passed to methods handlers during analysis and transforamtion phases
+   *  Is passed to methods handlers during analysis and transformation phases
    *
    */
    enum handlerMode

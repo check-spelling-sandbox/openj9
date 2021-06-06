@@ -445,16 +445,16 @@ _cleanup:
  * Pass in the port library to do sysinfo tests
  *
  * @param[in] portLibrary The port library under test
- * @param[in] userSpecificedBoundCPUs Test argument - indicates whether the process is expected to have CPU restrictions.
+ * @param[in] userSpecifiedBoundCPUs Test argument - indicates whether the process is expected to have CPU restrictions.
  *
  * @return TEST_PASSED on success, TEST_FAILED on failure
  */
 int 
-j9sysinfo_numcpus_runTests(struct J9PortLibrary *portLibrary, UDATA userSpecificedBoundCPUs)
+j9sysinfo_numcpus_runTests(struct J9PortLibrary *portLibrary, UDATA userSpecifiedBoundCPUs)
 {
 	PORT_ACCESS_FROM_PORT(portLibrary);
 	int rc=TEST_PASS;
-	UDATA boundCPUs = userSpecificedBoundCPUs;
+	UDATA boundCPUs = userSpecifiedBoundCPUs;
 	
 	HEADING(portLibrary, "Number of CPUs Test");
 	

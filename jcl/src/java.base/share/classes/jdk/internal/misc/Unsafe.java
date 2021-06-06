@@ -6585,7 +6585,7 @@ public final class Unsafe {
 	/**
 	 * Returns the uninitialized default instance of the specified primitive class
 	 *
-	 * @param clz the specificed primitive class
+	 * @param clz the specified primitive class
 	 * @return the uninitialized default instance of clz
 	 */
 	public native <V> V uninitializedDefaultValue(Class<?> clz);

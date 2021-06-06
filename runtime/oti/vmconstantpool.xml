@@ -149,7 +149,7 @@ SPDX-License-Identifier: EPL-2.0 OR Apache-2.0 OR GPL-2.0 WITH Classpath-excepti
 
 <!--
 	NOTE: the resolution code in jclcinit.c only looks at the J9ROMClassRef->runtimeFlags to determine
-	whether or not to attempt the class load.  The flags sepcified on the fields are ignored.
+	whether or not to attempt the class load.  The flags specified on the fields are ignored.
 	The field flags are only documentation to help map which feature (as expressed on the class) requires
 	the particular field.
 
@@ -387,7 +387,7 @@ SPDX-License-Identifier: EPL-2.0 OR Apache-2.0 OR GPL-2.0 WITH Classpath-excepti
 
 <!--
 	NOTE: the resolution code in jclcinit.c only looks at the J9ROMClassRef->runtimeFlags to determine
-	whether or not to attempt the class load.  The flags sepcified on the methods are ignored.
+	whether or not to attempt the class load.  The flags specified on the methods are ignored.
 	The method flags are only documentation to help map which feature (as expressed on the class) requires
 	the particular method.
 

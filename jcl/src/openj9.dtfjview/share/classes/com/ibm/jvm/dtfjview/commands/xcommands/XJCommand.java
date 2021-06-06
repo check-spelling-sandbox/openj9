@@ -308,7 +308,7 @@ public class XJCommand extends XCommand {
 				"printed, followed by all objects of that class with their fields " +
 				"and values for each class of that name (if multiple classloaders " +
 				"have loaded classes with that name).\n\n" +
-				"If \"super\" is specifed with \"x/j < class_name>\" it is interpreted as a superclass name, and all instances of any subclasses will be printed.\n\n" +
+				"If \"super\" is specified with \"x/j < class_name>\" it is interpreted as a superclass name, and all instances of any subclasses will be printed.\n\n" +
 				"If given an object address (in hex), static fields for that object's " +
 				"class will not be printed; the other fields and values of that object " +
 				"will be printed along with its address.\n\n" +

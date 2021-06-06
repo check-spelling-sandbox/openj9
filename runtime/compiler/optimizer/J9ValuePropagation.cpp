@@ -3166,7 +3166,7 @@ J9::ValuePropagation::innerConstrainAcall(TR::Node *node)
                      }
                   }
                // Dynamic object clone is enabled only with FLAGS_IN_CLASS_SLOT enabled
-               // as currenty codegen anewarray evaluator only supports this case for object header initialization.
+               // as currently codegen anewarray evaluator only supports this case for object header initialization.
                // Even though all existing supported build config have this flag set, this ifdef serves as a safety precaution.
 #if defined(J9VM_INTERP_FLAGS_IN_CLASS_SLOT)
                else if ( constraint->getClassType()

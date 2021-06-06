@@ -144,7 +144,7 @@ JNI_GetCreatedJavaVMs(JavaVM **vmBuf, jsize bufLen, jsize *nVMs)
 	J9_CEL4RO64_ArgType argTypes[NUM_ARGS] = { CEL4RO64_type_uint32_ptr, CEL4RO64_type_jsize, CEL4RO64_type_uint32_ptr };
 
 	/* Allocate a temporary buffer to store the returned JavaVM64 instances.
-	 * Will copy the corresponding 31-bit JavaVM instanes to vmBuf if successful below.
+	 * Will copy the corresponding 31-bit JavaVM instances to vmBuf if successful below.
 	 */
 	uint64_t *tempJavaVM64Buffer = (uint64_t *)malloc(sizeof(jlong) * bufLen);
 	if (NULL == tempJavaVM64Buffer) {

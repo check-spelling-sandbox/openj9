@@ -29,7 +29,7 @@ of operations:
 1. The first instruction of the old body of *aJavaMethod* gets patched to branch
 to a runtime helper routine which:
   1. Patches the caller to call the new body
-  2. Tranfers control the new body in such a way that when it returns, it
+  2. Transfers control the new body in such a way that when it returns, it
   returns to the caller and not the helper routine
 2. All new invocations of *aJavaMethod* call the new body either directly or 
 because it got patched to do so

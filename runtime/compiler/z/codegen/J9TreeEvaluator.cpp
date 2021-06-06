@@ -7821,7 +7821,7 @@ void genInstanceOfDynamicCacheAndHelperCall(TR::Node *node, TR::CodeGenerator *c
        *       if (isCompressedRef || targetIs31Bit)
        *          LG cachedData, @(dynamicCacheReg, currentIndex)
        *          CLRJ castClass, cachedData, COND_BNE, gotoNextTest
-       *          RISBG cachaedData, cachedData, 32, 191, 32 // cachedData >> 32
+       *          RISBG cachedData, cachedData, 32, 191, 32 // cachedData >> 32
        *       else
        *          LPQ cachedObjectClass:cachedCastClass, @(dynamicCacheReg, currentIndex)
        *          CLGRJ castClass, cachedCastClass, COND_BNE, gotoNextTest

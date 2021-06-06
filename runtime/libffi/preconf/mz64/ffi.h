@@ -41,7 +41,7 @@
    e.g. for use by gij.  Routines are provided to emulate the raw API
    if the underlying platform doesn't allow faster implementation.
 
-   More details on the raw and cloure API can be found in:
+   More details on the raw and closure API can be found in:
 
    http://gcc.gnu.org/ml/java/1999-q3/msg00138.html
 

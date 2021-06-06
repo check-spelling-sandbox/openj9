@@ -535,7 +535,7 @@ class SymbolReferenceTable : public OMR::SymbolReferenceTableConnector
     * \brief Create a shadow symbol
     *
     * \param type is the type of the shadow
-    * \param isVolatile specifies whether the shadow corresponds to a vloatile field
+    * \param isVolatile specifies whether the shadow corresponds to a volatile field
     * \param isPrivate specifies whether the shadow corresponds to a private field
     * \param isFinal specifies whether the shadow corresponds to a final field
     * \param name is the name of the corresponding field

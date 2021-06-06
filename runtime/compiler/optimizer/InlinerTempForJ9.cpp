@@ -5175,7 +5175,7 @@ TR_J9JSR292InlinerPolicy::checkIfTargetInlineable(TR_CallTarget* target, TR_Call
    else if (comp->getCurrentMethod()->convertToMethod()->isArchetypeSpecimen() ||
             comp->getCurrentMethod()->getRecognizedMethod() == TR::java_lang_invoke_MethodHandle_invokeExact)
       {
-      //we are ourselves an archetype specimen, so we can inline other archetype speciman
+      //we are ourselves an archetype specimen, so we can inline other archetype specimen
       return InlineableTarget;
       }
    else if (comp->getMethodHotness() >= warm)

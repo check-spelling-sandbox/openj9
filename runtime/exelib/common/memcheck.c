@@ -2984,7 +2984,7 @@ memoryCheck_insertion_Compare(J9AVLTree *tree, J9AVLTreeNode *insertNode, J9AVLT
 
 
 /*
- * This function prints the deatils of the callSite
+ * This function prints the details of the callSite
  *
  * @param portLib OMRPortLibrary used to handle printing
  * @param node The node to print the stats for
@@ -3148,7 +3148,7 @@ memoryCheck_set_AVLTree_prevStats(J9MEMAVLTreeNode *node)
 
 
 /*
- * This function prints the deatils of the callSite.  This only 
+ * This function prints the details of the callSite.  This only 
  * prints the total/delta alloc/free information.
  *
  * @param portLib OMRPortLibrary used to handle printing

@@ -5145,7 +5145,7 @@ int32_t TR_EscapeAnalysis::sniffCall(TR::Node *callNode, TR::ResolvedMethodSymbo
        *
        * Once EA finishes the postEscapeAnalysis pass will clean-up all
        * eaEscapeHelper calls. Code will only remain in the taken side of the
-       * guard if candidtes were stack allocated and required heapficiation.
+       * guard if candidates were stack allocated and required heapficiation.
        *
        * This code transformation is protected with a perform transformation at
        * the site of tree manipulation at the end of this pass of EA.

@@ -399,7 +399,7 @@ typedef UDATA (* lookupNativeAddressCallback)(struct J9VMThread *currentThread, 
 				the new classData can be freed in similar fashion by another listener or the sender of this
 				event.
 				The current thread has VM access and owns the class table mutex.
-				If VM access is released, the listener is reponsible for keeping the protectionDomain object up-to-date.
+				If VM access is released, the listener is responsible for keeping the protectionDomain object up-to-date.
 		</description>
 		<struct>J9VMClassLoadHookEvent</struct>
 		<data type="struct J9VMThread*" name="currentThread" description="current thread" />

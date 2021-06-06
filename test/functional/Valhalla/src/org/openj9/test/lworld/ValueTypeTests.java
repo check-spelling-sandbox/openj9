@@ -2097,21 +2097,21 @@ public class ValueTypeTests {
 	}
 	
 	@Test(priority=5, invocationCount=2)
-	static public void testStaticFieldsWithObjectAlignmenDefaultValues() throws Throwable {
+	static public void testStaticFieldsWithObjectAlignmentDefaultValues() throws Throwable {
 		for (MethodHandle getterAndSetter[] : staticFieldsWithObjectAlignmentGenericGetterAndSetter) {
 			assertNotNull(getterAndSetter[0].invoke());
 		}
 	}
 	
 	@Test(priority=5, invocationCount=2)
-	static public void testStaticFieldsWithLongAlignmenDefaultValues() throws Throwable {
+	static public void testStaticFieldsWithLongAlignmentDefaultValues() throws Throwable {
 		for (MethodHandle getterAndSetter[] : staticFieldsWithLongAlignmentGenericGetterAndSetter) {
 			assertNotNull(getterAndSetter[0].invoke());
 		}
 	}
 	
 	@Test(priority=5, invocationCount=2)
-	static public void testStaticFieldsWithSingleAlignmenDefaultValues() throws Throwable {
+	static public void testStaticFieldsWithSingleAlignmentDefaultValues() throws Throwable {
 		for (MethodHandle getterAndSetter[] : staticFieldsWithSingleAlignmentGenericGetterAndSetter) {
 			assertNotNull(getterAndSetter[0].invoke());
 		}
@@ -2446,7 +2446,7 @@ public class ValueTypeTests {
 	 * Fails tests with array flattening enabled
 	 */
 	@Test(priority=5)
-	static public void testDefaultValueInAssortedValueWithLongAlignmenInstanceMultiArray() throws Throwable {
+	static public void testDefaultValueInAssortedValueWithLongAlignmentInstanceMultiArray() throws Throwable {
 		Object assortedValueWithLongAlignmentArray = Array.newInstance(assortedValueWithLongAlignmentClass, new int[]{genericArraySize, genericArraySize});
 		for (int i = 0; i < genericArraySize; i++) {
 			for (int j = 0; j < genericArraySize; j++) {

@@ -28,7 +28,7 @@ information for the AOT load infrastructure to validate all the
 assumptions made during the compile run, since the AOT load is
 performed in a different JVM environment than the one the compilation
 was performed in. For these reasons, the Compiler and the Shared Class
-Cache (SCC) has infrastructure to facilate these validations.
+Cache (SCC) has infrastructure to facilitate these validations.
 
 Without the Symbol Validation Manager, the validations involves either
 creating a relocation record to validate an Arbitrary Class, a Class

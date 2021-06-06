@@ -313,7 +313,7 @@ MM_IndexableObjectAllocationModel::layoutDiscontiguousArraylet(MM_EnvironmentBas
 
 #if defined(J9VM_GC_ENABLE_DOUBLE_MAP)
 #if !((defined(LINUX) || defined(OSX)) && defined(J9VM_ENV_DATA64))
-/* Double map is only supported on LINUX 64 bit Systems for now */
+/* Double map is only supported on Linux 64 bit Systems for now */
 #error "Platform not supported by Double Map API"
 #endif /* !((defined(LINUX) || defined(OSX)) && defined(J9VM_ENV_DATA64)) */
 void * 

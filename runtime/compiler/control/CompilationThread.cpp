@@ -5361,7 +5361,7 @@ TR_MethodToBeCompiled *TR::CompilationInfo::peekNextMethodToBeCompiled()
    else if (getLowPriorityCompQueue().hasLowPriorityRequest() && canProcessLowPriorityRequest())
       // These upgrade requests should not hinder the application too much.
       // If possible, we should decrease the priority of the compilation thread
-      // Note that on LINUX priorities do not work
+      // Note that on Linux priorities do not work
       // If we cannot lower the priority, we should wait for some idle time
       // or space compilations apart. if we return NULL here, the compilation
       // thread will go to sleep and we need a mechanism to wake it up

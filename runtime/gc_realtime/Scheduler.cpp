@@ -264,7 +264,7 @@ MM_Scheduler::isGCOn()
 }
 
 bool
-MM_Scheduler::continueGC(MM_EnvironmentRealtime *env, GCReason reason, uintptr_t resonParameter, OMR_VMThread *thr, bool doRequestExclusiveVMAccess)
+MM_Scheduler::continueGC(MM_EnvironmentRealtime *env, GCReason reason, uintptr_t reasonParameter, OMR_VMThread *thr, bool doRequestExclusiveVMAccess)
 {
 	uintptr_t gcPriority = 0;
 	bool didGC = true;
@@ -302,7 +302,7 @@ MM_Scheduler::continueGC(MM_EnvironmentRealtime *env, GCReason reason, uintptr_t
 		 	*/
 		 	_completeCurrentGCSynchronously = true;
 		 	_completeCurrentGCSynchronouslyReason = reason;
-		 	_completeCurrentGCSynchronouslyReasonParameter = resonParameter;
+		 	_completeCurrentGCSynchronouslyReasonParameter = reasonParameter;
 
 			break;
 		default: /* WORK_TRIGGER or TIME_TRIGGER */ {

@@ -154,7 +154,7 @@ public:
 	 *
 	 * @param env the calling thread environment
 	 * @param gcCode the GC code identifying the cause of the GC request
-	 * @param languageKickoffReason set this to the value to be reported as kickoff reson in verbose GC log
+	 * @param languageKickoffReason set this to the value to be reported as kickoff reason in verbose GC log
 	 * @see J9MMCONSTANT_* (j9nonbuilder.h) for gcCode values
 	 * @return true if Kickoff can be forced
 	 */

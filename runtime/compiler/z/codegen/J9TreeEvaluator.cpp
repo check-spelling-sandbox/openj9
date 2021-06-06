@@ -6526,7 +6526,7 @@ J9::Z::TreeEvaluator::ArrayStoreCHKEvaluator(TR::Node * node, TR::CodeGenerator 
    TR::Register * owningObjectRegVal = cg->allocateRegister();
    TR::Register * srcRegVal = cg->allocateRegister();
 
-   // dst reg is read-only when we don't do wrtbar or crdmark
+   // dst reg is read-only when we don't do wrtbar or CrdMrk
    // if destination node is the same as source node we also
    // need to create a copy because destination & source
    // are 1st and 2nd arguments to the call and as such

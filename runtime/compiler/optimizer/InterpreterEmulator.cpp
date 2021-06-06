@@ -686,7 +686,7 @@ InterpreterEmulator::maintainStack(TR_J9ByteCode bc)
          push(top());
          break;
       case J9BCldc:
-         maintainStackForldc(nextByte()); break;
+         maintainStackForLDC(nextByte()); break;
       default:
          static const bool assertfatal = feGetEnv("TR_AssertFatalForUnexpectedBytecodeInMethodHandleThunk") ? true: false;
          if (!assertfatal)
@@ -771,7 +771,7 @@ InterpreterEmulator::maintainStackForAstore(int slotIndex)
    }
 
 void
-InterpreterEmulator::maintainStackForldc(int32_t cpIndex)
+InterpreterEmulator::maintainStackForLDC(int32_t cpIndex)
    {
    TR::DataType type = method()->getLDCType(cpIndex);
    switch (type)

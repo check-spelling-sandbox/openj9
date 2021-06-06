@@ -703,13 +703,13 @@ j9gc_get_gc_cause(OMR_VMThread *omrVMthread)
 			ret = "excessive";
 			break;
 		case J9MMCONSTANT_IMPLICIT_GC_PERCOLATE :
-			ret = "collect due to scavanger percolate";
+			ret = "collect due to scavenger percolate";
 			break;
 		case J9MMCONSTANT_IMPLICIT_GC_PERCOLATE_UNLOADING_CLASSES :
-			ret = "collect due to scavanger percolate(unloading classes)";
+			ret = "collect due to scavenger percolate(unloading classes)";
 			break;
 		case J9MMCONSTANT_IMPLICIT_GC_PERCOLATE_AGGRESSIVE :
-			ret = "collect due to aggressive scavanger percolate";
+			ret = "collect due to aggressive scavenger percolate";
 			break;
 		case J9MMCONSTANT_EXPLICIT_GC_SYSTEM_GC :
 			ret = "Java code has requested a System.gc()";

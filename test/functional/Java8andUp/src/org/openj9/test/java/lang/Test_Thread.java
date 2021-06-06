@@ -738,7 +738,7 @@ public class Test_Thread {
 		try {
 			t = new ResSupThread(Thread.currentThread());
 			synchronized (t) {
-				ct = new Thread(t, "Interupt Test2");
+				ct = new Thread(t, "Interrupt Test2");
 				ct.start();
 				t.wait();
 			}
@@ -964,7 +964,7 @@ public class Test_Thread {
 		try {
 			Runnable r = new ResSupThread(null);
 			synchronized (r) {
-				st = new Thread(r, "Interupt Test5");
+				st = new Thread(r, "Interrupt Test5");
 				st.start();
 				r.wait();
 			}
@@ -1025,7 +1025,7 @@ public class Test_Thread {
 		ResSupThread t = new ResSupThread(Thread.currentThread());
 		try {
 			synchronized (t) {
-				ct = new Thread(t, "Interupt Test6");
+				ct = new Thread(t, "Interrupt Test6");
 				ct.start();
 				t.wait();
 			}

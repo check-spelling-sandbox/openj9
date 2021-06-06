@@ -25,7 +25,7 @@
 #include "fer001.h"
 
 static agentEnv * _agentEnv;
-static jmethodID interuptedMethodId = NULL;
+static jmethodID interruptedMethodId = NULL;
 static jint methodExitState = JNI_ERR;
 
 
@@ -83,8 +83,8 @@ setupFER(JNIEnv * jni_env, jvmtiEventMethodExit methodExitCB, jthread t, jclass 
 		return JNI_ERR;
 	}
 
-    interuptedMethodId = (*jni_env)->GetMethodID(jni_env, c, methodName, methodSig);
-    if (interuptedMethodId == NULL) {
+    interruptedMethodId = (*jni_env)->GetMethodID(jni_env, c, methodName, methodSig);
+    if (interruptedMethodId == NULL) {
     	error(env, err, "Failed to GetMethodID of the method to be ForcedEarlyReturn on");        
         return JNI_ERR;
     }
@@ -113,7 +113,7 @@ static void JNICALL
 testForceEarlyReturn_methodExitInt(jvmtiEnv *jvmti_env, JNIEnv* jni_env, jthread thread, jmethodID method, 
                                    jboolean was_popped_by_exception, jvalue return_value)
 {
-	if (method == interuptedMethodId) {
+	if (method == interruptedMethodId) {
 		if (return_value.i == 4096) {
 			methodExitState = JNI_OK;
 		}
@@ -161,7 +161,7 @@ testForceEarlyReturn_methodExitObject(jvmtiEnv *jvmti_env, JNIEnv* jni_env, jthr
 	
 	methodExitState = JNI_ERR;
 	
-	if (method == interuptedMethodId) {
+	if (method == interruptedMethodId) {
 		char * name;
 		
         jclass objClass = (*jni_env)->GetObjectClass(jni_env, return_value.l);

@@ -41,7 +41,7 @@ public class Log {
 	 * @throws SecurityException if there is a security manager and it doesn't allow the checks required to query the log settings
 	 */
 	public static String QueryOptions() {
-		checkLegacySecurityPermssion();
+		checkLegacySecurityPermission();
 		return QueryOptionsImpl();
 	}
 
@@ -56,25 +56,25 @@ public class Log {
 	 * @throws SecurityException if there is a security manager and it doesn't allow the checks required to change the log settings
 	 */
 	public static int SetOptions(String options) {
-		checkLegacySecurityPermssion();
+		checkLegacySecurityPermission();
 		Objects.requireNonNull(options, "options"); //$NON-NLS-1$
 		return SetOptionsImpl(options);
 	}
 
 	/**
 	 * Check the caller has permission to use the Log API for calls that existed pre-Java 8
-	 * when security was added. Public API added after Java 8 should call checkLogSecurityPermssion()
+	 * when security was added. Public API added after Java 8 should call checkLogSecurityPermission()
 	 * directly.
 	 * @throws SecurityException
 	 */
-    private static void checkLegacySecurityPermssion() throws SecurityException {
+    private static void checkLegacySecurityPermission() throws SecurityException {
     	if (!("false".equalsIgnoreCase(com.ibm.oti.vm.VM.getVMLangAccess()	//$NON-NLS-1$
     		.internalGetProperties().getProperty(LEGACY_LOG_PERMISSION_PROPERTY)))) {
-    		checkLogSecurityPermssion();
+    		checkLogSecurityPermission();
     	}
     }
 	
-    private static void checkLogSecurityPermssion() throws SecurityException {
+    private static void checkLogSecurityPermission() throws SecurityException {
 		/* Check the caller has LogPermission. */
 		@SuppressWarnings("removal")
 		SecurityManager manager = System.getSecurityManager();

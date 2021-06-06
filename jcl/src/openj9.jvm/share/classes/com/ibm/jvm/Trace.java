@@ -133,7 +133,7 @@ public final class Trace {
 	 *             checks required to change the dump settings
 	 */
 	public static int set(String cmd) {
-		checkLegacySecurityPermssion();
+		checkLegacySecurityPermission();
 		return setImpl(cmd);
 	}
 
@@ -149,7 +149,7 @@ public final class Trace {
 	 * @throws SecurityException if there is a security manager and it doesn't allow the checks required to take this dump
 	 */
 	public static void snap() {
-		checkLegacySecurityPermssion();
+		checkLegacySecurityPermission();
 		snapImpl();
 	}
 
@@ -163,7 +163,7 @@ public final class Trace {
 	 * @throws SecurityException if there is a security manager and it doesn't allow the checks required to take this dump
 	 */
 	public static void suspend() {
-		checkLegacySecurityPermssion();
+		checkLegacySecurityPermission();
 		suspendImpl();
 	}
 
@@ -177,7 +177,7 @@ public final class Trace {
 	 * @throws SecurityException if there is a security manager and it doesn't allow the checks required to take this dump
 	 */
 	public static void resume() {
-		checkLegacySecurityPermssion();
+		checkLegacySecurityPermission();
 		resumeImpl();
 	}
 
@@ -192,7 +192,7 @@ public final class Trace {
 	 * @throws SecurityException if there is a security manager and it doesn't allow the checks required to take this dump
 	 */
 	public static void suspendThis() {
-		checkLegacySecurityPermssion();
+		checkLegacySecurityPermission();
 		suspendThisImpl();
 	}
 
@@ -207,7 +207,7 @@ public final class Trace {
 	 * @throws SecurityException if there is a security manager and it doesn't allow the checks required to take this dump
 	 */
 	public static void resumeThis() {
-		checkLegacySecurityPermssion();
+		checkLegacySecurityPermission();
 		resumeThisImpl();
 	}
 
@@ -251,7 +251,7 @@ public final class Trace {
 	 */
 	public synchronized static int registerApplication(String name,
 			String[] templates) {
-		checkLegacySecurityPermssion();
+		checkLegacySecurityPermission();
 		Objects.requireNonNull(name, "name"); //$NON-NLS-1$
 		Objects.requireNonNull(templates, "templates"); //$NON-NLS-1$
 		return registerApplicationImpl(name, templates);
@@ -276,18 +276,18 @@ public final class Trace {
 
 	/**
 	 * Check the caller has permission to use the Trace API for calls that existed pre-Java 8
-	 * when security was added. Public API added after Java 8 should call checkTraceSecurityPermssion()
+	 * when security was added. Public API added after Java 8 should call checkTraceSecurityPermission()
 	 * directly.
 	 * @throws SecurityException
 	 */
-	private static void checkLegacySecurityPermssion() throws SecurityException {
+	private static void checkLegacySecurityPermission() throws SecurityException {
 		if (!("false".equalsIgnoreCase(com.ibm.oti.vm.VM.getVMLangAccess() //$NON-NLS-1$
 				.internalGetProperties().getProperty(LEGACY_TRACE_PERMISSION_PROPERTY)))) {
-			checkTraceSecurityPermssion();
+			checkTraceSecurityPermission();
 		}
 	}
 
-	private static void checkTraceSecurityPermssion() throws SecurityException {
+	private static void checkTraceSecurityPermission() throws SecurityException {
 		/* Check the caller has TracePermission. */
 		@SuppressWarnings("removal")
 		SecurityManager manager = System.getSecurityManager();
@@ -298,25 +298,25 @@ public final class Trace {
 
 	// Application trace tracing methods
 	public static void trace(int handle, int traceId) {
-		checkLegacySecurityPermssion();
+		checkLegacySecurityPermission();
 		traceImpl(handle, traceId);
 	}
 
 	public static void trace(int handle, int traceId, String s1) {
-		checkLegacySecurityPermssion();
+		checkLegacySecurityPermission();
 		Objects.requireNonNull(s1, "s1"); //$NON-NLS-1$
 		traceImpl(handle, traceId, s1);
 	}
 
 	public static void trace(int handle, int traceId, String s1, String s2) {
-		checkLegacySecurityPermssion();
+		checkLegacySecurityPermission();
 		Objects.requireNonNull(s1, "s1"); //$NON-NLS-1$
 		Objects.requireNonNull(s2, "s2"); //$NON-NLS-1$
 		traceImpl(handle, traceId, s1, s2);
 	}
 
 	public static void trace(int handle, int traceId, String s1, String s2, String s3) {
-		checkLegacySecurityPermssion();
+		checkLegacySecurityPermission();
 		Objects.requireNonNull(s1, "s1"); //$NON-NLS-1$
 		Objects.requireNonNull(s2, "s2"); //$NON-NLS-1$
 		Objects.requireNonNull(s3, "s3"); //$NON-NLS-1$
@@ -324,196 +324,196 @@ public final class Trace {
 	}
 
 	public static void trace(int handle, int traceId, String s1, Object o1) {
-		checkLegacySecurityPermssion();
+		checkLegacySecurityPermission();
 		Objects.requireNonNull(s1, "s1"); //$NON-NLS-1$
 		Objects.requireNonNull(o1, "o1"); //$NON-NLS-1$
 		traceImpl(handle, traceId, s1, o1);
 	}
 
 	public static void trace(int handle, int traceId, Object o1, String s1) {
-		checkLegacySecurityPermssion();
+		checkLegacySecurityPermission();
 		Objects.requireNonNull(o1, "o1"); //$NON-NLS-1$
 		Objects.requireNonNull(s1, "s1"); //$NON-NLS-1$
 		traceImpl(handle, traceId, o1, s1);
 	}
 
 	public static void trace(int handle, int traceId, String s1, int i1) {
-		checkLegacySecurityPermssion();
+		checkLegacySecurityPermission();
 		Objects.requireNonNull(s1, "s1"); //$NON-NLS-1$
 		traceImpl(handle, traceId, s1, i1);
 	}
 
 	public static void trace(int handle, int traceId, int i1, String s1) {
-		checkLegacySecurityPermssion();
+		checkLegacySecurityPermission();
 		Objects.requireNonNull(s1, "s1"); //$NON-NLS-1$
 		traceImpl(handle, traceId, i1, s1);
 	}
 
 	public static void trace(int handle, int traceId, String s1, long l1) {
-		checkLegacySecurityPermssion();
+		checkLegacySecurityPermission();
 		Objects.requireNonNull(s1, "s1"); //$NON-NLS-1$
 		traceImpl(handle, traceId, s1, l1);
 	}
 
 	public static void trace(int handle, int traceId, long l1, String s1) {
-		checkLegacySecurityPermssion();
+		checkLegacySecurityPermission();
 		Objects.requireNonNull(s1, "s1"); //$NON-NLS-1$
 		traceImpl(handle, traceId, l1, s1);
 	}
 
 	public static void trace(int handle, int traceId, String s1, byte b1) {
-		checkLegacySecurityPermssion();
+		checkLegacySecurityPermission();
 		Objects.requireNonNull(s1, "s1"); //$NON-NLS-1$
 		traceImpl(handle, traceId, s1, b1);
 	}
 
 	public static void trace(int handle, int traceId, byte b1, String s1) {
-		checkLegacySecurityPermssion();
+		checkLegacySecurityPermission();
 		Objects.requireNonNull(s1, "s1"); //$NON-NLS-1$
 		traceImpl(handle, traceId, b1, s1);
 	}
 
 	public static void trace(int handle, int traceId, String s1, char c1) {
-		checkLegacySecurityPermssion();
+		checkLegacySecurityPermission();
 		Objects.requireNonNull(s1, "s1"); //$NON-NLS-1$
 		traceImpl(handle, traceId, s1, c1);
 	}
 
 	public static void trace(int handle, int traceId, char c1, String s1) {
-		checkLegacySecurityPermssion();
+		checkLegacySecurityPermission();
 		Objects.requireNonNull(s1, "s1"); //$NON-NLS-1$
 		traceImpl(handle, traceId, c1, s1);
 	}
 
 	public static void trace(int handle, int traceId, String s1, float f1) {
-		checkLegacySecurityPermssion();
+		checkLegacySecurityPermission();
 		Objects.requireNonNull(s1, "s1"); //$NON-NLS-1$
 		traceImpl(handle, traceId, s1, f1);
 	}
 
 	public static void trace(int handle, int traceId, float f1, String s1) {
-		checkLegacySecurityPermssion();
+		checkLegacySecurityPermission();
 		Objects.requireNonNull(s1, "s1"); //$NON-NLS-1$
 		traceImpl(handle, traceId, f1, s1);
 	}
 
 	public static void trace(int handle, int traceId, String s1, double d1) {
-		checkLegacySecurityPermssion();
+		checkLegacySecurityPermission();
 		Objects.requireNonNull(s1, "s1"); //$NON-NLS-1$
 		traceImpl(handle, traceId, s1, d1);
 	}
 
 	public static void trace(int handle, int traceId, double d1, String s1) {
-		checkLegacySecurityPermssion();
+		checkLegacySecurityPermission();
 		Objects.requireNonNull(s1, "s1"); //$NON-NLS-1$
 		traceImpl(handle, traceId, d1, s1);
 	}
 
 	public static void trace(int handle, int traceId, Object o1) {
-		checkLegacySecurityPermssion();
+		checkLegacySecurityPermission();
 		Objects.requireNonNull(o1, "o1"); //$NON-NLS-1$
 		traceImpl(handle, traceId, o1);
 	}
 
 	public static void trace(int handle, int traceId, Object o1, Object o2) {
-		checkLegacySecurityPermssion();
+		checkLegacySecurityPermission();
 		Objects.requireNonNull(o1, "o1"); //$NON-NLS-1$
 		Objects.requireNonNull(o2, "o2"); //$NON-NLS-1$
 		traceImpl(handle, traceId, o1, o2);
 	}
 
 	public static void trace(int handle, int traceId, int i1) {
-		checkLegacySecurityPermssion();
+		checkLegacySecurityPermission();
 		traceImpl(handle, traceId, i1);
 	}
 
 	public static void trace(int handle, int traceId, int i1, int i2) {
-		checkLegacySecurityPermssion();
+		checkLegacySecurityPermission();
 		traceImpl(handle, traceId, i1, i2);
 	}
 
 	public static void trace(int handle, int traceId, int i1, int i2, int i3) {
-		checkLegacySecurityPermssion();
+		checkLegacySecurityPermission();
 		traceImpl(handle, traceId, i1, i2, i3);
 	}
 
 	public static void trace(int handle, int traceId, long l1) {
-		checkLegacySecurityPermssion();
+		checkLegacySecurityPermission();
 		traceImpl(handle, traceId, l1);
 	}
 
 	public static void trace(int handle, int traceId, long l1, long l2) {
-		checkLegacySecurityPermssion();
+		checkLegacySecurityPermission();
 		traceImpl(handle, traceId, l1, l2);
 	}
 
 	public static void trace(int handle, int traceId, long l1, long l2, long i3) {
-		checkLegacySecurityPermssion();
+		checkLegacySecurityPermission();
 		traceImpl(handle, traceId, l1, l2, i3);
 	}
 
 	public static void trace(int handle, int traceId, byte b1) {
-		checkLegacySecurityPermssion();
+		checkLegacySecurityPermission();
 		traceImpl(handle, traceId, b1);
 	}
 
 	public static void trace(int handle, int traceId, byte b1, byte b2) {
-		checkLegacySecurityPermssion();
+		checkLegacySecurityPermission();
 		traceImpl(handle, traceId, b1, b2);
 	}
 
 	public static void trace(int handle, int traceId, byte b1, byte b2, byte b3) {
-		checkLegacySecurityPermssion();
+		checkLegacySecurityPermission();
 		traceImpl(handle, traceId, b1, b2, b3);
 	}
 
 	public static void trace(int handle, int traceId, char c1) {
-		checkLegacySecurityPermssion();
+		checkLegacySecurityPermission();
 		traceImpl(handle, traceId, c1);
 	}
 
 	public static void trace(int handle, int traceId, char c1, char c2) {
-		checkLegacySecurityPermssion();
+		checkLegacySecurityPermission();
 		traceImpl(handle, traceId, c1, c2);
 	}
 
 	public static void trace(int handle, int traceId, char c1, char c2, char c3) {
-		checkLegacySecurityPermssion();
+		checkLegacySecurityPermission();
 		traceImpl(handle, traceId, c1, c2, c3);
 	}
 
 	public static void trace(int handle, int traceId, float f1) {
-		checkLegacySecurityPermssion();
+		checkLegacySecurityPermission();
 		traceImpl(handle, traceId, f1);
 	}
 
 	public static void trace(int handle, int traceId, float f1, float f2) {
-		checkLegacySecurityPermssion();
+		checkLegacySecurityPermission();
 		traceImpl(handle, traceId, f1, f2);
 	}
 
 	public static void trace(int handle, int traceId, float f1, float f2, float f3) {
-		checkLegacySecurityPermssion();
+		checkLegacySecurityPermission();
 		traceImpl(handle, traceId, f1, f2, f3);
 	}
 
 	public static void trace(int handle, int traceId, double d1) {
-		checkLegacySecurityPermssion();
+		checkLegacySecurityPermission();
 		traceImpl(handle, traceId, d1);
 	}
 
 	public static void trace(int handle, int traceId, double d1, double d2) {
-		checkLegacySecurityPermssion();
+		checkLegacySecurityPermission();
 		traceImpl(handle, traceId, d1, d2);
 	}
 
 	public static void trace(int handle, int traceId, double d1, double d2, double d3) {
-		checkLegacySecurityPermssion();
+		checkLegacySecurityPermission();
 		traceImpl(handle, traceId, d1, d2, d3);
 	}
 
 	public static void trace(int handle, int traceId, String s1, Object o1, String s2) {
-		checkLegacySecurityPermssion();
+		checkLegacySecurityPermission();
 		Objects.requireNonNull(s1, "s1"); //$NON-NLS-1$
 		Objects.requireNonNull(o1, "o1"); //$NON-NLS-1$
 		Objects.requireNonNull(s2, "s2"); //$NON-NLS-1$
@@ -521,7 +521,7 @@ public final class Trace {
 	}
 
 	public static void trace(int handle, int traceId, Object o1, String s1, Object o2) {
-		checkLegacySecurityPermssion();
+		checkLegacySecurityPermission();
 		Objects.requireNonNull(o1, "o1"); //$NON-NLS-1$
 		Objects.requireNonNull(s1, "s1"); //$NON-NLS-1$
 		Objects.requireNonNull(o2, "o2"); //$NON-NLS-1$
@@ -529,79 +529,79 @@ public final class Trace {
 	}
 
 	public static void trace(int handle, int traceId, String s1, int i1, String s2) {
-		checkLegacySecurityPermssion();
+		checkLegacySecurityPermission();
 		Objects.requireNonNull(s1, "s1"); //$NON-NLS-1$
 		Objects.requireNonNull(s2, "s2"); //$NON-NLS-1$
 		traceImpl(handle, traceId, s1, i1, s2);
 	}
 
 	public static void trace(int handle, int traceId, int i1, String s1, int i2) {
-		checkLegacySecurityPermssion();
+		checkLegacySecurityPermission();
 		Objects.requireNonNull(s1, "s1"); //$NON-NLS-1$
 		traceImpl(handle, traceId, i1, s1, i2);
 	}
 
 	public static void trace(int handle, int traceId, String s1, long l1, String s2) {
-		checkLegacySecurityPermssion();
+		checkLegacySecurityPermission();
 		Objects.requireNonNull(s1, "s1"); //$NON-NLS-1$
 		Objects.requireNonNull(s2, "s2"); //$NON-NLS-1$
 		traceImpl(handle, traceId, s1, l1, s2);
 	}
 
 	public static void trace(int handle, int traceId, long l1, String s1, long l2) {
-		checkLegacySecurityPermssion();
+		checkLegacySecurityPermission();
 		Objects.requireNonNull(s1, "s1"); //$NON-NLS-1$
 		traceImpl(handle, traceId, l1, s1, l2);
 	}
 
 	public static void trace(int handle, int traceId, String s1, byte b1, String s2) {
-		checkLegacySecurityPermssion();
+		checkLegacySecurityPermission();
 		Objects.requireNonNull(s1, "s1"); //$NON-NLS-1$
 		Objects.requireNonNull(s2, "s2"); //$NON-NLS-1$
 		traceImpl(handle, traceId, s1, b1, s2);
 	}
 
 	public static void trace(int handle, int traceId, byte b1, String s1, byte b2) {
-		checkLegacySecurityPermssion();
+		checkLegacySecurityPermission();
 		Objects.requireNonNull(s1, "s1"); //$NON-NLS-1$
 		traceImpl(handle, traceId, b1, s1, b2);
 	}
 
 	public static void trace(int handle, int traceId, String s1, char c1, String s2) {
-		checkLegacySecurityPermssion();
+		checkLegacySecurityPermission();
 		Objects.requireNonNull(s1, "s1"); //$NON-NLS-1$
 		Objects.requireNonNull(s2, "s2"); //$NON-NLS-1$
 		traceImpl(handle, traceId, s1, c1, s2);
 	}
 
 	public static void trace(int handle, int traceId, char c1, String s1, char c2) {
-		checkLegacySecurityPermssion();
+		checkLegacySecurityPermission();
 		Objects.requireNonNull(s1, "s1"); //$NON-NLS-1$
 		traceImpl(handle, traceId, c1, s1, c2);
 	}
 
 	public static void trace(int handle, int traceId, String s1, float f1, String s2) {
-		checkLegacySecurityPermssion();
+		checkLegacySecurityPermission();
 		Objects.requireNonNull(s1, "s1"); //$NON-NLS-1$
 		Objects.requireNonNull(s2, "s2"); //$NON-NLS-1$
 		traceImpl(handle, traceId, s1, f1, s2);
 	}
 
 	public static void trace(int handle, int traceId, float f1, String s1, float f2) {
-		checkLegacySecurityPermssion();
+		checkLegacySecurityPermission();
 		Objects.requireNonNull(s1, "s1"); //$NON-NLS-1$
 		traceImpl(handle, traceId, f1, s1, f2);
 	}
 
 	public static void trace(int handle, int traceId, String s1, double d1, String s2) {
-		checkLegacySecurityPermssion();
+		checkLegacySecurityPermission();
 		Objects.requireNonNull(s1, "s1"); //$NON-NLS-1$
 		Objects.requireNonNull(s2, "s2"); //$NON-NLS-1$
 		traceImpl(handle, traceId, s1, d1, s2);
 	}
 
 	public static void trace(int handle, int traceId, double d1, String s1, double d2) {
-		checkLegacySecurityPermssion();
+		checkLegacySecurityPermission();
 		Objects.requireNonNull(s1, "s1"); //$NON-NLS-1$
 		traceImpl(handle, traceId, d1, s1, d2);
 	}

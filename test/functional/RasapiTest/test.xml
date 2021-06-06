@@ -26,7 +26,7 @@ SPDX-License-Identifier: EPL-2.0 OR Apache-2.0 OR GPL-2.0 WITH Classpath-excepti
 			First it runs the suite of tests defined in DumpAPISuite
 			Then it runs the Security tests with security on and the permission not granted.
 			This should show the correct methods are blocked.
-			Then it adds com.ibm.jvm.DumpPermssion to the security file and reruns the Basic and
+			Then it adds com.ibm.jvm.DumpPermission to the security file and reruns the Basic and
 			QuerySetReset tests to confirm they work when security is on.
 		</echo>
 	</target>

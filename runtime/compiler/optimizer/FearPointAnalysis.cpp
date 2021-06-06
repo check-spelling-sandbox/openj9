@@ -36,7 +36,7 @@
 
 bool TR_FearPointAnalysis::virtualGuardsKillFear()
    {
-   static bool kill = (feGetEnv("TR_FPAnalaysisGuardsDoNotKillFear") == NULL);
+   static bool kill = (feGetEnv("TR_FPAnalysisGuardsDoNotKillFear") == NULL);
    return kill;
    }
 

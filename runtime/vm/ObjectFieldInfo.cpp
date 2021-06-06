@@ -195,7 +195,7 @@ ObjectFieldInfo::calculateTotalFieldsSizeAndBackfill()
 					_myBackfillOffset = 0;
 
 					/*
-					 * Backfill may not be end-aligned, ie 8, 16, 24btye types since  backfill begins on a (4 == offset %8) boundary.
+					 * Backfill may not be end-aligned, ie 8, 16, 24byte types since  backfill begins on a (4 == offset %8) boundary.
 					 * In these cases the types are post-padded so doubles can start on a 8byte boundary.
 					 */
 					if (isBackFillPostPadded()) {

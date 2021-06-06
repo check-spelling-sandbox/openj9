@@ -2032,7 +2032,7 @@ permittedSubclassesHelper(JNIEnv *env, jobject cls)
 		j9object_t nameString = NULL;
 
 		nameUTF = permittedSubclassesNameAtIndex(permittedSubclassesCountPtr, index);
-		/* Translates string to a dot seperated name which is needed in Java code to get the class object. */
+		/* Translates string to a dot separated name which is needed in Java code to get the class object. */
 		nameString = mmFuncs->j9gc_createJavaLangString(vmThread, J9UTF8_DATA(nameUTF), (U_32) J9UTF8_LENGTH(nameUTF), J9_STR_INTERN | J9_STR_XLAT);
 		if (NULL == nameString) {
 			goto heapoutofmemory;

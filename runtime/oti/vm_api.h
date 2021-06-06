@@ -360,7 +360,7 @@ internalCreateArrayClass(J9VMThread* vmThread, J9ROMArrayClass* romClass, J9Clas
  * @param classLoader J9ClassLoader to use
  * @param options load options such as J9_FINDCLASS_FLAG_EXISTING_ONLY
  * @param allowedBitsForClassName the allowed bits for a valid class name,
- *        including CLASSNAME_INVALID, CLASSNAME_VALID_NON_ARRARY, CLASSNAME_VALID_ARRARY, or CLASSNAME_VALID.
+ *        including CLASSNAME_INVALID, CLASSNAME_VALID_NON_ARRAY, CLASSNAME_VALID_ARRAY, or CLASSNAME_VALID.
  *
  * @return pointer to J9Class if success, NULL if fail
  *
@@ -3371,14 +3371,14 @@ getStringUTF8Length(J9VMThread *vmThread,j9object_t string);
 /**
 * Check incoming class name characters and return following values accordingly:
 * 	CLASSNAME_INVALID - if there is a character '/';
-* 	CLASSNAME_VALID_NON_ARRARY - if it is valid and there is no '[' at beginning of class name string;
-* 	CLASSNAME_VALID_ARRARY - if it is valid and there is a '[' at beginning of class name string.
+* 	CLASSNAME_VALID_NON_ARRAY - if it is valid and there is no '[' at beginning of class name string;
+* 	CLASSNAME_VALID_ARRAY - if it is valid and there is a '[' at beginning of class name string.
 *
 * @param[in] *vmThread current thread
 * @param[in] className the class name string
 * @param[in] classNameLength the length of the class name string
 * @param[in] allowedBitsForClassName the allowed bits for a valid class name,
-*            including CLASSNAME_VALID_NON_ARRARY, CLASSNAME_VALID_ARRARY, or CLASSNAME_VALID.
+*            including CLASSNAME_VALID_NON_ARRAY, CLASSNAME_VALID_ARRAY, or CLASSNAME_VALID.
 *
 * @return a UDATA to indicate the nature of incoming class name string, see descriptions above.
 */

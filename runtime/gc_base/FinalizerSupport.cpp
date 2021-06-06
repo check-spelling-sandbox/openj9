@@ -1051,7 +1051,7 @@ forceClassLoaderUnload(J9VMThread *vmThread, J9ClassLoader *classLoader)
 				tempNextThread->gcClassUnloadingThreadPrevious = vmThread;
 			}
 			
-			/* If we need to signal the finalzer to force unloading a class loader, do so */
+			/* If we need to signal the finalizer to force unloading a class loader, do so */
 			if ( setForceFlag ) {
 				omrthread_monitor_enter(jvm->finalizeMainMonitor);
 				jvm->finalizeMainFlags |= J9_FINALIZE_FLAGS_FORCE_CLASS_LOADER_UNLOAD;

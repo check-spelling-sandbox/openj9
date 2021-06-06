@@ -7797,7 +7797,7 @@ void genInstanceOfDynamicCacheAndHelperCall(TR::Node *node, TR::CodeGenerator *c
       generateS390LabelInstruction(cg, TR::InstOpCode::label, node, dynamicCacheTestLabel);
       generateRILInstruction(cg, TR::InstOpCode::LARL, node, dynamicCacheReg, dynamicCacheSnippet, 0);
 
-      // For 64-Bit Non Compressedrefs JVM, we need to make sure that we are loading associated class data from the cache that appears quadwoerd concurrent as observed by other CPUs/
+      // For 64-Bit Non Compressedrefs JVM, we need to make sure that we are loading associated class data from the cache that appears quadword concurrent as observed by other CPUs/
       // For that reason, We need to use LPQ/STPQ instruction which needs register pair.
       // In case of 64 bit compressedrefs or 31-Bit JVM, size of J9Class pointer takes 4 bytes only, so in loading associated class data from the cache we can use instruction for 8 byte load/store.
       if (cacheCastClass && isTarget64Bit && !isCompressedRef)

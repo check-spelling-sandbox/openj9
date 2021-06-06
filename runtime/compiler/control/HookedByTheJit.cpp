@@ -4604,7 +4604,7 @@ static void jitStateLogic(J9JITConfig * jitConfig, TR::CompilationInfo * compInf
             TR_BlockFrequencyInfo::enableJProfilingRecompilation();
             if (TR::Options::getCmdLineOptions()->isAnyVerboseOptionSet(TR_VerboseJitState, TR_VerboseCompileEnd, TR_VerbosePerformance))
                {
-               TR_VerboseLog::writeLineLocked(TR_Vlog_INFO,"Enabling JProfiling recompilation. recompileThrehold = %d loopRecompileThreshold = %d nestedLoopRecompileThreshold = %d", TR_JProfiling::recompileThreshold, TR_JProfiling::loopRecompileThreshold, TR_JProfiling::nestedLoopRecompileThreshold);
+               TR_VerboseLog::writeLineLocked(TR_Vlog_INFO,"Enabling JProfiling recompilation. recompileThreshold = %d loopRecompileThreshold = %d nestedLoopRecompileThreshold = %d", TR_JProfiling::recompileThreshold, TR_JProfiling::loopRecompileThreshold, TR_JProfiling::nestedLoopRecompileThreshold);
                }
             }
          }
@@ -4634,7 +4634,7 @@ static void jitStateLogic(J9JITConfig * jitConfig, TR::CompilationInfo * compInf
             }
           if (thresholdsLowered && TR::Options::getCmdLineOptions()->isAnyVerboseOptionSet(TR_VerboseJitState, TR_VerboseCompileEnd, TR_VerbosePerformance))
              {
-             TR_VerboseLog::writeLineLocked(TR_Vlog_INFO, "Lowering JProfiling recompilation thresholds. recompileThrehold = %d loopRecompileThreshold = %d nestedLoopRecompileThreshold = %d", TR_JProfiling::recompileThreshold, TR_JProfiling::loopRecompileThreshold, TR_JProfiling::nestedLoopRecompileThreshold);
+             TR_VerboseLog::writeLineLocked(TR_Vlog_INFO, "Lowering JProfiling recompilation thresholds. recompileThreshold = %d loopRecompileThreshold = %d nestedLoopRecompileThreshold = %d", TR_JProfiling::recompileThreshold, TR_JProfiling::loopRecompileThreshold, TR_JProfiling::nestedLoopRecompileThreshold);
              }
          }
       }*/
@@ -5359,7 +5359,7 @@ static void classLoadPhaseLogic(J9JITConfig * jitConfig, TR::CompilationInfo * c
 
             if (TR::Options::getCmdLineOptions()->getVerboseOption(TR_VerboseCLP))
                {
-               TR_VerboseLog::writeLineLocked(TR_Vlog_INFO,"ScalingFactor=%.2f Changed CLPTHreshold to %d secondaryCLPThreshold to %d", scalingFactor, newCLPThreshold, newSecondaryCLPThreshold);
+               TR_VerboseLog::writeLineLocked(TR_Vlog_INFO,"ScalingFactor=%.2f Changed CLPThreshold to %d secondaryCLPThreshold to %d", scalingFactor, newCLPThreshold, newSecondaryCLPThreshold);
                }
 
             // On some platforms, if application startup hints have NOT been used by now

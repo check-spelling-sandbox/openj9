@@ -47,13 +47,13 @@ public class DumpAllRamClassLinearCommand extends Command
 		
 	public void run(String command, String[] args, Context context, PrintStream out) throws DDRInteractiveCommandException 
 	{
-		long nestingThreashold;
+		long nestingThreshold;
 		if (args.length > 1) {
 			throw new DDRInteractiveCommandException("This debug extension accepts none or one argument!");
 		} else if (args.length == 1) {
-			nestingThreashold = Long.valueOf(args[0]);
+			nestingThreshold = Long.valueOf(args[0]);
 		} else {
-			nestingThreashold = 1;
+			nestingThreshold = 1;
 		}
 		
 		try {
@@ -74,7 +74,7 @@ public class DumpAllRamClassLinearCommand extends Command
 				out.println(String.format("RAM Class '%s' at %s", J9ClassHelper.getJavaName(classPointer), classPointer.getHexAddress()));
 				out.println();
 				ClassWalker classWalker = new RamClassWalker(classPointer, context);
-				new LinearDumper().gatherLayoutInfo(out, classWalker, nestingThreashold);
+				new LinearDumper().gatherLayoutInfo(out, classWalker, nestingThreshold);
 				out.println();
 			}
 			

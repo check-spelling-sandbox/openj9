@@ -46,7 +46,7 @@ private:
 	JNIEnv* _env;
 
 protected:
-	int _dumpThreshHold;
+	int _dumpThreshold;
 
 	/**
 	 * Default constructor

@@ -170,7 +170,7 @@ FUNCTION_START(ebbHandler)
    mtctr        r4
    laddr        r2, ALen(r2)
    bctrl
-   b            .LreturnEBBHanlder_0 
+   b            .LreturnEBBHandler_0 
 .LruntimeInstrumentation_0:
    ! Load the RI event handler EA and TOC, then call out to the main event handler
    mr           r3, r2
@@ -179,7 +179,7 @@ FUNCTION_START(ebbHandler)
    mtctr        r4
    laddr        r2, ALen(r2)
    bctrl
-.LreturnEBBHanlder_0:
+.LreturnEBBHandler_0:
    ! If the main event handler returns non-zero, something went wrong and we`ll leave
    ! the PMU frozen and disable EBBs
    cmplwi       cr0, r3, 0
@@ -355,7 +355,7 @@ FUNCTION_START(ebbHandler)
    mtctr        r4
 #endif /* LINUXPPC */
    bctrl
-   b            .LreturnEBBHanlder 
+   b            .LreturnEBBHandler 
 .LruntimeInstrumentation:
    ! Load the event handler EA (and TOC for 64-bit BE), then call out to the main event handler
 #ifdef LINUXPPC64
@@ -373,7 +373,7 @@ FUNCTION_START(ebbHandler)
    mtctr        r4
 #endif /* LINUXPPC */
    bctrl
-.LreturnEBBHanlder:
+.LreturnEBBHandler:
    ! If the main event handler returns non-zero, something went wrong and we`ll leave
    ! the PMU frozen and disable EBBs
    cmplwi        cr0, r3, 0

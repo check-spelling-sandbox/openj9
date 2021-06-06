@@ -54,7 +54,7 @@
 TR::Register *J9::X86::I386::JNILinkage::buildDirectDispatch(TR::Node *callNode, bool spillFPRegs)
    {
    TR::MethodSymbol* methodSymbol = callNode->getSymbolReference()->getSymbol()->castToMethodSymbol();
-   TR_ASSERT(methodSymbol->isJNI(), "J9::X86::I386::JNILinkage::buildDirectDispatch can't hanlde this case.\n");
+   TR_ASSERT(methodSymbol->isJNI(), "J9::X86::I386::JNILinkage::buildDirectDispatch can't handle this case.\n");
    return buildJNIDispatch(callNode);
    }
 

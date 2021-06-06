@@ -116,8 +116,8 @@ public class ProcessWaitFor extends TestCase {
 	}
 	
 	public void testWaitForAfterInterruptInSleep(){
-		Thread interruptor = new TimerThread(new Interrupter(Thread.currentThread(),null),1000);
-		interruptor.start();
+		Thread interrupter = new TimerThread(new Interrupter(Thread.currentThread(),null),1000);
+		interrupter.start();
 		
 		try{
 			Thread.sleep(20000);
@@ -129,7 +129,7 @@ public class ProcessWaitFor extends TestCase {
 		}
 		
 		try {
-			interruptor.join();
+			interrupter.join();
 		} catch (InterruptedException e){
 			fail("Main thread interrupted during join");
 		}
@@ -139,8 +139,8 @@ public class ProcessWaitFor extends TestCase {
 		
 	public void testWaitForAfterInterruptInWaitWithTimeout(){
 		
-		Thread interruptor = new TimerThread(new Interrupter(Thread.currentThread(),null),1000);
-		interruptor.start();
+		Thread interrupter = new TimerThread(new Interrupter(Thread.currentThread(),null),1000);
+		interrupter.start();
 		
 		try{
 			Object waitObject = new Object();
@@ -155,7 +155,7 @@ public class ProcessWaitFor extends TestCase {
 		}
 		
 		try {
-			interruptor.join();
+			interrupter.join();
 		} catch (InterruptedException e){
 			fail("Main thread interrupted during join");
 		}
@@ -166,10 +166,10 @@ public class ProcessWaitFor extends TestCase {
 	public void testWaitForAfterInterruptInWait(){
 		
 		Object waitObject = new Object();
-		Thread interruptor = new TimerThread(new Interrupter(Thread.currentThread(),waitObject),1000);
+		Thread interrupter = new TimerThread(new Interrupter(Thread.currentThread(),waitObject),1000);
 		try{
 			synchronized(waitObject){
-				interruptor.start();
+				interrupter.start();
 				waitObject.wait();
 			}
 			fail("Not interrupted in wait, should not be able to happen");
@@ -179,7 +179,7 @@ public class ProcessWaitFor extends TestCase {
 		}
 		
 		try {
-			interruptor.join();
+			interrupter.join();
 		} catch (InterruptedException e){
 			fail("Main thread interrupted during join");
 		}
@@ -189,8 +189,8 @@ public class ProcessWaitFor extends TestCase {
 	
 	public void testWaitForAfterInterrupted(){
 
-		Thread interruptor = new TimerThread(new Interrupter(Thread.currentThread(),null),1000);
-		interruptor.start();
+		Thread interrupter = new TimerThread(new Interrupter(Thread.currentThread(),null),1000);
+		interrupter.start();
 		
 		Thread me = Thread.currentThread();
 		count = 0;
@@ -204,7 +204,7 @@ public class ProcessWaitFor extends TestCase {
 		doWaitFor();
 		
 		try {
-			interruptor.join();
+			interrupter.join();
 		} catch (InterruptedException e){
 			fail("Main thread interrupted during join");
 		}
@@ -212,8 +212,8 @@ public class ProcessWaitFor extends TestCase {
 	
 	public void testWaitForAfterJoin(){
 		
-		Thread interruptor = new TimerThread(new Interrupter(Thread.currentThread(),null),1000);
-		interruptor.start();
+		Thread interrupter = new TimerThread(new Interrupter(Thread.currentThread(),null),1000);
+		interrupter.start();
 		
 		Thread me = Thread.currentThread();
 		count = 0;
@@ -224,7 +224,7 @@ public class ProcessWaitFor extends TestCase {
 		/* at this point we are interrupted so make sure that when we do the join we get an 
 		 * interrupted exception and the exception is cleared */
 		try {
-			interruptor.join();
+			interrupter.join();
 			/* it is possible that the interrupter thread will finish before we do the join in this case 
 			 * the test is invalid
 			 */
@@ -240,8 +240,8 @@ public class ProcessWaitFor extends TestCase {
 	
 	public void testWaitForAfterJoinWithTimeout(){
 		
-		Thread interruptor = new TimerThread(new Interrupter(Thread.currentThread(),null),1000);
-		interruptor.start();
+		Thread interrupter = new TimerThread(new Interrupter(Thread.currentThread(),null),1000);
+		interrupter.start();
 		
 		Thread me = Thread.currentThread();
 		count = 0;
@@ -252,7 +252,7 @@ public class ProcessWaitFor extends TestCase {
 		/* at this point we are interrupted so make sure that when we do the join we get an 
 		 * interrupted exception and the exception is cleared */
 		try {
-			interruptor.join(5000);
+			interrupter.join(5000);
 			/* it is possible that the interrupter thread will finish before we do the join in this case 
 			 * the test is invalid
 			 */
@@ -266,8 +266,8 @@ public class ProcessWaitFor extends TestCase {
 	}
 	
 	public void testWaitForAfterInterruptInSleepByStop(){
-		Thread interruptor = new TimerThread(new Stopper(Thread.currentThread(),null),1000);
-		interruptor.start();
+		Thread interrupter = new TimerThread(new Stopper(Thread.currentThread(),null),1000);
+		interrupter.start();
 		
 		try{
 			Thread.sleep(5000);
@@ -281,7 +281,7 @@ public class ProcessWaitFor extends TestCase {
 		}
 		
 		try {
-			interruptor.join();
+			interrupter.join();
 		} catch (InterruptedException e){
 			fail("Main thread interrupted during join");
 		}
@@ -294,8 +294,8 @@ public class ProcessWaitFor extends TestCase {
 //	we did not break the ability to break out of waitFor.
 //
 //	public void testInterruptedInWaitfor(){
-//		Thread interruptor = new TimerThread(new Interrupter(Thread.currentThread(),null),1000);
-//		interruptor.start();
+//		Thread interrupter = new TimerThread(new Interrupter(Thread.currentThread(),null),1000);
+//		interrupter.start();
 //		
 //		try { 
 //			Process newProcess = null;
@@ -318,7 +318,7 @@ public class ProcessWaitFor extends TestCase {
 //		}
 //		
 //		try {
-//			interruptor.join();
+//			interrupter.join();
 //		} catch (InterruptedException e){
 //			fail("Main thread interrupted during join");
 //		}

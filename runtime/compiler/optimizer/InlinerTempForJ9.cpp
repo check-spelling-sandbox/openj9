@@ -6225,7 +6225,7 @@ void TR_PrexArgInfo::propagateArgsFromCaller(TR::ResolvedMethodSymbol* methodSym
       return;
 
    //If we are dealing with indirect calls, temporary use callsite->_ecsPrexArgInfo->get(0)
-   //instead of argInfo->get(0). This is because the former might have been reseted by
+   //instead of argInfo->get(0). This is because the former might have been reset by
    //findCallSiteTarget if it couldn't use argInfo->get(0).
    //In such case, propagating argInfo->get(0) any longer might be incorrect.
 

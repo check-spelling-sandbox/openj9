@@ -304,7 +304,7 @@ srpHashTableNewInRegion(
  * @param hashEqualFn  	Mandatory hash compare function pointer
  * @param printFn   	Optional node-print function pointer
  * @param userData      Optional userData pointer to be passed to hashFn and hashEqualFn
- * @return				A reseted SRP hash table
+ * @return				A reset SRP hash table
  *
  */
 J9SRPHashTable *

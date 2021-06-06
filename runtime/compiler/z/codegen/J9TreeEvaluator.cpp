@@ -3186,7 +3186,7 @@ VMnonNullSrcWrtBarCardCheckEvaluator(
          TR_ASSERT(0, "card marking not supported for RT");
 
       //Either if cardmarking is not on at compile time or runtime, we want to test srcobj because if its not in nursery, then
-      //we don't have to do wrtbarrier
+      //we don't have to do write barrier
       if (!disableSrcObjCheck && !(!doCrdMrk && constantHeapCase))
          {
          generateRRInstruction(cg, opLoadReg, node, temp1Reg, srcReg);
@@ -3223,7 +3223,7 @@ VMnonNullSrcWrtBarCardCheckEvaluator(
 #endif
       TR::MemoryReference * tempMR = generateS390MemoryReference(owningObjectReg, offsetToAgeBits, cg);
       generateSIInstruction(cg, TR::InstOpCode::TM, node, tempMR, J9_OBJECT_HEADER_REMEMBERED_MASK_FOR_TEST);
-      //Need to do wrtbarrer, go to the snippet
+      //Need to do write barrier, go to the snippet
       generateS390BranchInstruction(cg, TR::InstOpCode::BRC, TR::InstOpCode::COND_MASK8, node, helperSnippetLabel);
       }
    else

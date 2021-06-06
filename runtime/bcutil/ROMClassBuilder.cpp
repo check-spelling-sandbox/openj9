@@ -937,7 +937,7 @@ ROMClassBuilder::checkDebugInfoCompression(J9ROMClass *romClass, ClassFileOracle
 									j9tty_printf(PORTLIB, "Error while uncompressing the debug information for the class %.*s\n", (UDATA)J9UTF8_LENGTH(name), J9UTF8_DATA(name));
 									j9tty_printf(PORTLIB, "lineNumber.lineNumber(%d) / lineNumberOriginal(%d)\n", lineNumber.lineNumber,lineNumberOriginal);
 									j9tty_printf(PORTLIB, "lineNumber.location(%d) / pcOriginal(%d)\n", lineNumber.location, pcOriginal);
-									Trc_BCU_Assert_ShouldNeverHappen_CompressionMissmatch();
+									Trc_BCU_Assert_ShouldNeverHappen_CompressionMismatch();
 								}
 							}
 						}
@@ -964,7 +964,7 @@ ROMClassBuilder::checkDebugInfoCompression(J9ROMClass *romClass, ClassFileOracle
 							localVariablesIterator.next()) {
 							if (NULL == values) {
 								/* The number of compressed variableTableInfo is less than the original number */
-								Trc_BCU_Assert_ShouldNeverHappen_CompressionMissmatch();
+								Trc_BCU_Assert_ShouldNeverHappen_CompressionMismatch();
 							}
 							Trc_BCU_Assert_Equals_Level1(values->startVisibility, localVariablesIterator.getStartPC());
 							Trc_BCU_Assert_Equals_Level1(values->visibilityLength, localVariablesIterator.getLength());

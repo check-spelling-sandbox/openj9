@@ -425,7 +425,7 @@ JITServerIProfiler::validateCachedIPEntry(TR_IPBytecodeHashTableEntry *entry, TR
          {
          // Do the bytecodes match?
          uintptr_t clientPC = clientData->pc + methodStart;
-         TR_ASSERT(clientPC == entry->getPC(), "Missmatch for bci: clientPC: (%u + %p)=%p   cachedPC: %p\n", clientData->pc, (void*)methodStart, (void*)clientPC, entry->getPC());
+         TR_ASSERT(clientPC == entry->getPC(), "Mismatch for bci: clientPC: (%u + %p)=%p   cachedPC: %p\n", clientData->pc, (void*)methodStart, (void*)clientPC, entry->getPC());
          // Do the type of entries match?
          switch (clientData->ID)
             {
@@ -446,7 +446,7 @@ JITServerIProfiler::validateCachedIPEntry(TR_IPBytecodeHashTableEntry *entry, TR
                   uint16_t diff1 = (takenCached > takenSent) ? takenCached - takenSent : takenSent - takenCached;
                   uint16_t diff2 = (notTakenCached > notTakenSent) ? notTakenCached - notTakenSent : notTakenSent - notTakenCached;
                   if (diff1 > 4 || diff2 > 4)
-                     fprintf(stderr, "Missmatch for branchInfo sentData=%x, foundData=%x\n", sentData, foundData);
+                     fprintf(stderr, "Mismatch for branchInfo sentData=%x, foundData=%x\n", sentData, foundData);
                   }
                }
                break;
@@ -470,7 +470,7 @@ JITServerIProfiler::validateCachedIPEntry(TR_IPBytecodeHashTableEntry *entry, TR
                uintptr_t domClazzServer = csInfoServer->getDominantClass(sumW, maxW);
                
                   if(!fromPerCompilationCache && isCompiledWhenProfiling)
-                     TR_ASSERT(domClazzClient == domClazzServer, "Missmatch dominant class client=%p server=%p", (void*)domClazzClient, (void*)domClazzServer);            
+                     TR_ASSERT(domClazzClient == domClazzServer, "Mismatch dominant class client=%p server=%p", (void*)domClazzClient, (void*)domClazzServer);            
                }
                break;
             default:

@@ -77,7 +77,7 @@ struct TR_ContiguousIPMethodHashTableEntry
  * assumes enabled (or for a debug build) every time the server uses a cached
  * value it will send a message to the client and compare the cached value to
  * the value retrieved from the client. An warning message will be printed to
- * stderr in case of a missmatch.
+ * stderr in case of a mismatch.
  */
 
 class JITServerIProfiler : public TR_IProfiler

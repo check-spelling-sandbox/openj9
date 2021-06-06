@@ -275,7 +275,7 @@ TraceEvent=Trc_BCU_stringInternTableNotCreated NoEnv Overhead=1 Level=3 Template
 
 TraceEvent=Trc_BCU_internalDefineClass_FullData Overhead=1 Level=7 Template="BCU Trc_BCU_internalDefineClass_FullData: data=%.*s, classLoader=%p"
 
-TraceAssert=Trc_BCU_Assert_ShouldNeverHappen_CompressionMissmatch NoEnv Overhead=1 Level=1 Assert="(0)"
+TraceAssert=Trc_BCU_Assert_ShouldNeverHappen_CompressionMismatch NoEnv Overhead=1 Level=1 Assert="(0)"
 TraceAssert=Trc_BCU_Assert_CorrectLineNumbersCount NoEnv Overhead=1 Level=1 Assert="(P1 == P2)"
 TraceAssert=Trc_BCU_Assert_Compression_OutOfMemory NoEnv Overhead=1 Level=1 Assert="(0)"
 

@@ -38,7 +38,7 @@ addSystemLib=$(UMA_SYSTEM_LIB_PREFIX)$(1)
 decorateExternalLib=$(UMA_EXTERNAL_LIB_PREFIX)$(1)$(UMA_EXTERNAL_LIB_SUFFIX)
 
 # Function to return the dependencies of an UMA artifact library
-convertToDepency=$(if $($(1)_alllib),$($(1)_depend))
+convertToDependency=$(if $($(1)_alllib),$($(1)_depend))
 
 # Function to convert a library name to a linker command.
 convertToLink=$(if $($(1)_alllib),$($(1)_link),$(call addSystemLib,$(1)))
@@ -48,7 +48,7 @@ convertToLink=$(if $($(1)_alllib),$($(1)_link),$(call addSystemLib,$(1)))
 # into the dependency and link equivalents (e.g., ../lib/j9util.a and -lj9util
 
 # Target libraries which must be built before the current artifact
-UMA_TARGET_LIBRARIES:=$(foreach lib,$(UMA_LIBRARIES),$(call convertToDepency,$(lib)))
+UMA_TARGET_LIBRARIES:=$(foreach lib,$(UMA_LIBRARIES),$(call convertToDependency,$(lib)))
 
 # Externally built libraries
 UMA_LINK_EXTERNAL_LIBS:=$(UMA_EXTERNAL_LIBRARIES)

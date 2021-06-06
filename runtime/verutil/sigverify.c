@@ -31,7 +31,7 @@
  * dataTypeNames[] is arranged based on the value of CFR_STACKMAP_TYPE_XXX so as to locate the expected
  * name string of data type. Thus, there is no such kind of array in vrfyconvert.c intended for this special purpose.
  * (e.g. baseTypeCharConversion[] or argTypeCharConversion[]. They return BCV_BASE_TYPE_XXX values
- * which are huge to be used as indexs of a name string array to locate the name string of data type)
+ * which are huge to be used as indexes of a name string array to locate the name string of data type)
  */
 static const U_32 argumentTypeConversion[] = {
 0,						CFR_STACKMAP_TYPE_INT,		CFR_STACKMAP_TYPE_INT,	CFR_STACKMAP_TYPE_DOUBLE,

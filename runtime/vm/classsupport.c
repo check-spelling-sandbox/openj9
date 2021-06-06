@@ -265,7 +265,7 @@ internalCreateArrayClass(J9VMThread* vmThread, J9ROMArrayClass* romClass, J9Clas
  *
  * @param currentThread pointer to the current J9VMThread
  * @param classLoader pointer to the J9ClassLoader being probed
- * @param className pointer to the U_8 representation of the classaname.  Doesn't need to be null terminated
+ * @param className pointer to the U_8 representation of the classname.  Doesn't need to be null terminated
  * @param classNameLength length of the className
  * @return a J9Class pointer if the class has already been loaded in this loader.  Null otherwise.
  */

@@ -301,7 +301,7 @@ allocateClassLoader(J9JavaVM *javaVM);
 void
 freeClassLoader(J9ClassLoader *classLoader, J9JavaVM *javaVM, J9VMThread *vmThread, UDATA needsFrameBuild);
 
-/* ---------------- classsname.cpp ---------------- */
+/* ---------------- classname.cpp ---------------- */
 
 /**
  * Get the String representing the name of a Class. If the String has not been created

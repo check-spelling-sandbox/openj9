@@ -226,9 +226,9 @@ public class SoftmxRASTest1 {
 
 		CommandLine cmdLine = CommandLine.parse(cmdLineStr);
 		DefaultExecutor executor = new DefaultExecutor();
-		PumpStreamHandler strmHndlr = new PumpStreamHandler(System.out);
+		PumpStreamHandler streamHandler = new PumpStreamHandler(System.out);
 		executor.setWorkingDirectory(new File("."));
-		executor.setStreamHandler(strmHndlr);
+		executor.setStreamHandler(streamHandler);
 
 		int exitValue;
 

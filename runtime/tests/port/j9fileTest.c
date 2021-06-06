@@ -1974,7 +1974,7 @@ j9file_test14(struct J9PortLibrary *portLibrary)
 	}
 
  	if (fileCount != expectedFileCount)	{
-		outputErrorMessage(PORTTEST_ERROR_ARGS, "file count incorrrect, found %d expected %d\n", fileCount, expectedFileCount);
+		outputErrorMessage(PORTTEST_ERROR_ARGS, "file count incorrect, found %d expected %d\n", fileCount, expectedFileCount);
 		goto exit;
 	}
 

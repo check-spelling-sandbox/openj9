@@ -54,7 +54,7 @@ class TargetManager {
 	public static final String PID_PREAMBLE = "pid=";
 	public static final String VMID_PREAMBLE = "vmid=";
 	public static final String STATUS_PREAMBLE = "status=";
-	public static final String STATUS_INIT_SUCESS = "init_success";
+	public static final String STATUS_INIT_SUCCESS = "init_success";
 	public static final String STATUS_DUPLICATE_VMID = "duplicate_vmid";
 	public static final String STATUS_INIT_FAIL = "attach_init_fail";
 
@@ -210,7 +210,7 @@ class TargetManager {
 						} else {
 							tgtStatus = TargetStatus.INIT_FAILURE;
 						}
-					} else if (statusString.equals(STATUS_INIT_SUCESS)) {
+					} else if (statusString.equals(STATUS_INIT_SUCCESS)) {
 						tgtStatus = TargetStatus.INIT_SUCCESS;
 					}
 					done = true;

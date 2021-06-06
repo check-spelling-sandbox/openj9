@@ -55,7 +55,7 @@ public class TargetVM {
 			if (TargetManager.waitForAttachApiInitialization()) {
 				System.out.println(TargetManager.VMID_PREAMBLE + TargetManager.getVmId());
 				System.out.println(TargetManager.STATUS_PREAMBLE
-						+ TargetManager.STATUS_INIT_SUCESS);
+						+ TargetManager.STATUS_INIT_SUCCESS);
 				System.out.flush();
 			} else {
 				System.out.println(TargetManager.STATUS_PREAMBLE

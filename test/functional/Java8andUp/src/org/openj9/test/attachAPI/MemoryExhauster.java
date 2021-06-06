@@ -71,7 +71,7 @@ public class MemoryExhauster {
 				System.exit(OOM_ERROR_STATUS);
 			}
 			System.out.println(TargetManager.STATUS_PREAMBLE
-					+ TargetManager.STATUS_INIT_SUCESS);
+					+ TargetManager.STATUS_INIT_SUCCESS);
 		} catch (IOException e) {
 			System.out.println("IOException_caught");			
 			e.printStackTrace();

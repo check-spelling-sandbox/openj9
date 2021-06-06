@@ -6183,7 +6183,7 @@ TR_J9ByteCodeIlGenerator::loadMonitorArg()
    TR_ASSERT(_methodSymbol->isSynchronised(), "loadMonitorArg called for an nonsynchronized method");
 
    // the syncObjectTemp is always initialized with the monitor argument on entry
-   // to the method (regarless of whether its a static sync method or a sync method)
+   // to the method (regardless of whether its a static sync method or a sync method)
    // we don't want to use the syncObjectTemp always at the monexit because the monent and monexit
    // use different symRefs and this can cause problems for redundant monitor elimination.
    // we use the syncObjectTemp only when the outermost method is a DLT compile

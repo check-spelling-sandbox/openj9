@@ -1272,7 +1272,7 @@ SH_CacheMap::refreshHashtables(J9VMThread* currentThread, bool hasClassSegmentMu
 		) {
 			/* A previous call might enter here with hasClassSegmentMutex = false, which added romclasses to the hashtable without updating the
 			 * romClass segment list. In this case updateROMSegmentList() needs to be called this time if hasClassSegmentMutex is true,
-			 * regaredless of the itemsRead value.
+			 * regardless of the itemsRead value.
 			 */
 			if (hasClassSegmentMutex) {
 				/* Only refresh the segment list if we hold the class segment mutex. This is because:

@@ -4085,7 +4085,7 @@ void TR_MultipleCallTargetInliner::processChoppedOffCallTargets(TR_CallTarget *l
             recursivelyWalkCallTargetAndPerformAction(calltarget, myEstimate);
             estimatedNumberOfNodes += myEstimate.getNodeEstimate();
             /*
-             * ForceInline targets and JSR292 methods should always be inlined regarless of budget. However, with
+             * ForceInline targets and JSR292 methods should always be inlined regardless of budget. However, with
              * inlining methodhandle chain in normal inlining, the number of nodes can be tremendous resulting in
              * compilations, especially those with higher opt level, eating up too much CPU time. The heuristic here
              * is added to prevent compilations consuming too much CPU.

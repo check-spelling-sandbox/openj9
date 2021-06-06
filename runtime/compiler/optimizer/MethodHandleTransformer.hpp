@@ -87,7 +87,7 @@ class TR_MethodHandleTransformer : public TR::Optimization
    //
    void mergeObjectInfo(ObjectInfo *first, ObjectInfo *second);
 
-   // Obect info at method entry or first block of the method
+   // Object info at method entry or first block of the method
    // The object info comes from prex arg info
    //
    ObjectInfo* getMethodEntryObjectInfo();

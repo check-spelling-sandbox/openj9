@@ -268,7 +268,7 @@ objectMapFunction(J9VMThread *currentThread, j9object_t obj, void *objectMapData
  *
  * @param currentThread - the current thread
  * @param entry - object map entry
- * @param objecMap - the object map
+ * @param objectMap - the object map
  */
 static void
 copyObjectContents(J9VMThread *currentThread, J9JVMTIObjectMap *entry, J9HashTable *objectMap)
@@ -292,7 +292,7 @@ copyObjectContents(J9VMThread *currentThread, J9JVMTIObjectMap *entry, J9HashTab
  * objects with their heap equivalents.
  *
  * @param currentThread - the current thread
- * @param objecMap - the object map
+ * @param objectMap - the object map
  * @param objectArray - array of heap objects
  */
 static void

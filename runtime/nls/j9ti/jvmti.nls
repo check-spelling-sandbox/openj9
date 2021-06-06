@@ -162,11 +162,11 @@ J9NLS_JVMTI_COM_IBM_JVM_DUMP_SET_DESCRIPTION.user_response=None
 
 # END NON-TRANSLATABLE
 
-J9NLS_JVMTI_COM_IBM_INSTRUMENTABLE_OBJET_ALLOC=Allows callbacks for instrumentable allocates (those not reported by VMObjectAlloc).
+J9NLS_JVMTI_COM_IBM_INSTRUMENTABLE_OBJECT_ALLOC=Allows callbacks for instrumentable allocates (those not reported by VMObjectAlloc).
 # START NON-TRANSLATABLE
-J9NLS_JVMTI_COM_IBM_INSTRUMENTABLE_OBJET_ALLOC.explanation=Internationalized description of a JVMTI extension
-J9NLS_JVMTI_COM_IBM_INSTRUMENTABLE_OBJET_ALLOC.system_action=None
-J9NLS_JVMTI_COM_IBM_INSTRUMENTABLE_OBJET_ALLOC.user_response=None
+J9NLS_JVMTI_COM_IBM_INSTRUMENTABLE_OBJECT_ALLOC.explanation=Internationalized description of a JVMTI extension
+J9NLS_JVMTI_COM_IBM_INSTRUMENTABLE_OBJECT_ALLOC.system_action=None
+J9NLS_JVMTI_COM_IBM_INSTRUMENTABLE_OBJECT_ALLOC.user_response=None
 
 # END NON-TRANSLATABLE
 

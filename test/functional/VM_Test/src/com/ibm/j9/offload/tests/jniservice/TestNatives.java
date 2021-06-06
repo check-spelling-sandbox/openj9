@@ -149,7 +149,7 @@ public class TestNatives implements TestNativesInterface {
 	public native int testSetLongField(long value);
 	public native int testSetFloatField(float value);
 	public native int testSetDoubleField(double value);	
-	public native int testSetObjectArrayElement(Object[] arr, int index, Object theObect);
+	public native int testSetObjectArrayElement(Object[] arr, int index, Object theObject);
 	public native int testSetStaticObjectField(TestNatives value);
 	public native int testSetStaticBooleanField(boolean value);
 	public native int testSetStaticByteField(byte value);

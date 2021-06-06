@@ -170,7 +170,7 @@ public class MethodHandleTest{
 	 */
 	@Test(groups = { "level.extended" })
 	public void test_asCollector_TypeCompatibility_Array_Object() throws Throwable {
-		MethodHandle mh  = MethodHandles.lookup().findVirtual(SamePackageExample.class,"toOjectArrayString",MethodType.methodType(String.class,Object.class));
+		MethodHandle mh  = MethodHandles.lookup().findVirtual(SamePackageExample.class,"toObjectArrayString",MethodType.methodType(String.class,Object.class));
 		SamePackageExample g = new SamePackageExample();
 		mh = mh.bindTo(g);
 		mh = mh.asCollector(Object[].class, 6);
@@ -393,7 +393,7 @@ public class MethodHandleTest{
 	 */
 	@Test(groups = { "level.extended" })
 	public void test_asVarargsCollector_TypeCompatibility_Array_Object() throws Throwable {
-		MethodHandle mh  = MethodHandles.lookup().findVirtual(SamePackageExample.class,"toOjectArrayString",MethodType.methodType(String.class,Object.class));
+		MethodHandle mh  = MethodHandles.lookup().findVirtual(SamePackageExample.class,"toObjectArrayString",MethodType.methodType(String.class,Object.class));
 		SamePackageExample g = new SamePackageExample();
 		mh = mh.bindTo(g);
 		mh = mh.asVarargsCollector(Object[].class);

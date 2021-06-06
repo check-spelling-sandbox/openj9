@@ -258,7 +258,7 @@ public class SamePackageExample {
 		return s + "]";
 	}
 	
-	public String toOjectArrayString(Object objArray) {
+	public String toObjectArrayString(Object objArray) {
 		Object [] o = (Object[])objArray;
 		String s = "[";
 		

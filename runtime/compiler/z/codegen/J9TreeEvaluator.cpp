@@ -9741,7 +9741,7 @@ genInitObjectHeader(TR::Node * node, TR::Instruction *& iCursor, TR_OpaqueClassB
       }
    else
       {
-      TR_ASSERT(0, "genInitObjecHeader not supported for RT");
+      TR_ASSERT(0, "genInitObjectHeader not supported for RT");
       }
 
    }

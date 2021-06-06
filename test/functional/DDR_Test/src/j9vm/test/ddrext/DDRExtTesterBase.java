@@ -102,7 +102,7 @@ public class DDRExtTesterBase extends TestCase {
 				output = mps.getOutBuffer().toString();
 				mps.clear();
 			} else {
-				fail("DDRInterative is null. Please check CoreFilePath in ddrext.properties file.");
+				fail("DDRInteractive is null. Please check CoreFilePath in ddrext.properties file.");
 				return null;
 			}
 		}

@@ -456,9 +456,9 @@ void J9::ARM::PrivateLinkage::createPrologue(TR::Instruction *cursor)
    if (debug("alignStackFrame"))
       totalFrameSize += ((totalFrameSize & 4) ? 4 : 0);
 
-   int32_t resudialSize = totalFrameSize + properties.getOffsetToFirstLocal();
+   int32_t residualSize = totalFrameSize + properties.getOffsetToFirstLocal();
 
-   codeGen->setFrameSizeInBytes(resudialSize);
+   codeGen->setFrameSizeInBytes(residualSize);
 
    // Put offset to saved registers in top 16 bit of descriptor.
    int32_t offsetToSavedRegisters = localSize + properties.getOffsetToFirstLocal() + registerSaveSize;
@@ -590,7 +590,7 @@ void J9::ARM::PrivateLinkage::createPrologue(TR::Instruction *cursor)
       // TODO Support internal pointers.
       if (numLocalsToBeInitialized > 0)
          {
-         uint32_t offset = resudialSize + atlas->getLocalBaseOffset();
+         uint32_t offset = residualSize + atlas->getLocalBaseOffset();
          cursor = armLoadConstant(firstNode, NULLVALUE, gr11, codeGen, cursor);
 
          if (numLocalsToBeInitialized > 0)
@@ -627,7 +627,7 @@ void J9::ARM::PrivateLinkage::createPrologue(TR::Instruction *cursor)
 
       if (atlas->getInternalPointerMap())
          {
-         int32_t offset = resudialSize + atlas->getOffsetOfFirstInternalPointer();
+         int32_t offset = residualSize + atlas->getOffsetOfFirstInternalPointer();
 
          // First collect all pinning arrays that are the base for at least
          // one derived internal pointer stack slot

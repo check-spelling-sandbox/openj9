@@ -116,7 +116,7 @@ IconstOperand::merge1(Operand* other)
       return NULL;
    }
 
-// TODO: check instanceOf relationship and create new Operand if neccessary
+// TODO: check instanceOf relationship and create new Operand if necessary
 Operand*
 ObjectOperand::merge1(Operand* other)
    {

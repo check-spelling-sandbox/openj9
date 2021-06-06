@@ -387,7 +387,7 @@ public class TraceRecord implements Comparable<TraceRecord> {
 						guardBytes = stream.getGuardBytes();
 						if (found != missing.length) {
 							if (context.debugStream != null) {
-								context.debug(this, 4, "discarding spanned long trace point special because we failed retriving "+missing.length+"bytes, got "+found);
+								context.debug(this, 4, "discarding spanned long trace point special because we failed retrieving "+missing.length+"bytes, got "+found);
 							}
 							discard = true;
 							break;

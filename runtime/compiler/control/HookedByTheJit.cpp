@@ -6562,7 +6562,7 @@ static void jitReleaseCodeStackWalk(OMR_VMThread *omrVMThread, condYieldFromGCFu
    /*
     * After we have determined what can be reclaimed for the current pass,
     * we must clear the _isStillLive flag or we will never again consider
-    * the faint blocks as candidates for reclaimation.
+    * the faint blocks as candidates for reclamation.
     */
    for (cursor = (OMR::FaintCacheBlock *)jitConfig->methodsToDelete; cursor; cursor = cursor->_next)
       {

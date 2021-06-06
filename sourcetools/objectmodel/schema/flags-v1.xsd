@@ -123,7 +123,7 @@
 			<xsd:documentation>
 				Represents an either-or linkage between flags. Indicates
 				that the flag cannot function properly in the presence
-				of another flag. The incompatiable flags is identified
+				of another flag. The incompatible flags is identified
 				by name using the flag attribute.
 			</xsd:documentation>
 		</xsd:annotation>

@@ -152,7 +152,7 @@ J9::SetMonitorStateOnBlockEntry::addSuccessors(
                TR_Stack<TR::SymbolReference *> *newMonitorStack = new (trHeapMemory()) TR_Stack<TR::SymbolReference *>(*monitorStack);
 
                if (traceIt)
-                  traceMsg(comp(), "\tIn SMSOnBE::addSuccesors  created newMonitorStack %p and monitorStack %p\n", newMonitorStack,monitorStack);
+                  traceMsg(comp(), "\tIn SMSOnBE::addSuccessors  created newMonitorStack %p and monitorStack %p\n", newMonitorStack,monitorStack);
 
                if (popMonitor)
                   {

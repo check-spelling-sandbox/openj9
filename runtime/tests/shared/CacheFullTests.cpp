@@ -491,7 +491,7 @@ IDATA test2(J9JavaVM* vm) {
 	/* Verify dummy data is added to the cache */
 	dummyDataItem = (ShcItem *)cc->getMetaAllocPtr();
 	if (TYPE_UNINDEXED_BYTE_DATA != ITEMTYPE(dummyDataItem)) {
-		ERRPRINTF2("Error: Did not find expected data type in last metedata item.\n" \
+		ERRPRINTF2("Error: Did not find expected data type in last metadata item.\n" \
 				"Expected type for dummy data = %d, data type found = %d", TYPE_UNINDEXED_BYTE_DATA, ITEMTYPE(dummyDataItem));
 		rc = FAIL;
 		goto done;
@@ -1133,7 +1133,7 @@ IDATA test4(J9JavaVM* vm) {
 	/* Verify dummy data is added to the cache */
 	dummyDataItem = (ShcItem *)cc->getMetaAllocPtr();
 	if (TYPE_UNINDEXED_BYTE_DATA != ITEMTYPE(dummyDataItem)) {
-		ERRPRINTF2("Error: Did not find expected data type in last metedata item.\n" \
+		ERRPRINTF2("Error: Did not find expected data type in last metadata item.\n" \
 				"Expected type for dummy data = %d, data type found = %d", TYPE_UNINDEXED_BYTE_DATA, ITEMTYPE(dummyDataItem));
 		rc = FAIL;
 		goto done;

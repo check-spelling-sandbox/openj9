@@ -144,7 +144,7 @@ verifyShmemStats(J9PortLibrary *portLibrary, struct j9shmem_handle *handle, stru
 	}
 	outputComment(PORTLIB, "owner gid: %zu\n", statbuf->ogid);
 	if (statbuf->ogid != gid) {
-		outputErrorMessage(PORTTEST_ERROR_ARGS, "Expected ownder gid=%zu, owner gid obtained by shm stats=%zu\n", gid, statbuf->ogid);
+		outputErrorMessage(PORTTEST_ERROR_ARGS, "Expected owner gid=%zu, owner gid obtained by shm stats=%zu\n", gid, statbuf->ogid);
 	}
 	outputComment(PORTLIB, "creator gid: %zu\n", statbuf->cgid);
 	if (statbuf->cgid != gid) {

@@ -79,7 +79,7 @@ verifyShsemStats(J9PortLibrary *portLibrary, j9shsem_handle *handle, J9PortShsem
 	}
 	outputComment(PORTLIB, "owner gid: %zu\n", statbuf->ogid);
 	if (statbuf->ogid != gid) {
-		outputErrorMessage(PORTTEST_ERROR_ARGS, "Expected ownder gid=%zu, owner gid obtained by sem stats=%zu\n", gid, statbuf->ogid);
+		outputErrorMessage(PORTTEST_ERROR_ARGS, "Expected owner gid=%zu, owner gid obtained by sem stats=%zu\n", gid, statbuf->ogid);
 	}
 	outputComment(PORTLIB, "creator gid: %zu\n", statbuf->cgid);
 	if (statbuf->cgid != gid) {

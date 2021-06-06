@@ -627,7 +627,7 @@ void j9gc_jvmPhaseChange(J9VMThread *currentThread, UDATA phase)
 				uintptr_t hintTenure = 0;
 
 				/* Standard GCs always have Default MSS (which is equal to Tenure for flat heap configuration).
-				 * So the simplest is always fetch Default, regardless if's generational haep configuration or not.
+				 * So the simplest is always fetch Default, regardless if's generational heap configuration or not.
 				 * We fetch Tenure only if only not equal to Default (which implies it's generational) */
 				if (defaultMemorySubSpace != tenureMemorySubspace) {
 					hintTenure = tenureMemorySubspace->getActiveMemorySize();

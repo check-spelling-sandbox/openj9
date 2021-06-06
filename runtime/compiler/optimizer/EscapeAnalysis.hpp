@@ -146,8 +146,8 @@ class Candidate : public TR_Link<Candidate>
     	_virtualCallSitesToBeFixed(c->trMemory()),
         _coldBlockEscapeInfo(c->trMemory())
          {
-          static const char *forceContinguousAllocation = feGetEnv("TR_forceContinguousAllocation");
-          if (forceContinguousAllocation)
+          static const char *forceContiguousAllocation = feGetEnv("TR_forceContiguousAllocation");
+          if (forceContiguousAllocation)
              setMustBeContiguousAllocation();
          }
 

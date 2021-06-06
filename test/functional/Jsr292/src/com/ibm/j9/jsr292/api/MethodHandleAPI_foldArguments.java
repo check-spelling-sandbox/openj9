@@ -258,7 +258,7 @@ public class MethodHandleAPI_foldArguments {
 		/* The fold position is specified at the head of argument list */
 		try {
 			MethodHandle mhResult = (MethodHandle)method.invoke(cls, mhTarget, 2, mhCombiner, new int[]{2});
-			AssertJUnit.fail("The test case must throw out an exception for the invaild argument index");
+			AssertJUnit.fail("The test case must throw out an exception for the invalid argument index");
 		} catch (InvocationTargetException e) {
 			/* Success */
 		}

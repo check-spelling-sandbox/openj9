@@ -166,7 +166,7 @@ public class Test_StringBuffer {
 		StringBuffer sb = new StringBuffer();
 		long t = 927654321098L;
 		sb.append(t);
-		AssertJUnit.assertTrue("Buffer is of invlaid length", sb.length() == 12);
+		AssertJUnit.assertTrue("Buffer is of invalid length", sb.length() == 12);
 		AssertJUnit.assertTrue("Buffer contains invalid characters", sb.toString().equals("927654321098"));
 	}
 

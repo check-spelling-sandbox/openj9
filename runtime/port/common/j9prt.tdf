@@ -966,7 +966,7 @@ TraceExit=Trc_PRT_shmem_j9shmem_stat_getModifiedSharedMemoryPathandFileNameFail 
 TraceExit=Trc_PRT_shmem_j9shmem_stat_unicodePathNull Group=j9shmem Overhead=1 Level=1 NoEnv Template="j9shmem_stat: unicodePath == NULL"
 TraceExit=Trc_PRT_shmem_createMappedFile_modifiedSharedMemoryFileNameNull Group=j9shared Overhead=1 Level=1 NoEnv Template="createMappedFile: shareMemoryFileName == NULL"
 
-TraceEvent=Trc_PRT_vmem_port_numa_interleave_memory_detected_invalid_nodes Obsolete Group=j9mem Overhead=1 Level=1 NoEnv Template="j9vmem port_numa_interleave_memory accounted for invalide nodes detected in numa_all_nodes"
+TraceEvent=Trc_PRT_vmem_port_numa_interleave_memory_detected_invalid_nodes Obsolete Group=j9mem Overhead=1 Level=1 NoEnv Template="j9vmem port_numa_interleave_memory accounted for invalid nodes detected in numa_all_nodes"
 
 TraceException=Trc_PRT_memory_corruption_detected Obsolete Group=j9mem Overhead=1 Level=1 NoEnv Template="memory corruption detected in block: %p"
 TraceAssert=Trc_Assert_PRT_memory_corruption_detected Obsolete noEnv Overhead=1 Level=1 Assert="(P1)"

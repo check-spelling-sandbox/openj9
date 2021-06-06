@@ -168,7 +168,7 @@ public:
 	}
 
 	/**
-	 * Update lowest and higher object age bounds (propageted info from just filled-up copy cache)
+	 * Update lowest and higher object age bounds (propagated info from just filled-up copy cache)
 	 */
 	MMINLINE void updateAgeBounds(U_64 lowerAgeBound, U_64 upperAgeBound) {
 		/* ideally, these should be atomic updates, but bounds are anyway just an approximation */

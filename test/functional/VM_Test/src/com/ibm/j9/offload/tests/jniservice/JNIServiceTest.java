@@ -74,7 +74,7 @@ public class JNIServiceTest extends TestCase {
 		
 		try {
 			testClass.testAllocObject(TestNatives.testInterface.class);
-			fail("Expected Exception calling AllocObject for Interafce");
+			fail("Expected Exception calling AllocObject for Interface");
 		} catch (InstantiationException e){
 		} 
 	}

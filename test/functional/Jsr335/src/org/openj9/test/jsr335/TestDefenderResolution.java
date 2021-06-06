@@ -70,9 +70,9 @@ public class TestDefenderResolution implements Opcodes{
 				implementedInterfaces.add(p(n));
 			});
 			
-			String[] fullyQualifiedIntefaces = implementedInterfaces.toArray(new String[implementedInterfaces.size()]);
-			logger.debug("TestCase: " + className[0] + " implements " + Arrays.toString(fullyQualifiedIntefaces));
-			Class<?> C = gl.load(className[0], generateClass(className[0], fullyQualifiedIntefaces));
+			String[] fullyQualifiedInterfaces = implementedInterfaces.toArray(new String[implementedInterfaces.size()]);
+			logger.debug("TestCase: " + className[0] + " implements " + Arrays.toString(fullyQualifiedInterfaces));
+			Class<?> C = gl.load(className[0], generateClass(className[0], fullyQualifiedInterfaces));
 			try {
 				J instance = (J)C.newInstance();
 				AssertJUnit.assertEquals(new J(){}.m(), instance.m());

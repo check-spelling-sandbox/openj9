@@ -549,8 +549,8 @@ MM_ScavengerDelegate::reverseForwardedObject(MM_EnvironmentBase *env, MM_Forward
 		 * This is a non-reversable operation. Adjust the state of the original object and its referent field.
 		 */
 		if ((J9CLASS_FLAGS(forwardedClass) & J9AccClassReferenceMask)) {
-			I_32 forwadedReferenceState = J9GC_J9VMJAVALANGREFERENCE_STATE(env, fwdObjectPtr);
-			J9GC_J9VMJAVALANGREFERENCE_STATE(env, objectPtr) = forwadedReferenceState;
+			I_32 forwardedReferenceState = J9GC_J9VMJAVALANGREFERENCE_STATE(env, fwdObjectPtr);
+			J9GC_J9VMJAVALANGREFERENCE_STATE(env, objectPtr) = forwardedReferenceState;
 			GC_SlotObject referentSlotObject(_omrVM, J9GC_J9VMJAVALANGREFERENCE_REFERENT_ADDRESS(env, fwdObjectPtr));
 			if (NULL == referentSlotObject.readReferenceFromSlot()) {
 				GC_SlotObject slotObject(_omrVM, J9GC_J9VMJAVALANGREFERENCE_REFERENT_ADDRESS(env, objectPtr));

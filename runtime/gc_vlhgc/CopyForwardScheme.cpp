@@ -4146,7 +4146,7 @@ MM_CopyForwardScheme::workThreadGarbageCollect(MM_EnvironmentVLHGC *env)
 		_clearableProcessingStarted = true;
 
 		/* During clearable pass, GC threads can access clearable slots other than the one they are directly processing.
-		 * Such other slots could still point to fowarded objects and forwarded pointer needs to be
+		 * Such other slots could still point to forwarded objects and forwarded pointer needs to be
 		 * resolved (at least in thread local sense) to be able to access the object.
 		 * An example of that is string comparator, that may be used when removing
 		 * an entry from the string table, as part of AVL rebalancing.

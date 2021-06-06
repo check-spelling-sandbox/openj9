@@ -10262,7 +10262,7 @@ bool J9::X86::TreeEvaluator::VMinlineCallEvaluator(
  * \brief
  *   Generate instructions to conditionally branch to a write barrier helper call
  *
- * \oaram branchOp
+ * \param branchOp
  *   The branch instruction to jump to the write barrier helper call
  *
  * \param node

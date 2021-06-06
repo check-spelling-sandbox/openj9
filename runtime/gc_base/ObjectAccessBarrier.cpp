@@ -1476,7 +1476,7 @@ MM_ObjectAccessBarrier::structuralCompareFlattenedObjects(J9VMThread *vmThread, 
  * not include pre-padding.
  * @TODO This does not currently check if the fields that it is reading are volatile.
  *
- * @oaram objectClass The j9class.
+ * @param objectClass The j9class.
  * @param srcObject The object containing the value class instance fields being copied.
  * @param srcOffset The offset of the value class instance fields in srcObject.
  * @param destValue The object containing the value class instance fields being copied to.

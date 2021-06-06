@@ -76,7 +76,7 @@ public:
       Given a type and offset, returns the pointer of that type.
       Behavior is only defined if offset does not exceed populated buffer size.
 
-      @return ponter of the specified type at given offset
+      @return pointer of the specified type at given offset
    */
    template <typename T>
    T *getValueAtOffset(uint32_t offset) const

@@ -504,7 +504,7 @@ TR::S390J9CallSnippet::getLength(int32_t  estimatedSnippetStart)
    // *this   swipeable for debugger
    // length = instructionCountForArgsInBytes + (BASR + L(or LG) + BASR +3*sizeof(uintptr_t)) + NOPs
    // number of pad bytes has not been set when this method is called to
-   // estimate codebuffer size, so -- i'll put an conservative number here...
+   // estimate code buffer size, so -- i'll put an conservative number here...
    return (instructionCountForArguments(getNode(), cg()) +
       getPICBinaryLength() +
       3 * sizeof(uintptr_t) +

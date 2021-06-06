@@ -1077,7 +1077,7 @@ int32_t TR_EscapeAnalysis::performAnalysisOnce()
             }
 
          // Primitive value type fields of objects created with a NEW bytecode must be initialized
-         // with their default values.  EA is not yet set up to perform such iniitialization
+         // with their default values.  EA is not yet set up to perform such initialization
          // if the value type's own fields have not been inlined into the class that
          // has a field of that type, so remove the candidate from consideration.
          if (candidate->_kind == TR::New)

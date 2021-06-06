@@ -106,7 +106,7 @@ target_link_libraries(jclse
 
 target_sources(jclse
 	PRIVATE
-		${CMAKE_CURRENT_SOURCE_DIR}/common/acccont.c
+		${CMAKE_CURRENT_SOURCE_DIR}/common/account.c
 		${CMAKE_CURRENT_SOURCE_DIR}/common/annparser.c
 		${CMAKE_CURRENT_SOURCE_DIR}/common/attach.c
 		${CMAKE_CURRENT_SOURCE_DIR}/common/bootstrp.c

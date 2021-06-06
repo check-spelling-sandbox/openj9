@@ -24,7 +24,7 @@
 	<object name="java_lang_ref_Finalizer" />
 	<object name="java_lang_ref_Reference" />
 	<object name="reflecthelp" />
-	<object name="acccont" />
+	<object name="account" />
 	<object name="annparser" />
 	<object name="jniidcacheinit" />
 	<object name="bootstrp" />

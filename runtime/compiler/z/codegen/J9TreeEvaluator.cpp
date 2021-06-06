@@ -7135,7 +7135,7 @@ J9::Z::TreeEvaluator::evaluateNULLCHKWithPossibleResolve(TR::Node * node, bool n
             // we can take advantage of the uncompressed value and evaluate
             // the compare result earlier.
             //
-            // If it hasn't been evalauted yet, we want to evaluate the entire
+            // If it hasn't been evaluated yet, we want to evaluate the entire
             // l2a tree, which might generate LLGF.  In that case, the better
             // choice is to perform the NULLCHK on the decompressed address.
             if (n != NULL && n->getRegister() != NULL)

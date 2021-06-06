@@ -1148,7 +1148,7 @@ typedef UDATA (* lookupNativeAddressCallback)(struct J9VMThread *currentThread, 
 		<description>
 			Triggered when a classloader is looking for a locally defined class using its classpath.  This occurs after
 			lookups to the shared cache or other methods that do not use the files specified by the classpath.  If the
-			hook method is run it should update searchComplete to 1 regardless of wether or not the class was found.  In this
+			hook method is run it should update searchComplete to 1 regardless of whether or not the class was found.  In this
 			case the vm will not search for the class itself.
 		</description>
 		<struct>J9VMFindLocalClassFromFilesystemEvent</struct>

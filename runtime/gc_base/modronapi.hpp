@@ -108,7 +108,7 @@ UDATA ownableSynchronizerObjectCreated(J9VMThread *vmThread, j9object_t object);
  * @param vmThread
  * @param originalClass The class being redefined
  * @param replacementClass The result of the class redefinition
- * @param isFastHCR Flag to indicate wether it replacement was done via fastHCR or not
+ * @param isFastHCR Flag to indicate whether it replacement was done via fastHCR or not
  */
 void j9gc_notifyGCOfClassReplacement(J9VMThread *vmThread, J9Class *originalClass, J9Class *replacementClass, UDATA isFastHCR);
 }

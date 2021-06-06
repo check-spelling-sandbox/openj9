@@ -735,7 +735,7 @@ JITClientIProfiler::serializeIProfilerMethodEntries(uintptr_t *pcEntries, uint32
  * @param method J9Method in question
  * @param comp TR::Compilation pointer
  * @param client Connection to JITServer
- * @param usePersistentCache Whetehr to use persistent cache
+ * @param usePersistentCache Whether to use persistent cache
  * @return Whether the operation was successful
  */
 bool

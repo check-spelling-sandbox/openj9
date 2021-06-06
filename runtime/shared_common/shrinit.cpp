@@ -1066,7 +1066,7 @@ parseArgs(J9JavaVM* vm, char* options, U_64* runtimeFlags, UDATA* verboseFlags, 
 		case RESULT_DO_INVALIDATE_AOT_METHODS_EQUALS:
 		case RESULT_DO_REVALIDATE_AOT_METHODS_EQUALS:
 		case RESULT_DO_FIND_AOT_METHODS_EQUALS:
-			/* GET_OPTION_VALUES() in shrclsssup.c separate the options by ':' and ',',
+			/* GET_OPTION_VALUES() in shrclssup.c separate the options by ':' and ',',
 			 * However, option values passed within {}, such as {a,b,c} should be treated as one value passed to one option.
 			 */
 			if (true == recoverMethodSpecSeparator(options + strlen(J9SHAREDCLASSESOPTIONS[i].option), optionEnd)) {

@@ -2598,7 +2598,7 @@ TraceEntry=Trc_SHR_RomClassData_processUpdates_Exit Obsolete Overhead=1 Level=4 
 TraceEntry=Trc_SHR_CM_allocateROMClass_Entry2 Obsolete Overhead=1 Level=3 Template="CM allocateROMClass : enter (Class=%.*s romClassSizeFullSize=%u romClassMinimalSize=%u lineNumberTableSize=%u localVariableTableSize=%u rawClassDataSize=%u)"
 TraceException=Trc_SHR_CM_allocateROMClass_FailedToAllocRawClassData_Event Obsolete Overhead=1 Level=3 Template="CM allocateROMClass : Failed to allocate raw class data (Class=%.*s rawClassDataSize=%u rawClassData=%p)"
 TraceEvent=Trc_SHR_CM_allocateROMClass_AllocatedRawClassData_Event Obsolete Overhead=1 Level=3 Template="CM allocateROMClass : Allocate class debug attribute data (Class=%.*s rawClassDataSize=%u rawClassData=%p)"
-TraceException=Trc_SHR_CM_allocateROMClass_FailedToRomClassrollbackRawClassData_Event Obsolete Overhead=1 Level=3 Template="CM allocateROMClass : Failed to allocate ROMClass, rolling back raw class data (Class=%.*s rawClassDataSize=%u rawClassData=%p)"
+TraceException=Trc_SHR_CM_allocateROMClass_FailedToRomClassRollbackRawClassData_Event Obsolete Overhead=1 Level=3 Template="CM allocateROMClass : Failed to allocate ROMClass, rolling back raw class data (Class=%.*s rawClassDataSize=%u rawClassData=%p)"
 TraceExit=Trc_SHR_CM_allocateROMClass_Exit2 Obsolete Overhead=1 Level=3 Template="CM allocateROMClass : exit retval=%d (Class=%.*s  romClass=%p lineNumberTable=%p localVariableTable=%p rawClassData=%p flags=0x%x)"
 
 TraceEntry=Trc_SHR_API_j9shr_createSharedClass_Entry2 Obsolete Overhead=1 Level=2 Template="API j9shr_classStoreTransaction_createSharedClass : enter (classname=%.*s romClassSizeFullSize=%u romClassMinimalSize=%u lineNumberTableSize=%u localVariableTableSize=%u rawClassDataSize=%u"

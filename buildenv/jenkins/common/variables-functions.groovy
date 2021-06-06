@@ -847,7 +847,7 @@ def set_basic_artifactory_config(id="Nightly") {
     echo "Configure Artifactory..."
 
     if (VARIABLES.artifactory.defaultGeo) {
-        // Allow default geo to be overridden with a param. Used by the Clenaup script to target a specific server.
+        // Allow default geo to be overridden with a param. Used by the Cleanup script to target a specific server.
         ARTIFACTORY_CONFIG['defaultGeo'] = params.ARTIFACTORY_GEO ?: VARIABLES.artifactory.defaultGeo
         ARTIFACTORY_CONFIG['geos'] = VARIABLES.artifactory.server.keySet()
         ARTIFACTORY_CONFIG['repo'] = get_value(VARIABLES.artifactory.repo, id) ?: get_value(VARIABLES.artifactory.repo, 'default')

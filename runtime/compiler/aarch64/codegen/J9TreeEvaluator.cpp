@@ -5379,7 +5379,7 @@ J9::ARM64::TreeEvaluator::evaluateNULLCHKWithPossibleResolve(TR::Node *node, boo
       //                       iu2l
       //                          iloadi/irdbari f <- n
       //                             aload O        <- reference
-      //                       iconst shftKonst
+      //                       iconst shiftKonst
       //
       hasCompressedPointers = true;
       TR::ILOpCodes loadOp = cg->comp()->il.opCodeForIndirectLoad(TR::Int32);

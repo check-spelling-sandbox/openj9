@@ -1045,7 +1045,7 @@ bool J9::TreeEvaluator::getIndirectWrtbarValueNode(TR::CodeGenerator *cg, TR::No
       //                           a2l
       //                             value   <- sourceChild
       //                           lconst HB
-      //                         iconst shftKonst
+      //                         iconst shiftKonst
       //
       // -or- if the field is known to be null
       // awrtbari f

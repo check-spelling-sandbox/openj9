@@ -1920,7 +1920,7 @@ TR::Register *J9::X86::TreeEvaluator::evaluateNULLCHKWithPossibleResolve(
       //                          i2l
       //                            iloadi/irdbari f <- firstChild
       //                               aload O        <- reference
-      //                          iconst shftKonst
+      //                          iconst shiftKonst
       //                       lconst HB
       //
       usingCompressedPointers = true;

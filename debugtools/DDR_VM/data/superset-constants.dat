@@ -2264,7 +2264,7 @@ S|J9JavaAccessFlags|J9JavaAccessFlagsPointer|
 C|J9AccAbstract
 C|J9AccAnnotation
 C|J9AccBridge
-C|J9AccClassAnnnotionRefersDoubleSlotEntry
+C|J9AccClassAnnotationRefersDoubleSlotEntry
 C|J9AccClassAnonClass
 C|J9AccClassArray
 C|J9AccClassBytecodesModified

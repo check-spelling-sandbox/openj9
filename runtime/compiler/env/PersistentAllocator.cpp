@@ -540,7 +540,7 @@ PersistentAllocator::checkIntegrity(const char msg[])
             {
             TR_ASSERT_FATAL(i > 0, "I cannot be at the first interval");
             index = getInterval(previousBlock->size());
-            TR_ASSERT_FATAL(_endInterval[index] == previousBlock, "Error with intevals");
+            TR_ASSERT_FATAL(_endInterval[index] == previousBlock, "Error with intervals");
             }
          }
       if (_endInterval[i])

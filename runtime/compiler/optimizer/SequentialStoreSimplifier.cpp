@@ -3111,7 +3111,7 @@ static bool useArraySet(int32_t numBytes, TR::CodeGenerator *codeGen)
 //     aload #base (base value)
 //     T1const # (constant) where bytes of T1 const are the same
 //   iT2store offset (T2 is one of i, b, c, l, d, f) offset X + sizeof(T1)
-//     aload #base (baes value)
+//     aload #base (base value)
 //     T2const # (constant) where bytes of T2 const are same as bytes of T1const
 static TR::TreeTop* generateArraysetFromSequentialStores(TR::Compilation* comp, TR::TreeTop* prevTreeTop, TR::TreeTop* istoreTreeTop, TR::Node* istoreNode, bool *newTempsCreated)
    {

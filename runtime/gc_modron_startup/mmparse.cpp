@@ -1183,7 +1183,7 @@ gcParseSovereignArguments(J9JavaVM *vm)
 	 * -XloratioN 
 	 * -XloincrN  
 	 * -XlorsrvN 
-	 * All these options (except -Xparoot) take a float value between 0 and 1.0.  
+	 * All these options (except -Xparroot) take a float value between 0 and 1.0.  
 	 * 
 	 */
 	option_set(vm, "-Xparroot", EXACT_MATCH); 

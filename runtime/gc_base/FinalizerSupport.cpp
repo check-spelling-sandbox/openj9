@@ -947,7 +947,7 @@ void j9gc_finalizer_shutdown(J9JavaVM * vm)
 }
 
 /**
- * Called whenever a finalizeable object is created. Places the object on the unfinalized List.
+ * Called whenever a finalizable object is created. Places the object on the unfinalized List.
  * @param vmThread
  * @param object The object to be finalized.
  * @returns 0 if the object was successfully placed on the unfinalized list, UDATA_MAX otherwise.

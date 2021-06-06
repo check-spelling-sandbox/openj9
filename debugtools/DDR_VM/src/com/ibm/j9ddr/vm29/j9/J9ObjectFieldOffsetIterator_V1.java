@@ -379,7 +379,7 @@ public class J9ObjectFieldOffsetIterator_V1 extends J9ObjectFieldOffsetIterator 
 
 		finalizeLinkOffset = new UDATA(0);
 		if (!superClazz.isNull() && !superClazz.finalizeLinkOffset().isZero()) {
-			/* Superclass is finalizeable */
+			/* Superclass is finalizable */
 			finalizeLinkOffset = superClazz.finalizeLinkOffset();
 		} else {
 			/*
@@ -391,7 +391,7 @@ public class J9ObjectFieldOffsetIterator_V1 extends J9ObjectFieldOffsetIterator 
 			 * we need the field to be in the shape of the existing objects
 			 */
 
-			/* Superclass is not finalizeable */
+			/* Superclass is not finalizable */
 			if (J9ROMClassHelper.finalizeNeeded(romClass)) {
 				extraHiddenFields.addFirst(new HiddenInstanceField(vm.hiddenFinalizeLinkFieldShape()));
 			}

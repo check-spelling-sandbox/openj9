@@ -73,7 +73,7 @@ static UDATA areNameAndSigsIdentical(J9ROMNameAndSignature * nas1, J9ROMNameAndS
 static UDATA areSingleSlotConstantRefsIdentical(J9ROMConstantPoolItem * romCP1, U_32 index1, J9ROMConstantPoolItem * romCP2, U_32 index2);
 static UDATA areMethodsEquivalentPropagateCallSites(J9ROMMethod * method1, J9Class * ramClass1, J9ROMMethod * method2, J9Class * ramClass2);
 static UDATA areMethodsEquivalentSub(J9ROMMethod * method1, J9ROMClass * romClass1, J9Class * ramClass1, J9ROMMethod * method2, J9ROMClass * romClass2, J9Class * ramClass2);
-static UDATA areCallSiteDataMethodsEquivalent(J9ROMClass* romClass1, UDATA callSiteIndex1, J9ROMClass* romClass2, UDATA callSiteIndes2);
+static UDATA areCallSiteDataMethodsEquivalent(J9ROMClass* romClass1, UDATA callSiteIndex1, J9ROMClass* romClass2, UDATA callSiteIndex2);
 static UDATA areDoubleSlotConstantRefsIdentical(J9ROMConstantPoolItem * romCP1, U_32 index1, J9ROMConstantPoolItem * romCP2, U_32 index2);
 static void fixClassSlot(J9VMThread* currentThread, J9Class** classSlot, J9HashTable *classPairs);
 static void fixJNIFieldIDs(J9VMThread * currentThread, J9Class * originalClass, J9Class * replacementClass);

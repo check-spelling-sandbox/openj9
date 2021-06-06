@@ -1034,11 +1034,11 @@ fixWatchedFields(J9JavaVM *vm, J9HashTable *classHashTable)
 /**
  * Update the method ordering table for an interface class. The cases are:
  *
- * 1) A reodering is required and none exists yet
+ * 1) A reordering is required and none exists yet
  *		Assign the remap array to the interface class
- * 2) A reordring is not required, and the class already has one
+ * 2) A reordering is not required, and the class already has one
  *		Free and NULL the interface class ordering array
- * 3) A reodering is required and the class already has one
+ * 3) A reordering is required and the class already has one
  *		Copy the method remap over the existing ordering in the class
  * 4) No reordering required and the class does not have one
  *		Do nothing

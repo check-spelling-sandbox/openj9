@@ -89,7 +89,7 @@ public class cma001 {
 	}
 	
 	public String helpClassModification() {
-		return "Tests class bytes recieved by class transformer are as per the specification";
+		return "Tests class bytes received by class transformer are as per the specification";
 	}
 	
 	/*
@@ -157,7 +157,7 @@ public class cma001 {
 				return false;
 			}
 			value = (Integer)meth1.invoke(obj, (Object[]) null);
-			System.out.print("Expected value: " + currentClassVersion + "\t Value recieved: " + value);
+			System.out.print("Expected value: " + currentClassVersion + "\t Value received: " + value);
 			if (verifyOutput(value) == false) {
 				System.out.println("\t FAIL");
 				return false;
@@ -172,7 +172,7 @@ public class cma001 {
 				System.err.println("classFileLoadHookCallback failed");
 				return false;
 			}
-			System.out.print("Expected value: " + currentClassVersion + "\t Value recieved: " + value);
+			System.out.print("Expected value: " + currentClassVersion + "\t Value received: " + value);
 			if (verifyOutput(value) == false) {
 				System.out.println("\t FAIL");
 				return false;
@@ -189,7 +189,7 @@ public class cma001 {
 				System.err.println("classFileLoadHookCallback failed");
 				return false;
 			}
-			System.out.print("Expected value: " + currentClassVersion + "\t Value recieved: " + value);
+			System.out.print("Expected value: " + currentClassVersion + "\t Value received: " + value);
 			if (verifyOutput(value) == false) {
 				System.out.println("\t FAIL");
 				return false;
@@ -204,7 +204,7 @@ public class cma001 {
 				System.err.println("classFileLoadHookCallback failed");
 				return false;
 			}
-			System.out.print("Expected value: " + currentClassVersion + "\t Value recieved: " + value);
+			System.out.print("Expected value: " + currentClassVersion + "\t Value received: " + value);
 			if (verifyOutput(value) == false) {
 				System.out.println("\t FAIL");
 				return false;

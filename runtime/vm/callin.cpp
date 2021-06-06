@@ -1148,7 +1148,7 @@ restore:
 }
 
 void JNICALL
-sidecarInvokeReflectMethodImpl(J9VMThread *currentThread, jobject methodRef, jobject recevierRef, jobjectArray argsRef)
+sidecarInvokeReflectMethodImpl(J9VMThread *currentThread, jobject methodRef, jobject receiverRef, jobjectArray argsRef)
 {
 	Trc_VM_sidecarInvokeReflectMethod_Entry(currentThread);
 	J9VMEntryLocalStorage newELS;
@@ -1168,8 +1168,8 @@ sidecarInvokeReflectMethodImpl(J9VMThread *currentThread, jobject methodRef, job
 			}
 		} else {
 			j9object_t receiverObject = NULL;
-			if (NULL != recevierRef) {
-				receiverObject = J9_JNI_UNWRAP_REFERENCE(recevierRef);
+			if (NULL != receiverRef) {
+				receiverObject = J9_JNI_UNWRAP_REFERENCE(receiverRef);
 			}
 			if (NULL == receiverObject) {
 				setCurrentException(currentThread, J9VMCONSTANTPOOL_JAVALANGNULLPOINTEREXCEPTION, NULL);
@@ -1273,15 +1273,15 @@ done:
 }
 
 void JNICALL
-sidecarInvokeReflectConstructorImpl(J9VMThread *currentThread, jobject constructorRef, jobject recevierRef, jobjectArray argsRef)
+sidecarInvokeReflectConstructorImpl(J9VMThread *currentThread, jobject constructorRef, jobject receiverRef, jobjectArray argsRef)
 {
 	Trc_VM_sidecarInvokeReflectConstructor_Entry(currentThread);
 	J9VMEntryLocalStorage newELS;
 	if (buildCallInStackFrame(currentThread, &newELS, false, true)) {
 		j9object_t constructorObject = J9_JNI_UNWRAP_REFERENCE(constructorRef);
 		j9object_t receiverObject = NULL;
-		if (NULL != recevierRef) {
-			receiverObject = J9_JNI_UNWRAP_REFERENCE(recevierRef);
+		if (NULL != receiverRef) {
+			receiverObject = J9_JNI_UNWRAP_REFERENCE(receiverRef);
 		}
 		if (NULL == receiverObject) {
 			setCurrentException(currentThread, J9VMCONSTANTPOOL_JAVALANGNULLPOINTEREXCEPTION, NULL);
@@ -1347,18 +1347,18 @@ initializeAttachedThread(J9VMThread *currentThread, const char *name, j9object_t
 }
 
 void JNICALL
-sidecarInvokeReflectMethod(J9VMThread *currentThread, jobject methodRef, jobject recevierRef, jobjectArray argsRef)
+sidecarInvokeReflectMethod(J9VMThread *currentThread, jobject methodRef, jobject receiverRef, jobjectArray argsRef)
 {
 	VM_VMAccess::inlineEnterVMFromJNI(currentThread);
-	sidecarInvokeReflectMethodImpl(currentThread, methodRef, recevierRef, argsRef);
+	sidecarInvokeReflectMethodImpl(currentThread, methodRef, receiverRef, argsRef);
 	VM_VMAccess::inlineExitVMToJNI(currentThread);
 }
 
 void JNICALL
-sidecarInvokeReflectConstructor(J9VMThread *currentThread, jobject constructorRef, jobject recevierRef, jobjectArray argsRef)
+sidecarInvokeReflectConstructor(J9VMThread *currentThread, jobject constructorRef, jobject receiverRef, jobjectArray argsRef)
 {
 	VM_VMAccess::inlineEnterVMFromJNI(currentThread);
-	sidecarInvokeReflectConstructorImpl(currentThread, constructorRef, recevierRef, argsRef);
+	sidecarInvokeReflectConstructorImpl(currentThread, constructorRef, receiverRef, argsRef);
 	VM_VMAccess::inlineExitVMToJNI(currentThread);
 }
 

@@ -257,7 +257,7 @@ public class SoftmxRemoteTest{
 			}
 		}
 
-		AssertJUnit.assertTrue (" 	FAIL: Did not recevie notification of test passing from RemotetestServer in 6 mins.", isPassed);
+		AssertJUnit.assertTrue (" 	FAIL: Did not receive notification of test passing from RemotetestServer in 6 mins.", isPassed);
 
 		inMonitor.stop();
 		errorMonitor.stop();

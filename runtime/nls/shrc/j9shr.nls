@@ -5532,7 +5532,7 @@ J9NLS_SHRC_OSCACHE_PORT_ERROR_MESSAGE_SYSV_ERR.user_response=Contact your servic
 J9NLS_SHRC_OSCACHE_SEMAPHORE_CONTROL_FILE_UNLINK_FAILED=Error recovery failure: Failed to remove the semaphore set control file %s associated with shared class cache.
 # START NON-TRANSLATABLE
 J9NLS_SHRC_OSCACHE_SEMAPHORE_CONTROL_FILE_UNLINK_FAILED.sample_input_1=C280M4F0A64_semaphore_mycache_G33
-J9NLS_SHRC_OSCACHE_SEMAPHORE_CONTROL_FILE_UNLINK_FAILED.explanation=An error occurred during shared class proccessing. JVM's attempt to remove the control file as part of error recovery has failed.
+J9NLS_SHRC_OSCACHE_SEMAPHORE_CONTROL_FILE_UNLINK_FAILED.explanation=An error occurred during shared class processing. JVM's attempt to remove the control file as part of error recovery has failed.
 J9NLS_SHRC_OSCACHE_SEMAPHORE_CONTROL_FILE_UNLINK_FAILED.system_action=The JVM continues.
 J9NLS_SHRC_OSCACHE_SEMAPHORE_CONTROL_FILE_UNLINK_FAILED.user_response=If JVM fails to startup, please remove the control files manually.
 # END NON-TRANSLATABLE
@@ -5540,7 +5540,7 @@ J9NLS_SHRC_OSCACHE_SEMAPHORE_CONTROL_FILE_UNLINK_FAILED.user_response=If JVM fai
 J9NLS_SHRC_OSCACHE_SHARED_MEMORY_CONTROL_FILE_UNLINK_FAILED=Error recovery failure: Failed to remove the semaphore set control file %s associated with shared class cache.
 # START NON-TRANSLATABLE
 J9NLS_SHRC_OSCACHE_SHARED_MEMORY_CONTROL_FILE_UNLINK_FAILED.sample_input_1=C280M4F0A64_semaphore_mycache_G33
-J9NLS_SHRC_OSCACHE_SHARED_MEMORY_CONTROL_FILE_UNLINK_FAILED.explanation=An error occurred during shared class proccessing. JVM's attempt to remove the control file as part of error recovery has failed.
+J9NLS_SHRC_OSCACHE_SHARED_MEMORY_CONTROL_FILE_UNLINK_FAILED.explanation=An error occurred during shared class processing. JVM's attempt to remove the control file as part of error recovery has failed.
 J9NLS_SHRC_OSCACHE_SHARED_MEMORY_CONTROL_FILE_UNLINK_FAILED.system_action=The JVM continues.
 J9NLS_SHRC_OSCACHE_SHARED_MEMORY_CONTROL_FILE_UNLINK_FAILED.user_response=If JVM fails to startup, please remove the control files manually.
 # END NON-TRANSLATABLE

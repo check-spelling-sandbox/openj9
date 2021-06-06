@@ -1823,7 +1823,7 @@ SH_CacheMap::allocateROMClassOnly(J9VMThread* currentThread, U_32 sizeToAlloc, U
 			wrapperSize = sizeof(ROMClassWrapper);
 			wrapperType = TYPE_ROMCLASS;
 		} else {
-			Trc_SHR_CM_allocateROMClassOnly_WillScpopedROMClass_Event(currentThread, (UDATA)classnameLength, classnameData);
+			Trc_SHR_CM_allocateROMClassOnly_WillScopedROMClass_Event(currentThread, (UDATA)classnameLength, classnameData);
 			wrapperSize = sizeof(ScopedROMClassWrapper);
 			wrapperType = TYPE_SCOPED_ROMCLASS;
 		}

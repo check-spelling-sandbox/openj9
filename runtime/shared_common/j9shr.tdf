@@ -1859,7 +1859,7 @@ TraceException=Trc_SHR_CM_allocateROMClassOnly_CPMStale_Event Overhead=1 Level=1
 TraceEvent=Trc_SHR_CM_allocateROMClassOnly_Retval_Event Overhead=1 Level=3 Template="CM allocateROMClassOnly : Returning result 0x%p for class %.*s"
 TraceEvent=Trc_SHR_CM_allocateROMClassOnly_WillAllocOrphan_Event Overhead=1 Level=3 Template="CM allocateROMClassOnly : will allocate Orphan ROMClass for class %.*s"
 TraceEvent=Trc_SHR_CM_allocateROMClassOnly_WillROMClass_Event Overhead=1 Level=3 Template="CM allocateROMClassOnly : will allocate ROMClass for class %.*s"
-TraceEvent=Trc_SHR_CM_allocateROMClassOnly_WillScpopedROMClass_Event Overhead=1 Level=3 Template="CM allocateROMClassOnly : will allocate Scoped ROMClass for class %.*s"
+TraceEvent=Trc_SHR_CM_allocateROMClassOnly_WillScopedROMClass_Event Overhead=1 Level=3 Template="CM allocateROMClassOnly : will allocate Scoped ROMClass for class %.*s"
 TraceExit=Trc_SHR_CM_allocateROMClassOnly_Exit Overhead=1 Level=3 Template="CM allocateROMClassOnly : exit"
 
 TraceEntry=Trc_SHR_CM_allocateFromCache_Entry Overhead=1 Level=3 Template="CM allocateFromCache : enter (allocsize=%u wrapperSize=%u wrapperType=%u)"

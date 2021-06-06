@@ -40,7 +40,7 @@ public class TestComplexSequence extends TestUtils {
 	  
 	  if (isMVS())
 	  {
-		  //this test checks persistent and non persistent cahces ... zos only has nonpersistent ... so we assume other tests cover this
+		  //this test checks persistent and non persistent caches ... zos only has nonpersistent ... so we assume other tests cover this
 		  return;
 	  }
 	  

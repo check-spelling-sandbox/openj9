@@ -32,7 +32,7 @@ public class TestCreatingNonpersistentCache extends TestUtils {
   public static void main(String[] args) {
 	  
 	 if (isMVS()) {
-			// this test checks persistent and non persistent cahces ... zos
+			// this test checks persistent and non persistent caches ... zos
 			// only has nonpersistent ... so we assume other tests cover this
 			return;
 		}

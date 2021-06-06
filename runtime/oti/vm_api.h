@@ -450,7 +450,7 @@ contendedLoadTableFree(J9JavaVM* vm);
  * @param comparator handle to function that will compare elements
  * @param maxStack maximum concurrent classloads or class linkage
  * @param stackpool pool for stack elements
- * @param throwException flag to indicate if exception should be thrown in the case of cirularity
+ * @param throwException flag to indicate if exception should be thrown in the case of circularity
  * @param ownsClassTableMutex flag to indicate if class table mutex is being held
  * @result TRUE is element exists in stack, FALSE otherwise
  */

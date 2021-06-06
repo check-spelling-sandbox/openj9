@@ -77,7 +77,7 @@
 
 /* 
  * Note that resolvefield ignores this flag if the cache line size cannot be determined.
- * Use ObjectFieldInfo.isContendedClasslayout() to determine if the class is layed out
+ * Use ObjectFieldInfo.isContendedClassLayout() to determine if the class is layed out
  * per JEP-142.
  */
 #define J9ROMCLASS_IS_CONTENDED(romClass)	_J9ROMCLASS_J9MODIFIER_IS_SET((romClass), J9AccClassIsContended)

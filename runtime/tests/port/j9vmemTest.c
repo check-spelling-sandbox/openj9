@@ -339,8 +339,8 @@ j9vmem_test1(struct J9PortLibrary *portLibrary)
 			outputErrorMessage(PORTTEST_ERROR_ARGS, "unable to reserve and commit 0x%zx bytes with page size 0x%zx.\n"
 					"\tlastErrorNumber=%d, lastErrorMessage=%s\n ", pageSizes[i], pageSizes[i], lastErrorNumber, lastErrorMessage);
 
-			if (J9PORT_ERROR_VMEM_INSUFFICENT_RESOURCES == lastErrorNumber) {
-				outputComment(portLibrary, "\tPortable error J9PORT_ERROR_VMEM_INSUFFICENT_RESOURCES...\n");
+			if (J9PORT_ERROR_VMEM_INSUFFICIENT_RESOURCES == lastErrorNumber) {
+				outputComment(portLibrary, "\tPortable error J9PORT_ERROR_VMEM_INSUFFICIENT_RESOURCES...\n");
 				outputComment(portLibrary, "\t\tREBOOT THE MACHINE to free up resources AND TRY THE TEST AGAIN\n");
 			}
 			goto exit;
@@ -455,8 +455,8 @@ j9vmem_bench_write_and_decommit_memory(struct J9PortLibrary *portLibrary, UDATA 
 		lastErrorNumber = j9error_last_error_number();
 		outputErrorMessage(PORTTEST_ERROR_ARGS, "unable to reserve 0x%zx bytes with page size 0x%zx.\n"
 				"\tlastErrorNumber=%d, lastErrorMessage=%s\n ", byteAmount, pageSize, lastErrorNumber, lastErrorMessage);
-		if (J9PORT_ERROR_VMEM_INSUFFICENT_RESOURCES == lastErrorNumber) {
-			j9tty_printf(portLibrary, "\tPortable error J9PORT_ERROR_VMEM_INSUFFICENT_RESOURCES...\n");
+		if (J9PORT_ERROR_VMEM_INSUFFICIENT_RESOURCES == lastErrorNumber) {
+			j9tty_printf(portLibrary, "\tPortable error J9PORT_ERROR_VMEM_INSUFFICIENT_RESOURCES...\n");
 			j9tty_printf(portLibrary, "\t\tREBOOT THE MACHINE to free up resources AND TRY THE TEST AGAIN\n");
 		}
 		goto exit;
@@ -554,8 +554,8 @@ j9vmem_bench_force_overcommit_then_decommit(struct J9PortLibrary *portLibrary, U
 		lastErrorNumber = j9error_last_error_number();
 		outputErrorMessage(PORTTEST_ERROR_ARGS, "unable to reserve and commit 0x%zx bytes with page size 0x%zx.\n"
 				"\tlastErrorNumber=%d, lastErrorMessage=%s\n ", byteAmount, pageSize, lastErrorNumber, lastErrorMessage);
-		if (J9PORT_ERROR_VMEM_INSUFFICENT_RESOURCES == lastErrorNumber) {
-			j9tty_printf(portLibrary, "\tPortable error J9PORT_ERROR_VMEM_INSUFFICENT_RESOURCES...\n");
+		if (J9PORT_ERROR_VMEM_INSUFFICIENT_RESOURCES == lastErrorNumber) {
+			j9tty_printf(portLibrary, "\tPortable error J9PORT_ERROR_VMEM_INSUFFICIENT_RESOURCES...\n");
 			j9tty_printf(portLibrary, "\t\tREBOOT THE MACHINE to free up resources AND TRY THE TEST AGAIN\n");
 		}
 		goto exit;
@@ -654,8 +654,8 @@ j9vmem_bench_reserve_write_decommit_and_free_memory(struct J9PortLibrary *portLi
 			lastErrorNumber = j9error_last_error_number();
 			outputErrorMessage(PORTTEST_ERROR_ARGS, "In iteration %d, unable to reserve and commit 0x%zx bytes with page size 0x%zx.\n"
 					"\tlastErrorNumber=%d, lastErrorMessage=%s\n ", i, byteAmount, pageSize, lastErrorNumber, lastErrorMessage);
-			if (J9PORT_ERROR_VMEM_INSUFFICENT_RESOURCES == lastErrorNumber) {
-				j9tty_printf(portLibrary, "\tPortable error J9PORT_ERROR_VMEM_INSUFFICENT_RESOURCES...\n");
+			if (J9PORT_ERROR_VMEM_INSUFFICIENT_RESOURCES == lastErrorNumber) {
+				j9tty_printf(portLibrary, "\tPortable error J9PORT_ERROR_VMEM_INSUFFICIENT_RESOURCES...\n");
 				j9tty_printf(portLibrary, "\t\tREBOOT THE MACHINE to free up resources AND TRY THE TEST AGAIN\n");
 			}
 			goto exit;
@@ -742,8 +742,8 @@ j9vmem_exhaust_virtual_memory(struct J9PortLibrary *portLibrary, UDATA pageSize,
 			lastErrorNumber = j9error_last_error_number();
 			outputErrorMessage(PORTTEST_ERROR_ARGS, "unable to reserve and commit 0x%zx bytes with page size 0x%zx.\n"
 					"\tlastErrorNumber=%d, lastErrorMessage=%s\n ", byteAmount, pageSize, lastErrorNumber, lastErrorMessage);
-			if (J9PORT_ERROR_VMEM_INSUFFICENT_RESOURCES == lastErrorNumber) {
-				j9tty_printf(portLibrary, "\tPortable error J9PORT_ERROR_VMEM_INSUFFICENT_RESOURCES...\n");
+			if (J9PORT_ERROR_VMEM_INSUFFICIENT_RESOURCES == lastErrorNumber) {
+				j9tty_printf(portLibrary, "\tPortable error J9PORT_ERROR_VMEM_INSUFFICIENT_RESOURCES...\n");
 				j9tty_printf(portLibrary, "\t\tREBOOT THE MACHINE to free up resources AND TRY THE TEST AGAIN\n");
 			}
 			goto exit;
@@ -837,8 +837,8 @@ j9vmem_decommit_memory_test(struct J9PortLibrary *portLibrary)
 			lastErrorNumber = j9error_last_error_number();
 			outputErrorMessage(PORTTEST_ERROR_ARGS, "unable to reserve and commit 0x%zx bytes with page size 0x%zx.\n"
 					"\tlastErrorNumber=%d, lastErrorMessage=%s\n ", pageSizes[i], pageSizes[i], lastErrorNumber, lastErrorMessage);
-			if (J9PORT_ERROR_VMEM_INSUFFICENT_RESOURCES == lastErrorNumber) {
-				outputComment(portLibrary, "\tPortable error J9PORT_ERROR_VMEM_INSUFFICENT_RESOURCES...\n");
+			if (J9PORT_ERROR_VMEM_INSUFFICIENT_RESOURCES == lastErrorNumber) {
+				outputComment(portLibrary, "\tPortable error J9PORT_ERROR_VMEM_INSUFFICIENT_RESOURCES...\n");
 				outputComment(portLibrary, "\t\tREBOOT THE MACHINE to free up resources AND TRY THE TEST AGAIN\n");
 			}
 			goto exit;
@@ -1083,8 +1083,8 @@ j9vmem_testReserveMemoryEx_impl(struct J9PortLibrary *portLibrary, const char* t
 					outputErrorMessage(PORTTEST_ERROR_ARGS, "unable to reserve and commit 0x%zx bytes with page size 0x%zx.\n"
 							"\tlastErrorNumber=%d, lastErrorMessage=%s\n ", pageSizes[i], pageSizes[i], lastErrorNumber, lastErrorMessage);
 
-					if (J9PORT_ERROR_VMEM_INSUFFICENT_RESOURCES == lastErrorNumber) {
-						outputComment(portLibrary, "\tPortable error J9PORT_ERROR_VMEM_INSUFFICENT_RESOURCES...\n");
+					if (J9PORT_ERROR_VMEM_INSUFFICIENT_RESOURCES == lastErrorNumber) {
+						outputComment(portLibrary, "\tPortable error J9PORT_ERROR_VMEM_INSUFFICIENT_RESOURCES...\n");
 						outputComment(portLibrary, "\t\tREBOOT THE MACHINE to free up resources AND TRY THE TEST AGAIN\n");
 					}
 				}

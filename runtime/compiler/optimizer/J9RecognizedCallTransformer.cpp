@@ -497,7 +497,7 @@ void J9::RecognizedCallTransformer::processUnsafeAtomicCall(TR::TreeTop* treetop
  *    the current compilation
  *
  *  \param origSignature
- *    the original signautre
+ *    the original signature
  *
  *  \param signatureLength
  *    the constructed signature length

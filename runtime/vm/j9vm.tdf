@@ -847,7 +847,7 @@ TraceEntry=Trc_VM_GetFullyQualifiedMethodName_Entry Overhead=1 Level=3 Template=
 TraceExit=Trc_VM_GetFullyQualifiedMethodName_Exit Overhead=1 Level=3 Template="GetFullyQualifiedMethodName index (%u) info (%p) className (%s) methodSig (%s) result (%s)"
 TraceEvent=Trc_VM_GetLocalsName_LocalVar Overhead=1 Level=3 Template="getLocalsName localVar (%u) temps[localVar] (%zu)"
 TraceExit=Trc_VM_GetLocalsName_Exit Overhead=1 Level=3 Template="GetLocalsName result (%s) localVar (%d) bcIndex (%u) temps (%p) methodInfo (%p)"
-TraceExit=Trc_VM_PushViaSiganature_Exit Overhead=1 Level=4 Template="PushViaSiganature *signature (%c) stackTop (%p) bcPos (%zu)"
+TraceExit=Trc_VM_PushViaSignature_Exit Overhead=1 Level=4 Template="PushViaSiganature *signature (%c) stackTop (%p) bcPos (%zu)"
 TraceEvent=Trc_VM_CopyToTargetStack_Copy Overhead=1 Level=3 Template="copyToTargetStack npeMsgData->unwalkedQueueTail (%zu) bytecodeMap[%zu] (0x%x)"
 TraceEvent=Trc_VM_CopyToTargetStack_BranchTarget Overhead=1 Level=3 Template="copyToTargetStack BranchTarget at liveStackBaseIndexTemp (%zu) liveStack: (%zu) targetStack: (%zu)"
 TraceEvent=Trc_VM_CopyToTargetStack_Mismatched_StackShape Overhead=1 Level=1 Template="copyToTargetStack mismatched stack shape: liveStack (%zd, %zd) targetStack (%zd, %zd)"

@@ -46,7 +46,7 @@ static char* getLocalsName(J9VMThread *vmThread, J9ROMMethod *romMethod, U_16 lo
 static char* getMsgWithAllocation(J9VMThread *vmThread, const char *msgTemplate, ...);
 static IDATA initializeNPEMessageData(J9NPEMessageData *npeMsgData);
 static void initStackFromMethodSignature(J9VMThread *vmThread, J9ROMMethod *romMethod, UDATA **stackTopPtr);
-static UDATA* pushViaSiganature(J9VMThread *vmThread, U_8 *signature, UDATA *stackTop, UDATA bcPos);
+static UDATA* pushViaSignature(J9VMThread *vmThread, U_8 *signature, UDATA *stackTop, UDATA bcPos);
 static void setSrcBytecodeOffset(J9BytecodeOffset *bytecodeOffset, UDATA bcPos, UDATA first, UDATA second);
 static char* simulateStack(J9NPEMessageData *npeMsgData);
 
@@ -1261,7 +1261,7 @@ getLocalsName(J9VMThread *vmThread, J9ROMMethod *romMethod, U_16 localVar, UDATA
  * @return the stackTop
  */
 static UDATA *
-pushViaSiganature(J9VMThread *vmThread, U_8 *signature, UDATA *stackTop, UDATA bcPos)
+pushViaSignature(J9VMThread *vmThread, U_8 *signature, UDATA *stackTop, UDATA bcPos)
 {
 	if ('V' != *signature) {
 		PUSH(bcPos);
@@ -1269,7 +1269,7 @@ pushViaSiganature(J9VMThread *vmThread, U_8 *signature, UDATA *stackTop, UDATA b
 			PUSH(bcPos);
 		}
 	}
-	Trc_VM_PushViaSiganature_Exit(vmThread, *signature, stackTop, bcPos);
+	Trc_VM_PushViaSignature_Exit(vmThread, *signature, stackTop, bcPos);
 	return stackTop;
 }
 
@@ -1587,7 +1587,7 @@ simulateStack(J9NPEMessageData *npeMsgData)
 				}
 			} else {
 				/* JBgetfield/JBgetstatic - even currentBytecode's */
-				stackTop = pushViaSiganature(vmThread, J9UTF8_DATA(fieldSig), stackTop, bcPos);
+				stackTop = pushViaSignature(vmThread, J9UTF8_DATA(fieldSig), stackTop, bcPos);
 			}
 			break;
 		}
@@ -1634,7 +1634,7 @@ simulateStack(J9NPEMessageData *npeMsgData)
 
 			U_8 *signature = J9UTF8_DATA(classSig);
 			while (*signature++ != ')');
-			stackTop = pushViaSiganature(vmThread, signature, stackTop, bcPos);
+			stackTop = pushViaSignature(vmThread, signature, stackTop, bcPos);
 
 			break;
 		}

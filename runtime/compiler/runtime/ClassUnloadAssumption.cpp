@@ -251,7 +251,7 @@ bool OMR::RuntimeAssumption::isAssumingMethod(void *md, bool reclaimPrePrologueA
    }
 
 
-// Currrent assumption must be taken out from the circular list of assumptions
+// Current assumption must be taken out from the circular list of assumptions
 // starting in the jittedBodyInfo. We start from the current assumption and go around
 // until we find it again. This way we can find previous entry so we can detach it
 // from the list

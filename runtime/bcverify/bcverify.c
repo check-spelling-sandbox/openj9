@@ -537,7 +537,7 @@ _underflow:
 
 _overflow:
 	/* Jazz 82615: Set the error code, the location of the last local variable allowed on 'locals'
-	 * and the maximum local size in the case of overflow on 'locals' in the currrent stackmap frame.
+	 * and the maximum local size in the case of overflow on 'locals' in the current stackmap frame.
 	 */
 	verifyData->errorDetailCode = BCV_ERR_STACKMAP_FRAME_LOCALS_OVERFLOW;
 	verifyData->errorCurrentFramePosition = (maxLocals > 0) ? (U_32)(maxLocals - 1) : 0;

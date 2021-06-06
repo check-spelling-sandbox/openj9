@@ -5057,12 +5057,12 @@ public class MethodHandles {
 			for (int clauseIndex = 0; clauseIndex < countOfClauses; clauseIndex++) {
 				MethodHandle[] currentClause = clausesList.get(clauseIndex);
 				for (int handleIndex = 1; handleIndex < COUNT_OF_HANDLES; handleIndex++) {
-					MethodHandle currrentHandle = currentClause[handleIndex];
-					if ((null != currrentHandle)
-						&& (currrentHandle.type.parameterCount() > 0)
+					MethodHandle currentHandle = currentClause[handleIndex];
+					if ((null != currentHandle)
+						&& (currentHandle.type.parameterCount() > 0)
 					) {
 						/* Remove the iteration variable types (V...) of non-init handles to get the remaining parameter types */
-						Class<?>[] suffixOfParamTypes = getSuffixOfParamTypesFromNonInitHandle(currrentHandle.type.ptypes());
+						Class<?>[] suffixOfParamTypes = getSuffixOfParamTypesFromNonInitHandle(currentHandle.type.ptypes());
 						
 						/* Compared with the existing longest parameter types to determine
 						 * the longer parameter types for use in the next non-init handle.

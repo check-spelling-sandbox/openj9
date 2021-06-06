@@ -841,7 +841,7 @@ SH_CacheMap::createNewSegment(J9VMThread* currentThread, UDATA type, J9MemorySeg
  * Therefore, we can enter the write mutex if we have the class segment mutex, but NOT vice-versa.
  *
  * @param [in] currentThread  The current thread
- * @param [in] hasClassSegmentMutex  Whether the currrent thread has ClassSegmentMutex
+ * @param [in] hasClassSegmentMutex  Whether the current thread has ClassSegmentMutex
  * @param [in] topLayerOnly  Whether update romClass segment for top layer cache only
  */
 void

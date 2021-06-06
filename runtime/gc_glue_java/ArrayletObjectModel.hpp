@@ -267,7 +267,7 @@ public:
 	 * 1: The total data size in arraylet is between 0 and region
 	 *		size. Small enough to make the arraylet layout contiguous,
 	 *		in which case this function is unreachable.
-	 * 2: The total data size in arraylet is exacly the same size
+	 * 2: The total data size in arraylet is exactly the same size
 	 *		of a region. In this case we do not need to double
 	 *		map since we already have a contiguous representation of the
 	 *		data at first leaf.

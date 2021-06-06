@@ -658,7 +658,7 @@ typedef struct J9ProcessorDesc {
 #define J9PORT_X86_FEATURE_HLE				96 + 4	/* Hardware Lock Elison */
 #define J9PORT_X86_FEATURE_AVX2				96 + 5	/* AVX2 support */
 #define J9PORT_X86_FEATURE_FDP_EXCPTN_ONLY	96 + 6	/* x87 FPU data pointer updated only on exceptions */
-#define J9PORT_X86_FEATURE_SMEP				96 + 7	/* Supervsior-Mode Execution Prevention */
+#define J9PORT_X86_FEATURE_SMEP				96 + 7	/* Supervisor-Mode Execution Prevention */
 #define J9PORT_X86_FEATURE_BMI2				96 + 8	/* Bit Manipulation Instructions 2 */
 #define J9PORT_X86_FEATURE_ERMSB			96 + 9	/* Enhanced REP MOVSB/STOSB */
 #define J9PORT_X86_FEATURE_INVPCID			96 + 10	/* Invalidate Process-Context Identifier instruction */

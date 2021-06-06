@@ -103,7 +103,7 @@ public abstract class DTFJJavaField implements JavaField, IDTFJJavaField {
 	
 	protected DTFJJavaObject validateJavaObject(JavaObject object) throws CorruptDataException {
 		if(!(object instanceof DTFJJavaObject)) {
-			throw new IllegalArgumentException(String.format("Unregonised JavaObject implementer : %s", object.getClass().getName()));
+			throw new IllegalArgumentException(String.format("Unrecognized JavaObject implementer : %s", object.getClass().getName()));
 		}
 		if(!isAncestorOf(object.getJavaClass())) {
 			throw new IllegalArgumentException("The class for the JavaObject specified as a parameter does not match with the declaring class of this JavaField.");

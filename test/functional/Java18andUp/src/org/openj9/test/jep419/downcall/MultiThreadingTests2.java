@@ -34,7 +34,7 @@ import static jdk.incubator.foreign.ValueLayout.*;
 
 /**
  * Test cases for JEP 419: Foreign Linker API (Second Incubator) DownCall for primitive types,
- * which verifies the downcalls with the diffrent layouts and arguments/return types in multithreading.
+ * which verifies the downcalls with the different layouts and arguments/return types in multithreading.
  */
 @Test(groups = { "level.sanity" })
 public class MultiThreadingTests2 implements Thread.UncaughtExceptionHandler {

@@ -412,7 +412,7 @@ public class Test_ClassLoader {
 		Object lock2 = mcl.myGetClassLoadingLock(CLASSNAME);
 		System.out.println(lock2);
 		if (!lock1.equals(lock2)) {
-			Assert.fail("FAILED: getClassLoadingLock() returns differernt lock objects for same class name!");
+			Assert.fail("FAILED: getClassLoadingLock() returns different lock objects for same class name!");
 		}
 	}
 

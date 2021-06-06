@@ -36,7 +36,7 @@ import jdk.incubator.foreign.SymbolLookup;
 
 /**
  * Test cases for JEP 389: Foreign Linker API (Incubator) for primitive types in downcall,
- * which verifies the downcalls with the diffrent return types in multithreading.
+ * which verifies the downcalls with the different return types in multithreading.
  */
 @Test(groups = { "level.sanity" })
 public class MultiThreadingTests3 implements Thread.UncaughtExceptionHandler {

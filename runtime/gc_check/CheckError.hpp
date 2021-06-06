@@ -74,7 +74,7 @@ class GC_CheckError : public MM_Base
 public:
 	void *_object; /**< The object or structure that is reporting the error */
 	void *_slot; /**< The slot that is reporting the error */
-	const void *_stackLocaition; /**< The original location on the stack that reports the error */
+	const void *_stackLocation; /**< The original location on the stack that reports the error */
 	GC_Check *_check; /**< The check which triggered the error */
 	GC_CheckCycle *_cycle; /**< Description of the cycle that triggered the error */
 	const char *_elementName; /**< String describing the element reporting the error */
@@ -89,7 +89,7 @@ private:
 	{
 		_object = object;
 		_slot = slot;
-		_stackLocaition = stackLocation;
+		_stackLocation = stackLocation;
 		_cycle = cycle;
 		_check = check;
 		_elementName = elementName;

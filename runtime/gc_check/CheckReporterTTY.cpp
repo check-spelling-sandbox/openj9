@@ -159,7 +159,7 @@ GC_CheckReporterTTY::report(GC_CheckError *error)
 			if (error->_objectType == check_type_thread) {
 				/* slots from thread stacks are always local */
 				slotValue = *((UDATA*)slot);
-				slot = error->_stackLocaition;
+				slot = error->_stackLocation;
 			} else if(error->_objectType == check_type_unfinalized) {
 				slotValue = *((UDATA*)slot);
 			}  else if(error->_objectType == check_type_finalizable) {

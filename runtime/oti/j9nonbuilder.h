@@ -905,7 +905,7 @@ typedef struct J9CudaGlobals {
 
 typedef enum J9SharedClassCacheMode {
 	J9SharedClassCacheBootstrapOnly,
-	J9SharedClassCacheBoostrapAndExtension,
+	J9SharedClassCacheBootstrapAndExtension,
 	J9SharedClassCacheUserDefined
 } J9SharedClassCacheMode;
 

@@ -118,8 +118,8 @@ extern "C" void jitSetMutableCallSiteTarget(J9VMThread *vmThread, j9object_t mcs
 
 static void codertOnBootstrap(J9HookInterface * * hookInterface, UDATA eventNum, void * eventData, void * userData)
    {
-   J9VMAboutToBootstrapEvent * boostrapEvent = (J9VMAboutToBootstrapEvent*)eventData;
-   J9VMThread * vmThread = boostrapEvent->currentThread;
+   J9VMAboutToBootstrapEvent * bootstrapEvent = (J9VMAboutToBootstrapEvent*)eventData;
+   J9VMThread * vmThread = bootstrapEvent->currentThread;
    J9JavaVM * javaVM = vmThread->javaVM;
    J9JITConfig * jitConfig = javaVM->jitConfig;
    PORT_ACCESS_FROM_JAVAVM(javaVM);

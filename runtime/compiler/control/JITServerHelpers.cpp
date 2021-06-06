@@ -518,7 +518,7 @@ JITServerHelpers::freeRemoteROMClass(J9ROMClass *romClass, TR_PersistentMemory *
 /*
  * `cacheRemoteROMClassOrFreeIt` takes a romClass data structure allocated with
  * persistent memory and attempts to cache it in the per-client data session.
- * If caching suceeds, the method returns a pointer to the romClass received as parameter.
+ * If caching succeeds, the method returns a pointer to the romClass received as parameter.
  * If the caching fails, the memory for romClass received as parameter is freed
  * and the method returns a pointer to the romClass from the cache
  */

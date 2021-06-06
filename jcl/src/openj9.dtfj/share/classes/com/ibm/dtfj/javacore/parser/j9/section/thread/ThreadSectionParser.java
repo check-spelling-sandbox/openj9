@@ -120,10 +120,10 @@ public class ThreadSectionParser extends SectionParser implements IThreadTypes{
 			// Always parse the first thread of the section so that the first thread in 
 			// the current thread section will be generated first. It will be reparsed later,
 			// but that doesn't matter.
-			processThreadandStackTrace(results, buildModel, currentThread, currentLineNumber);
+			processThreadAndStackTrace(results, buildModel, currentThread, currentLineNumber);
 			if (!currentThread) {
 				while((results = processTagLineOptional(T_3XMTHREADINFO)) != null) {
-					processThreadandStackTrace(results, buildModel, false, currentLineNumber);
+					processThreadAndStackTrace(results, buildModel, false, currentLineNumber);
 				}
 			}
 		}
@@ -138,7 +138,7 @@ public class ThreadSectionParser extends SectionParser implements IThreadTypes{
 	 * @return updated line number
 	 * @throws ParserException
 	 */
-	protected int processThreadandStackTrace(IAttributeValueMap javaThreadResults, boolean buildModel, boolean currentThread, int currentLineNumber) throws ParserException {
+	protected int processThreadAndStackTrace(IAttributeValueMap javaThreadResults, boolean buildModel, boolean currentThread, int currentLineNumber) throws ParserException {
 		JavaThread javaThread = null;
 		// 3XMTHREADINFO1 found only in J9 2.4 or higher. Native thread ID is contained
 		// in the latter. For all other older VMs, native thread ID is contained in 3XMTHREADINFO

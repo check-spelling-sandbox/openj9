@@ -923,7 +923,7 @@ typedef UDATA (* lookupNativeAddressCallback)(struct J9VMThread *currentThread, 
 			The name string does not persist beyond the reporting of this event - it must be copied by the listener if desired.
 
 			This hook may be called with or without VM access, may be called with exclusive VM access, and may be called
-			while internal VM mutexxes are held.
+			while internal VM mutexes are held.
 		</description>
 		<condition>defined (J9VM_INTERP_NATIVE_SUPPORT)</condition>
 		<struct>J9DynamicCodeLoadEvent</struct>
@@ -941,7 +941,7 @@ typedef UDATA (* lookupNativeAddressCallback)(struct J9VMThread *currentThread, 
 			Triggered when dynamic code is unloaded.
 
 			This hook may be called with or without VM access, may be called with exclusive VM access, and may be called
-			while internal VM mutexxes are held.
+			while internal VM mutexes are held.
 		</description>
 		<condition>defined (J9VM_INTERP_NATIVE_SUPPORT)</condition>
 		<struct>J9DynamicCodeUnloadEvent</struct>

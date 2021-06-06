@@ -84,7 +84,7 @@ J9::Power::CodeGenerator::initialize()
       comp->setOption(TR_EnableMonitorCacheLookup);
 
    cg->setSupportsPartialInlineOfMethodHooks();
-   cg->setSupportsInliningOfTypeCoersionMethods();
+   cg->setSupportsInliningOfTypeCoercionMethods();
 
    if (comp->target().cpu.isAtLeast(OMR_PROCESSOR_PPC_P8) && comp->target().cpu.supportsFeature(OMR_FEATURE_PPC_HAS_VSX) &&
       comp->target().is64Bit() && !comp->getOption(TR_DisableFastStringIndexOf) &&

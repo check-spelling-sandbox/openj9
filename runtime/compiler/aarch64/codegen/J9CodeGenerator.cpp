@@ -63,7 +63,7 @@ J9::ARM64::CodeGenerator::initialize()
       initTreeEvaluatorTable = true;
       }
 
-   cg->setSupportsInliningOfTypeCoersionMethods();
+   cg->setSupportsInliningOfTypeCoercionMethods();
    cg->setSupportsDivCheck();
    if (!comp->getOption(TR_FullSpeedDebug))
       cg->setSupportsDirectJNICalls();

@@ -41,7 +41,7 @@ public class RestrictReceiverTest {
 	 * @param testInstance
 	 */
 	@Test(enabled = false)
-	private void testUnrelfectNoAccess(Object testInstance) { 
+	private void testUnreflectNoAccess(Object testInstance) { 
 		boolean pass = false;
 		String result = null;
 		
@@ -184,7 +184,7 @@ public class RestrictReceiverTest {
 	
 	@Test(enabled = false)
 	private void testClass(Object testInstance) {
-		testUnrelfectNoAccess(testInstance);
+		testUnreflectNoAccess(testInstance);
 		testUnreflect(testInstance);
 		testFindVirtual(testInstance);
 		testFindSpecialSameTokenAsCurrentClass(testInstance);

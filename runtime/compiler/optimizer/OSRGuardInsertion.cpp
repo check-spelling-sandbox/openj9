@@ -239,7 +239,7 @@ int32_t TR_OSRGuardInsertion::perform()
 
       if (hasPotentialOSRPointWithoutSupport)
          {
-         // Redudant potentialOSRPointHelper calls may result in more OSR guards than needed
+         // Redundant potentialOSRPointHelper calls may result in more OSR guards than needed
          //
          removeRedundantPotentialOSRPointHelperCalls(guardAnalysis);
          }

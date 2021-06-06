@@ -347,7 +347,7 @@ extern "C" {
 void J9FASTCALL _jitProfileParseBuffer(uintptr_t vmThread)
    {
    J9VMThread *currentThread = (J9VMThread *)vmThread;
-   J9JITConfig * jitConfg = currentThread->javaVM->jitConfig;
+   J9JITConfig * jitConfig = currentThread->javaVM->jitConfig;
    TR_J9VMBase *fe = NULL;
 
    if (jitConfig)
@@ -900,7 +900,7 @@ void dumpClassStaticsForClass(::FILE *fp, J9Class *clazz, J9VMThread *vmThread)
 void dumpAllClasses(J9VMThread *vmThread)
    {
    J9JavaVM * javaVM = vmThread->javaVM;
-   J9JITConfig * jitConfg = javaVM->jitConfig;
+   J9JITConfig * jitConfig = javaVM->jitConfig;
    PORT_ACCESS_FROM_JAVAVM(javaVM);
    J9ClassWalkState classWalkState;
    ::FILE *fp = NULL;

@@ -50,7 +50,7 @@ static J9JavaVM *cachedVM = NULL;
 /* config starts locked and we unlock it once the initial configuration is in place */
 static UDATA rasDumpLockConfig = -1;
 
-/* GLOBAL: dump agent bitvectors */
+/* GLOBAL: dump agent bit vectors */
 UDATA rasDumpAgentEnabled = (UDATA)-1;
 
 char* dumpDirectoryPrefix = NULL;

@@ -56,7 +56,7 @@ class TR_ResolvedMethod;
 // prologue looks like:
 //
 //              -16 db[3]   padding 3 bytes
-//              -13 call    _samplingRecompileMethod <-- immediate field aligned on 4-byte bndry
+//              -13 call    _samplingRecompileMethod <-- immediate field aligned on 4-byte boundary
 //              -8  dd      address of persistent jitted body info
 //              -4  dd      method linkage info and flags
 //               0  ??      first instruction of the method (must be atleast 2 bytes)
@@ -66,7 +66,7 @@ class TR_ResolvedMethod;
 //              -24 db      padding 1 byte
 //              -23 mov     edi, j9method
 //              -18 call    interpretedCallGlue
-//              -13 call    _samplingRecompileMethod <-- immediate field aligned on 4 byte bndry
+//              -13 call    _samplingRecompileMethod <-- immediate field aligned on 4 byte boundary
 //              -8  dd      address of persistent jitted body info
 //              -4  dd      method linkage info and flags
 //               0  ??      first instruction of the method (must be atleast 2 bytes)

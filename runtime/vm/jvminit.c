@@ -4019,7 +4019,7 @@ runShutdownStage(J9JavaVM* vm, IDATA stage, void* reserved, UDATA filterFlags)
 	userData.vm = vm;
 	userData.stage = stage;
 	userData.reserved = reserved;
-	userData.filterFlags = filterFlags;	/* only run J9VMDllMain for DLL table entries whos flags match ALL filterFlags */
+	userData.filterFlags = filterFlags;	/* only run J9VMDllMain for DLL table entries whose flags match ALL filterFlags */
 
 #ifdef J9VM_INTERP_VERBOSE
 	JVMINIT_VERBOSE_INIT_VM_TRACE1(vm, "\nRunning shutdown stage %s...\n", getNameForStage(stage));

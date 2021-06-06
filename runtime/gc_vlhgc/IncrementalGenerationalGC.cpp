@@ -1338,18 +1338,18 @@ MM_IncrementalGenerationalGC::preProcessPGCUsingCopyForward(MM_EnvironmentVLHGC 
 
 	MM_GlobalAllocationManagerTarok *allocationmanager = (MM_GlobalAllocationManagerTarok *)_extensions->globalAllocationManager;
 	UDATA freeRegions = allocationmanager->getFreeRegionCount();
-	double estimatedReguiredSurvivorRegions = _schedulingDelegate.getAverageSurvivorSetRegionCount();
+	double estimatedRequiredSurvivorRegions = _schedulingDelegate.getAverageSurvivorSetRegionCount();
 	MM_GCExtensions* extensions = MM_GCExtensions::getExtensions(env);
-	/* Adjust estimatedReguiredSurvivorRegions if extensions->fvtest_forceCopyForwardHybridRatio is set(for testing purpose) */
+	/* Adjust estimatedRequiredSurvivorRegions if extensions->fvtest_forceCopyForwardHybridRatio is set(for testing purpose) */
 	if ((0 != extensions->fvtest_forceCopyForwardHybridRatio) && (100 >= extensions->fvtest_forceCopyForwardHybridRatio)) {
-		estimatedReguiredSurvivorRegions = estimatedReguiredSurvivorRegions * (100 - extensions->fvtest_forceCopyForwardHybridRatio) / 100;
+		estimatedRequiredSurvivorRegions = estimatedRequiredSurvivorRegions * (100 - extensions->fvtest_forceCopyForwardHybridRatio) / 100;
 	}
 
-	if ((_schedulingDelegate.isPGCAbortDuringGMP() || _schedulingDelegate.isFirstPGCAfterGMP()) && (estimatedReguiredSurvivorRegions > freeRegions)) {
+	if ((_schedulingDelegate.isPGCAbortDuringGMP() || _schedulingDelegate.isFirstPGCAfterGMP()) && (estimatedRequiredSurvivorRegions > freeRegions)) {
 		double edenSurvivorRate = _schedulingDelegate.getAvgEdenSurvivalRateCopyForward(env);
 		UDATA regionCountRequiredMarkOnly = 0;
 		if (0 != edenSurvivorRate) {
-			regionCountRequiredMarkOnly = (UDATA)((estimatedReguiredSurvivorRegions - freeRegions) / edenSurvivorRate);
+			regionCountRequiredMarkOnly = (UDATA)((estimatedRequiredSurvivorRegions - freeRegions) / edenSurvivorRate);
 		} else {
 			regionCountRequiredMarkOnly = _schedulingDelegate.getCurrentEdenSizeInRegions(env);
 		}

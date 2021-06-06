@@ -2432,7 +2432,7 @@ TR_J9VMBase::reportHotField(int32_t reducedCpuUtil, J9Class* clazz, uint8_t fiel
 }
 
 /**
- * Query if hot reference field is reqired for dynamicBreadthFirstScanOrdering
+ * Query if hot reference field is required for dynamicBreadthFirstScanOrdering
  *  @return true if scavenger dynamicBreadthFirstScanOrdering is enabled, 0 otherwise
  */
 bool

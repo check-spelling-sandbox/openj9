@@ -1974,7 +1974,7 @@ J9::TransformUtil::createDiamondForCall(TR::Optimization* opt, TR::TreeTop *call
       traceMsg(comp, "Creating diamond for call tree %p with compare tree %p if tree %p and else tree %p\n", callTree, compareTree, ifTree, elseTree);
 
    TR::Node *callNode = callTree->getNode()->getFirstChild();
-   // the call itself may be commoned, so we need to create a temp for the callnode itself
+   // the call itself may be commoned, so we need to create a temp for the callNode itself
    TR::SymbolReference *newSymbolReference = 0;
    TR::DataType dataType = callNode->getDataType();
    if(callNode->getReferenceCount() > 1)

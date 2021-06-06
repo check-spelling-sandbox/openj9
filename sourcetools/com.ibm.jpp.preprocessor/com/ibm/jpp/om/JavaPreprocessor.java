@@ -1173,7 +1173,7 @@ public class JavaPreprocessor {
 			boolean inString = false;
 			boolean inSingleQuote = false;
 			int parenCount = 0;
-			int squigleCount = 0;
+			int squiggleCount = 0;
 			--pos;
 			do {
 				++pos;
@@ -1191,21 +1191,21 @@ public class JavaPreprocessor {
 						} else if (line[pos] == ')') {
 							parenCount--;
 						} else if (line[pos] == '{') {
-							squigleCount++;
+							squiggleCount++;
 						} else if (line[pos] == '}') {
-							squigleCount--;
+							squiggleCount--;
 						}
 
 						if (parenCount == -1) {
 							break;
 						}
-						if (squigleCount == -1) {
+						if (squiggleCount == -1) {
 							break;
 						}
 					}
 					pos++;
 				}
-			} while (parenCount > 0 || squigleCount > 0);
+			} while (parenCount > 0 || squiggleCount > 0);
 
 			// Check the validity of the arguments.
 			char ch = line[pos];

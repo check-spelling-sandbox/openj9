@@ -74,7 +74,7 @@ public final class MethodType implements Serializable
 	, Constable, TypeDescriptor.OfMethod<Class<?>, MethodType>
 /*[ENDIF] JAVA_SPEC_VERSION >= 12 */
 {
-	static final Class<?>[] EMTPY_PARAMS = new Class<?>[0];
+	static final Class<?>[] EMPTY_PARAMS = new Class<?>[0];
 
 /*[IF Sidecar19-SE-OpenJ9]*/	
 	private MethodTypeForm form;
@@ -124,7 +124,7 @@ public final class MethodType implements Serializable
 
 		DeserializedFieldsHolder(Class<?> rtype, Class<?>[] args) {
 			returnType = (rtype == null) ? void.class : rtype;
-			arguments = (args == null) ? EMTPY_PARAMS : args;
+			arguments = (args == null) ? EMPTY_PARAMS : args;
 		}
 	}
 
@@ -569,7 +569,7 @@ public final class MethodType implements Serializable
 	 * @return a new MethodHandle object
 	 */
 	public static MethodType methodType(Class<?> type){
-		return methodType(type, EMTPY_PARAMS, false);
+		return methodType(type, EMPTY_PARAMS, false);
 	}
 	     
 	/**
@@ -989,9 +989,9 @@ public final class MethodType implements Serializable
 				}
 			);
 			fReturnType.set(this, void.class);
-			fArguments.set(this, EMTPY_PARAMS);
+			fArguments.set(this, EMPTY_PARAMS);
 			methodDescriptor = "()V";
-			stackDescriptionBits = stackDescriptionBits(EMTPY_PARAMS, 0);
+			stackDescriptionBits = stackDescriptionBits(EMPTY_PARAMS, 0);
 			Class<?> serialReturnType = (Class<?>) in.readObject();
 			Class<?>[] serialArguments = (Class<?>[]) in.readObject();
 			deserializedFields = new DeserializedFieldsHolder(serialReturnType, serialArguments);
@@ -1004,7 +1004,7 @@ public final class MethodType implements Serializable
 	@SuppressWarnings("unused")
 	private Object readResolve() throws ObjectStreamException {
 		Class<?> ret = void.class;
-		Class<?>[] args = EMTPY_PARAMS;
+		Class<?>[] args = EMPTY_PARAMS;
 		DeserializedFieldsHolder localArgs = deserializedFields;
 		if (localArgs != null) {
 			ret = deserializedFields.returnType;

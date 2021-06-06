@@ -60,7 +60,7 @@ public class ForeachCommand extends Command
 					out.println();
 					out.println("\techo\t\tOutput each command before it is run.");
 					out.println("\tquiet\t\tSuppress delimiters between command outputs.");
-					out.println("\ttoken=<chars>\tSpecify a substitution token. Occurrencs of this string in the args will be replaced by the current element.");
+					out.println("\ttoken=<chars>\tSpecify a substitution token. Occurrences of this string in the args will be replaced by the current element.");
 					return;
 				} else if (args[commandIndex].equals("echo")) {
 					echo = true;

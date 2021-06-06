@@ -58,7 +58,7 @@ public class SimpleGrep
   public static boolean searchForStringInFile(String searchText, String filename, String count) throws IOException, FileNotFoundException
   {
     boolean result;
-    //System.out.println("Searching for " + count + " occurences of \"" + searchText + "\" in file \"" + filename + "\"");
+    //System.out.println("Searching for " + count + " occurrences of \"" + searchText + "\" in file \"" + filename + "\"");
     int actualCount = countLinesContainingString(searchText, new FileInputStream(filename));
     int expectedCount = Integer.parseInt(count);
     //System.out.println("Found " + actualCount + " matching line" + (actualCount == 1 ? "." : "s."));

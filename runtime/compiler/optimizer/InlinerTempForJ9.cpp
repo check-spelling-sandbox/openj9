@@ -5718,7 +5718,7 @@ TR_J9InlinerUtil::computePrexInfo(TR_InlinerBase *inliner, TR_CallSite* site, TR
             {
             TR::Node* valueNode = NULL;
             TR::TreeTop* ttForFirstOccurrence = getFirstOccurrenceOfLoad(comp, site->_callNodeTreeTop, argument);
-            TR_ASSERT_FATAL(ttForFirstOccurrence, "Could not get a treetop for the first occurence of %p", argument);
+            TR_ASSERT_FATAL(ttForFirstOccurrence, "Could not get a treetop for the first occurrence of %p", argument);
             defToAutoOrParmInEBB(comp, ttForFirstOccurrence, symRef, &valueNode);
             if (valueNode &&
                 valueNode->getOpCode().hasSymbolReference() &&

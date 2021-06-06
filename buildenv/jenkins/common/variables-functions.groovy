@@ -53,7 +53,7 @@ class Buildspec {
     }
 
     /* perform a repeated map lookup of a given '.' separated name in my def
-     * eg. getNestedField('foo.bar.baz') is equivilent to
+     * eg. getNestedField('foo.bar.baz') is equivalent to
      * my_def['foo']['bar']['baz'], with the added benefit that if any lookup
      * along the path fails, null is returned rather than throwing an exception
      */

@@ -1017,7 +1017,7 @@ public class NPEMessageTests {
 				"new NullPointerException().getMessage() is not null!");
 		Assert.assertNull(new NullPointerException(null).getMessage(),
 				"new NullPointerException(null).getMessage() is not null!");
-		String npeMsg = new String("NPE creation messsage");
+		String npeMsg = new String("NPE creation message");
 		Assert.assertEquals(new NullPointerException(npeMsg).getMessage(), npeMsg);
 		Exception exception = NullPointerException.class.getDeclaredConstructor().newInstance();
 		Assert.assertNull(exception.getMessage());
@@ -1056,7 +1056,7 @@ public class NPEMessageTests {
 		Exception ex1 = (Exception) ois1.readObject();
 		Assert.assertNull(ex1.getMessage());
 
-		String msg2 = "NPE serialization messsage";
+		String msg2 = "NPE serialization message";
 		Object obj2 = new NullPointerException(msg2);
 		ByteArrayOutputStream baos2 = new ByteArrayOutputStream();
 		ObjectOutputStream oos2 = new ObjectOutputStream(baos2);

@@ -49,10 +49,10 @@ public class Test_InstantiationError {
 	public void test_Constructor2() {
 		try {
 			if (true)
-				throw new InstantiationError("test messsage InstantiationError");
+				throw new InstantiationError("test message InstantiationError");
 		} catch (InstantiationError e) {
 			AssertJUnit.assertTrue("Error not instantiated correctly: " + e.toString(),
-					e.getMessage().equals("test messsage InstantiationError"));
+					e.getMessage().equals("test message InstantiationError"));
 		} catch (Exception e) {
 			AssertJUnit.assertTrue("Exception occured during test." + e.toString(), false);
 		}

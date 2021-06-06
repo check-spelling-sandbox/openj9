@@ -59,7 +59,7 @@
 
 #define OPT_DETAILS "O^O NEWLOOPREDUCER: "
 #define DISPTRACE(OBJ) ((OBJ)->trace())
-#define VERBOSE(OBJ) ((OBJ)->showMesssagesStdout())
+#define VERBOSE(OBJ) ((OBJ)->showMessagesStdout())
 #define PNEW new (PERSISTENT_NEW)
 
 /** \brief

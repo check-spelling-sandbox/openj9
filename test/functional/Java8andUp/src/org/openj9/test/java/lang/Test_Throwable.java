@@ -195,7 +195,7 @@ public class Test_Throwable {
 	@Test
 	public void test_getMessage() {
 		Throwable x = new ClassNotFoundException("A Message");
-		AssertJUnit.assertTrue("Returned incorrect messasge string", x.getMessage().equals("A Message"));
+		AssertJUnit.assertTrue("Returned incorrect message string", x.getMessage().equals("A Message"));
 	}
 
 	/**

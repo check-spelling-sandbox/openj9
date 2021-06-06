@@ -1369,7 +1369,7 @@ class TR_CISCTransformer : public TR_LoopTransformer
       }
    TR_CISCNode *getT2Phead(TR_CISCNode *t) {return getT2Phead(t->getID());}
    bool isGenerateI2L() { return _isGenerateI2L; }
-   bool showMesssagesStdout() { return _showMesssagesStdout; }
+   bool showMessagesStdout() { return _showMessagesStdout; }
    TR_CISCNodeRegion *getCandidateRegion() { return _candidateRegion; }
    bool analyzeBoolTable(TR_BitVector **bv, TR::TreeTop **retTreeTop, TR_CISCNode *boolTable,
                          TR_BitVector *defBV, TR_CISCNode *defNode,
@@ -1509,7 +1509,7 @@ private:
    uint8_t *_EM;        // just for working
    uint8_t *_DE;        // just for working
    bool _isGenerateI2L;
-   bool _showMesssagesStdout;
+   bool _showMessagesStdout;
    };
 
 #endif

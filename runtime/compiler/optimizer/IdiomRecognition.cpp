@@ -2042,7 +2042,7 @@ TR_CISCTransformer::createLoopCandidates(List<TR_RegionStructure> *loopCandidate
             traceMsg(comp(), "\tAccepted loop %d as candidate.\n", naturalLoop->getNumber());
          }
 #if SHOW_STATISTICS
-      if (showMesssagesStdout() && loopCount)
+      if (showMessagesStdout() && loopCount)
          if (comp()->getMethodHotness() == warm || isAfterVersioning()) printf("!! #Loop=%d\n",loopCount);
 #endif
       }
@@ -3031,7 +3031,7 @@ int32_t TR_CISCTransformer::perform()
    _rootStructure = _cfg->getStructure();
    _nodesInCycle = new (trStackMemory()) TR_BitVector(_cfg->getNextNodeNumber(), trMemory(), stackAlloc);
    _isGenerateI2L = comp()->target().is64Bit();
-   _showMesssagesStdout = (VERBOSE || showStdout);
+   _showMessagesStdout = (VERBOSE || showStdout);
 
    // make loop candidates
    List<TR_RegionStructure> loopCandidates(trMemory());
@@ -3044,7 +3044,7 @@ int32_t TR_CISCTransformer::perform()
          revPost.dump(comp());
 
       bool modified = false;
-      if (showMesssagesStdout()) printf("\nStarting CISCTransformer %s, %s\n",
+      if (showMessagesStdout()) printf("\nStarting CISCTransformer %s, %s\n",
                                         comp()->getHotnessName(comp()->getMethodHotness()),
                                         comp()->signature());
       if (trace())
@@ -3305,7 +3305,7 @@ int32_t TR_CISCTransformer::perform()
             }
          }
 
-      if (showMesssagesStdout()) printf("Exiting CISCTransformer\n");
+      if (showMessagesStdout()) printf("Exiting CISCTransformer\n");
       cost = 1;
       }
    } // scope for stack memory region
@@ -5047,7 +5047,7 @@ void
 TR_CISCTransformer::moveCISCNodesInList(List<TR_CISCNode> *l, TR_CISCNode *from, TR_CISCNode *to, TR_CISCNode *moveTo)
    {
 #if 0
-   if (showMesssagesStdout())
+   if (showMessagesStdout())
       {
       printf("moveCISCNodesInList: %s\n",_T->getTitle());
       }
@@ -5119,7 +5119,7 @@ TR_CISCTransformer::moveCISCNodesInList(List<TR_CISCNode> *l, TR_CISCNode *from,
 void
 TR_CISCTransformer::moveCISCNodes(TR_CISCNode *from, TR_CISCNode *to, TR_CISCNode *moveTo, char *debugStr)
    {
-   if (showMesssagesStdout())
+   if (showMessagesStdout())
       {
       printf("moveCISCNodes: %s %s\n",_T->getTitle(), debugStr ? debugStr : "");
       }
@@ -5227,7 +5227,7 @@ TR_CISCTransformer::extractMatchingRegion()
                if (!t->isPredSimplyConnected() && !isSingleLoopBody)
                   {
                   isEmbed = false;
-                  if (showMesssagesStdout())
+                  if (showMessagesStdout())
                      {
                      printf("!!!!!!!!!!!!!! Predecessor of tID %" OMR_PRIu32 " is different from that of idiom.\n", tID);
                      }
@@ -7536,12 +7536,12 @@ TR_CISCTransformer::computeTopologicalEmbedding(TR_CISCGraph *P, TR_CISCGraph *T
    //
    if (trace())
       traceMsg(comp(), "Computing embedding info for idiom %s in loop %d\n", P->getTitle(), _bblistBody.getListHead()->getData()->getNumber());
-   if (showMesssagesStdout()) printf("Idiom: loop %d, %s\n",_bblistBody.getListHead()->getData()->getNumber(),
+   if (showMessagesStdout()) printf("Idiom: loop %d, %s\n",_bblistBody.getListHead()->getData()->getNumber(),
                                      P->getTitle());
    _sizeResult = _numPNodes * _numTNodes * sizeof(*_embeddedForData);
    _embeddedForData = (uint8_t*)trMemory()->allocateMemory(_sizeResult, stackAlloc);
    if (!computeEmbeddedForData()) return false; // It cannot find all of the idiom nodes.
-   if (showMesssagesStdout()) printf("find1 %s\n", P->getTitle());
+   if (showMessagesStdout()) printf("find1 %s\n", P->getTitle());
    if (trace())
       traceMsg(comp(), "Detected IL nodes in loop for idiom %s\n", P->getTitle());
 
@@ -7552,7 +7552,7 @@ TR_CISCTransformer::computeTopologicalEmbedding(TR_CISCGraph *P, TR_CISCGraph *T
    _EM = (uint8_t*)trMemory()->allocateMemory(_sizeResult, stackAlloc);
    _DE = (uint8_t*)trMemory()->allocateMemory(_sizeDE, stackAlloc);
    if (!computeEmbeddedForCFG()) return false; // It cannot find all of the idiom nodes.
-   if (showMesssagesStdout()) printf("find2 %s\n", P->getTitle());
+   if (showMessagesStdout()) printf("find2 %s\n", P->getTitle());
    if (trace())
       traceMsg(comp(), "finished topological embedding for idiom %s\n", P->getTitle());
 
@@ -7565,7 +7565,7 @@ TR_CISCTransformer::computeTopologicalEmbedding(TR_CISCGraph *P, TR_CISCGraph *T
    _sizeT2P = _numTNodes * sizeof(*_T2P);
    _T2P = (List<TR_CISCNode> *)trMemory()->allocateMemory(_sizeT2P, stackAlloc);
    if (!makeLists()) return false; // a variable corresponds to multiple nodes
-   if (showMesssagesStdout()) printf("find3 %s\n", P->getTitle());
+   if (showMessagesStdout()) printf("find3 %s\n", P->getTitle());
 
    // Step 4 transforms the target graph if necessary and
    // checks that both graphs are exactly matched.
@@ -7610,7 +7610,7 @@ TR_CISCTransformer::computeTopologicalEmbedding(TR_CISCGraph *P, TR_CISCGraph *T
       _T->restoreListsDuplicator();
       return false;
       }
-   if (showMesssagesStdout()) printf("find4 %s\n", P->getTitle());
+   if (showMessagesStdout()) printf("find4 %s\n", P->getTitle());
 
    //***************************************************************************************
    // Start to transform actual code (TR::Block, TR::TreeTop, TR::Node, and so on...)
@@ -7626,7 +7626,7 @@ TR_CISCTransformer::computeTopologicalEmbedding(TR_CISCGraph *P, TR_CISCGraph *T
       return false;             // The transformation fails
       }
 
-   if (trace() || showMesssagesStdout())
+   if (trace() || showMessagesStdout())
       {
       char *bcinfo = "";
 #if SHOW_BCINDICES
@@ -7645,7 +7645,7 @@ TR_CISCTransformer::computeTopologicalEmbedding(TR_CISCGraph *P, TR_CISCGraph *T
          }
 #endif
 #if SHOW_STATISTICS
-      if (showMesssagesStdout())
+      if (showMessagesStdout())
          printf("!! Hash=0x%" OMR_PRIx64 " %s %s\n", getHashValue(_candidateRegion), P->getTitle(), T->getTitle());
 #endif
 
@@ -7654,7 +7654,7 @@ TR_CISCTransformer::computeTopologicalEmbedding(TR_CISCGraph *P, TR_CISCGraph *T
                           P->getTitle(), T->getTitle(),
                           _bblistBody.getListHead()->getData()->getNumber(),
                            bcinfo);
-      if (showMesssagesStdout()) printf("== Transformed == %s, %s, %s, loop:%d%s\n",
+      if (showMessagesStdout()) printf("== Transformed == %s, %s, %s, loop:%d%s\n",
                                         comp()->getHotnessName(comp()->getMethodHotness()),
                                         P->getTitle(), T->getTitle(),
                                         _bblistBody.getListHead()->getData()->getNumber(),

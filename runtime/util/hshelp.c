@@ -3257,7 +3257,7 @@ verifyRecordAttributesAreSame(J9ROMClass *originalROMClass, J9ROMClass *replacem
 {
 	jvmtiError rc = JVMTI_ERROR_NONE;
 
-	/* Since retranformation is not allowed to change inheritance there's no need to consider 
+	/* Since retransformation is not allowed to change inheritance there's no need to consider 
 	 * one class being a record and one not. */
 	if (J9ROMCLASS_IS_RECORD(originalROMClass) && J9ROMCLASS_IS_RECORD(replacementROMClass)) {
 		U_32 originalNumberOfRecords = getNumberOfRecordComponents(originalROMClass);

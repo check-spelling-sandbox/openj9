@@ -539,7 +539,7 @@ public class Test_BigDecimal {
 		setScale1 = new BigDecimal(2.323E102);
 		setScale2 = setScale1.setScale(4);
 		AssertJUnit.assertTrue("the number 2.323E102 after setting scale is wrong", setScale2.scale() == 4);
-		AssertJUnit.assertTrue("the resentation of the number 2.323E102 is wrong",
+		AssertJUnit.assertTrue("the representation of the number 2.323E102 is wrong",
 				setScale2.doubleValue() == 2.323E102);
 
 		// testing rounding Mode ROUND_CEILING

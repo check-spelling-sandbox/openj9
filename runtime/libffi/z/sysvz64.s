@@ -168,7 +168,7 @@ INC4     DS 0H
 J4       DS 0H
          BR 15 
 
-S16GPR1  DS 0H                s_SHORT type passsed in gpr1
+S16GPR1  DS 0H                s_SHORT type passed in gpr1
          LH 1,0(6,13)   
          AHI 7,8              Advance to the next word in arg area
          B CONT               Next parameter

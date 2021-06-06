@@ -179,7 +179,7 @@ TR_OptimizationPlan *TR::DefaultCompilationStrategy::processEvent(TR_MethodEvent
          compInfo->_stats._methodsCompiledOnCount++;
          // most likely we need to compile the method, unless it's already being compiled
          // even if the method is already queued for compilation we must still invoke
-         // compilemethod because we may need to do a async compilation and the thread
+         // compile method because we may need to do a async compilation and the thread
          // needs to block
 
          // use the counts to determine the first level of compilation

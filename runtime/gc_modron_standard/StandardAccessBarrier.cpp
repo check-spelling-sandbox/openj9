@@ -502,7 +502,7 @@ MM_StandardAccessBarrier::jniGetStringCritical(J9VMThread* vmThread, jstring str
 				}
 			} else {
 				if (J9_ARE_ANY_BITS_SET(javaVM->runtimeFlags, J9_RUNTIME_STRING_BYTE_ARRAY)) {
-					// This API determines the stride based on the type of valueObject so in the [B case we must passin the length in bytes
+					// This API determines the stride based on the type of valueObject so in the [B case we must pass in the length in bytes
 					indexableObjectModel->memcpyFromArray(data, valueObject, 0, (I_32)sizeInBytes);
 				} else {
 					indexableObjectModel->memcpyFromArray(data, valueObject, 0, length);

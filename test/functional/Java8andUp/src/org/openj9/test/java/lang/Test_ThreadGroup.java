@@ -418,7 +418,7 @@ public class Test_ThreadGroup {
 		} catch (IllegalArgumentException iae) {
 			passed = false;
 		}
-		AssertJUnit.assertTrue("Should be able to set piority", passed);
+		AssertJUnit.assertTrue("Should be able to set priority", passed);
 
 		AssertJUnit.assertTrue("New value should be the same as we set",
 				testRoot.getMaxPriority() == Thread.MIN_PRIORITY);

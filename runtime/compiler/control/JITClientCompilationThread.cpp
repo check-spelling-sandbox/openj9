@@ -2436,7 +2436,7 @@ handleServerMessage(JITServer::ClientStream *client, TR_J9VM *fe, JITServer::Mes
       case MessageType::runFEMacro_invokeFilterArgumentsHandle2:
          {
          auto recv = client->getRecvData<uintptr_t*>();
-         TR::VMAccessCriticalSection invokeFilderArgumentsHandle(fe);
+         TR::VMAccessCriticalSection invokeFilterArgumentsHandle(fe);
          uintptr_t methodHandle = *std::get<0>(recv);
          uintptr_t arguments = fe->getReferenceField(fe->methodHandle_type(methodHandle), "ptypes", "[Ljava/lang/Class;");
          int32_t numArguments = (int32_t)fe->getArrayLengthInElements(arguments);

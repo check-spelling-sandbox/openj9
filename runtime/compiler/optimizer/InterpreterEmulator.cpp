@@ -1790,7 +1790,7 @@ InterpreterEmulator::computePrexInfo(
 
    // Always favor prex arg from operand if we're iterating with state
    // But not for thunk archetype as the method's bytecodes manipulate
-   // the operand stack differently, and one int `argPlacehowler`
+   // the operand stack differently, and one int `argPlaceholder`
    // argument can represent more than one arguments
    //
    if (!_callerIsThunkArchetype && _iteratorWithState)

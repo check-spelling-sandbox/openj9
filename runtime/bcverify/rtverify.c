@@ -502,7 +502,7 @@ verifyBytecodes (J9BytecodeVerificationData * verifyData)
 	SAVE_STACKTOP(liveStack, stackTop);
 	liveStack->stackBaseIndex = liveStack->stackTopIndex;
 
-	/* Jazz 105041: Initialize the 1st data slot on 'stack' with 'top' (placeholdler)
+	/* Jazz 105041: Initialize the 1st data slot on 'stack' with 'top' (placeholder)
 	 * to avoid storing garbage data type in the error message buffer
 	 * when stack underflow occurs.
 	 */

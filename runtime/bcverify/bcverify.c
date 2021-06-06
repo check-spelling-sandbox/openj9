@@ -1356,7 +1356,7 @@ simulateStack (J9BytecodeVerificationData * verifyData)
 	length = (UDATA) J9_BYTECODE_SIZE_FROM_ROM_METHOD(romMethod);
 	maxStack = J9_MAX_STACK_FROM_ROM_METHOD(romMethod);
 
-	/* Jazz 105041: Initialize the 1st data slot on 'stack' with 'top' (placeholdler)
+	/* Jazz 105041: Initialize the 1st data slot on 'stack' with 'top' (placeholder)
 	 * to avoid storing garbage data type in the error message buffer
 	 * when stack underflow occurs.
 	 */

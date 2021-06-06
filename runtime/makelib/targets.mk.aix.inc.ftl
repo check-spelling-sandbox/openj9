@@ -77,7 +77,7 @@ else
   CXXFLAGS += -O3
 endif
 
-ifdef j9vm_uma_supportsIpv6
+ifdef j9vm_uma_supportsIPv6
   CFLAGS += -DIPv6_FUNCTION_SUPPORT
   CXXFLAGS += -DIPv6_FUNCTION_SUPPORT
   CPPFLAGS += -DIPv6_FUNCTION_SUPPORT

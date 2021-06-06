@@ -64,7 +64,7 @@ else
   UMA_OPTIMIZATION_FLAGS = -0
 endif
 
-ifdef j9vm_uma_supportsIpv6
+ifdef j9vm_uma_supportsIPv6
   UMA_ZOS_FLAGS += -DIPv6_FUNCTION_SUPPORT
 endif
 

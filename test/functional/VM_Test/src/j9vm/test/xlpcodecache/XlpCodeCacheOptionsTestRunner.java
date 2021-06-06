@@ -321,7 +321,7 @@ public class XlpCodeCacheOptionsTestRunner extends Runner {
 		String pageTypeInVerbose = null;
 		String errorLine = null;
 		boolean error = false;
-		boolean isVerbouseOutputPresent = false;
+		boolean isVerboseOutputPresent = false;
 		int index = 0;
 
 		/* Add all output statements in a array list */
@@ -343,7 +343,7 @@ public class XlpCodeCacheOptionsTestRunner extends Runner {
 				 *                      1M pageable
 				 */
 		
-				isVerbouseOutputPresent = true;
+				isVerboseOutputPresent = true;
 				
 				/* Parse -Xlp:codecache statement to get page size and type used by JIT for code cache allocation */
 				line = line.trim();
@@ -382,7 +382,7 @@ public class XlpCodeCacheOptionsTestRunner extends Runner {
 			}
 		}
 
-		if (!error && isVerbouseOutputPresent) {
+		if (!error && isVerboseOutputPresent) {
 			/* skip 'available large page sizes:' */
 			boolean firstEntryDone = false;
 			index++;
@@ -468,7 +468,7 @@ public class XlpCodeCacheOptionsTestRunner extends Runner {
 			XlpOption xlpOption = xlpOptionsList.get(commandIndex);
 			String option = xlpOption.getOption();
 			
-			if (isVerbouseOutputPresent == true) {
+			if (isVerboseOutputPresent == true) {
 				/* Following checks depend on -verbose:sizes output, 
 				 * which is available only if the system supports large page size for executable pages. 
 				 */

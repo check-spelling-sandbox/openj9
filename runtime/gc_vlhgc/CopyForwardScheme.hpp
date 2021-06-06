@@ -166,7 +166,7 @@ private:
 	void verifyDumpObjectDetails(MM_EnvironmentVLHGC *env, const char *title, J9Object *object);
 	void verifyCopyForwardResult(MM_EnvironmentVLHGC *env);
 	bool verifyIsPointerInSurvivor(MM_EnvironmentVLHGC *env, J9Object *object);
-	bool verifyIsPointerInEvacute(MM_EnvironmentVLHGC *env, J9Object *object);
+	bool verifyIsPointerInEvacuate(MM_EnvironmentVLHGC *env, J9Object *object);
 	void verifyObject(MM_EnvironmentVLHGC *env, J9Object *objectPtr);
 	void verifyMixedObjectSlots(MM_EnvironmentVLHGC *env, J9Object *objectPtr);
 	void verifyReferenceObjectSlots(MM_EnvironmentVLHGC *env, J9Object *objectPtr);

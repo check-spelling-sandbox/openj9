@@ -4362,7 +4362,7 @@ private:
 		MM_EnvironmentVLHGC *env = MM_EnvironmentVLHGC::getEnvironment(_env);
 
 		J9Object *objectPtr = *slotPtr;
-		if(!_copyForwardScheme->_abortInProgress && !_copyForwardScheme->isObjectInNoEvacuationRegions(env, objectPtr) && _copyForwardScheme->verifyIsPointerInEvacute(env, objectPtr)) {
+		if(!_copyForwardScheme->_abortInProgress && !_copyForwardScheme->isObjectInNoEvacuationRegions(env, objectPtr) && _copyForwardScheme->verifyIsPointerInEvacuate(env, objectPtr)) {
 			PORT_ACCESS_FROM_ENVIRONMENT(env);
 			j9tty_printf(PORTLIB, "Root slot points into evacuate!  Slot %p dstObj %p. RootScannerEntity=%zu\n", slotPtr, objectPtr, (UDATA)_scanningEntity);
 			Assert_MM_unreachable();
@@ -4421,7 +4421,7 @@ private:
 	virtual void doUnfinalizedObject(J9Object *objectPtr, MM_UnfinalizedObjectList *list) {
 		MM_EnvironmentVLHGC *env = MM_EnvironmentVLHGC::getEnvironment(_env);
 
-		if(!_copyForwardScheme->_abortInProgress && !_copyForwardScheme->isObjectInNoEvacuationRegions(env, objectPtr) && _copyForwardScheme->verifyIsPointerInEvacute(env, objectPtr)) {
+		if(!_copyForwardScheme->_abortInProgress && !_copyForwardScheme->isObjectInNoEvacuationRegions(env, objectPtr) && _copyForwardScheme->verifyIsPointerInEvacuate(env, objectPtr)) {
 			PORT_ACCESS_FROM_ENVIRONMENT(env);
 			j9tty_printf(PORTLIB, "Unfinalized object list points into evacuate!  list %p object %p\n", list, objectPtr);
 			Assert_MM_unreachable();
@@ -4433,7 +4433,7 @@ private:
 	virtual void doFinalizableObject(j9object_t objectPtr) {
 		MM_EnvironmentVLHGC *env = MM_EnvironmentVLHGC::getEnvironment(_env);
 
-		if(!_copyForwardScheme->_abortInProgress && !_copyForwardScheme->isObjectInNoEvacuationRegions(env, objectPtr) && _copyForwardScheme->verifyIsPointerInEvacute(env, objectPtr)) {
+		if(!_copyForwardScheme->_abortInProgress && !_copyForwardScheme->isObjectInNoEvacuationRegions(env, objectPtr) && _copyForwardScheme->verifyIsPointerInEvacuate(env, objectPtr)) {
 			PORT_ACCESS_FROM_ENVIRONMENT(env);
 			j9tty_printf(PORTLIB, "Finalizable object in evacuate!  object %p\n", objectPtr);
 			Assert_MM_unreachable();
@@ -4444,7 +4444,7 @@ private:
 	virtual void doOwnableSynchronizerObject(J9Object *objectPtr, MM_OwnableSynchronizerObjectList *list) {
 		MM_EnvironmentVLHGC *env = MM_EnvironmentVLHGC::getEnvironment(_env);
 
-		if(!_copyForwardScheme->_abortInProgress && !_copyForwardScheme->isObjectInNoEvacuationRegions(env, objectPtr) && _copyForwardScheme->verifyIsPointerInEvacute(env, objectPtr)) {
+		if(!_copyForwardScheme->_abortInProgress && !_copyForwardScheme->isObjectInNoEvacuationRegions(env, objectPtr) && _copyForwardScheme->verifyIsPointerInEvacuate(env, objectPtr)) {
 			PORT_ACCESS_FROM_ENVIRONMENT(env);
 			j9tty_printf(PORTLIB, "OwnableSynchronizer object list points into evacuate!  list %p object %p\n", list, objectPtr);
 			Assert_MM_unreachable();
@@ -4559,7 +4559,7 @@ MM_CopyForwardScheme::verifyMixedObjectSlots(MM_EnvironmentVLHGC *env, J9Object 
 
 	while (NULL != (slotObject = mixedObjectIterator.nextSlot())) {
 		J9Object *dstObject = slotObject->readReferenceFromSlot();
-		if(!_abortInProgress && !isObjectInNoEvacuationRegions(env, dstObject) && verifyIsPointerInEvacute(env, dstObject)) {
+		if(!_abortInProgress && !isObjectInNoEvacuationRegions(env, dstObject) && verifyIsPointerInEvacuate(env, dstObject)) {
 			PORT_ACCESS_FROM_ENVIRONMENT(env);
 			j9tty_printf(PORTLIB, "Mixed object slot points to evacuate!  srcObj %p slot %p dstObj %p\n", objectPtr, slotObject->readAddressFromSlot(), dstObject);
 			verifyDumpObjectDetails(env, "srcObj", objectPtr);
@@ -4581,7 +4581,7 @@ MM_CopyForwardScheme::verifyReferenceObjectSlots(MM_EnvironmentVLHGC *env, J9Obj
 {
 	fj9object_t referentToken = J9GC_J9VMJAVALANGREFERENCE_REFERENT(env, objectPtr);
 	J9Object* referentPtr = _extensions->accessBarrier->convertPointerFromToken(referentToken);
-	if(!_abortInProgress && !isObjectInNoEvacuationRegions(env, referentPtr) && verifyIsPointerInEvacute(env, referentPtr)) {
+	if(!_abortInProgress && !isObjectInNoEvacuationRegions(env, referentPtr) && verifyIsPointerInEvacuate(env, referentPtr)) {
 		PORT_ACCESS_FROM_ENVIRONMENT(env);
 		j9tty_printf(PORTLIB, "RefMixed referent slot points to evacuate!  srcObj %p dstObj %p\n", objectPtr, referentPtr);
 		Assert_MM_unreachable();
@@ -4599,7 +4599,7 @@ MM_CopyForwardScheme::verifyReferenceObjectSlots(MM_EnvironmentVLHGC *env, J9Obj
 
 	while (NULL != (slotObject = mixedObjectIterator.nextSlot())) {
 		J9Object *dstObject = slotObject->readReferenceFromSlot();
-		if(!_abortInProgress && !isObjectInNoEvacuationRegions(env, dstObject) && verifyIsPointerInEvacute(env, dstObject)) {
+		if(!_abortInProgress && !isObjectInNoEvacuationRegions(env, dstObject) && verifyIsPointerInEvacuate(env, dstObject)) {
 			PORT_ACCESS_FROM_ENVIRONMENT(env);
 			j9tty_printf(PORTLIB, "RefMixed object slot points to evacuate!  srcObj %p slot %p dstObj %p\n", objectPtr, slotObject->readAddressFromSlot(), dstObject);
 			Assert_MM_unreachable();
@@ -4622,7 +4622,7 @@ MM_CopyForwardScheme::verifyPointerArrayObjectSlots(MM_EnvironmentVLHGC *env, J9
 
 	while((slotObject = pointerArrayIterator.nextSlot()) != NULL) {
 		J9Object *dstObject = slotObject->readReferenceFromSlot();
-		if(!_abortInProgress && !isObjectInNoEvacuationRegions(env, dstObject) && verifyIsPointerInEvacute(env, dstObject)) {
+		if(!_abortInProgress && !isObjectInNoEvacuationRegions(env, dstObject) && verifyIsPointerInEvacuate(env, dstObject)) {
 			PORT_ACCESS_FROM_ENVIRONMENT(env);
 			j9tty_printf(PORTLIB, "Pointer array slot points to evacuate!  srcObj %p slot %p dstObj %p\n", objectPtr, slotObject->readAddressFromSlot(), dstObject);
 			Assert_MM_unreachable();
@@ -4654,7 +4654,7 @@ MM_CopyForwardScheme::verifyClassObjectSlots(MM_EnvironmentVLHGC *env, J9Object 
 			GC_ClassStaticsIterator classStaticsIterator(env, classPtr);
 			while(NULL != (slotPtr = classStaticsIterator.nextSlot())) {
 				J9Object *dstObject = *slotPtr;
-				if(!_abortInProgress && !isObjectInNoEvacuationRegions(env, dstObject) && verifyIsPointerInEvacute(env, dstObject)) {
+				if(!_abortInProgress && !isObjectInNoEvacuationRegions(env, dstObject) && verifyIsPointerInEvacuate(env, dstObject)) {
 					PORT_ACCESS_FROM_ENVIRONMENT(env);
 					j9tty_printf(PORTLIB, "Class static slot points to evacuate!  srcObj %p J9Class %p slot %p dstObj %p\n", classObject, classPtr, slotPtr, dstObject);
 					Assert_MM_unreachable();
@@ -4674,7 +4674,7 @@ MM_CopyForwardScheme::verifyClassObjectSlots(MM_EnvironmentVLHGC *env, J9Object 
 			GC_CallSitesIterator callSitesIterator(classPtr);
 			while(NULL != (slotPtr = callSitesIterator.nextSlot())) {
 				J9Object *dstObject = *slotPtr;
-				if(!_abortInProgress && !isObjectInNoEvacuationRegions(env, dstObject) && verifyIsPointerInEvacute(env, dstObject)) {
+				if(!_abortInProgress && !isObjectInNoEvacuationRegions(env, dstObject) && verifyIsPointerInEvacuate(env, dstObject)) {
 					PORT_ACCESS_FROM_ENVIRONMENT(env);
 					j9tty_printf(PORTLIB, "Class call site slot points to evacuate!  srcObj %p J9Class %p slot %p dstObj %p\n", classObject, classPtr, slotPtr, dstObject);
 					Assert_MM_unreachable();
@@ -4699,7 +4699,7 @@ MM_CopyForwardScheme::verifyClassObjectSlots(MM_EnvironmentVLHGC *env, J9Object 
 
 			while(NULL != (slotPtr = methodTypesIterator.nextSlot())) {
 				J9Object *dstObject = *slotPtr;
-				if(!_abortInProgress && !isObjectInNoEvacuationRegions(env, dstObject) && verifyIsPointerInEvacute(env, dstObject)) {
+				if(!_abortInProgress && !isObjectInNoEvacuationRegions(env, dstObject) && verifyIsPointerInEvacuate(env, dstObject)) {
 					PORT_ACCESS_FROM_ENVIRONMENT(env);
 					j9tty_printf(PORTLIB, "Class MethodType slot points to evacuate!  srcObj %p J9Class %p slot %p dstObj %p\n", classObject, classPtr, slotPtr, dstObject);
 					Assert_MM_unreachable();
@@ -4720,7 +4720,7 @@ MM_CopyForwardScheme::verifyClassObjectSlots(MM_EnvironmentVLHGC *env, J9Object 
 			GC_MethodTypesIterator varHandleMethodTypesIterator(classPtr->romClass->varHandleMethodTypeCount, classPtr->varHandleMethodTypes);
 			while(NULL != (slotPtr = varHandleMethodTypesIterator.nextSlot())) {
 				J9Object *dstObject = *slotPtr;
-				if(!_abortInProgress && !isObjectInNoEvacuationRegions(env, dstObject) && verifyIsPointerInEvacute(env, dstObject)) {
+				if(!_abortInProgress && !isObjectInNoEvacuationRegions(env, dstObject) && verifyIsPointerInEvacuate(env, dstObject)) {
 					PORT_ACCESS_FROM_ENVIRONMENT(env);
 					j9tty_printf(PORTLIB, "Class MethodType slot points to evacuate!  srcObj %p J9Class %p slot %p dstObj %p\n", classObject, classPtr, slotPtr, dstObject);
 					Assert_MM_unreachable();
@@ -4744,7 +4744,7 @@ MM_CopyForwardScheme::verifyClassObjectSlots(MM_EnvironmentVLHGC *env, J9Object 
 			GC_ConstantPoolObjectSlotIterator constantPoolIterator(_javaVM, classPtr);
 			while(NULL != (slotPtr = constantPoolIterator.nextSlot())) {
 				J9Object *dstObject = *slotPtr;
-				if(!_abortInProgress && !isObjectInNoEvacuationRegions(env, dstObject) && verifyIsPointerInEvacute(env, dstObject)) {
+				if(!_abortInProgress && !isObjectInNoEvacuationRegions(env, dstObject) && verifyIsPointerInEvacuate(env, dstObject)) {
 					PORT_ACCESS_FROM_ENVIRONMENT(env);
 					j9tty_printf(PORTLIB, "Class CP slot points to evacuate!  srcObj %p J9Class %p slot %p dstObj %p\n", classObject, classPtr, slotPtr, dstObject);
 					Assert_MM_unreachable();
@@ -4775,7 +4775,7 @@ MM_CopyForwardScheme::verifyClassLoaderObjectSlots(MM_EnvironmentVLHGC *env, J9O
 		GC_ClassLoaderClassesIterator iterator(_extensions, classLoader);
 		J9Class *clazz = NULL;
 		while (NULL != (clazz = iterator.nextClass())) {
-			if (!_abortInProgress && !isObjectInNoEvacuationRegions(env, (J9Object *)clazz->classObject) && verifyIsPointerInEvacute(env, (J9Object *)clazz->classObject)) {
+			if (!_abortInProgress && !isObjectInNoEvacuationRegions(env, (J9Object *)clazz->classObject) && verifyIsPointerInEvacuate(env, (J9Object *)clazz->classObject)) {
 				PORT_ACCESS_FROM_ENVIRONMENT(env);
 				j9tty_printf(PORTLIB, "Class loader table class object points to evacuate!  srcObj %p clazz %p clazzObj %p\n", classLoaderObject, clazz, clazz->classObject);
 				Assert_MM_unreachable();
@@ -4852,7 +4852,7 @@ MM_CopyForwardScheme::verifyExternalState(MM_EnvironmentVLHGC *env)
 				J9Object *object = *slot;
 				Assert_MM_true(NULL != object);
 				if (PACKET_INVALID_OBJECT != (UDATA)object) {
-					Assert_MM_false(!_abortInProgress && !isObjectInNoEvacuationRegions(env, object) && verifyIsPointerInEvacute(env, object));
+					Assert_MM_false(!_abortInProgress && !isObjectInNoEvacuationRegions(env, object) && verifyIsPointerInEvacuate(env, object));
 					Assert_MM_true(!verifyIsPointerInSurvivor(env, object) || (_markMap->isBitSet(object) && externalMarkMap->isBitSet(object)));
 				}
 			}
@@ -4875,7 +4875,7 @@ MM_CopyForwardScheme::verifyIsPointerInSurvivor(MM_EnvironmentVLHGC *env, J9Obje
 }
 
 bool
-MM_CopyForwardScheme::verifyIsPointerInEvacute(MM_EnvironmentVLHGC *env, J9Object *object)
+MM_CopyForwardScheme::verifyIsPointerInEvacuate(MM_EnvironmentVLHGC *env, J9Object *object)
 {
 	if(NULL == object) {
 		return false;

@@ -344,7 +344,7 @@ protected:
     *
     *  \param varHandleOnly
     *     True if only folding varHandle static final fields.
-    *     Faslse if folding all static final fileds.
+    *     False if folding all static final fileds.
     */
    static bool attemptStaticFinalFieldFoldingImpl(TR::Optimization* opt, TR::TreeTop * currentTree, TR::Node *node, bool varHandleOnly);
    };

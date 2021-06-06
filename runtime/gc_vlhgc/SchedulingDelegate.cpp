@@ -1163,8 +1163,8 @@ MM_SchedulingDelegate::calculatePGCCompactionRate(MM_EnvironmentVLHGC *env, uint
 	/* Survivor space needs to accommodate for Nursery set, Dynamic collection set and Compaction set
 	 */
 	/* estimate totalFreeMemory for recalculating kickoffHeadroomRegionCount */	 
-	uintptr_t surivivorSize = (uintptr_t)(regionSize * _averageSurvivorSetRegionCount);
-	uintptr_t reservedFreeMemory = edenSizeInBytes + surivivorSize;
+	uintptr_t survivorSize = (uintptr_t)(regionSize * _averageSurvivorSetRegionCount);
+	uintptr_t reservedFreeMemory = edenSizeInBytes + survivorSize;
 	estimatedFreeMemory = estimateTotalFreeMemory(env, freeRegionMemory, defragmentedMemory, reservedFreeMemory);
 	calculateKickoffHeadroom(env, estimatedFreeMemory);
 
@@ -1187,7 +1187,7 @@ MM_SchedulingDelegate::calculatePGCCompactionRate(MM_EnvironmentVLHGC *env, uint
 	Trc_MM_SchedulingDelegate_calculatePGCCompactionRate_liveToFreeRatio1(env->getLanguageVMThread(), (totalLiveDataInCollectableRegions + totalLiveDataInNonCollectibleRegions + fullyCompactedData), totalLiveDataInCollectableRegions, totalLiveDataInNonCollectibleRegions, fullyCompactedData);
 	Trc_MM_SchedulingDelegate_calculatePGCCompactionRate_liveToFreeRatio2(env->getLanguageVMThread(), (freeMemoryInCollectibleRegions + freeMemoryInNonCollectibleRegions + freeRegionMemory), freeMemoryInCollectibleRegions, freeMemoryInNonCollectibleRegions, freeRegionMemory, freeMemoryInFullyCompactedRegions);
 	Trc_MM_SchedulingDelegate_calculatePGCCompactionRate_liveToFreeRatio3(env->getLanguageVMThread(), (collectibleRegions + nonCollectibleRegions + fullyCompactedRegions + freeRegions), collectibleRegions, nonCollectibleRegions, fullyCompactedRegions, freeRegions);
-	Trc_MM_SchedulingDelegate_calculatePGCCompactionRate_liveToFreeRatio4(env->getLanguageVMThread(), _bytesCompactedToFreeBytesRatio, edenSizeInBytes, surivivorSize, reservedFreeMemory, defragmentEmptinessThreshold, defragmentedMemory, estimatedFreeMemory);
+	Trc_MM_SchedulingDelegate_calculatePGCCompactionRate_liveToFreeRatio4(env->getLanguageVMThread(), _bytesCompactedToFreeBytesRatio, edenSizeInBytes, survivorSize, reservedFreeMemory, defragmentEmptinessThreshold, defragmentedMemory, estimatedFreeMemory);
 }
 
 uintptr_t

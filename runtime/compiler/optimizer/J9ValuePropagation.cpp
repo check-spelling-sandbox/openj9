@@ -1785,7 +1785,7 @@ J9::ValuePropagation::constrainRecognizedMethod(TR::Node *node)
                 comp()->fej9()->isClassArray(newClass))
                {
                if (trace())
-                  traceMsg(comp(), "Class is not instantiatable via bytecode new, quit transforming Object.newInstancePrototype on node %p\n", node);
+                  traceMsg(comp(), "Class is not instantiable via bytecode new, quit transforming Object.newInstancePrototype on node %p\n", node);
                break;
                }
 

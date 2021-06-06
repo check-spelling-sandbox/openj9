@@ -1181,7 +1181,7 @@ TR_J9EstimateCodeSize::realEstimateCodeSize(TR_CallTarget *calltarget, TR_CallSt
       nph.setTracer(tracer());
       }
 
-   bool wasPeekingSuccessfull = false;
+   bool wasPeekingSuccessful = false;
 
    const static bool debugMHInlineWithOutPeeking = feGetEnv("TR_DebugMHInlineWithOutPeeking") ? true: false;
    bool mhInlineWithPeeking =  comp()->getOption(TR_DisableMHInlineWithoutPeeking);
@@ -1204,9 +1204,9 @@ TR_J9EstimateCodeSize::realEstimateCodeSize(TR_CallTarget *calltarget, TR_CallSt
       bool ilgenSuccess = (NULL != methodSymbol->getResolvedMethod()->genMethodILForPeekingEvenUnderMethodRedefinition(methodSymbol, comp(), false, NULL));
       if (ilgenSuccess)
          {
-         heuristicTrace(tracer(), "*** Depth %d: ECS CSI -- peeking was successfull for calltarget %p", _recursionDepth, calltarget);
+         heuristicTrace(tracer(), "*** Depth %d: ECS CSI -- peeking was successful for calltarget %p", _recursionDepth, calltarget);
          _inliner->getUtil()->clearArgInfoForNonInvariantArguments(calltarget->_ecsPrexArgInfo, methodSymbol, tracer());
-         wasPeekingSuccessfull = true;
+         wasPeekingSuccessful = true;
          }
       }
    else if (inlineArchetypeSpecimen && !mhInlineWithPeeking && debugMHInlineWithOutPeeking)
@@ -1265,7 +1265,7 @@ TR_J9EstimateCodeSize::realEstimateCodeSize(TR_CallTarget *calltarget, TR_CallSt
       }
 
    bool callsitesAreCreatedFromTrees = false;
-   if (wasPeekingSuccessfull
+   if (wasPeekingSuccessful
        && comp()->getOrCreateKnownObjectTable()
        && calltarget->_calleeMethod->convertToMethod()->isArchetypeSpecimen())
       {
@@ -1332,7 +1332,7 @@ TR_J9EstimateCodeSize::realEstimateCodeSize(TR_CallTarget *calltarget, TR_CallSt
       bci.prepareToFindAndCreateCallsites(blocks, flags, callSites, &cfg, &newBCInfo, _recursionDepth, &callStack);
       bool iteratorWithState = (inlineArchetypeSpecimen && !mhInlineWithPeeking) || inlineLambdaFormGeneratedMethod;
 
-      if (!bci.findAndCreateCallsitesFromBytecodes(wasPeekingSuccessfull, iteratorWithState))
+      if (!bci.findAndCreateCallsitesFromBytecodes(wasPeekingSuccessful, iteratorWithState))
          {
          heuristicTrace(tracer(), "*** Depth %d: ECS end for target %p signature %s. bci.findAndCreateCallsitesFromBytecode failed", _recursionDepth, calltarget, callerName);
          return returnCleanup(ECS_CALLSITES_CREATION_FAILED);

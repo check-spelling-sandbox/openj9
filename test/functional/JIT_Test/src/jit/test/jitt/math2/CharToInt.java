@@ -38,12 +38,12 @@ public class CharToInt extends jit.test.jitt.Test {
         A = 255;
         B = tstdoBU2I(A);
         if (B != 255)
-                Assert.fail("CharToInt->run: Casting from char to int was unsuccesful for test #1!");
+                Assert.fail("CharToInt->run: Casting from char to int was unsuccessful for test #1!");
 
         A = 1;
         B = tstdoBU2I(A);
         if (B != 1)
-                Assert.fail("CharToInt->run: Casting from char to int was unsuccesful for test #2!");
+                Assert.fail("CharToInt->run: Casting from char to int was unsuccessful for test #2!");
 
    }
 

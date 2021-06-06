@@ -302,7 +302,7 @@ TraceExit=Trc_PRT_shmem_openSharedMemory_ExitRetry2 Obsolete Group=j9shared Over
 TraceExit=Trc_PRT_shmem_openSharedMemory_ExitFailed4 Obsolete Group=j9shared Overhead=1 Level=1 NoEnv Template="j9shmem openSharedMemory wrong version/modlevel (ver=%d,mod=%d) exiting with FAILED"
 TraceExit=Trc_PRT_shmem_openSharedMemory_ExitRetry3 Obsolete Group=j9shared Overhead=1 Level=1 NoEnv Template="j9shmem openSharedMemory cannot attach to a region. Exiting with RETRY"
 TraceExit=Trc_PRT_shmem_openSharedMemory_ExitFailed5 Obsolete Group=j9shared Overhead=1 Level=1 NoEnv Template="j9shmem openSharedMemory cannot attach to a region. Exiting with FAILED"
-TraceExit=Trc_PRT_shmem_openSharedMemory_Exit Obsolete Group=j9shared Overhead=1 Level=1 NoEnv Template="j9shmem openSharedMemory succesful. Returning J9PORT_INFO_SHMEM_OPENED"
+TraceExit=Trc_PRT_shmem_openSharedMemory_Exit Obsolete Group=j9shared Overhead=1 Level=1 NoEnv Template="j9shmem openSharedMemory successful. Returning J9PORT_INFO_SHMEM_OPENED"
 
 TraceEntry=Trc_PRT_shmem_readControlFile_Entry Obsolete Group=j9shared Overhead=1 Level=1 NoEnv Template="j9shmem readControlFile entering with filename=%s"
 TraceExit=Trc_PRT_shmem_readControlFile_ExitFileError Obsolete Group=j9shared Overhead=1 Level=1 NoEnv Template="j9shmem readControlFile file_open failed. Returning OPEN_ERROR"

@@ -10111,7 +10111,7 @@ throwStackOverflow:
 		if (0 != growJavaStack(_currentThread, currentUsed)) {
 			goto throwStackOverflow;
 		}
-		Trc_VM_VMprCheckStackAndSend_succesfulGrowth(_currentThread);
+		Trc_VM_VMprCheckStackAndSend_successfulGrowth(_currentThread);
 		VMStructHasBeenUpdated(REGISTER_ARGS);
 		UDATA *bp = ((UDATA*)(((J9SFMethodFrame*)_sp) + 1)) - 1;
 		restoreSpecialStackFrameLeavingArgs(REGISTER_ARGS, bp);

@@ -478,7 +478,7 @@ int32_t TR_UnsafeFastPath::perform()
          TR::Node *offset = NULL, *index = NULL;
          TR::Node *value = NULL;  // the value to be written
          TR::Node *object = NULL; // the owning object to be written to or read from in original unsafe call
-         TR::Node *base = NULL; // the base used to calcluate address for the new store / load
+         TR::Node *base = NULL; // the base used to calculate address for the new store / load
          TR::DataType type = TR::NoType;
          bool isVolatile = false;
          bool isArrayOperation = false;

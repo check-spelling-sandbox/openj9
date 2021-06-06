@@ -1181,7 +1181,7 @@ TR_J9SharedCache::classMatchesCachedVersion(J9Class *clazz, UDATA *chainData)
 
    uintptr_t classOffsetInCache;
 
-   /* If the pointer isn't the SCC, then return false immmediately
+   /* If the pointer isn't the SCC, then return false immediately
     * as the map holds offsets into the SCC of romclasses
     */
    if (!isROMClassInSharedCache(romClass, &classOffsetInCache))

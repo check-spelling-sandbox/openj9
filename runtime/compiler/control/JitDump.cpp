@@ -220,7 +220,7 @@ jitDumpRecompileWithTracing(J9VMThread *vmThread, J9Method *ramMethod, TR::Compi
       stream->read<JITServer::Void>();
          {
          // Add an entry to the compilation queue using the current stream,
-         // and immediatelly set its method details as JitDump method details,
+         // and immediately set its method details as JitDump method details,
          // so that only the diagnostic thread can compile it.
          OMR::CriticalSection compilationMonitorLock(compInfo->getCompilationMonitor());
 

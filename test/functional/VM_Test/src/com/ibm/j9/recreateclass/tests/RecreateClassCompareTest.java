@@ -184,10 +184,10 @@ public class RecreateClassCompareTest extends TestCase {
 	 * Once this issue is addressed (probably in ClassFileCompare tool), this test can then be enabled.
 	 */
 	public void testSynthetic() throws Exception {
-		System.out.println("Start testSyncthetic");
+		System.out.println("Start testSynthetic");
 		byte classData[] = SyntheticTestGenerator.generateClassData();
 		runTest(classData, "SyntheticTest", 0);
-		System.out.println("End testSyncthetic");
+		System.out.println("End testSynthetic");
 	}
 
 	public void testSignature() throws Exception {

@@ -148,7 +148,7 @@ private:
  * @class FlatPersistentClassInfo
  * @brief Class for serializing and deserializing CHTable data for JITServerPersistentCHtable and JITClientPersistentCHTable
  *
- * This class is a utilty class for JITServerPersistentCHTable and 
+ * This class is a utility class for JITServerPersistentCHTable and 
  * JITClientPersistentCHTable. It is a friend class of TR_PersistentClassInfo
  * to make it more convenient to manipulate its fields.
  */

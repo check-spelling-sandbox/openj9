@@ -5238,7 +5238,7 @@ J9NLS_SHRC_SHRINIT_INVALID_OPTION=Only shared cache utility options can be used 
 # START NON-TRANSLATABLE
 J9NLS_SHRC_SHRINIT_INVALID_OPTION.explanation=Shared cache runtime options must be specified in the javad.options file. javad must be restarted before any shared cache options will take affect.
 J9NLS_SHRC_SHRINIT_INVALID_OPTION.system_action=The JVM terminates.
-J9NLS_SHRC_SHRINIT_INVALID_OPTION.user_response=Replace the incompatible -Xshareclasses option with a -Xshareclasses utilitiy option, and rerun.
+J9NLS_SHRC_SHRINIT_INVALID_OPTION.user_response=Replace the incompatible -Xshareclasses option with a -Xshareclasses utility option, and rerun.
 # END NON-TRANSLATABLE
 
 J9NLS_SHRC_SHRINIT_USING_NORMAL_CACHE_WITH_MPROTECT_DIAGNOSTIC_WARNING=JVM is using the existing shared class cache in mprotect diagnostic mode (using -Xshareclasses:mprotect=diagnostic option), but the cache was not creating in this mode. Using the cache in this mode can affect performance.

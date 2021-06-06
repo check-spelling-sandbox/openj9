@@ -650,7 +650,7 @@ ZZ   pool, there is no need to "re-resolve" it again.
 ZZ
 ZZ Note:  Different Branch and Load instructions can be used:
 ZZ     Branch: BCRL / BCR
-ZZ The gluecode will check the opcodes, and handlexs these variations
+ZZ The gluecode will check the opcodes, and handles these variations
 ZZ properly.
 ZZ ===================================================================
 ZZ

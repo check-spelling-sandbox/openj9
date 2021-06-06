@@ -1866,7 +1866,7 @@ J9::Z::TreeEvaluator::pd2zdVectorEvaluatorHelper(TR::Node * node, TR::CodeGenera
    traceMsg(comp, "DAA: Enter pd2zdVectorEvaluatorHelper\n");
    TR_PseudoRegister *targetReg = cg->allocatePseudoRegister(node->getDataType());
 
-   // pd2zd we need to create storagerefence and save this value to the memoryreference
+   // pd2zd we need to create storagereference and save this value to the memoryreference
    // associated to that storagereference.
    // To do this, we need to
    //

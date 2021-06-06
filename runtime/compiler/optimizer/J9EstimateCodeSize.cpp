@@ -1191,7 +1191,7 @@ TR_J9EstimateCodeSize::realEstimateCodeSize(TR_CallTarget *calltarget, TR_CallSt
    bool inlineLambdaFormGeneratedMethod = comp()->fej9()->isLambdaFormGeneratedMethod(calltarget->_calleeMethod) &&
                                    (!disableMethodHandleInliningAfterFirstPass || _inliner->firstPass());
 
-   // No need to peek LF methods, as we'll always interprete the method with state in order to propagate object info
+   // No need to peek LF methods, as we'll always interpret the method with state in order to propagate object info
    // through bytecodes to find call targets
    if (!inlineLambdaFormGeneratedMethod &&
        ((nph.doPeeking() && recurseDown) ||

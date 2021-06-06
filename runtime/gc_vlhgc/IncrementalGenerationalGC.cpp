@@ -1044,7 +1044,7 @@ MM_IncrementalGenerationalGC::runPartialGarbageCollect(MM_EnvironmentVLHGC *env,
 
 	_copyForwardDelegate.performCopyForwardForPartialGC(env);
 
-	/* If concurrent Copy Forward is enabled we only want to post process at last PGC incrememnt
+	/* If concurrent Copy Forward is enabled we only want to post process at last PGC increment
 	 * and isConcurrentCycleInProgress() tells us if this is the last PGC increment or not */
 	if (!_copyForwardDelegate.isConcurrentCycleInProgress()) {
 		partialGarbageCollectPostWork(env, allocDescription);

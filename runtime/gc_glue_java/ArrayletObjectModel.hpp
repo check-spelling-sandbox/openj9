@@ -866,7 +866,7 @@ public:
 		/* If double mapping is enabled only, arraylet will have a discontiguous layout.
 		 * If sparse-heap is enabled, arraylet will have a contiguous layout. For now
 		 * we can't simply Assert only the discontiguous case because there could also
-		 * exist hybrid arraylets (which will be dicontinued in the future) */
+		 * exist hybrid arraylets (which will be discontinued in the future) */
 		bool const compressed = compressObjectReferences();
 		void **dataAddrPtr = NULL;
 		if (compressed) {
@@ -911,7 +911,7 @@ public:
 		/* If double mapping is enabled only, arraylet will have a discontiguous layout.
 		 * If sparse-heap is enabled, arraylet will have a contiguous layout. For now
 		 * we can't simply Assert only the discontiguous case because there could also
-		 * exist hybrid arraylets (which will be dicontinued in the future) */
+		 * exist hybrid arraylets (which will be discontinued in the future) */
 		void *calculatedDataAddr = address;
 		void **dataAddrPtr = dataAddrSlotForDiscontiguous(arrayPtr);
 

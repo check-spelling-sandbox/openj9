@@ -1495,7 +1495,7 @@ void TR::MonitorElimination::transformMonitorsIntoTMRegions()
       TR::Block *tophalfmonitorblock = monitorblock->getEntry()->getPrevTreeTop()->getEnclosingBlock();
       TR::Block *critSectStart = 0;
 
-      debugTrace(tracer(),"After monitor split.getmonitornode = %p  monitor->getMonitorTree() = %p node = %p nexttt = %p nextt node = %p\n",monitor->getMonitorNode(),monitor->getMonitorTree(),monitor->getMonitorTree()->getNode(),monitor->getMonitorTree()->getNextTreeTop(),monitor->getMonitorTree()->getNextTreeTop()->getNode());
+      debugTrace(tracer(),"After monitor split.getmonitornode = %p  monitor->getMonitorTree() = %p node = %p next = %p next node = %p\n",monitor->getMonitorNode(),monitor->getMonitorTree(),monitor->getMonitorTree()->getNode(),monitor->getMonitorTree()->getNextTreeTop(),monitor->getMonitorTree()->getNextTreeTop()->getNode());
       debugTrace(tracer(),"tophalfmonitorblock = %p %d , exit tt = %p node %p\n",tophalfmonitorblock,tophalfmonitorblock->getNumber(),tophalfmonitorblock->getExit(),tophalfmonitorblock->getExit()->getNode());
 
 

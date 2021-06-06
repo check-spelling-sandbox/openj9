@@ -660,7 +660,7 @@ public class ByteStream {
 			 * of the guard bytes, but sanity check
 			 */
 			if (buffer == null || distance > buffer.remaining()) {
-				throw new IndexOutOfBoundsException("Index references past the begining of the data");
+				throw new IndexOutOfBoundsException("Index references past the beginning of the data");
 			}
 
 			/* create a new slice out of the guard bytes */
@@ -743,7 +743,7 @@ public class ByteStream {
 				data = buffer.array();
 				offset = buffer.arrayOffset() + buffer.position() + buffer.remaining() - distance;
 			} else {
-				throw new IndexOutOfBoundsException("Index references past the begining of the data");
+				throw new IndexOutOfBoundsException("Index references past the beginning of the data");
 			}
 		}
 

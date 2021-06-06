@@ -2491,7 +2491,7 @@ public class ValueTypeTests {
 	 * Create a 2D array of valueTypes, verify that the default elements are null.
 	 */
 	@Test(priority=5, invocationCount=2)
-	static public void testMultiDimentionalArrays() throws Throwable {
+	static public void testMultiDimensionalArrays() throws Throwable {
 		Class assortedValueWithLongAlignment2DClass = Array.newInstance(assortedValueWithLongAlignmentClass, 1).getClass();
 		Class assortedValueWithSingleAlignment2DClass = Array.newInstance(assortedValueWithSingleAlignmentClass, 1).getClass();
 		

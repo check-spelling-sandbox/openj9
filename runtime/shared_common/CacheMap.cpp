@@ -479,7 +479,7 @@ SH_CacheMap::startup(J9VMThread* currentThread, J9SharedClassPreinitConfig* pico
 		bool storeToCcHead = (ccPrevious == _ccHead);
 		const char* cacheUniqueIDPtr = NULL;
 
-		/* start up _ccHead (the top layer cache) and then statrt its pre-requiste cache (ccNext). Contine to startup ccNext and its pre-requiste cache, util there is no more pre-requiste cache.
+		/* start up _ccHead (the top layer cache) and then statrt its pre-requiste cache (ccNext). Continue to startup ccNext and its pre-requiste cache, util there is no more pre-requiste cache.
 		 *     _ccHead -------------> ccNext ---------> ccNext --------> ........---------> ccTail
 		 *   (top layer)          (middle layer)     (middle layer)      ........         (layer 0)
 		 */

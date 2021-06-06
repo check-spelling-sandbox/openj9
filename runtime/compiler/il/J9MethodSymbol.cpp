@@ -134,7 +134,7 @@ J9::MethodSymbol::isPureFunction()
  * Returns true if the function call will not yield to OSR point.
  *
  * An example of kind of function which can go in the list would be recognized calls with
- * NOP calls or the one that are guaranteed to be inlined by codegenerator.
+ * NOP calls or the one that are guaranteed to be inlined by code generator.
  */
 bool
 J9::MethodSymbol::functionCallDoesNotYieldOSR()

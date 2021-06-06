@@ -35,7 +35,7 @@
 #include "VMThreadListIterator.hpp"
 
 /**
- * Concurrents stack slot iterator.
+ * Concurrent stack slot iterator.
  * Called for each slot in a threads active stack frames which contains a object reference.
  *
  * @param objectIndirect

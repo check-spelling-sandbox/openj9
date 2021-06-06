@@ -839,7 +839,7 @@ void TR_OSRGuardInsertion::performRemat(TR::TreeTop *osrPoint, TR::TreeTop *osrG
          TR::DebugCounter::incStaticDebugCounter(comp(), TR::DebugCounter::debugCounterName(comp(), "osrGuardRemat.byMethod/(%s)/Succeeded",
             comp()->signature()));
          TR::DebugCounter::incStaticDebugCounter(comp(), TR::DebugCounter::debugCounterName(comp(), "osrGuardRemat.byReason/Success"));
-         TR::DebugCounter::prependDebugCounter(comp(), TR::DebugCounter::debugCounterName(comp(), "osrGuradRemat/Succeeded/(%s)",
+         TR::DebugCounter::prependDebugCounter(comp(), TR::DebugCounter::debugCounterName(comp(), "osrGuardRemat/Succeeded/(%s)",
             store->getFirstChild()->getOpCode().getName()), storeTree, 1, TR::DebugCounter::Expensive);
          // equality of rematTree and storeTree means we want to duplicate the computation of
          // the argument and do a full rematerialization

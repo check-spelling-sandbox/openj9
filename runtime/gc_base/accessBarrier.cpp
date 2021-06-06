@@ -620,7 +620,7 @@ j9gc_objaccess_copyObjectFields(J9VMThread *vmThread, J9Class *valueClass, J9Obj
 }
 
 /**
- * Called by Interpreter during aastore of a flattend array
+ * Called by Interpreter during aastore of a flattened array
  */
 void
 j9gc_objaccess_copyObjectFieldsToFlattenedArrayElement(J9VMThread *vmThread, J9ArrayClass *arrayClazz, j9object_t srcObject, J9IndexableObject *arrayRef, I_32 index)
@@ -630,7 +630,7 @@ j9gc_objaccess_copyObjectFieldsToFlattenedArrayElement(J9VMThread *vmThread, J9A
 }
 
 /**
- * Called by Interpreter during aaload of a flattend array
+ * Called by Interpreter during aaload of a flattened array
  */
 void
 j9gc_objaccess_copyObjectFieldsFromFlattenedArrayElement(J9VMThread *vmThread, J9ArrayClass *arrayClazz, j9object_t destObject, J9IndexableObject *arrayRef, I_32 index)

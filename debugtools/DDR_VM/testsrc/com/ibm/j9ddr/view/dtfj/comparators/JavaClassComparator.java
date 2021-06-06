@@ -122,9 +122,9 @@ public class JavaClassComparator extends DTFJComparator {
 		if ((OBJECT & members) != 0)
 			javaObjectComparator.testJavaEquals(ddrJavaClass, jextractJavaClass, "getObject");
 		
-		// getReferneces()
+		// getReferences()
 		if ((REFERENCES & members) != 0)
-			new JavaReferenceComparator().testComparatorIteratorEquals(ddrJavaClass, jextractJavaClass, "getReferneces", JavaReference.class);
+			new JavaReferenceComparator().testComparatorIteratorEquals(ddrJavaClass, jextractJavaClass, "getReferences", JavaReference.class);
 		
 		// getSuperclass()
 		if ((SUPERCLASS & members) != 0)

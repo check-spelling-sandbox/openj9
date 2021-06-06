@@ -786,7 +786,7 @@ MM_SchedulingDelegate::predictPgcTime(MM_EnvironmentVLHGC *env, uintptr_t curren
 	/*
 	 * PGC avg time MAY be related to eden size. Certain applications/allocation patterns, will cause pgc time to increase as eden increases,
 	 * while certain different workloads may keep pgc time relatively constant even as eden size increases.
-	 * Create a model to determine how pgc time will be afffected by eden size - keeping in mind that _pgcTimeIncreasePerEdenFactor can vary depending on the application
+	 * Create a model to determine how pgc time will be affected by eden size - keeping in mind that _pgcTimeIncreasePerEdenFactor can vary depending on the application
 	 */
 	double edenSizeGb = (double)currentEdenSize / 1000000000.0;
 	double edenChangeGb = (double)edenSizeChange / 1000000000.0;

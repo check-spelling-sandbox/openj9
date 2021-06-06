@@ -108,7 +108,7 @@ class OMR_EXTENSIBLE TreeEvaluator: public J9::TreeEvaluator
     * @param[in] node: node
     * @param[in]   cg: code generator
     *
-    * @return register whcih is always NULL
+    * @return register which is always NULL
     */
    static TR::Register *VMcheckcastEvaluator(TR::Node *node, TR::CodeGenerator *cg);
 

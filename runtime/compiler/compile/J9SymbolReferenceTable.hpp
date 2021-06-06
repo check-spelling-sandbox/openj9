@@ -509,7 +509,7 @@ class SymbolReferenceTable : public OMR::SymbolReferenceTableConnector
     * \param key is the key used to search for the symref
     * \param isVolatile specifies whether the symbol found must be volatile.
     *    Expecting a non-volatile symbol but finding a volatile is functionally correct.
-    *    However, expectinga a volatile symbol and finding a non-volatile one is incorrect,
+    *    However, expecting a volatile symbol and finding a non-volatile one is incorrect,
     *    so an assert is fired.
     * \param isPrivate specifies whether the symbol found must be private.
     *    Expecting a private symbol but finding a non-private one is functionally correct.

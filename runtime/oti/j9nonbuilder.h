@@ -2987,7 +2987,7 @@ typedef struct J9Object {
 /*
  * OBJECT_HEADER_LOCK_RECURSION_OFFSET (and later versions) are used in
  * the ObjectMonitor_V#.java (eg. ObjectMonitor_V1.java) files used by DDR.
- * Changing them may lead to breaking suport for older corefiles.
+ * Changing them may lead to breaking support for older corefiles.
  */
 #define OBJECT_HEADER_LOCK_RECURSION_OFFSET  3 /* Do not add new uses of this constant. Use new version instead. */
 #define OBJECT_HEADER_LOCK_V2_RECURSION_OFFSET  4

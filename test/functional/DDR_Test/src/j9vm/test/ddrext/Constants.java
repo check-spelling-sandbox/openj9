@@ -198,7 +198,7 @@ public class Constants {
 	public static final String SHRC_CP = "classpath";
 	public static final String SHRC_CP_SUCCESS_KEY = "vm.jar";
 	public static final String SHRC_CP_SUCCESS_KEY_JAVA9 = "lib[[/\\\\]]modules";
-	public static final String SHRC_CP_FAILIRE_KEY = "no shared cache";
+	public static final String SHRC_CP_FAILURE_KEY = "no shared cache";
 
 	public static final String SHRC_FINDCLASS = "findclass";
 	public static final String SHRC_FINDCLASS_NAME = "java/lang/Object";

@@ -1802,11 +1802,11 @@ public void test_getCanonicalName(){
 		if (result != null && i != 5) {
 			result = packageName + result;
 		}
-		AssertJUnit.assertTrue(i + ") unexpected canonial name " + canonicalName, canonicalName == null ?
+		AssertJUnit.assertTrue(i + ") unexpected canonical name " + canonicalName, canonicalName == null ?
 				canonicalName == results[i] : canonicalName.equals(result));
 		Class arrayClass = java.lang.reflect.Array.newInstance(classes[i], 0).getClass();
 		canonicalName = arrayClass.getCanonicalName();
-		AssertJUnit.assertTrue(i + ") unexpected canonial name " + canonicalName, canonicalName == null ?
+		AssertJUnit.assertTrue(i + ") unexpected canonical name " + canonicalName, canonicalName == null ?
 				canonicalName == results[i] : canonicalName.equals(result + "[]"));
 	}
 }

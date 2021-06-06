@@ -1673,11 +1673,11 @@ public class Test_Class {
 			if (result != null && i != 5) {
 				result = packageName + result;
 			}
-			AssertJUnit.assertTrue(i + ") unexpected canonial name " + canonicalName,
+			AssertJUnit.assertTrue(i + ") unexpected canonical name " + canonicalName,
 					canonicalName == null ? canonicalName == results[i] : canonicalName.equals(result));
 			Class arrayClass = java.lang.reflect.Array.newInstance(classes[i], 0).getClass();
 			canonicalName = arrayClass.getCanonicalName();
-			AssertJUnit.assertTrue(i + ") unexpected canonial name " + canonicalName,
+			AssertJUnit.assertTrue(i + ") unexpected canonical name " + canonicalName,
 					canonicalName == null ? canonicalName == results[i] : canonicalName.equals(result + "[]"));
 		}
 	}

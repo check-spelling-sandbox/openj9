@@ -105,7 +105,7 @@ static jvmtiTest jvmtiTestList[] =
 	{ "ts002",       ts002,   "com.ibm.jvmti.tests.traceSubscription.ts002",                  "Register a tracepoint subscriber" },
 	{ "gmcpn001", gmcpn001,   "com.ibm.jvmti.tests.getMethodAndClassNames.gmcpn001",          "Get Class, Method and Package names for a set of ram method pointers" },
 	{ "decomp001", decomp001, "com.ibm.jvmti.tests.decompResolveFrame.decomp001",             "Decompile method resolve frame with stacked args" },
-	{ "decomp002", decomp002, "com.ibm.jvmti.tests.decompResolveFrame.decomp002",             "Intermittent single stepping throught some code" },
+	{ "decomp002", decomp002, "com.ibm.jvmti.tests.decompResolveFrame.decomp002",             "Intermittent single stepping through some code" },
 	{ "decomp003", decomp003, "com.ibm.jvmti.tests.decompResolveFrame.decomp003",             "Decompile at exception catch at various levels of inlining" },
 	{ "decomp004", decomp004, "com.ibm.jvmti.tests.decompResolveFrame.decomp004",             "Decompile a synchronized method" },
 	{ "decomp005", decomp005, "com.ibm.jvmti.tests.decompResolveFrame.decomp005",             "Decompile at exception catch with an inlined synchronized method" },

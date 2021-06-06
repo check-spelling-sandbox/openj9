@@ -193,7 +193,7 @@ MM_SchedulingDelegate::calculateGlobalMarkOverhead(MM_EnvironmentVLHGC *env)
 		/* Make sure no clock error occured */
 		_totalGMPWorkTimeUs = potentialGMPWorkTime;
 	} else if (0 == _totalGMPWorkTimeUs) {
-		/* At the very beggining of a run, assume GMP time is 5x larger than avg pgc time.
+		/* At the very beginning of a run, assume GMP time is 5x larger than avg pgc time.
 		 * This is a very rough approximation, but it gives us enough data to make decision about eden size
 		 */
 		_totalGMPWorkTimeUs = (_historicalPartialGCTime * 1000) * 5;

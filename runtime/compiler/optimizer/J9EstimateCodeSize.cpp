@@ -1773,7 +1773,7 @@ bool TR_J9EstimateCodeSize::reduceDAAWrapperCodeSize(TR_CallTarget* target)
          target->_fullSize    /= 5;
          target->_partialSize /= 5;
 
-         heuristicTrace(tracer(),"DAA: Reducing target %p fullSize to %d and partialSize to %d to increase likelyhood of successful inlining\n", target, target->_fullSize, target->_partialSize);
+         heuristicTrace(tracer(),"DAA: Reducing target %p fullSize to %d and partialSize to %d to increase likelihood of successful inlining\n", target, target->_fullSize, target->_partialSize);
          return true;
          }
       }

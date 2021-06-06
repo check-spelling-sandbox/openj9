@@ -39,7 +39,7 @@
 #define J9AccClassIsValueBased 0x40
 #define J9AccClassHiddenOptionNestmate 0x80
 #define J9AccClassHiddenOptionStrong 0x100
-#define J9AccClassAnnnotionRefersDoubleSlotEntry 0x80000
+#define J9AccClassAnnotationRefersDoubleSlotEntry 0x80000
 #define J9AccClassAnonClass 0x800
 #define J9AccClassArray 0x10000
 #define J9AccClassBytecodesModified 0x100000

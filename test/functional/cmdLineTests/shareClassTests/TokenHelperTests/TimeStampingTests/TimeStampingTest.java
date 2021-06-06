@@ -39,7 +39,7 @@ public class TimeStampingTest {
 		
 		if(args.length != 2){
 			System.out.println("\n Incorrect usage");
-			System.out.println("\n Please specifiy -testfile <filename> -javacdir <path to javac>");
+			System.out.println("\n Please specify -testfile <filename> -javacdir <path to javac>");
 		}
 		
 		TimeStampingTest test = new TimeStampingTest();

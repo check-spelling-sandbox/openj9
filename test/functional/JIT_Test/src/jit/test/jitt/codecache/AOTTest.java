@@ -62,7 +62,7 @@ public class AOTTest extends TestCase{
 		 * vlog=<logdir>/<name>.log -Xshareclasses:name=<cachename used in phase 1>
 		 * */
 		if ( !TestManager.isShareClassesSet() ) {
-			fail("Please speficy -Xshareclasses:<cachename> in VM options, where <cachename> is the name of the " +
+			fail("Please specify -Xshareclasses:<cachename> in VM options, where <cachename> is the name of the " +
 					"shared class cache used in phase 1 of AOT test");
 		}
 

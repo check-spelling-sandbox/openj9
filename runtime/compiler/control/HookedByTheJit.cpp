@@ -2729,7 +2729,7 @@ static void jitHookInterruptCompilation(J9HookInterface * * hookInterface, UDATA
 
 // jitUpdateMethodOverride is called indirectly from updateCHTable
 //
-void jitUpdateMethodOverride(J9VMThread * vmThread, J9Class * cl, J9Method * overriddenMethod, J9Method * overriddingMethod)
+void jitUpdateMethodOverride(J9VMThread * vmThread, J9Class * cl, J9Method * overriddenMethod, J9Method * overridingMethod)
    {
    J9JITConfig * jitConfig = vmThread->javaVM->jitConfig;
 
@@ -2752,7 +2752,7 @@ void jitUpdateMethodOverride(J9VMThread * vmThread, J9Class * cl, J9Method * ove
       {
       jitAcquireClassTableMutex(vmThread);
       compInfo->getPersistentInfo()->getPersistentCHTable()->methodGotOverridden(
-                                                                                 vm, compInfo->persistentMemory(), (TR_OpaqueMethodBlock *) overriddingMethod, (TR_OpaqueMethodBlock *) overriddenMethod, isSMP);
+                                                                                 vm, compInfo->persistentMemory(), (TR_OpaqueMethodBlock *) overridingMethod, (TR_OpaqueMethodBlock *) overriddenMethod, isSMP);
       jitReleaseClassTableMutex(vmThread);
       }
    }

@@ -387,7 +387,7 @@ void
 TR_PersistentCHTable::methodGotOverridden(
       TR_FrontEnd *fe,
       TR_PersistentMemory *persistentMemory,
-      TR_OpaqueMethodBlock *overriddingMethod,
+      TR_OpaqueMethodBlock *overridingMethod,
       TR_OpaqueMethodBlock *overriddenMethod,
       int32_t smpFlag)
    {

@@ -10583,12 +10583,12 @@ void TR::CompilationInfoPerThreadBase::logCompilationSuccess(
 
          const char * prexString = compiler->usesPreexistence() ? " prex" : "";
 
-         int32_t profilingCount = 0, profilingFrequencey = 0, counter = 0;
+         int32_t profilingCount = 0, profilingFrequency = 0, counter = 0;
          if (compiler->isProfilingCompilation())
             {
             TR::Recompilation *recompInfo = compiler->getRecompilationInfo();
             profilingCount      = recompInfo->getProfilingCount();
-            profilingFrequencey = recompInfo->getProfilingFrequency();
+            profilingFrequency = recompInfo->getProfilingFrequency();
             counter             = recompInfo->getJittedBodyInfo()->getCounter(); // profiling invocation count
             }
 
@@ -10729,7 +10729,7 @@ void TR::CompilationInfoPerThreadBase::logCompilationSuccess(
 #endif
             if (TR::Options::getVerboseOption(TR_VerboseRecompile))
                {
-               TR_VerboseLog::write("%s [profiling c(%d), f(%d), ivc(%d)]", prexString, profilingCount, profilingFrequencey, counter);
+               TR_VerboseLog::write("%s [profiling c(%d), f(%d), ivc(%d)]", prexString, profilingCount, profilingFrequency, counter);
                }
 
             if (compiler->getOption(TR_CountOptTransformations) && compiler->getOption(TR_VerboseOptTransformations))

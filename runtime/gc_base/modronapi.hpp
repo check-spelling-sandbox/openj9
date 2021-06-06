@@ -106,7 +106,7 @@ UDATA ownableSynchronizerObjectCreated(J9VMThread *vmThread, j9object_t object);
  * update some of the fields in the classes
  * This function must be called under exclusive access only
  * @param vmThread
- * @param originalClass The class being redifined
+ * @param originalClass The class being redefined
  * @param replacementClass The result of the class redefinition
  * @param isFastHCR Flag to indicate wether it replacement was done via fastHCR or not
  */

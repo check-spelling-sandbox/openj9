@@ -1143,7 +1143,7 @@ void traceInstanceOfOrCheckCastProfilingInfo(TR::CodeGenerator *cg, TR::Node *no
    }
 /**   \brief Generates an array of profiled classes with the boolean representing if the profiled class is instanceOf cast class or not
  **   \param profiledClassList
- **      An array of InstanceOfOrCheckCasrProfiledClasses structure passed from the main evaluator to fill up with profiled classes info
+ **      An array of InstanceOfOrCheckCastProfiledClasses structure passed from the main evaluator to fill up with profiled classes info
  **   \param topClassProbability
  **      float pointer passed from main evaluator, we update the value with the probability for the top profiled class to be castClass
  **   \param maxProfiledClass
@@ -1269,7 +1269,7 @@ uint32_t getInstanceOfOrCheckCastTopProfiledClass(TR::CodeGenerator *cg, TR::Nod
 
 /**   \brief Generates an array of profiled classes with the boolean representing if the profiled class is instanceOf cast class or not
  **   \param profiledClassList
- **      An array of InstanceOfOrCheckCasrProfiledClasses structure passed from the main evaluator to fill up with profiled classes info
+ **      An array of InstanceOfOrCheckCastProfiledClasses structure passed from the main evaluator to fill up with profiled classes info
  **   \param numberOfProfiledClass
  **      An int pointer passed from main evaluator, we update the value with the number of classes we get from profilef info
  **   \param maxProfiledClass

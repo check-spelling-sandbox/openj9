@@ -600,7 +600,7 @@ bool TR_J9VirtualCallSite::findCallSiteTarget(TR_CallStack *callStack, TR_Inline
    // When we have an invokevirtual on an abstract method defined in an interface class,
    // the call site's class will be more concrete than class of method.
    // This happens when an abstract class implements an interface class without providing
-   // implementation for the given method, and the call site is refering to the method of
+   // implementation for the given method, and the call site is referring to the method of
    // the abstract class, the cp entry of the method ref will be resolved to j9method of
    // the interface class. However, the class ref from cp will be resolved to the abstract
    // class, which is more concrete

@@ -513,7 +513,7 @@ public:
 	 *
 	 * @param objectPtr[in] indexable object's spine
 	 * @param identifier[in/out] identifier associated with object's spine, which contains
-	 * doble mapped address and size
+	 * double mapped address and size
 	 */
 	virtual void doDoubleMappedObjectSlot(J9Object *objectPtr, struct J9PortVmemIdentifier *identifier);
 #endif /* J9VM_GC_ENABLE_DOUBLE_MAP */

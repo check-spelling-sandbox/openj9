@@ -364,7 +364,7 @@ MM_IndexableObjectAllocationModel::doubleMapArraylets(MM_EnvironmentBase *env, J
 	/* For now we double map the entire region of all arraylet leaves. This might change in the future if hybrid regions are introduced. */
 	uintptr_t byteAmount = arrayletLeafSize * arrayletLeafCount;
 
-	/* Get heap and from there call an OMR API that will doble map everything */
+	/* Get heap and from there call an OMR API that will double map everything */
 	result = heap->doubleMapRegions(env, arrayletLeaveAddrs, count, arrayletLeafSize, byteAmount,
 				&firstLeafRegionDescriptor->_arrayletDoublemapID,
 				pageSize,

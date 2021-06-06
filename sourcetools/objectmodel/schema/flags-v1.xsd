@@ -109,7 +109,7 @@
 	<xsd:complexType name="precludesType">
 		<xsd:annotation>
 			<xsd:documentation>
-				A list of elements which indentify flags that are
+				A list of elements which identify flags that are
 				incompatible with the containing flag definition.
 			</xsd:documentation>
 		</xsd:annotation>

@@ -52,7 +52,7 @@ extern "C" {
 #endif
 
 /* A 31-bit JavaVM struct, instances of which are used by 31-bit native code.
- * Each instance should always have a matching 64-bit JavaVM * isntance from the JVM.
+ * Each instance should always have a matching 64-bit JavaVM * instance from the JVM.
  */
 typedef struct JavaVM31 {
 	struct JNIInvokeInterface_ *functions;
@@ -65,7 +65,7 @@ typedef struct JavaVM31 {
 } JavaVM31;
 
 /* A 31-bit JNIEnv struct, instances of which are used by 31-bit native code.
- * Each instance should always have a matching 64-bit JNIEnv * isntance from the JVM.
+ * Each instance should always have a matching 64-bit JNIEnv * instance from the JVM.
  */
 typedef struct JNIEnv31 {
 	struct JNINativeInterface_ *functions;

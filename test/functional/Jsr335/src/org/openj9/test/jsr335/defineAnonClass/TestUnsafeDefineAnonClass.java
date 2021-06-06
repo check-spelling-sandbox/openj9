@@ -163,13 +163,13 @@ public class TestUnsafeDefineAnonClass {
 	private static void testIntMethod(String methodName, Object anonInstance, Class<?> anonClass, boolean illegalAccess, boolean staticMethod) {
 		try {
 			Method m = anonClass.getDeclaredMethod(methodName);
-			Object intanceOrClass;
+			Object instanceOrClass;
 			if (staticMethod) {
-				intanceOrClass = anonClass;
+				instanceOrClass = anonClass;
 			} else {
-				intanceOrClass = anonInstance;
+				instanceOrClass = anonInstance;
 			}
-			Integer result = (Integer) m.invoke(intanceOrClass);
+			Integer result = (Integer) m.invoke(instanceOrClass);
 			AssertJUnit.assertFalse("Expected IllegalAccessException, but exception did not occur!", illegalAccess);
 			AssertJUnit.assertEquals("Method did not return the correct value", CORRECT_ANSWER, result.intValue());
 		} catch (InvocationTargetException | NoSuchMethodException | SecurityException | IllegalArgumentException e) {

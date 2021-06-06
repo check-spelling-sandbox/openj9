@@ -1772,7 +1772,7 @@ initializeClassPath(J9JavaVM *vm, char *classPath, U_8 classPathSeparator, U_16 
  * 		CPE_TYPE_DIRECTORY if it's a directory
  * 		CPE_TYPE_JAR if it's a ZIP file, extraInfo contains the J9ZipFile
  * 		CPE_TYPE_JIMAGE if it's a jimage file
- * 		CPE_TYPE_USUSABLE if it's a bad entry, don't try to use it anymore
+ * 		CPE_TYPE_UNUSABLE if it's a bad entry, don't try to use it anymore
  */
 IDATA
 initializeClassPathEntry (J9JavaVM * javaVM, J9ClassPathEntry *cpEntry);

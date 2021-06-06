@@ -436,7 +436,7 @@ verifyQualifiedName(J9VMThread *vmThread, U_8 *className, UDATA classNameLength,
 	/* check the arity of the class name to see whether it is an array or not
 	 * and check whether the results are the allowed values by the caller.
 	 */
-	result = (0 == arity) ? CLASSNAME_VALID_NON_ARRARY : CLASSNAME_VALID_ARRARY;
+	result = (0 == arity) ? CLASSNAME_VALID_NON_ARRAY : CLASSNAME_VALID_ARRAY;
 	if (J9_ARE_ANY_BITS_SET(result, allowedBitsForClassName)) {
 		return result;
 	}

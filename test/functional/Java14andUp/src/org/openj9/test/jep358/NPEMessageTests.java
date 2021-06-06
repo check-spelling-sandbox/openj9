@@ -245,20 +245,20 @@ public class NPEMessageTests {
 
 	public void test_baload_byte() {
 		try {
-			byte[] byteArrray = null;
-			byte temp = byteArrray[0];
+			byte[] byteArray = null;
+			byte temp = byteArray[0];
 		} catch (NullPointerException npe) {
-			checkMessage(npe.getMessage(), "Cannot load from byte/boolean array because \"byteArrray\" is null",
+			checkMessage(npe.getMessage(), "Cannot load from byte/boolean array because \"byteArray\" is null",
 					"Cannot load from byte/boolean array because \"<local1>\" is null");
 		}
 	}
 
 	public void test_bastore_byte() {
 		try {
-			byte[] byteArrray = null;
-			byteArrray[0] = 0;
+			byte[] byteArray = null;
+			byteArray[0] = 0;
 		} catch (NullPointerException npe) {
-			checkMessage(npe.getMessage(), "Cannot store to byte/boolean array because \"byteArrray\" is null",
+			checkMessage(npe.getMessage(), "Cannot store to byte/boolean array because \"byteArray\" is null",
 					"Cannot store to byte/boolean array because \"<local1>\" is null");
 		}
 	}

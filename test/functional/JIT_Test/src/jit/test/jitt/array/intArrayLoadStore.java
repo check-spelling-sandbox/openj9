@@ -42,14 +42,14 @@ return true;
 
 private int[] tstFoo(int[] arrayP,int zero) {
     int len = arrayP.length;
-	int arryLocal[] = new int [len];
+	int arrayLocal[] = new int [len];
 	for (int i=0;i<len;i++) {;
-	  arryLocal[i] = arrayP[i]; 
+	  arrayLocal[i] = arrayP[i]; 
 	  }
-	 if (!tstCheck(arryLocal)){
+	 if (!tstCheck(arrayLocal)){
 	  Assert.fail("char Array value bad in tstFoo");
 	 }
-	return arryLocal;
+	return arrayLocal;
 }
 
 @Test

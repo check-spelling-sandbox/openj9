@@ -43,9 +43,9 @@
 
 /* The bit fields used by verifyQualifiedName to verify a qualified class name */
 #define CLASSNAME_INVALID			0
-#define CLASSNAME_VALID_NON_ARRARY	0x1
-#define CLASSNAME_VALID_ARRARY		0x2
-#define CLASSNAME_VALID				(CLASSNAME_VALID_NON_ARRARY | CLASSNAME_VALID_ARRARY)
+#define CLASSNAME_VALID_NON_ARRAY	0x1
+#define CLASSNAME_VALID_ARRAY		0x2
+#define CLASSNAME_VALID				(CLASSNAME_VALID_NON_ARRAY | CLASSNAME_VALID_ARRAY)
 
 /* @ddr_namespace: map_to_type=J9JITDataCacheConstants */
 

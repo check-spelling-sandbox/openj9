@@ -4422,7 +4422,7 @@ done:
 		updateVMStruct(REGISTER_ARGS);
 		j9Class = internalFindClassString(_currentThread, NULL, className, loader,
 											J9_FINDCLASS_FLAG_USE_LOADER_CP_ENTRIES,
-											CLASSNAME_VALID_NON_ARRARY);
+											CLASSNAME_VALID_NON_ARRAY);
 		VMStructHasBeenUpdated(REGISTER_ARGS);
 		if (VM_VMHelpers::exceptionPending(_currentThread)) {
 			/* The VMStruct is already updated */

@@ -2586,7 +2586,7 @@ jvmDefineClassHelper(JNIEnv *env, jobject classLoaderObject,
 			goto done;
 		}
 
-		if (CLASSNAME_INVALID == vmFuncs->verifyQualifiedName(currentThread, utf8Name, utf8Length, CLASSNAME_VALID_NON_ARRARY)) {
+		if (CLASSNAME_INVALID == vmFuncs->verifyQualifiedName(currentThread, utf8Name, utf8Length, CLASSNAME_VALID_NON_ARRAY)) {
 			vmFuncs->setCurrentException(currentThread, J9VMCONSTANTPOOL_JAVALANGNOCLASSDEFFOUNDERROR, (UDATA *)*(j9object_t*)className);
 			goto done;
 		}

@@ -73,7 +73,7 @@ traceILOfCrashedThreadProtected(struct J9PortLibrary *portLib, void *handler_arg
    // This call will reset the previously recorded symbol reference size to 0, thus indicating to the debug object that
    // we should print all the symbol references in the symbol reference table when tracing the trees. By default the
    // debug object will only print new symbol references since the last time they were printed. Here we are in a
-   // crashed thread state so we can safely reset this coutner so we print all the symbol references.
+   // crashed thread state so we can safely reset this counter so we print all the symbol references.
    p.comp->setPrevSymRefTabSize(0);
    p.comp->dumpMethodTrees("Trees");
 

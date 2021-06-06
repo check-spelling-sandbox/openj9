@@ -751,7 +751,7 @@ class TR_ClassQueries
    static void    getSubClasses            (TR_PersistentClassInfo *clazz,
                                             TR_ScratchList<TR_PersistentClassInfo> &list,
                                             TR_FrontEnd *vm, bool locked = false);
-   static int32_t collectImplementorsCapped(TR_PersistentClassInfo *clazz,
+   static int32_t collectImplementersCapped(TR_PersistentClassInfo *clazz,
                                             TR_ResolvedMethod **implArray,
                                             int32_t maxCount,
                                             int32_t slotOrIndex,
@@ -759,7 +759,7 @@ class TR_ClassQueries
                                             TR::Compilation *comp,
                                             bool locked = false,
                                             TR_YesNoMaybe useGetResolvedInterfaceMethod = TR_maybe);
-   static int32_t collectCompiledImplementorsCapped(TR_PersistentClassInfo *clazz,
+   static int32_t collectCompiledImplementersCapped(TR_PersistentClassInfo *clazz,
                                             TR_ResolvedMethod **implArray,
                                             int32_t maxCount,
                                             int32_t slotOrIndex,

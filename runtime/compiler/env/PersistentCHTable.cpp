@@ -432,7 +432,7 @@ TR_ResolvedMethod * TR_PersistentCHTable::findSingleImplementer(
 
    TR_ResolvedMethod *implArray[2]; // collect maximum 2 implementers if you can
    comp->enterHeuristicRegion();
-   int32_t implCount = TR_ClassQueries::collectImplementorsCapped(classInfo, implArray, 2, cpIndexOrVftSlot, callerMethod, comp, locked, useGetResolvedInterfaceMethod);
+   int32_t implCount = TR_ClassQueries::collectImplementersCapped(classInfo, implArray, 2, cpIndexOrVftSlot, callerMethod, comp, locked, useGetResolvedInterfaceMethod);
    comp->exitHeuristicRegion();
 
    TR_ResolvedMethod *implementer = NULL;
@@ -482,7 +482,7 @@ TR_PersistentCHTable::findSingleInterfaceImplementer(
 
    TR_ResolvedMethod *implArray[2]; // collect maximum 2 implementers if you can
    comp->enterHeuristicRegion();
-   int32_t implCount = TR_ClassQueries::collectImplementorsCapped(classInfo, implArray, 2, cpIndex, callerMethod, comp, locked);
+   int32_t implCount = TR_ClassQueries::collectImplementersCapped(classInfo, implArray, 2, cpIndex, callerMethod, comp, locked);
    comp->exitHeuristicRegion();
 
    TR_ResolvedMethod *implementer = NULL;
@@ -507,7 +507,7 @@ TR_PersistentCHTable::findSingleInterfaceImplementer(
    }
 
 bool
-TR_PersistentCHTable::hasThreeOrMoreCompiledImplementors(
+TR_PersistentCHTable::hasThreeOrMoreCompiledImplementers(
    TR_OpaqueClassBlock * thisClass, int32_t cpIndex, TR_ResolvedMethod * callerMethod, TR::Compilation * comp, TR_Hotness hotness, bool locked)
    {
    if (comp->getOption(TR_DisableCHOpts))
@@ -520,7 +520,7 @@ TR_PersistentCHTable::hasThreeOrMoreCompiledImplementors(
    if (!classInfo) return false;
 
    TR_ResolvedMethod *implArray[3];
-   return TR_ClassQueries::collectCompiledImplementorsCapped(classInfo,implArray,3,cpIndex,callerMethod,comp,hotness,locked) == 3;
+   return TR_ClassQueries::collectCompiledImplementersCapped(classInfo,implArray,3,cpIndex,callerMethod,comp,hotness,locked) == 3;
    }
 
 int32_t
@@ -542,7 +542,7 @@ TR_PersistentCHTable::findnInterfaceImplementers(
    TR_PersistentClassInfo * classInfo = findClassInfoAfterLocking(thisClass, comp, true);
    if (!classInfo) return 0;
 
-   int32_t implCount = TR_ClassQueries::collectImplementorsCapped(classInfo, implArray,n,cpIndex,callerMethod,comp,locked);
+   int32_t implCount = TR_ClassQueries::collectImplementersCapped(classInfo, implArray,n,cpIndex,callerMethod,comp,locked);
    return implCount;
    }
 
@@ -563,7 +563,7 @@ TR_PersistentCHTable::isKnownToHaveMoreThanTwoInterfaceImplementers(
       return false;
 
    TR_ResolvedMethod *implArray[3]; // collect maximum 3 implementers if you can
-   int32_t implCount = TR_ClassQueries::collectImplementorsCapped(classInfo, implArray, 3, cpIndex, callerMethod, comp, locked);
+   int32_t implCount = TR_ClassQueries::collectImplementersCapped(classInfo, implArray, 3, cpIndex, callerMethod, comp, locked);
    return (implCount == 3);
    }
 
@@ -588,7 +588,7 @@ TR_PersistentCHTable::findSingleAbstractImplementer(
 
    TR_ResolvedMethod *implArray[2]; // collect maximum 2 implementers if you can
    comp->enterHeuristicRegion();
-   int32_t implCount = TR_ClassQueries::collectImplementorsCapped(classInfo, implArray, 2, vftSlot, callerMethod, comp, locked);
+   int32_t implCount = TR_ClassQueries::collectImplementersCapped(classInfo, implArray, 2, vftSlot, callerMethod, comp, locked);
    comp->exitHeuristicRegion();
 
    TR_ResolvedMethod *implementer = NULL;

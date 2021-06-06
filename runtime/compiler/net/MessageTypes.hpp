@@ -91,7 +91,7 @@ enum MessageType : uint16_t
    ResolvedMethod_isUnresolvedConstantDynamic,
    ResolvedMethod_dynamicConstant,
    ResolvedMethod_definingClassFromCPFieldRef,
-   ResolvedMethod_getResolvedImplementorMethods,
+   ResolvedMethod_getResolvedImplementerMethods,
    ResolvedMethod_isFieldFlattened,
 
    ResolvedRelocatableMethod_createResolvedRelocatableJ9Method,

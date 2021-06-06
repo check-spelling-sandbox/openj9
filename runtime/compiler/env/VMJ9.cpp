@@ -2785,7 +2785,7 @@ TR_J9VMBase::maybeHighlyPolymorphic(TR::Compilation *comp, TR_ResolvedMethod *ca
          int len = 1;
          traceMsg(comp, "maybeHighlyPolymorphic classOfMethod: %s yizhang\n", getClassNameChars(classOfMethod, len));
          TR_PersistentCHTable *chTable = comp->getPersistentInfo()->getPersistentCHTable();
-         if (chTable->hasThreeOrMoreCompiledImplementors(classOfMethod, cpIndex, caller, comp, warm))
+         if (chTable->hasThreeOrMoreCompiledImplementers(classOfMethod, cpIndex, caller, comp, warm))
             {
             return true;
             }

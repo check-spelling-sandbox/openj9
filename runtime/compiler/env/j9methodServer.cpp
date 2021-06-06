@@ -1755,7 +1755,7 @@ TR_ResolvedJ9JITServerMethod::cacheFields()
    }
 
 int32_t
-TR_ResolvedJ9JITServerMethod::collectImplementorsCapped(
+TR_ResolvedJ9JITServerMethod::collectImplementersCapped(
    TR_OpaqueClassBlock *topClass,
    int32_t maxCount,
    int32_t cpIndexOrOffset,
@@ -1765,7 +1765,7 @@ TR_ResolvedJ9JITServerMethod::collectImplementorsCapped(
    auto compInfoPT = static_cast<TR::CompilationInfoPerThreadRemote *>(_fe->_compInfoPT);
    JITServer::ServerStream *stream = compInfoPT->getMethodBeingCompiled()->_stream;
    stream->write(
-      JITServer::MessageType::ResolvedMethod_getResolvedImplementorMethods,
+      JITServer::MessageType::ResolvedMethod_getResolvedImplementerMethods,
       topClass,
       maxCount,
       cpIndexOrOffset,

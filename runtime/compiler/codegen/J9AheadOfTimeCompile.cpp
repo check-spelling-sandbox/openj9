@@ -1999,7 +1999,7 @@ J9::AheadOfTimeCompile::dumpRelocationHeaderData(uint8_t *cursor, bool isVerbose
          self()->traceRelocationOffsets(startOfOffsets, offsetSize, endOfCurrentRecord, orderedPair);
          if (isVerbose)
             {
-            traceMsg(self()->comp(), "\n Validate Method From Single Implementor: methodID=%d, definingClassID=%d, thisClassID=%d, cpIndexOrVftSlot=%d, callerMethodID=%d, useGetResolvedInterfaceMethod=%d ",
+            traceMsg(self()->comp(), "\n Validate Method From Single Implementer: methodID=%d, definingClassID=%d, thisClassID=%d, cpIndexOrVftSlot=%d, callerMethodID=%d, useGetResolvedInterfaceMethod=%d ",
                      (uint32_t)mfsiRecord->methodID(reloTarget),
                      (uint32_t)mfsiRecord->definingClassID(reloTarget),
                      (uint32_t)mfsiRecord->thisClassID(reloTarget),
@@ -2017,7 +2017,7 @@ J9::AheadOfTimeCompile::dumpRelocationHeaderData(uint8_t *cursor, bool isVerbose
          self()->traceRelocationOffsets(startOfOffsets, offsetSize, endOfCurrentRecord, orderedPair);
          if (isVerbose)
             {
-            traceMsg(self()->comp(), "\n Validate Method From Single Interface Implementor: methodID=%u, definingClassID=%u, thisClassID=%u, cpIndex=%u, callerMethodID=%u ",
+            traceMsg(self()->comp(), "\n Validate Method From Single Interface Implementer: methodID=%u, definingClassID=%u, thisClassID=%u, cpIndex=%u, callerMethodID=%u ",
                      (uint32_t)mfsiiRecord->methodID(reloTarget),
                      (uint32_t)mfsiiRecord->definingClassID(reloTarget),
                      (uint32_t)mfsiiRecord->thisClassID(reloTarget),
@@ -2034,7 +2034,7 @@ J9::AheadOfTimeCompile::dumpRelocationHeaderData(uint8_t *cursor, bool isVerbose
          self()->traceRelocationOffsets(startOfOffsets, offsetSize, endOfCurrentRecord, orderedPair);
          if (isVerbose)
             {
-            traceMsg(self()->comp(), "\n Validate Method From Single Abstract Implementor: methodID=%d, definingClassID=%d, thisClassID=%d, vftSlot=%d, callerMethodID=%d ",
+            traceMsg(self()->comp(), "\n Validate Method From Single Abstract Implementer: methodID=%d, definingClassID=%d, thisClassID=%d, vftSlot=%d, callerMethodID=%d ",
                      (uint32_t)mfsaiRecord->methodID(reloTarget),
                      (uint32_t)mfsaiRecord->definingClassID(reloTarget),
                      (uint32_t)mfsaiRecord->thisClassID(reloTarget),

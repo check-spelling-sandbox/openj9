@@ -1813,7 +1813,7 @@ handleServerMessage(JITServer::ClientStream *client, TR_J9VM *fe, JITServer::Mes
          client->write(response, objLocation, obj);
          }
          break;
-      case MessageType::ResolvedMethod_getResolvedImplementorMethods:
+      case MessageType::ResolvedMethod_getResolvedImplementerMethods:
          {
          auto recv = client->getRecvData<TR_OpaqueClassBlock *, int32_t, int32_t, TR_ResolvedJ9Method *, TR_YesNoMaybe>();
          TR_OpaqueClassBlock *clazz = std::get<0>(recv);
@@ -1825,7 +1825,7 @@ handleServerMessage(JITServer::ClientStream *client, TR_J9VM *fe, JITServer::Mes
          TR_ResolvedMethod *implArray[maxCount];
          TR_PersistentClassInfo *classInfo = comp->getPersistentInfo()->getPersistentCHTable()->findClassInfoAfterLocking(clazz, comp, true);
          int32_t implCount =
-            TR_ClassQueries::collectImplementorsCapped(
+            TR_ClassQueries::collectImplementersCapped(
                classInfo,
                implArray,
                maxCount,

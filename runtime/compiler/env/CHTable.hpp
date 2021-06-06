@@ -448,7 +448,7 @@ class TR_CHTable
 // The class table mutex must be acquired before accessing the following datastructures
 //
 // During compilation, any class hierarchy assumptions are added into the TR_CHTable.
-// As the last step at codegen time, TR_CHTable locks the classtable, commits all the information
+// As the last step at codegen time, TR_CHTable locks the class table, commits all the information
 // into the Persistent table.
 //
 // At runtime, whenever a class is extended, or method is overridden, one of the methods:

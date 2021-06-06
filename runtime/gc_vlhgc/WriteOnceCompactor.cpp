@@ -948,7 +948,7 @@ MM_WriteOnceCompactor::saveForwardingPtr(J9Object *objectPtr, J9Object *forwardi
 	if (NULL == destination) {
 		_compactTable[page].initialize(forwardingPtr);
 	} else {
-		/* ensure that we aren't trying to re-forward a page to a lower address than it was already targetting */
+		/* ensure that we aren't trying to re-forward a page to a lower address than it was already targeting */
 		Assert_MM_true((void *)forwardingPtr > destination);
 	}
 }

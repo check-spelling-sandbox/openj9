@@ -1079,7 +1079,7 @@ void TR_ProfileableCallSite::findSingleProfiledReceiver(ListIterator<TR_ExtraAdd
                 !fej9->canRememberClass(callSiteClass))
                {
                if (comp()->trace(OMR::inlining))
-                  traceMsg(comp(), "inliner: profiled class [%p] or callSiteClass [%p] cannot be rememberd in shared cache\n", tempreceiverClass, callSiteClass);
+                  traceMsg(comp(), "inliner: profiled class [%p] or callSiteClass [%p] cannot be remembered in shared cache\n", tempreceiverClass, callSiteClass);
                continue;
                }
             }

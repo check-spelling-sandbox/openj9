@@ -24,19 +24,19 @@ package jit.test.jitt.gc;
 import org.testng.annotations.Test;
 
 @Test(groups = { "level.sanity","component.jit" })
-public class RemberedArray extends jit.test.jitt.Test {
+public class RememberedArray extends jit.test.jitt.Test {
     GCTestClass gcTest=null;
 	
 	private void tst_gcArray(int loop) {
-	Object obj[] = {new RemberedArray(),new RemberedField()};
+	Object obj[] = {new RememberedArray(),new RememberedField()};
 	  for (int j=0; j<loop;j++) {
-       	RemberedArray localObj = new RemberedArray();
+       	RememberedArray localObj = new RememberedArray();
 	   	obj[0] = localObj;	
 	  }
 	}
 
 	@Test
-	public void testRemberedArray() {
+	public void testRememberedArray() {
 		//Scavenge x = new Scavenge();
 		for (int j = 0; j <= sJitThreshold ; j++) {
 			tst_gcArray(3);

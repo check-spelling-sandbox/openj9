@@ -24,7 +24,7 @@ package jit.test.jitt.gc;
 import org.testng.annotations.Test;
 
 @Test(groups = { "level.sanity","component.jit" })
-public class RemberedField extends jit.test.jitt.Test {
+public class RememberedField extends jit.test.jitt.Test {
     GCTestClass gcTest=null;
 	
 
@@ -34,7 +34,7 @@ public class RemberedField extends jit.test.jitt.Test {
 	}
 
 	@Test
-	public void testRemberedField() {
+	public void testRememberedField() {
 		//Scavenge x = new Scavenge();
 		for (int j = 0; j <= sJitThreshold; j++) {
 			tst_gcField();

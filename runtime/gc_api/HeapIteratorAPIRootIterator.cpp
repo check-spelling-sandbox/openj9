@@ -76,7 +76,7 @@ HeapIteratorAPI_RootIterator::scanAllSlots()
 
 #if defined(J9VM_GC_MODRON_SCAVENGER)
 	if(!_nurseryReferencesOnly && !_nurseryReferencesPossibly) {
-		if(_flags & SCAN_REMEBERED_SET) {
+		if(_flags & SCAN_REMEMBERED_SET) {
 			scanRememberedSet();
 		}
 	}

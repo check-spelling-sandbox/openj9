@@ -162,9 +162,9 @@
   </test>
   <test name="gcTest">
     <classes>
-      <class name="jit.test.jitt.gc.RemberedArray"/>
-      <class name="jit.test.jitt.gc.RemberedField"/>
-      <class name="jit.test.jitt.gc.RemberedStatic"/>
+      <class name="jit.test.jitt.gc.RememberedArray"/>
+      <class name="jit.test.jitt.gc.RememberedField"/>
+      <class name="jit.test.jitt.gc.RememberedStatic"/>
       <class name="jit.test.jitt.gc.Scavenge"/>
     </classes>
   </test>

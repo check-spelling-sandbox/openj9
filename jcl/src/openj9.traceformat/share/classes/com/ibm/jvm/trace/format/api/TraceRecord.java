@@ -513,7 +513,7 @@ public class TraceRecord implements Comparable<TraceRecord> {
 							int fragmentSize = stream.getGuardBytes();
 							if (fragmentSize != 0 && fragmentSize != firstEntry - indexTarget) {
 								if (context.debugStream != null) {
-									context.debug(this, 4, "Sequence wrap trace point spans buffers but doesn't match fragment size from preceeding buffer, discarding both");
+									context.debug(this, 4, "Sequence wrap trace point spans buffers but doesn't match fragment size from precedeing buffer, discarding both");
 								}
 							}
 							discard = true;

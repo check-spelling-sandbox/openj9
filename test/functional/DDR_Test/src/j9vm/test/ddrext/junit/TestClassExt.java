@@ -47,9 +47,9 @@ public class TestClassExt extends DDRExtTesterBase {
 			fail("getRAMClassAddress returns null. Can not proceed with testJ9ClassShapeExt");
 			return;
 		}
-		String j9ClassChapeOutput = exec(Constants.J9CLASSSHAPE_CMD,
+		String j9ClassShapeOutput = exec(Constants.J9CLASSSHAPE_CMD,
 				new String[] { ramAddr });
-		assertTrue(validate(j9ClassChapeOutput,
+		assertTrue(validate(j9ClassShapeOutput,
 				Constants.J9CLASSSHAPE_SUCCESS_KEY, null, true));
 	}
 
@@ -71,9 +71,9 @@ public class TestClassExt extends DDRExtTesterBase {
 			fail("getRAMClassAddress returns null. Can not proceed with testJ9StaticsExt");
 			return;
 		}
-		String j9ClassChapeOutput = exec(Constants.J9STATICS_CMD,
+		String j9ClassShapeOutput = exec(Constants.J9STATICS_CMD,
 				new String[] { ramAddr });
-		assertTrue(validate(j9ClassChapeOutput,
+		assertTrue(validate(j9ClassShapeOutput,
 				Constants.J9STATICS_SUCCESS_KEY, null, true));
 	}
 

@@ -61,7 +61,7 @@ GC_ClassIteratorClassSlots::nextSlot()
 	case classiteratorclassslots_state_interfaces:
 		/*
 		 * Checking sharedITable is an optimization that only checks booleanArrayClass Interfaces
-		 * since all array claseses share the same ITable.
+		 * since all array classes share the same ITable.
 		 */
 		if (_shouldScanInterfaces) {
 			classPtr = _classLocalInterfaceIterator.nextSlot();

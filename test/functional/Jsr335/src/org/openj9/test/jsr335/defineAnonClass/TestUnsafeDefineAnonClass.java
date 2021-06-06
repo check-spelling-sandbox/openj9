@@ -40,7 +40,7 @@ public class TestUnsafeDefineAnonClass {
 
 	private static final int CLASS_UNLOADING_ITERATIONS = 100000;
 	private static final int CLASS_REFLECTION_ITERATIONS = 10000;
-	private static final int CLASSESS_KEPT_ALIVE_AT_ANY_TIME = 100;
+	private static final int CLASSES_KEPT_ALIVE_AT_ANY_TIME = 100;
 	public static final int CORRECT_ANSWER = 100;
 
 	/**
@@ -50,7 +50,7 @@ public class TestUnsafeDefineAnonClass {
 	@Test(groups = { "level.sanity" })
 	public void testAnonClassUnloading() throws Exception {
 		byte[] classBytes = getClassBytesFromResource(BasicClass.class);
-		CircularBuffer<Class<?>> buf = new CircularBuffer<>(CLASSESS_KEPT_ALIVE_AT_ANY_TIME);
+		CircularBuffer<Class<?>> buf = new CircularBuffer<>(CLASSES_KEPT_ALIVE_AT_ANY_TIME);
 		for (int i = 0; i < CLASS_UNLOADING_ITERATIONS; i++) {
 			Class<?> anonClass = UnsafeClasses.defineAnonOrHiddenClass(TestUnsafeDefineAnonClass.class, classBytes);
 
@@ -67,7 +67,7 @@ public class TestUnsafeDefineAnonClass {
 	@Test(groups = { "level.sanity" })
 	public void testAnonClassCodePaths() throws Exception {
 		byte[] classBytes = getClassBytesFromResource(BasicClass.class);
-		CircularBuffer<Class<?>> buf = new CircularBuffer<>(CLASSESS_KEPT_ALIVE_AT_ANY_TIME);
+		CircularBuffer<Class<?>> buf = new CircularBuffer<>(CLASSES_KEPT_ALIVE_AT_ANY_TIME);
 		for (int i = 0; i < CLASS_REFLECTION_ITERATIONS; i++) {
 			Class<?> anonClass = UnsafeClasses.defineAnonOrHiddenClass(TestUnsafeDefineAnonClass.class, classBytes);
 			runBasicClassTests(anonClass);

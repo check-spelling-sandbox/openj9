@@ -414,7 +414,7 @@ MM_MetronomeDelegate::processDyingClasses(MM_EnvironmentRealtime *env, UDATA* cl
 	/*
 	 * Verify that boolean array class has been marked. Assertion is done to ensure correctness
 	 * of an optimization in ClassIteratorClassSlots that only checks booleanArrayClass Interfaces
-	 * since all array claseses share the same ITable.
+	 * since all array classes share the same ITable.
 	 */
 	Assert_MM_true(_markingScheme->isMarked(_javaVM->booleanArrayClass->classObject));
 

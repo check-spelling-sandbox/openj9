@@ -552,7 +552,7 @@ TraceEvent=Trc_JCL_tenantInitStateMachine_waitFailed Group=classinit Overhead=1 
 TraceExit=Trc_JCL_tenantInitStateMachine_Exit Group=classinit Overhead=1 Level=3 Template="tenantInitStateMachine"
 TraceEntry=Trc_JCL_initializeNonIsolatedClass_Entry Group=classinit Overhead=1 Level=3 Template="initializeNonIsolatedClass for %.*s (%p)"
 TraceEvent=Trc_JCL_initializeNonIsolatedClass_noRootTenant Group=classinit Overhead=1 Level=3 Template="root tenant not initialized"
-TraceEvent=Trc_JCL_initializeNonIsolatedClass_callingIntializeImpl Group=classinit Overhead=1 Level=3 Template="calling initializeImpl"
+TraceEvent=Trc_JCL_initializeNonIsolatedClass_callingInitializeImpl Group=classinit Overhead=1 Level=3 Template="calling initializeImpl"
 TraceEvent=Trc_JCL_initializeNonIsolatedClass_maskingRCM Group=classinit Overhead=1 Level=3 Template="masking RCM"
 TraceEvent=Trc_JCL_initializeNonIsolatedClass_unmaskingRCM Group=classinit Overhead=1 Level=3 Template="unmasking RCM"
 TraceEvent=Trc_JCL_initializeNonIsolatedClass_repostingInjector Group=classinit Overhead=1 Level=3 Template="reposting code injector event"

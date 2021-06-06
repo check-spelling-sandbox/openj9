@@ -23,7 +23,7 @@ SPDX-License-Identifier: EPL-2.0 OR Apache-2.0 OR GPL-2.0 WITH Classpath-excepti
 # OpenJ9 Compiler Memory Manager
 
 The JIT Compiler in OpenJ9 extends the OMR Compiler. Therefore, it
-also extendes the OMR Compiler's Memory Manager, consequently 
+also extends the OMR Compiler's Memory Manager, consequently 
 managing its own memory for the same reasons as the OMR Compiler. 
 However, in order to ensure that all memory in the JVM is accounted 
 for, as well as to minimize the likelihood of memory leaks,

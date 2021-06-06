@@ -274,7 +274,7 @@ public:
     * A class is considered concrete if it is not an interface or an abstract class
     * @param subClasses List of subclasses to be checked.
     * @return Returns 'true' if the given list of classes contains less than
-    * 2 concrete classses and false otherwise.
+    * 2 concrete classes and false otherwise.
     */
    bool containsZeroOrOneConcreteClass(TR::Compilation *comp, List<TR_PersistentClassInfo>* subClasses);
    };

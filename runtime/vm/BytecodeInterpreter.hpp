@@ -1517,7 +1517,7 @@ obj:
 	inlineSendTarget(
 			REGISTER_ARGS_LIST,
 			VM_YesNoMaybe isStatic,
-			VM_YesNoMaybe isSynchonized,
+			VM_YesNoMaybe isSynchronized,
 			VM_YesNoMaybe isObjectConstructor,
 			VM_YesNoMaybe zeroing,
 			bool j2i = false,
@@ -1528,7 +1528,7 @@ obj:
 		U_32 modifiers = romMethod->modifiers;
 		UDATA *newA0 = (_sp + romMethod->argCount) - 1;
 		j9object_t syncObject = NULL;
-		bool methodIsSynchronized = (VM_YES == isSynchonized) || ((VM_MAYBE == isSynchonized) && (modifiers & J9AccSynchronized));
+		bool methodIsSynchronized = (VM_YES == isSynchronized) || ((VM_MAYBE == isSynchronized) && (modifiers & J9AccSynchronized));
 		bool methodIsStatic = (VM_YES == isStatic) || ((VM_MAYBE == isStatic) && (modifiers & J9AccStatic));
 		bool methodIsObjectConstructor = (VM_YES == isObjectConstructor) || ((VM_MAYBE == isObjectConstructor) && J9ROMMETHOD_IS_OBJECT_CONSTRUCTOR(romMethod));
 		bool tempsNeedZeroing = (VM_YES == zeroing) || ((VM_MAYBE == zeroing) && (_vm->extendedRuntimeFlags & J9_EXTENDED_RUNTIME_DEBUG_MODE));

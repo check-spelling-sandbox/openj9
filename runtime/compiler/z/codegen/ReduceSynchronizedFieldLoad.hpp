@@ -146,7 +146,7 @@ class ReduceSynchronizedFieldLoad
    *     The candidate load within the monitored region to perform the optimization on; <c>NULL</c> if no candidate 
    *     was found.
    */
-   TR::Node* findLoadInSynchornizedRegion(TR::TreeTop* startTreeTop, TR::TreeTop* endTreeTop, TR::TreeTop* monentTreeTop, TR::TreeTop* monexitTreeTop, TR::Node* synchronizedObjectNode);
+   TR::Node* findLoadInSynchronizedRegion(TR::TreeTop* startTreeTop, TR::TreeTop* endTreeTop, TR::TreeTop* monentTreeTop, TR::TreeTop* monexitTreeTop, TR::Node* synchronizedObjectNode);
 
    /** \brief
     *     The cached code generator used to generate the instructions.

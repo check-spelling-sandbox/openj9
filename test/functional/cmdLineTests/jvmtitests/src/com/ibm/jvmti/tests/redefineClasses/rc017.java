@@ -56,7 +56,7 @@ public class rc017 {
 			return true;
 
 		} catch (ArrayStoreException e) {
-			System.out.println("rc017 failed to store retranformed class into array of grandparent, See CMVC 199556/JAZZ 45682 for detail");
+			System.out.println("rc017 failed to store retransformed class into array of grandparent, See CMVC 199556/JAZZ 45682 for detail");
 			e.printStackTrace();
 			return false;
 		} catch (Exception e) {

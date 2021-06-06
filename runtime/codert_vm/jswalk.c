@@ -674,7 +674,7 @@ static void walkJITFrameSlots(J9StackWalkState * walkState, U_8 * jitDescription
 						swPrintf(walkState, 3, "Possible Class Address: 0x%x at search PC 0x%x \n",*((j9object_t *)(*scanCursor)), walkState->pc );
 					}
 					if ((walkState->userData1 == (void*)1) || (walkState->userData1 == (void*)8) ) {
-						swPrintf(walkState, 3, "Uncollected ref SLOT 0x%x pointing at object ref 0x%x for stackmap at seachPC 0x%x: \n",  scanCursor, *scanCursor, walkState->pc);
+						swPrintf(walkState, 3, "Uncollected ref SLOT 0x%x pointing at object ref 0x%x for stackmap at searchPC 0x%x: \n",  scanCursor, *scanCursor, walkState->pc);
 					}
 #endif
 					if (walkState->userData2 == (void*)4) {

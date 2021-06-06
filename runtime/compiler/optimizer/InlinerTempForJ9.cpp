@@ -3409,7 +3409,7 @@ bool TR_MultipleCallTargetInliner::inlineCallTargets(TR::ResolvedMethodSymbol *c
 
          debugTrace(tracer(),"Estimated Number of Nodes is %d after calltarget %p",estimatedNumberOfNodes,calltarget);
 
-         float factor = 1.1F;          // this factor was chosen based on a study of a large WAS app that showed that getMaxBytecodeindex was 92% accurate compared to nodes generated
+         float factor = 1.1F;          // this factor was chosen based on a study of a large WAS app that showed that getMaxBytecodeIndex was 92% accurate compared to nodes generated
 
          if ((uint32_t)(estimatedNumberOfNodes*factor) > _nodeCountThreshold)
             {

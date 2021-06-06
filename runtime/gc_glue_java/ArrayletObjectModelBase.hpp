@@ -135,7 +135,7 @@ public:
 	/**
 	 * Sets enable double mapping status. Note that the double map
 	 * status value may differ from the requested one in certain
-	 * circuntances.
+	 * circumstances.
 	 *
 	 * @param enableDoubleMapping
 	 */

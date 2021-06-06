@@ -891,7 +891,7 @@ public:
     * It should be noted that when the Hook Thread runs prepareForCheckpoint,
     * either it will succeed in signalling the Comp Threads to suspend, or it
     * will wait indefinitely on the Comp Monitor (in the case of a JIT Dump) or
-    * it will abort after acquring the Comp Monitor if the Shutdown Thread
+    * it will abort after acquiring the Comp Monitor if the Shutdown Thread
     * already finished its task. Once the Hook Thread reaches the point where
     * it waits on the CR Monitor, the scenarioes above can occur.
     *

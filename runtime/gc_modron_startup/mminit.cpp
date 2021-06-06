@@ -3071,7 +3071,7 @@ hookReleaseVMAccess(J9HookInterface** hook, UDATA eventNum, void* voidEventData,
 static void
 hookAcquiringExclusiveInNative(J9HookInterface** hook, UDATA eventNum, void* voidEventData, void* userData)
 {
-	J9VMAcquringExclusiveInNativeEvent* eventData = (J9VMAcquringExclusiveInNativeEvent*)voidEventData;
+	J9VMAcquiringExclusiveInNativeEvent* eventData = (J9VMAcquiringExclusiveInNativeEvent*)voidEventData;
 
 	J9VMThread *targetThread = eventData->targetThread;
 	MM_EnvironmentStandard *env = MM_EnvironmentStandard::getEnvironment(targetThread->omrVMThread);

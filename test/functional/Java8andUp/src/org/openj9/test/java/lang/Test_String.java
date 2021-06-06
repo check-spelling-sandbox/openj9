@@ -1402,7 +1402,7 @@ public class Test_String {
 	 */
 	@Test
 	public void test_localeLanguageReferenceEquality() {
-		AssertJUnit.assertTrue("String constructor failed to create new string for Local langauge testing",
+		AssertJUnit.assertTrue("String constructor failed to create new string for Local language testing",
 				new String("en") != "en");
 		AssertJUnit.assertTrue("Non-interned Locale language string from Locale.US", Locale.US.getLanguage() == "en");
 		AssertJUnit.assertTrue("Non-interned Locale language string from Locale.<init>(String)",

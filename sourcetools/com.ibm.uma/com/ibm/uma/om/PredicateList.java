@@ -62,7 +62,7 @@ public class PredicateList {
 		boolean includeIfPresent = false;
 		for ( int i=predicates.size()-1; i>=0; i-- ) {
 			Predicate predicate = predicates.elementAt(i);
-			if ( evalutePredicate( predicate.getPredicate() ) ) {
+			if ( evaluatePredicate( predicate.getPredicate() ) ) {
 				switch ( predicate.getType() ) {
 				case Predicate.EXCLUDE_IF: {
 					cachedResult = false;
@@ -97,7 +97,7 @@ public class PredicateList {
 		return UMA.getUma().getSinglePredicateEvaluator().evaluateSinglePredicate(predicate);
 	}
 	
-	boolean evalutePredicate(String predicate) throws UMAException {
+	boolean evaluatePredicate(String predicate) throws UMAException {
 		String[] preds = predicate.split("\\s");
 		boolean result = true;
 		boolean predicateFound = false;

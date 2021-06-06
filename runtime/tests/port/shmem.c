@@ -424,7 +424,7 @@ j9shmem_test4_child(J9PortLibrary *portLibrary)
 									"- but it should have been there!\n");
 		goto exit;
 	} else if(rc == J9PORT_ERROR_SHMEM_OPFAILED || rc == J9PORT_ERROR_SHMEM_WAIT_FOR_CREATION_MUTEX_TIMEDOUT) {
-		outputErrorMessage(PORTTEST_ERROR_ARGS, "open child shareded memory fails:\n");
+		outputErrorMessage(PORTTEST_ERROR_ARGS, "open child shared memory fails:\n");
 		goto exit;
 	}
 

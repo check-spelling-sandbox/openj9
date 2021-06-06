@@ -601,7 +601,7 @@ public class TestOperatingSystemMXBean {
 	// -----------------------------------------------------------------
 
 	@Test
-	public void testAvailableProcessorsNotications() {
+	public void testAvailableProcessorsNotifications() {
 		// Register a listener
 		NotificationFilterSupport filter = new NotificationFilterSupport();
 		filter.enableType(AvailableProcessorsNotificationInfo.AVAILABLE_PROCESSORS_CHANGE);
@@ -649,7 +649,7 @@ public class TestOperatingSystemMXBean {
 	}
 
 	@Test
-	public void testProcessingCapacityNotications() {
+	public void testProcessingCapacityNotifications() {
 		// Register a listener
 		NotificationFilterSupport filter = new NotificationFilterSupport();
 		filter.enableType(ProcessingCapacityNotificationInfo.PROCESSING_CAPACITY_CHANGE);

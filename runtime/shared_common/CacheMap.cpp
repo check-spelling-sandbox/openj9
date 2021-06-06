@@ -675,7 +675,7 @@ error:
 			ccToUse->protectPartiallyFilledPages(currentThread);
 			/* Two reasons for moving the code to check for full cache from SH_CompositeCacheImpl::startup()
 			 * to SH_CacheMap::startup():
-			 * 	- While marking cache full, last unsused pages are also protected, which ideally should be done
+			 * 	- While marking cache full, last unused pages are also protected, which ideally should be done
 			 * 	  after protecting pages belonging to ROMClass area and metadata area.
 			 * 	- Secondly, when setting cache full flags, the code expects to be holding the write mutex, which is not done in
 			 * 	  SH_CompositeCacheImpl::startup().

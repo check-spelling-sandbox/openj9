@@ -1945,7 +1945,7 @@ TR_BlockFrequencyInfo::getOriginalBlockNumberToGetRawCount(TR_ByteCodeInfo &bci,
       }
    return -1;
    }
-/**   \brief Using stored static blocl frequency counters creates a node that calculates the raw count of block in which passed node belongs to
+/**   \brief Using stored static block frequency counters creates a node that calculates the raw count of block in which passed node belongs to
  *    \param comp Current compilation object
  *    \return root A node that loads/adds/subtracts the static block counter to calculate raw frequency of corresponding block
  */

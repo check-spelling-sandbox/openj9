@@ -741,7 +741,7 @@ int32_t TR_JProfilingBlock::processCFGForCounting(BlockParents &parent, TR::Bloc
          }
       }
 
-   // if we chose to count the start or end block, we count the first real blcok of the method instead
+   // if we chose to count the start or end block, we count the first real block of the method instead
    if (countedBlocks.contains(cfg->getStart()->asBlock()))
       {
       countedBlocks.add(comp()->getStartBlock());

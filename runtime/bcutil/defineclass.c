@@ -322,7 +322,7 @@ internalLoadROMClass(J9VMThread * vmThread, J9LoadROMClassData *loadData, J9Tran
 	Trc_BCU_internalLoadROMClass_Entry(vmThread, loadData, loadData->classDataLength);
 
 #if 0
-	/*This block of code is disabled until CMVC 155494 is resolved. Otherwise it will block cbuilds*/
+	/*This block of code is disabled until CMVC 155494 is resolved. Otherwise it will block builds*/
 	Trc_Assert_BCU_mustHaveVMAccess(vmThread);
 #endif
 

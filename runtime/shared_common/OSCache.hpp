@@ -209,7 +209,7 @@ public:
 	
 	static IDATA getCachePathName(J9PortLibrary* portLibrary, const char* cacheDirName, char* buffer, UDATA bufferSize, const char* cacheNameWithVGen);
 	
-	static void getCacheNameAndLayerFromUnqiueID(J9JavaVM* vm, const char* uniqueID, UDATA idLen, char* nameBuf, UDATA nameBuffLen, I_8* layer);
+	static void getCacheNameAndLayerFromUniqueID(J9JavaVM* vm, const char* uniqueID, UDATA idLen, char* nameBuf, UDATA nameBuffLen, I_8* layer);
 	
 	static UDATA generateCacheUniqueID(J9VMThread* currentThread, const char* cacheDir, const char* cacheName, I_8 layer, U_32 cacheType, char* buf, UDATA bufLen, U_64 createtime, UDATA metadataBytes, UDATA classesBytes, UDATA lineNumTabBytes, UDATA varTabBytes);
 	

@@ -594,7 +594,7 @@ SH_CacheMap::startup(J9VMThread* currentThread, J9SharedClassPreinitConfig* pico
 							Trc_SHR_Assert_True(idLen < sizeof(cacheUniqueID));
 							memcpy(cacheUniqueID, cacheUniqueIDPtr, idLen);
 							cacheUniqueID[idLen] = 0;
-							SH_OSCache::getCacheNameAndLayerFromUnqiueID(vm, cacheUniqueID, idLen, cacheNameBuf, USER_SPECIFIED_CACHE_NAME_MAXLEN, &preLayer);
+							SH_OSCache::getCacheNameAndLayerFromUniqueID(vm, cacheUniqueID, idLen, cacheNameBuf, USER_SPECIFIED_CACHE_NAME_MAXLEN, &preLayer);
 							cacheName = cacheNameBuf;
 						} else {
 							/**
@@ -5962,7 +5962,7 @@ SH_CacheMap::startupLowerLayerForStats(J9VMThread* currentThread, const char* ct
 			Trc_SHR_Assert_True(idLen < sizeof(cacheUniqueID));
 			memcpy(cacheUniqueID, cacheUniqueIDPtr, idLen);
 			cacheUniqueID[idLen] = '\0';
-			SH_OSCache::getCacheNameAndLayerFromUnqiueID(vm, cacheUniqueID, idLen, cacheNameBuf, USER_SPECIFIED_CACHE_NAME_MAXLEN, &layer);
+			SH_OSCache::getCacheNameAndLayerFromUniqueID(vm, cacheUniqueID, idLen, cacheNameBuf, USER_SPECIFIED_CACHE_NAME_MAXLEN, &layer);
 			cacheName = cacheNameBuf;
 			SH_CompositeCacheImpl* ccNext = SH_CompositeCacheImpl::newInstance(vm, _sharedClassConfig, allocPtr, cacheName, cacheType, true, layer);
 			ccNext->setNext(NULL);

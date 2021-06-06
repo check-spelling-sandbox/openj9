@@ -1414,7 +1414,7 @@ SH_OSCache::generateCacheUniqueID(J9VMThread* currentThread, const char* cacheDi
  * @param[out] layer  The layer number in the cache unique ID
  */
 void
-SH_OSCache::getCacheNameAndLayerFromUnqiueID(J9JavaVM* vm, const char* uniqueID, UDATA idLen, char* nameBuf, UDATA nameBuffLen, I_8* layer)
+SH_OSCache::getCacheNameAndLayerFromUniqueID(J9JavaVM* vm, const char* uniqueID, UDATA idLen, char* nameBuf, UDATA nameBuffLen, I_8* layer)
 {
 	PORT_ACCESS_FROM_JAVAVM(vm);
 	char versionStr[J9SH_VERSION_STRING_LEN +3];

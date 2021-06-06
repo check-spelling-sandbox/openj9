@@ -2955,7 +2955,7 @@ TraceException=Trc_SHR_CM_getPrereqCache_Failed_To_Get_Manager Obsolete Overhead
 TraceException=Trc_SHR_CM_getPrereqCache_Failed_To_Store_Prereq_UniqueID Obsolete Overhead=1 Level=1 Template="CM::getPrereqCache(): Failed to store the prerequisite cache unique ID %.*s"
 TraceException=Trc_SHR_CC_verifyCacheUniqueID_Failed Overhead=1 Level=1 Template="CC verify Cache Unique ID Failed. The Expected ID is %s, the current ID is %s"
 TraceExit-Exception=Trc_SHR_CM_startup_Exit8 Overhead=1 Level=1 Template="CM startup: Cache Unique ID Verification Failed"
-TraceExit-Exception=Trc_SHR_CM_startup_Exit9 Overhead=1 Level=1 Template="CM startup: Failed to get prerequisite unqiue cache ID, error is %d"
+TraceExit-Exception=Trc_SHR_CM_startup_Exit9 Overhead=1 Level=1 Template="CM startup: Failed to get prerequisite unique cache ID, error is %d"
 TraceExit-Exception=Trc_SHR_CM_startup_Exit10 Overhead=1 Level=1 Template="CM startup: Failed to allocate buffer for SH_CompositeCacheImpl"
 TraceExit-Exception=Trc_SHR_CM_startup_Exit11 Overhead=1 Level=1 Template="CM startup: Failed to start up the shared cache"
 TraceExit-Exception=Trc_SHR_CM_startup_Exit12 Overhead=1 Level=1 Template="CM startup: Failed to allocate memory for the cache descriptor"

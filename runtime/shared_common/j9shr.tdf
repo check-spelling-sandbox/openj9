@@ -194,7 +194,7 @@ TraceEvent=Trc_SHR_RMI_locateROMClass_TestItem Overhead=1 Level=4 Template="RMI 
 TraceEvent=Trc_SHR_RMI_locateROMClass_ExceptionMultipleOrphanObsolete Obsolete Overhead=1 Level=4 Template="RMI locateROMClass: ERROR: Found more than one orphan ROMClass for %.*s"
 TraceEvent=Trc_SHR_RMI_locateROMClass_FoundOrphanObsolete Obsolete Overhead=1 Level=4 Template="RMI locateROMClass: Found an orphan ROMClass at 0x%p"
 TraceExit=Trc_SHR_RMI_locateROMClass_ExitTimestampMismatch Overhead=1 Level=3 Template="RMI locateROMClass: Classpath entry timestamps mismatch: compared %lld to %lld"
-TraceEvent=Trc_SHR_RMI_locateROMClass_ElimatedWalkNext Overhead=1 Level=4 Template="RMI locateROMClass: Classpath entries did not match. Match failed. Try next."
+TraceEvent=Trc_SHR_RMI_locateROMClass_EliminatedWalkNext Overhead=1 Level=4 Template="RMI locateROMClass: Classpath entries did not match. Match failed. Try next."
 TraceEvent=Trc_SHR_RMI_locateROMClass_FoundCacheClasspath Overhead=1 Level=4 Template="RMI locateROMClass: Classpath from ROMClass is same pointer as compareTo. Result=0x%p. FoundAtIndex=%d. StaleCPEI=0x%p."
 TraceEvent=Trc_SHR_RMI_locateROMClass_ValidateClasspath Overhead=1 Level=4 Template="RMI locateROMClass: Potential ROMClass match found. Validate classpaths."
 TraceEvent=Trc_SHR_RMI_locateROMClass_ValidateSucceeded Overhead=1 Level=4 Template="RMI locateROMClass: Classpath validation succeeded. Result=0x%p. FoundAtIndex=%d. StaleCPEI=0x%p."

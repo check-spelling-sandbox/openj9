@@ -443,7 +443,7 @@ SH_ROMClassManagerImpl::locateROMClass(J9VMThread* currentThread, const char* pa
 				/* If we have a cachedROMClass (ie. the exact ROMClass we want is already in the cache) we can use that to eliminate non-matches */
 				if ((cachedROMClass != NULL) && (cachedROMClass != (J9ROMClass*)_cache->getAddressFromJ9ShrOffset(&(wrapper->romClassOffset)))) {
 					/* Only interested in an exact pointer-match, keep searching */
-					Trc_SHR_RMI_locateROMClass_ElimatedWalkNext(currentThread);
+					Trc_SHR_RMI_locateROMClass_EliminatedWalkNext(currentThread);
 					goto _continueNext;
 				}
 
@@ -466,7 +466,7 @@ SH_ROMClassManagerImpl::locateROMClass(J9VMThread* currentThread, const char* pa
 						}
 					} else {
 						/* We haven't found the right ROMClass, keep searching */
-						Trc_SHR_RMI_locateROMClass_ElimatedWalkNext(currentThread);
+						Trc_SHR_RMI_locateROMClass_EliminatedWalkNext(currentThread);
 						goto _continueNext;
 					}
 					/* We have found correct ROMClass for this CPEI - proceed to match classpath */

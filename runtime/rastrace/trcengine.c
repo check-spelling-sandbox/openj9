@@ -127,7 +127,7 @@ const struct traceOption TRACE_OPTIONS[] =
  */
 static struct RasTriggerAction j9vmTriggerActions[] =
 {
-	{ "jstacktrace", AFTER_TRACEPOINT, doTriggerActionJstacktrace},
+	{ "jstacktrace", AFTER_TRACEPOINT, doTriggerActionJStacktrace},
 	{ "javadump", AFTER_TRACEPOINT, doTriggerActionJavadump},
 	{ "coredump", AFTER_TRACEPOINT, doTriggerActionCoredump},
 	{ "sysdump", AFTER_TRACEPOINT, doTriggerActionCoredump},

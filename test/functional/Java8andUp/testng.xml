@@ -90,9 +90,9 @@
 			<class name="org.openj9.test.attachAPI.TestJps"/>
 		</classes>
 	</test>
-	<test name="TestJstack">
+	<test name="TestJStack">
 		<classes>
-			<class name="org.openj9.test.attachAPI.TestJstack"/>
+			<class name="org.openj9.test.attachAPI.TestJStack"/>
 		</classes>
 	</test>
 	

@@ -45,7 +45,7 @@ import org.testng.annotations.BeforeSuite;
 import org.testng.annotations.Test;
 
 @Test(groups = { "level.extended" })
-public class TestJstack extends AttachApiTest {
+public class TestJStack extends AttachApiTest {
 
 	private static final String JSTACK_COMMAND = "jstack"; //$NON-NLS-1$
 	Object syncObject = new Object();

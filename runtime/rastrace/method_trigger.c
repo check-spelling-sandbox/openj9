@@ -879,7 +879,7 @@ err:
  * returns     - void
  *************************************************************************/
 void
-doTriggerActionJstacktrace(OMR_VMThread *omrThr)
+doTriggerActionJStacktrace(OMR_VMThread *omrThr)
 {
 	J9VMThread *thr = (J9VMThread *)omrThr->_language_vmthread;
 	J9JavaVM *vm = thr->javaVM;

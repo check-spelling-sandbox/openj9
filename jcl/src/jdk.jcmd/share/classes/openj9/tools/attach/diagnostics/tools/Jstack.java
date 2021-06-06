@@ -41,7 +41,7 @@ import openj9.tools.attach.diagnostics.attacher.AttacherDiagnosticsProvider;
  * A tool for listing thread information about another Java process
  *
  */
-public class Jstack {
+public class JStack {
 
 	private static List<String> vmids;
 	private static boolean printProperties;

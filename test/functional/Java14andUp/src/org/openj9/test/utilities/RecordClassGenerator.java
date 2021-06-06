@@ -29,7 +29,7 @@ import org.openj9.test.util.VersionCheck;
 
     static final int classVersion = VersionCheck.classFile();
 
-    /* Generata a valid record with optional attributes */
+    /* Generate a valid record with optional attributes */
     public static byte[] generateRecordAttributes(String className, String rcName, String rcType, String rcSignature) {
         ClassWriter cw = new ClassWriter(ClassWriter.COMPUTE_FRAMES);
         cw.visit(classVersion, ACC_FINAL | ACC_SUPER, className, null, "java/lang/Record", null);

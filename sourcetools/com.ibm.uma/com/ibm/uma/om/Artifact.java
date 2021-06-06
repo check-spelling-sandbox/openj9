@@ -494,7 +494,7 @@ public class Artifact extends PredicateList {
 	
 	public Vector<Library> getLibraries() throws UMAException {
 		if ( type == TYPE_BUNDLE ) {
-			//TODO cache this result instead calculating it everytime
+			//TODO cache this result instead calculating it every time
 			Vector<Library> bundleLibraries = new Vector<Library>(libraries);
 			Vector<Artifact> bundleArtifacts = getAllArtifactsInThisBundle();
 			for ( Artifact artifact : bundleArtifacts ) {

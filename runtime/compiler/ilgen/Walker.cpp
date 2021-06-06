@@ -1678,7 +1678,7 @@ TR_J9ByteCodeIlGenerator::stashArgumentsForOSR(TR_J9ByteCode byteCode)
    // When the side table entry is unresolved, this object is unknown, thus, the JIT
    // doesn't know what method to call at compile time. To represent the unresolved
    // case, the JIT uses MethodHandle.linkToStatic to represent the call.
-   // In addtion to the appendixObject, the MemberName object is also needed, thus
+   // In addition to the appendixObject, the MemberName object is also needed, thus
    // the call requires two more arguments that what's on the stack. Whether the
    // appendix object is null or not, we push the it to stack and rely on the
    // VM linkToStatic implementation to check if the appendix object is NULL before

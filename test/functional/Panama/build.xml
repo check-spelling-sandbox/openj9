@@ -24,7 +24,7 @@
 <project name="Test Example" default="build" basedir=".">
 	<taskdef resource='net/sf/antcontrib/antlib.xml'/>
 	<description>
-		Paname project
+		Panama project
 	</description>
 
 	<!-- set global properties for this build -->

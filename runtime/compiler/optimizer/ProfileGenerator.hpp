@@ -58,7 +58,7 @@ class TR_ProfileGenerator : public TR::Optimization
    TR::CFG     *_cfg;
    TR::TreeTop *_firstOriginalTree;
    TR::TreeTop *_lastOriginalTree;
-   static bool      _dynamnicProfilingCount;
+   static bool      _dynamicProfilingCount;
    TR::TreeTop *_asyncTree;
    };
 

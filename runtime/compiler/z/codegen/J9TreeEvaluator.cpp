@@ -7793,7 +7793,7 @@ void genInstanceOfDynamicCacheAndHelperCall(TR::Node *node, TR::CodeGenerator *c
 
       dynamicCacheReg = srm->findOrCreateScratchRegister();
 
-      // Start of the Dyanamic Cache Test
+      // Start of the Dynamic Cache Test
       generateS390LabelInstruction(cg, TR::InstOpCode::label, node, dynamicCacheTestLabel);
       generateRILInstruction(cg, TR::InstOpCode::LARL, node, dynamicCacheReg, dynamicCacheSnippet, 0);
 

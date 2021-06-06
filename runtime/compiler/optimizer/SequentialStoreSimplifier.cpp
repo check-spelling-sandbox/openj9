@@ -3875,7 +3875,7 @@ static TR::TreeTop * reduceArrayLoad(TR_ArrayShiftTreeCollection * storeTrees, T
          }
       else if (numByteStore >= 4)
          {
-         // between 4 and 7 bytes go into here, and we will transfrom the first 4 bytes
+         // between 4 and 7 bytes go into here, and we will transform the first 4 bytes
          newDataType = TR::Int32;
          numValidTrees = 4 / storeTrees->getTree(0)->getRootNode()->getOpCode().getSize();
          storeOpCode = TR::istorei;

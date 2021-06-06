@@ -76,7 +76,7 @@ import org.objectweb.asm.MethodVisitor;
 
 public class ASMTransformer {
 
-	public static byte[] trasnform_injectNPELogic( Class classToTransform ) {
+	public static byte[] transform_injectNPELogic( Class classToTransform ) {
 		
 		ClassWriter cw = new ClassWriter( ClassWriter.COMPUTE_FRAMES );
 		
@@ -151,7 +151,7 @@ public class ASMTransformer {
 		return cw.toByteArray();
 	}
 
-	public static byte[] trasnform_injectNewIfBlock( Class classToTransform ) {
+	public static byte[] transform_injectNewIfBlock( Class classToTransform ) {
 
 		ClassWriter cw = new ClassWriter( ClassWriter.COMPUTE_FRAMES );
 		
@@ -253,7 +253,7 @@ public class ASMTransformer {
 		return cw.toByteArray();
 	}
 	
-	public static byte[] trasnform_injectCatchAndThrowNewAIOBE( Class classToTransform ) {
+	public static byte[] transform_injectCatchAndThrowNewAIOBE( Class classToTransform ) {
 		
 		ClassWriter cw = new ClassWriter( ClassWriter.COMPUTE_FRAMES );
 		
@@ -364,7 +364,7 @@ public class ASMTransformer {
 		
 	}
 	
-	public static byte[] trasnform_injectCatchAndThrowNewAIOBE_catchAIOBEAndThrowNewAE( Class classToTransform ) {
+	public static byte[] transform_injectCatchAndThrowNewAIOBE_catchAIOBEAndThrowNewAE( Class classToTransform ) {
 		
 		ClassWriter cw = new ClassWriter( ClassWriter.COMPUTE_FRAMES );
 		
@@ -498,7 +498,7 @@ public class ASMTransformer {
 		return cw.toByteArray();
 	}
 	
-	public static byte[] trasnform_inject_Catch2CatchJump( Class classToTransform ) {
+	public static byte[] transform_inject_Catch2CatchJump( Class classToTransform ) {
 		
 		ClassWriter cw = new ClassWriter( ClassWriter.COMPUTE_FRAMES );
 		
@@ -606,7 +606,7 @@ public class ASMTransformer {
 		
 	}
 	
-	public static byte[] trasnform_inject_CatchWithSelfGOTO( Class classToTransform ) {
+	public static byte[] transform_inject_CatchWithSelfGOTO( Class classToTransform ) {
 		
 		ClassWriter cw = new ClassWriter( ClassWriter.COMPUTE_FRAMES );
 		
@@ -722,7 +722,7 @@ public class ASMTransformer {
 		return cw.toByteArray();
 	}
 	
-	public static byte[] trasnform_inject_Catch2CatchJump_NegativeTest( Class classToTransform ) {
+	public static byte[] transform_inject_Catch2CatchJump_NegativeTest( Class classToTransform ) {
 		
 		ClassWriter cw = new ClassWriter( ClassWriter.COMPUTE_FRAMES | ClassWriter.COMPUTE_MAXS );
 		
@@ -829,7 +829,7 @@ public class ASMTransformer {
 		return cw.toByteArray();
 	}
 	
-	public static byte[] trasnform_inject_ParallelCatchJump( Class classToTransform ) {
+	public static byte[] transform_inject_ParallelCatchJump( Class classToTransform ) {
 		
 		ClassWriter cw = new ClassWriter( ClassWriter.COMPUTE_FRAMES );
 		
@@ -966,7 +966,7 @@ public class ASMTransformer {
 		
 	}
 	
-	public static byte[] trasnform_inject_Loop2Loop_Jump( Class classToTransform ) {
+	public static byte[] transform_inject_Loop2Loop_Jump( Class classToTransform ) {
 		
 		ClassWriter cw = new ClassWriter( ClassWriter.COMPUTE_FRAMES );
 		
@@ -1121,7 +1121,7 @@ public class ASMTransformer {
 		}
 	}
 	
-	public static byte[] trasnform_inject_stackValueUsage_After_Branch_Using_MethodCall ( Class classToTransform ) {
+	public static byte[] transform_inject_stackValueUsage_After_Branch_Using_MethodCall ( Class classToTransform ) {
 		
 		ClassWriter cw = new ClassWriter( ClassWriter.COMPUTE_FRAMES );
 		
@@ -1232,7 +1232,7 @@ public class ASMTransformer {
 		return cw.toByteArray();
 	}
 
-	public static byte[] trasnform_inject_stackValueUsage_After_Branch_Using_IfCompare ( Class classToTransform ) {
+	public static byte[] transform_inject_stackValueUsage_After_Branch_Using_IfCompare ( Class classToTransform ) {
 		
 		ClassWriter cw = new ClassWriter( ClassWriter.COMPUTE_FRAMES );
 		
@@ -1322,7 +1322,7 @@ public class ASMTransformer {
 		return cw.toByteArray();
 	}
 	
-	public static byte[] trasnform_inject_unverifiable_dead_code ( Class classToTransform ) {
+	public static byte[] transform_inject_unverifiable_dead_code ( Class classToTransform ) {
 		
 		ClassWriter cw = new ClassWriter( ClassWriter.COMPUTE_FRAMES );
 		
@@ -1419,7 +1419,7 @@ public class ASMTransformer {
 		return cw.toByteArray();
 	}
 	
-	public static byte[] trasnform_inject_unclean_return ( Class classToTransform ) {
+	public static byte[] transform_inject_unclean_return ( Class classToTransform ) {
 		
 		ClassWriter cw = new ClassWriter( ClassWriter.COMPUTE_FRAMES );
 		

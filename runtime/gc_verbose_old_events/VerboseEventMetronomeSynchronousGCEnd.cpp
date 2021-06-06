@@ -102,7 +102,7 @@ MM_VerboseEventMetronomeSynchronousGCEnd::formattedOutput(MM_VerboseOutputAgent 
 	U_64 timeSinceLastEvent;
 	
 	/* Get the timestamp of any of previous heartbeat or trigger event, needed to calculate intervalms.
-	 * Intervalms reported will be between that previous event and the mayching syncGC start event (not end event!) */
+	 * Intervalms reported will be between that previous event and the matching syncGC start event (not end event!) */
 	if (manager->getLastMetronomeTime()) {
 		/* SyncGC due to OOM is preceded by a trigger start event, so that lastMetronomeTime is for sure non 0 */
 		timeSinceLastEvent = omrtime_hires_delta(manager->getLastMetronomeTime(), _startTime, J9PORT_TIME_DELTA_IN_MICROSECONDS);

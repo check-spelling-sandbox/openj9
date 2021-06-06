@@ -159,7 +159,7 @@ public class MethodHandleAPI_dropArgumentsToMatch {
 	 * @throws IllegalArgumentException
 	 */
 	@Test(groups = { "level.extended" }, expectedExceptions = IllegalArgumentException.class)
-	public static void test_dropArgumentsToMatch_non_mactching_location() throws Throwable {
+	public static void test_dropArgumentsToMatch_non_matching_location() throws Throwable {
 		MethodHandle h1 = MethodHandles.lookup().findVirtual(String.class, "concat", MethodType.methodType(String.class, String.class));
 		MethodType typeList = h1.type().insertParameterTypes(1, int.class, char.class);
 

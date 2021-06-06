@@ -751,7 +751,7 @@ public class Caa {
                     /* If we are not able to backchain any farther or we have encountered
                      * a linkage stack, assume that the input DSA address is bad. */
                     if (callers_dsaptr == 0 || callers_dsaptr == F1SA) {
-                        log.finer("cannot backchain futher because " + (callers_dsaptr == 0 ? "zero" : "linkage stack") + " found");
+                        log.finer("cannot backchain further because " + (callers_dsaptr == 0 ? "zero" : "linkage stack") + " found");
                         return ERROR;
                     }
                     /* If we were able to backchain to the dummy DSA, the input DSA address

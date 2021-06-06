@@ -57,7 +57,7 @@ protected:
 	MM_RealtimeGC *_realtimeGC;
 
 private:
-	bool _doubleBarrierActive; /**< Global indicator that the double barrier is active. New threads will be set to double barrier mode if this falg is true. */
+	bool _doubleBarrierActive; /**< Global indicator that the double barrier is active. New threads will be set to double barrier mode if this flag is true. */
 
 /* Methods */
 public:

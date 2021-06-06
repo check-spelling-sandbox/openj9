@@ -184,7 +184,7 @@ TR_X86RelocationTarget::patchNonVolatileFieldMemoryFence(J9ROMFieldShape* resolv
    //Determine if a volatility check is needed
    U_32 cpIndexDoubleWord = *(U_32*)(snippetStartAddress+1);
 
-   //The volatility check falg is at bit 20 of the 32 cpIndex
+   //The volatility check flag is at bit 20 of the 32 cpIndex
    if ( !(cpIndexDoubleWord & VolCheckMask))
       return;
 

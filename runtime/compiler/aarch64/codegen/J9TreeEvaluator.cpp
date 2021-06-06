@@ -1360,7 +1360,7 @@ generateLockwordAddressLookup(TR::CodeGenerator *cg, TR::Node *node, TR::Registe
                                        TR_ARM64ScratchRegisterManager *srm, TR::LabelSymbol *callLabel)
    {
    /*
-    * Generating following intruction sequence.
+    * Generating following instruction sequence.
     *
     *    ldrimmw  objectClassReg, [objReg, #0] ; throws an implicit NPE
     *    andimmw  objectClassReg, 0xffffff00
@@ -1541,7 +1541,7 @@ J9::ARM64::TreeEvaluator::monexitEvaluator(TR::Node *node, TR::CodeGenerator *cg
    op = fej9->generateCompressedLockWord() ? TR::InstOpCode::ldrimmw : TR::InstOpCode::ldrimmx;
    auto faultingInstruction = generateTrg1MemInstruction(cg, op, node, dataReg, TR::MemoryReference::createWithDisplacement(cg, addrReg, 0));
 
-   // InstructonDelegate::setupImplicitNullPointerException checks if the memory reference uses nullcheck reference register.
+   // InstructionDelegate::setupImplicitNullPointerException checks if the memory reference uses nullcheck reference register.
    // In this case, nullcheck reference register is objReg, but the memory reference does not use it,
    // thus we need to explicitly set implicit exception point here.
    if (cg->getHasResumableTrapHandler() && cg->getCurrentEvaluationTreeTop()->getNode()->getOpCode().isNullCheck() && (!isImplicitNullChkIsDoneAtLoadJ9Class))
@@ -3630,7 +3630,7 @@ J9::ARM64::TreeEvaluator::monentEvaluator(TR::Node *node, TR::CodeGenerator *cg)
       srm->reclaimScratchRegister(tempReg);
       }
 
-   // InstructonDelegate::setupImplicitNullPointerException checks if the memory reference uses nullcheck reference register.
+   // InstructionDelegate::setupImplicitNullPointerException checks if the memory reference uses nullcheck reference register.
    // In this case, nullcheck reference register is objReg, but the memory reference does not use it,
    // thus we need to explicitly set implicit exception point here.
    if (cg->getHasResumableTrapHandler() && cg->getCurrentEvaluationTreeTop()->getNode()->getOpCode().isNullCheck() && (!isImplicitNullChkIsDoneAtLoadJ9Class))

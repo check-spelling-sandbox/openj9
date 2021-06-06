@@ -4493,11 +4493,11 @@ J9::Z::TreeEvaluator::arraylengthEvaluator(TR::Node *node, TR::CodeGenerator *cg
       // Load from discontiguousArraySize if contiguousArraySize is zero
       generateRXInstruction(cg, TR::InstOpCode::L, node, lengthReg, discontiguousArraySizeMR);
 
-      TR::Instruction* returnInsturction = generateS390BranchInstruction(cg, TR::InstOpCode::BRC, TR::InstOpCode::COND_BRC, node, oolReturnLabel);
+      TR::Instruction* returnInstruction = generateS390BranchInstruction(cg, TR::InstOpCode::BRC, TR::InstOpCode::COND_BRC, node, oolReturnLabel);
 
       if (cg->getDebug())
          {
-         cg->getDebug()->addInstructionComment(returnInsturction, "End of OOL arraylength sequence");
+         cg->getDebug()->addInstructionComment(returnInstruction, "End of OOL arraylength sequence");
          }
 
       outlinedDiscontigPath->swapInstructionListsWithCompilation();

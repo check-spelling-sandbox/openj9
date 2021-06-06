@@ -247,7 +247,7 @@ public class Test_StrictMath_Fma
         b = 0.1428571428571427;
         c = 0.0000000000000000;
         r = StrictMath.fma(a, b, c);
-        //result with higher presicion = 0.02040816326530609183673469387756
+        //result with higher precision = 0.02040816326530609183673469387756
         expected = 0.020408163265306093;
         AssertJUnit.assertEquals(r, expected);
 
@@ -540,7 +540,7 @@ public class Test_StrictMath_Fma
         b = 0.1428571428571427f;
         c = 0.0000000000000000f; 
         r = StrictMath.fma(a, b, c);
-        //result with higher presicion = 0.02040816326530609183673469387756
+        //result with higher precision = 0.02040816326530609183673469387756
         expected = 0.020408165f;
         AssertJUnit.assertEquals(r, expected);
 

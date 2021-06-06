@@ -30,7 +30,7 @@
 
 #ifdef SPARC64
 /* Only compile this in for 64bit builds, because otherwise the object file
-   will have inproper architecture due to used instructions.  */
+   will have improper architecture due to used instructions.  */
 
 #define STACKFRAME 176		/* Minimum stack framesize for SPARC 64-bit */
 #define STACK_BIAS 2047

@@ -695,7 +695,7 @@ classLocationHashEqualFn(void *leftKey, void *rightKey, void *userData)
  * package entry of the generated class.
  * @param *vmThread J9VMThread instance
  * @param *classLoader Classloader for the class
- * @param *existingPackageEntry Package entry for the generated class i.e. ROM classs
+ * @param *existingPackageEntry Package entry for the generated class i.e. ROM class
  * @param entryIndex classpath index of the non-generated class
  * @param locationType location type of non-generated class
  * @return void

@@ -274,7 +274,7 @@ public class LookupAPITests_Find {
 	 * @throws Throwable
 	 */
 	@Test(groups = { "level.extended" })
-	public void test_GetterSetter_Public_SamePackage_InnerClasse_Nested_Level12() throws Throwable {
+	public void test_GetterSetter_Public_SamePackage_InnerClass_Nested_Level12() throws Throwable {
 		SamePackageExample spe = new SamePackageExample();
 		SamePackageInnerClass spe_inner1 = spe.new SamePackageInnerClass();
 		

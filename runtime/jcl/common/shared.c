@@ -1988,7 +1988,7 @@ Java_com_ibm_oti_shared_SharedClassURLClasspathHelperImpl_notifyClasspathChange2
  * Notify the open state to all the jar/zip files on the URL classpath to force a timestamp check once.
  * @param [in] env              The JNI environment
  * @param [in] thisObj          The object on which the method was invoked
- * @param [in] helperID         The ID of the classs loader
+ * @param [in] helperID         The ID of the class loader
  * @param [in] classLoaderObj   The class loader object
  * @param [in] urlArrayObj      The object of the URL array
  * @param [in] urlIndex         The index of URL entry being created/updated

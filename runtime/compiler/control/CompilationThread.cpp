@@ -11698,7 +11698,7 @@ TR::CompilationInfo::storeAOTInSharedCache(
                 * TODO: We will always query the shared class cache to get full data for stored AOT compiled method
                 * that is combined meta data and code data. Even if compression of AOT bytes is disabled, we do not need
                 * to send two different buffers to store in cache and also as no one queries either code data / metadata for
-                * method, clean up the share classs cache API.
+                * method, clean up the share class cache API.
                 */
                const J9JITDataCacheHeader *aotMethodHeader = reinterpret_cast<const J9JITDataCacheHeader *>(dataStart);
                TR_AOTMethodHeader *aotMethodHeaderEntry = const_cast<TR_AOTMethodHeader *>(reinterpret_cast<const TR_AOTMethodHeader *>(aotMethodHeader + 1));

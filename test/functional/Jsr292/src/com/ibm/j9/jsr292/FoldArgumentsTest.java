@@ -163,7 +163,7 @@ public class FoldArgumentsTest {
 		foldMH = MethodHandles.foldArguments(mh1, mh2);
 		AssertJUnit.assertEquals(constByte1, (byte) foldMH.invokeExact(constByte1, constByte2, constByte3, constByte4, Byte.MIN_VALUE));
 
-		/* no paramters case */
+		/* no parameters case */
 		nextMT = methodType(byte.class);
 		combinerMT = methodType(void.class);
 		mh1 = MethodHandles.publicLookup().findStatic(FoldArgumentsTest.class, "minByteNoArgs", nextMT);
@@ -295,7 +295,7 @@ public class FoldArgumentsTest {
 		foldMH = MethodHandles.foldArguments(mh1, mh2);
 		AssertJUnit.assertEquals(constShort1, (short) foldMH.invokeExact(constShort1, constShort2, constShort3, constShort4, Short.MIN_VALUE));
 
-		/* no paramters case */
+		/* no parameters case */
 		nextMT = methodType(short.class);
 		combinerMT = methodType(void.class);
 		mh1 = MethodHandles.publicLookup().findStatic(FoldArgumentsTest.class, "minShortNoArgs", nextMT);
@@ -427,7 +427,7 @@ public class FoldArgumentsTest {
 		foldMH = MethodHandles.foldArguments(mh1, mh2);
 		AssertJUnit.assertEquals(constCharacter1, (char) foldMH.invokeExact(constCharacter1, constCharacter2, constCharacter3, constCharacter4, Character.MIN_VALUE));
 
-		/* no paramters case */
+		/* no parameters case */
 		nextMT = methodType(char.class);
 		combinerMT = methodType(void.class);
 		mh1 = MethodHandles.publicLookup().findStatic(FoldArgumentsTest.class, "minCharNoArgs", nextMT);
@@ -559,7 +559,7 @@ public class FoldArgumentsTest {
 		foldMH = MethodHandles.foldArguments(mh1, mh2);
 		AssertJUnit.assertEquals(constInteger1, (int) foldMH.invokeExact(constInteger1, constInteger2, constInteger3, constInteger4, Integer.MIN_VALUE));
 
-		/* no paramters case */
+		/* no parameters case */
 		nextMT = methodType(int.class);
 		combinerMT = methodType(void.class);
 		mh1 = MethodHandles.publicLookup().findStatic(FoldArgumentsTest.class, "minIntNoArgs", nextMT);
@@ -691,7 +691,7 @@ public class FoldArgumentsTest {
 		foldMH = MethodHandles.foldArguments(mh1, mh2);
 		AssertJUnit.assertEquals(constLong1, (long) foldMH.invokeExact(constLong1, constLong2, constLong3, constLong4, Long.MIN_VALUE));
 
-		/* no paramters case */
+		/* no parameters case */
 		nextMT = methodType(long.class);
 		combinerMT = methodType(void.class);
 		mh1 = MethodHandles.publicLookup().findStatic(FoldArgumentsTest.class, "minLongNoArgs", nextMT);
@@ -823,7 +823,7 @@ public class FoldArgumentsTest {
 		foldMH = MethodHandles.foldArguments(mh1, mh2);
 		AssertJUnit.assertEquals(constFloat1, (float) foldMH.invokeExact(constFloat1, constFloat2, constFloat3, constFloat4, Float.MIN_VALUE));
 
-		/* no paramters case */
+		/* no parameters case */
 		nextMT = methodType(float.class);
 		combinerMT = methodType(void.class);
 		mh1 = MethodHandles.publicLookup().findStatic(FoldArgumentsTest.class, "minFloatNoArgs", nextMT);
@@ -955,7 +955,7 @@ public class FoldArgumentsTest {
 		foldMH = MethodHandles.foldArguments(mh1, mh2);
 		AssertJUnit.assertEquals(constDouble1, (double) foldMH.invokeExact(constDouble1, constDouble2, constDouble3, constDouble4, Double.MIN_VALUE));
 
-		/* no paramters case */
+		/* no parameters case */
 		nextMT = methodType(double.class);
 		combinerMT = methodType(void.class);
 		mh1 = MethodHandles.publicLookup().findStatic(FoldArgumentsTest.class, "minDoubleNoArgs", nextMT);
@@ -1094,7 +1094,7 @@ public class FoldArgumentsTest {
 		foldMH = MethodHandles.foldArguments(mh1, mh2);
 		AssertJUnit.assertEquals(d1, (Double) foldMH.invokeExact(d1, d2, d3, d4, dMin));
 
-		/* no paramters case */
+		/* no parameters case */
 		nextMT = methodType(Double.class);
 		combinerMT = methodType(void.class);
 		mh1 = MethodHandles.publicLookup().findStatic(FoldArgumentsTest.class, "minDoubleObjNoArgs", nextMT);
@@ -1175,7 +1175,7 @@ public class FoldArgumentsTest {
 		foldMH = MethodHandles.foldArguments(mh1, mh2);
 		AssertJUnit.assertEquals(constBoolMin, (boolean) foldMH.invokeExact(constBoolMin, constBoolMax, constBoolMin));
 
-		/* no paramters case */
+		/* no parameters case */
 		nextMT = methodType(boolean.class);
 		combinerMT = methodType(void.class);
 		mh1 = MethodHandles.publicLookup().findStatic(FoldArgumentsTest.class, "minBooleanNoArgs", nextMT);

@@ -5925,10 +5925,10 @@ TR_PrexArgInfo* TR_PrexArgInfo::buildPrexArgInfoForMethodSymbol(TR::ResolvedMeth
    heuristicTrace(tracer, "PREX-CSI:  Populating parmInfo of current method %s\n", feMethod->signature(comp->trMemory()));
    int index = 0;
    /**
-    *  For non-static method, first slot of the paramters is populated with the class owning the method. Most of the time,
+    *  For non-static method, first slot of the parameters is populated with the class owning the method. Most of the time,
     *  we should be able to get the class pointer using class signature but in case of hidden classes which according to
     *  JEP 371, cannot be used directly by bytecode instructions in other classes also is not possible to refer to them in
-    *  paramters except for the method from the same hidden class. In any case, for non-static methods instead of making
+    *  parameters except for the method from the same hidden class. In any case, for non-static methods instead of making
     *  VM query to get the owning class, extract that information from resolvedMethod.
     */
    for (TR::ParameterSymbol *p = parms.getFirst(); p != NULL; index++, p = parms.getNext())

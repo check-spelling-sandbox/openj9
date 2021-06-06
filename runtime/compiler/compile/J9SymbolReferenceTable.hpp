@@ -539,7 +539,7 @@ class SymbolReferenceTable : public OMR::SymbolReferenceTableConnector
     * \param isPrivate specifies whether the shadow corresponds to a private field
     * \param isFinal specifies whether the shadow corresponds to a final field
     * \param name is the name of the corresponding field
-    * \param recognizedField sepcifies a recognized field the symbol corresponds to
+    * \param recognizedField specifies a recognized field the symbol corresponds to
     * \return TR::Symbol* the pointer to the new symbol
     */
    TR::Symbol * createShadowSymbol(TR::DataType type, bool isVolatile, bool isPrivate, bool isFinal, const char *name, TR::Symbol::RecognizedField recognizedField);

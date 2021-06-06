@@ -24,7 +24,7 @@ import java.io.*;
 import java.util.Iterator;
 import java.util.Vector;
 
-class CommandExecuter implements Runnable, Command {
+class CommandExecutor implements Runnable, Command {
 	private String _command;
 	private String _background;
 	private String _variableStdout;
@@ -32,7 +32,7 @@ class CommandExecuter implements Runnable, Command {
 	private String _return;
 	private Vector _args;
 	
-	CommandExecuter( String cmd, String background, String var1, String var2, String ret) {
+	CommandExecutor( String cmd, String background, String var1, String var2, String ret) {
 		_command = cmd;
 		_background = background;
 		_variableStdout = var1;

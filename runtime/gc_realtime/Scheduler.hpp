@@ -216,7 +216,7 @@ public:
 	void yieldFromGC(MM_EnvironmentRealtime *env, bool distanceChecked = false);
 	void waitForMutatorsToStop(MM_EnvironmentRealtime *env);
 	void startMutators(MM_EnvironmentRealtime *env);
-	bool continueGC(MM_EnvironmentRealtime *, GCReason reason, uintptr_t reasonParameter, OMR_VMThread *_vmThread, bool doRequestExclusiveVMAccess);  /* Non-blocking and typicallly called by an alarm handler.  Returns 1 if we did resume GC (non-recursive). */
+	bool continueGC(MM_EnvironmentRealtime *, GCReason reason, uintptr_t reasonParameter, OMR_VMThread *_vmThread, bool doRequestExclusiveVMAccess);  /* Non-blocking and typically called by an alarm handler.  Returns 1 if we did resume GC (non-recursive). */
 	void setGCPriority(MM_EnvironmentBase *env, uintptr_t priority); /* sets the priority for all gc threads */
 	void completeCurrentGCSynchronously(MM_EnvironmentRealtime *env = NULL);
 

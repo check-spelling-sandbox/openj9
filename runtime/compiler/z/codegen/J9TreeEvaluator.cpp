@@ -2630,7 +2630,7 @@ genTestIsSuper(TR::CodeGenerator * cg, TR::Node * node,
          // insert instanceof site snippet test
          // cmp objectClassReg, classObjectClazzSnippet
          // jne helper call
-         // cmp castclassreg, instanceOfClazzSnippet
+         // cmp castClassReg, instanceOfClazzSnippet
          // je true_label
          // jump to outlined label
          // test jitInstanceOf results

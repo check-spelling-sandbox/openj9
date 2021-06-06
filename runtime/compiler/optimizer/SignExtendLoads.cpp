@@ -472,7 +472,7 @@ bool TR_SignExtendLoads::ConvertSubTreeToLong(TR::Node *parent, TR::Node *node, 
          if (!node->cannotOverflow()) return false;
 
          // need to change nodes top-down to avoid sticking in
-         // superflous l2i nodes
+         // superfluous l2i nodes
          opCode = node->getOpCodeValue();
          if (changeNode)
             {

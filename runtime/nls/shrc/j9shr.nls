@@ -1363,7 +1363,7 @@ J9NLS_SHRC_CM_MARK_STALE=Change detected in %2$.*1$s...\n \
 J9NLS_SHRC_CM_MARK_STALE.sample_input_1=23
 J9NLS_SHRC_CM_MARK_STALE.sample_input_2=java/net/URLClassLoader
 J9NLS_SHRC_CM_MARK_STALE.sample_input_3=1003
-J9NLS_SHRC_CM_MARK_STALE.explanation=This message informs you that a change has been detetced in classpath 2$ and that, as a result, 3$ classes have been marked as "stale" in the Shared Classes cache.  This message is issued only if you have requested verbose Shared Classes messages with "-Xshareclasses:verbose".
+J9NLS_SHRC_CM_MARK_STALE.explanation=This message informs you that a change has been detected in classpath 2$ and that, as a result, 3$ classes have been marked as "stale" in the Shared Classes cache.  This message is issued only if you have requested verbose Shared Classes messages with "-Xshareclasses:verbose".
 J9NLS_SHRC_CM_MARK_STALE.system_action=The JVM continues.
 J9NLS_SHRC_CM_MARK_STALE.user_response=No action required, this is an information only message.
 # END NON-TRANSLATABLE

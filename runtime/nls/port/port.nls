@@ -275,7 +275,7 @@ J9NLS_PORT_SHARED_OPENED_STALE_SEM.sample_input_2=0001
 
 J9NLS_PORT_ZOS_64_APPENDING_XDS=Appending .X&DS to user-specified dump template to enable multi-part dumps.
 # START NON-TRANSLATABLE
-J9NLS_PORT_ZOS_64_APPENDING_XDS.explanation=The user has specified a dump template (via -Xdump:system:file= or using the JAVA_DUMP_TDUMP_PATTERN environment variable). The maximum amount of data that can be dumped to a single IEATDUMP file is 2 gigabytes. For address spaces large than 2 gigabyes, zOS generates multiple dump files. To do this, the suffix &DS needs to be in the dump name, it will be replaced with a counter identifying which part of the dump is in the file. If the user does not add it, the JVM appends it to the dump template.
+J9NLS_PORT_ZOS_64_APPENDING_XDS.explanation=The user has specified a dump template (via -Xdump:system:file= or using the JAVA_DUMP_TDUMP_PATTERN environment variable). The maximum amount of data that can be dumped to a single IEATDUMP file is 2 gigabytes. For address spaces large than 2 gigabytes, zOS generates multiple dump files. To do this, the suffix &DS needs to be in the dump name, it will be replaced with a counter identifying which part of the dump is in the file. If the user does not add it, the JVM appends it to the dump template.
 J9NLS_PORT_ZOS_64_APPENDING_XDS.system_action=The JVM will add .X&DS to the dump template and continue to run.
 J9NLS_PORT_ZOS_64_APPENDING_XDS.user_response=It is safe to ignore this message (and allow the JVM to alter the dump file name) unless extending the dump file name makes it too long (in which case the JVM will failover to using the default dump template). You can avoid the message by including the &DS placeholder in your dump template or by using the default dump template.
 

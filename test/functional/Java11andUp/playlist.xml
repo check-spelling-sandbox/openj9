@@ -105,7 +105,7 @@
 		Variation 1:
 			This variation runs tests in default mode.
 		Variation 2:
-			This variation runs test under -Xjit:count=1 option which makes sure that ConstantDynamic is resoleved before we compile a method
+			This variation runs test under -Xjit:count=1 option which makes sure that ConstantDynamic is resolved before we compile a method
 			to test JIT$(SQ)s handling of resolved constant dynamic
 		Variation 3:
 			This variation runs test under -Xjit:count=0 option means JIT faces unresolved constant dynamic and it needs to resolve them before

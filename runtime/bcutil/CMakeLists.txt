@@ -59,7 +59,7 @@ target_sources(j9dyn_sources
 
 		${CMAKE_CURRENT_BINARY_DIR}/ut_j9bcu.c
 )
-# Add current binarydir to include path in order to get the tracegen headers
+# Add current binary dir to include path in order to get the tracegen headers
 target_include_directories(j9dyn_sources INTERFACE ${CMAKE_CURRENT_BINARY_DIR})
 target_link_libraries(j9dyn_sources
 	INTERFACE

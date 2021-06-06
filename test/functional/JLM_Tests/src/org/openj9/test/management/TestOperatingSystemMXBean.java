@@ -751,7 +751,7 @@ public class TestOperatingSystemMXBean {
 		try {
 			Thread.sleep(1000);
 		} catch (InterruptedException e) {
-			logger.error("Unexoected exception: InterruptedException", e);
+			logger.error("Unexpected exception: InterruptedException", e);
 		}
 	}
 

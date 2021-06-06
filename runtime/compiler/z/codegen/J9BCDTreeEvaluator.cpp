@@ -541,7 +541,7 @@ J9::Z::TreeEvaluator::pd2udEvaluator(TR::Node *node, TR::CodeGenerator *cg)
  *
  * \param node              Parent node object.
  * \param targetReg         PseudoRegister object for the parent node (the node)
- * \param sourceMR          MemoryRefernece object pointer
+ * \param sourceMR          MemoryReference object pointer
  * \param childReg          PseudoRegister object for the child node (e.g. pdloadi node)
  * \param isSeparateSign    True if the operation is pd2udsl or pd2udst, which all have separate sign code. False
  *                          if it's pd2ud.

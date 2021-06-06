@@ -106,7 +106,7 @@ public class JavaClassTest extends DTFJUnitTest {
 			return "";
 		}
 		
-		// TODO: Despite documentation JavaRefernece.getSource() can also return a JavaRuntime. 
+		// TODO: Despite documentation JavaReference.getSource() can also return a JavaRuntime. 
 		private String getSourceCompareString(Object obj) {
 			JavaReference ref = (JavaReference) obj;
 			

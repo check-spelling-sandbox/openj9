@@ -408,7 +408,7 @@ public class UMA {
 					buffer.append( "\n" );
 
 					buffer.append( artifact.getMakefileName() + ":" );
-					for ( Dependency dependency : artifact.getDependendies() ) {
+					for ( Dependency dependency : artifact.getDependencies() ) {
 						if ( !dependency.evaluate() ) continue;
 						buffer.append( " " + dependency.getDependency() );
 					}
@@ -481,7 +481,7 @@ public class UMA {
 				}
 			}
 		}
-		for ( Dependency artifactDependency : artifact.getDependendies() ) {
+		for ( Dependency artifactDependency : artifact.getDependencies() ) {
 			if ( artifactDependency.evaluate() ) {
 				String dependency = artifactDependency.getDependency();
 				if ( !deps.contains(dependency) && !dependency.equalsIgnoreCase(target)) { 

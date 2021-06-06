@@ -84,7 +84,7 @@ public class Artifact extends PredicateList {
 			copy.addCommand(command);
 		}
 		// copy dependencies
-		for ( Dependency dependency : getDependendies() ) {
+		for ( Dependency dependency : getDependencies() ) {
 			copy.addDependency(dependency);
 		}
 		// copy vpaths
@@ -442,7 +442,7 @@ public class Artifact extends PredicateList {
 		return commands;
 	}
 	
-	public Vector<Dependency> getDependendies() {
+	public Vector<Dependency> getDependencies() {
 		return dependencies;
 	}
 	

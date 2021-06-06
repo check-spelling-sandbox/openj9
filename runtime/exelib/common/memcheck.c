@@ -3405,7 +3405,7 @@ subAllocator_audit(OMRPortLibrary *portLib, UDATA mask)
 #endif
 
 /**
- * Initialize the heap, providng a pointer to the heap space and the size of the heap
+ * Initialize the heap, providing a pointer to the heap space and the size of the heap
  * These two values can be hard coded at this point, if desired.
  * @param[in] void* memptr -- pointer to block of memory used as a heap, or arbitrary size
  * @param[in] UDATA size -- size of heap block, in number of words

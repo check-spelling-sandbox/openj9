@@ -1895,7 +1895,7 @@ void TR::CompilationInfo::invalidateRequestsForNativeMethods(J9Class * clazz, J9
       {
       TR::CompilationInfoPerThread *curCompThreadInfoPT = _arrayOfCompilationInfoPerThread[i];
       TR_MethodToBeCompiled *methodBeingCompiled = curCompThreadInfoPT->getMethodBeingCompiled();
-      // Mark the method beign compiled that it has been unloaded.
+      // Mark the method being compiled that it has been unloaded.
       // If it is already marked, then there is nothing to do.
       //
       if (methodBeingCompiled && !methodBeingCompiled->_unloadedMethod)

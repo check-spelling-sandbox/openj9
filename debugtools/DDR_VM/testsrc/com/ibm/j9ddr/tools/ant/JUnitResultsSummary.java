@@ -223,7 +223,7 @@ public class JUnitResultsSummary extends Task {
 					if(!fileDeleted) {
 						throw new BuildException("Could not delete existing results file " + file.getCanonicalPath());
 					}
-					log("Deleing existing summary file");
+					log("Deleting existing summary file");
 				} else {
 					throw new BuildException("Output file " + file.getCanonicalPath() + " already exists");
 				}

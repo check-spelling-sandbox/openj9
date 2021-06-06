@@ -3676,7 +3676,7 @@ bool TR_ArrayShiftTreeCollection::insertTree(TR::TreeTop * currTree)
          }
       if (_storeTrees[_numTrees]->getRootNode()->getOpCode().getSize() * (_numTrees + 1) > _maxStoreSize)
          {
-         dumpOptDetails(comp(), "Max store size of %d exceeeded the max [%p]\n", (_storeTrees[_numTrees]->getRootNode()->getOpCode().getSize() * (_numTrees + 1)), _storeTrees[_numTrees]->getRootNode());
+         dumpOptDetails(comp(), "Max store size of %d exceeded the max [%p]\n", (_storeTrees[_numTrees]->getRootNode()->getOpCode().getSize() * (_numTrees + 1)), _storeTrees[_numTrees]->getRootNode());
          return false;
          }
 

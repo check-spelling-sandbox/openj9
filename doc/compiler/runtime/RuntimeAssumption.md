@@ -90,7 +90,7 @@ JIT'd body circular linked list. If it is, a walk of that linked list is done
 removing all dead entries from that list. Once completed the dead assumption is
 removed from the bucket linked list.
 
-This staged approach allows us to amortize the clean-up of the assumptions over
+This stagged approach allows us to amortize the clean-up of the assumptions over
 time and minimizes the amount of clean-up done during any single period where
 execution is stopped. Prior to the conversion to lazy removal you could have 
 long pauses when the assumption table had to eagerly clean up all of the dead

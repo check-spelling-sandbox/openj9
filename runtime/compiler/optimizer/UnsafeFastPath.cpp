@@ -254,7 +254,7 @@ bool TR_UnsafeFastPath::tryTransformUnsafeAtomicCallInVarHandleAccessMethod(TR::
       TR::Node *j9Class = TR::Node::createWithSymRef(node, TR::aloadi, 1, jlClass, comp()->getSymRefTab()->findOrCreateClassFromJavaLangClassSymbolRef());
       TR::Node *ramStatics = TR::Node::createWithSymRef(node, TR::aloadi, 1, j9Class, comp()->getSymRefTab()->findOrCreateRamStaticsFromClassSymbolRef());
       TR::Node *offset = node->getChild(2);
-      // The offset for a static field is low taged, mask out the flag bit to get the real offset
+      // The offset for a static field is low tagged, mask out the flag bit to get the real offset
       //
       offset = TR::Node::create(node, TR::land, 2, offset,
                                                    TR::Node::lconst(node, ~J9_SUN_FIELD_OFFSET_MASK));
@@ -768,7 +768,7 @@ int32_t TR_UnsafeFastPath::perform()
                node->setAndIncChild(objectChild, ramStatics);
                jlClass->recursivelyDecReferenceCount();
                offset = node->getChild(offsetChild);
-               // The offset for a static field is low taged, mask out the last bit to get the real offset
+               // The offset for a static field is low tagged, mask out the last bit to get the real offset
                TR::Node *newOffset =
                   TR::Node::create(offset, TR::land, 2, offset,
                                   TR::Node::lconst(offset, ~1));

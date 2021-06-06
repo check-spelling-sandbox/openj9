@@ -115,7 +115,7 @@ until the associated `openj9-docs` PR is also approved and ready to be merged.
 ## Coordinated Merges With Eclipse OMR
 
 While changes requiring commits to occur in both the Eclipse OMR and
-OpenJ9 projects should ideally be staged to manage any dependencies,
+OpenJ9 projects should ideally be stagged to manage any dependencies,
 there are circumstances when this is not possible.  In such cases, a
 "coordinated merge" in both projects is required to prevent build
 breaks in the Eclipse OpenJ9 project.

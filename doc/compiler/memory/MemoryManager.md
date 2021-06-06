@@ -201,7 +201,7 @@ where memory is explicitly allocated. However, `TR::Region`
 should be the allocator used for all new code as much as possible.
 
 ### Allocations that persist for the lifetime of the JVM
-The Compiler initializes a `TR::PeristentAllocator` object when 
+The Compiler initializes a `TR::PersistentAllocator` object when 
 it is first initialized (close to bootstrap time). For the most 
 part it allocates persistent memory either directly using the global 
 `jitPersistentAlloc`/`jitPersistentFree` or via the object methods 

@@ -2458,10 +2458,10 @@ TR_CallSiteInfo::hasSameBytecodeInfo(
       if (persistentCallSiteByteCodeIndex != currentCallSiteByteCodeIndex)
          break;
 
-      TR_OpaqueMethodBlock *persitentCallSiteMethod = comp->fe()->getInlinedCallSiteMethod(&persistentCallSiteInfo);
+      TR_OpaqueMethodBlock *persistentCallSiteMethod = comp->fe()->getInlinedCallSiteMethod(&persistentCallSiteInfo);
       TR_OpaqueMethodBlock *currentCallSiteMethod = comp->fe()->getInlinedCallSiteMethod(&currentCallSiteInfo);
 
-      if (persitentCallSiteMethod != currentCallSiteMethod)
+      if (persistentCallSiteMethod != currentCallSiteMethod)
          break;
 
       persistentCallSite = persistentCallSiteInfo._byteCodeInfo.getCallerIndex();

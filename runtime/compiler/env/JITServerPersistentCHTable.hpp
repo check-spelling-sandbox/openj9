@@ -45,7 +45,7 @@
  * JITServer can have multiple JITClients and each JITClient has its own class 
  * hierarchies, the JITServer needs to keep a separate TR_PersistentCHTable
  * cache for each JITClient. This is done by associating caches with client 
- * IDs within the JITServerPersisentCHTable. It overrides the findClassInfo()
+ * IDs within the JITServerPersistentCHTable. It overrides the findClassInfo()
  * methods to find the corresponding JITClient and return its cached class 
  * info.
  */

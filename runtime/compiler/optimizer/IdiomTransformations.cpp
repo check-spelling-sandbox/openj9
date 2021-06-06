@@ -3944,7 +3944,7 @@ CISCTransform2CopyingTRTx(TR_CISCTransformer *trans)
         	 for (i = 0; i < 65536; i++)
         	 {
         		 uint8_t u8 = tmpTable[i];
-        	 	 //Not sure I understand the reasning behind discarding those: chars larger than 256 which map to byte ... possible
+        	 	 //Not sure I understand the reasoning behind discarding those: chars larger than 256 which map to byte ... possible
         	 	 //we have the table to hold all chars. Value needs to represent i & ff
         	 	 //for now I moved the check up - so bail out earlier.
         	 	 //Reach here only if chars that need mapping are <256.

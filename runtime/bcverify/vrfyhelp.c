@@ -970,7 +970,7 @@ isProtectedAccessPermitted(J9BytecodeVerificationData *verifyData, J9UTF8* decla
 		}
 		if (J9ROMCLASS_IS_HIDDEN(romClass)) {
 			/* j9rtv_verifierGetRAMClass won't find hidden classes. We are checking if the current class has access to
-			 * proected member of declaringClass. We can use the superclass of current class instead here. */
+			 * protected member of declaringClass. We can use the superclass of current class instead here. */
 			currentClassName = J9ROMCLASS_SUPERCLASSNAME(romClass);
 			if (compareTwoUTF8s(declaringClassName, currentClassName)) {
 				return TRUE;

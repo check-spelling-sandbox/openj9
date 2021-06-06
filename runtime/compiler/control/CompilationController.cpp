@@ -1582,7 +1582,7 @@ TR::ThresholdCompilationStrategy::processJittedSample(TR_MethodEvent *event)
          }
       else
          {
-         // increment the CPOcount and see if we need to recompile
+         // increment the cpoSampleCounter and see if we need to recompile
          int32_t sampleCount = methodInfo->cpoIncCounter();
          fe->releaseCompilationLock();
          TR_Hotness curOptLevel = bodyInfo->getHotness();

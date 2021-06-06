@@ -686,7 +686,7 @@ void ProcessMainArgs(int argc, char *argv[]) {
 		WriteLog(logBuf);
 	}
 	if (exepath) {
-		sprintf(logBuf, "Using servicve description = %s\n", srvdesc);
+		sprintf(logBuf, "Using service description = %s\n", srvdesc);
 		WriteLog(logBuf);
 	}
 	if (uninstall) {

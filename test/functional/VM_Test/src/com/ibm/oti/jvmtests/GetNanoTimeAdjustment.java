@@ -160,7 +160,7 @@ public class GetNanoTimeAdjustment extends TestCase {
 		/* Try with the lowest valid offset + 10 */
 		time1 = SupportJVM.GetNanoTimeAdjustment(0);
 		time1 = SupportJVM.GetNanoTimeAdjustment((-(TIME_MAX - time1) / NANO_SECONDS_IN_SECOND) + 10);
-		assertNotSame("Failed upper bounds test: incorrectly rejected a valid offest", FAIL_CODE, time1);
+		assertNotSame("Failed upper bounds test: incorrectly rejected a valid offset", FAIL_CODE, time1);
 	}
 
 	public void test_LowerBound() {
@@ -170,7 +170,7 @@ public class GetNanoTimeAdjustment extends TestCase {
 		/* Try with the highest valid offset - 10 */
 		time1 = SupportJVM.GetNanoTimeAdjustment(0);
 		time1 = SupportJVM.GetNanoTimeAdjustment(((TIME_MAX + time1) / NANO_SECONDS_IN_SECOND) - 10);
-		assertNotSame("Failed lower bounds test: incorrectly rejected a valid offest", FAIL_CODE, time1);
+		assertNotSame("Failed lower bounds test: incorrectly rejected a valid offset", FAIL_CODE, time1);
 	}
 
 }

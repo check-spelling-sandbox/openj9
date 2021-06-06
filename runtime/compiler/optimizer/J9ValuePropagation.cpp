@@ -1796,7 +1796,7 @@ J9::ValuePropagation::constrainRecognizedMethod(TR::Node *node)
                if (!comp()->fej9()->isClassVisible(callerClass, newClass))
                   {
                   if (trace())
-                     traceMsg(comp(), "Class is not visialbe to caller class, quit transforming Object.newInstancePrototype on node %p\n", node);
+                     traceMsg(comp(), "Class is not visible to caller class, quit transforming Object.newInstancePrototype on node %p\n", node);
                   break;
                   }
 

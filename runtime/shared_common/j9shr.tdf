@@ -521,7 +521,7 @@ TraceEvent=Trc_SHR_OSC_GlobalLock_getMutex NoEnv Overhead=1 Level=6 Group=OSCach
 TraceEvent=Trc_SHR_OSC_GlobalLock_gotMutex NoEnv Overhead=1 Level=6 Group=OSCache Template="OSCache Global Lock: ACQUIRED for cache rootName=%s"
 TraceEvent=Trc_SHR_OSC_GlobalLock_released NoEnv Overhead=1 Level=4 Group=OSCache Template="OSCache releasing Global Lock semaphore"
 
-TraceEvent=Trc_SHR_OSC_createNewCache_Event4 Obsolete NoEnv Overhead=1 Level=1 Group=OSCache Template="OSCache createNewCache calling initializer, intialiser=%p len=%d"
+TraceEvent=Trc_SHR_OSC_createNewCache_Event4 Obsolete NoEnv Overhead=1 Level=1 Group=OSCache Template="OSCache createNewCache calling initializer, initialiser=%p len=%d"
 TraceEvent=Trc_SHR_OSC_createNewCache_Event5 Obsolete NoEnv Overhead=1 Level=1 Group=OSCache Template="OSCache createNewCache return from initializer"
 TraceDebug=Trc_SHR_OSC_createNewCache_Debug1 Obsolete NoEnv Overhead=1 Level=1 Group=OSCache Template="OSCache createNewCache: GENJVMAT: %d, GENLOCK: %d, GENSTATE: %d"
 TraceDebug=Trc_SHR_OSC_createNewCache_Debug2 Obsolete NoEnv Overhead=1 Level=1 Group=OSCache Template="OSCache createNewCache: currentgeneration in semaphore = %d"

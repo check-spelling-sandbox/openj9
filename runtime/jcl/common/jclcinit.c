@@ -473,7 +473,7 @@ static const J9IntConstantMapping intVMConstants[] = {
  * @return a JNI result code
  */
 static jint
-intializeVMConstants(J9VMThread *currentThread)
+initializeVMConstants(J9VMThread *currentThread)
 {
 	J9JavaVM *vm = currentThread->javaVM;
 	OMR_VM *omrVM = (OMR_VM *)vm->omrVM;
@@ -652,7 +652,7 @@ initializeRequiredClasses(J9VMThread *vmThread, char* dllName)
 		return 1;
 	}
 	vmInternalsClass->initializeStatus = J9ClassInitSucceeded;
-	if (JNI_OK != intializeVMConstants(vmThread)) {
+	if (JNI_OK != initializeVMConstants(vmThread)) {
 		return 1;
 	}
 

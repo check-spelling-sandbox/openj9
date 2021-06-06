@@ -98,11 +98,11 @@ class CIE {
 //				System.err.printf("Got augmentationLength: %d\n", augmentationLength);
 				parseAugmentationData(cfiStream, augmentationStr);
 			}
-			int initalInstructionsSize = (int)(length - (cfiStream.getStreamPosition() - startPos));
-			if ( initalInstructionsSize < 0 ) {
-				throw new IOException(String.format("Negative size %d for initial instructions in CIE", initalInstructionsSize));
+			int initialInstructionsSize = (int)(length - (cfiStream.getStreamPosition() - startPos));
+			if ( initialInstructionsSize < 0 ) {
+				throw new IOException(String.format("Negative size %d for initial instructions in CIE", initialInstructionsSize));
 			}
-			initialInstructions = new byte[initalInstructionsSize];
+			initialInstructions = new byte[initialInstructionsSize];
 //			System.err.printf("Reading %d bytes of initial instructions\n", initialInstructions.length);
 			cfiStream.read(initialInstructions, 0, initialInstructions.length);
 //			System.err.printf("Initial instructions: %s\n", Unwind.byteArrayToHexString(initialInstructions));

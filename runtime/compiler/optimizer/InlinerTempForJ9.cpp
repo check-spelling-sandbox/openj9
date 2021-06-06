@@ -5623,7 +5623,7 @@ TR_J9InlinerUtil::computePrexInfo(TR_InlinerBase *inliner, TR_CallSite* site, TR
    // looks like constraint merging, and is redundant with what VP already does.
    //
    TR_PrexArgInfo *prexArgInfo = NULL;
-   // Interface call doesn't have a resolved _intialCalleeMethod, so callee can be NULL
+   // Interface call doesn't have a resolved _initialCalleeMethod, so callee can be NULL
    auto callee = site->_initialCalleeMethod;
 
    bool tracePrex = comp->trace(OMR::inlining) || comp->trace(OMR::invariantArgumentPreexistence);

@@ -101,7 +101,7 @@ public class IncludeExcludeTestAnnotationTransformer implements IAnnotationTrans
 				if (excludeData.getMethodsToExclude().equals("ALL") &&
 					testClass.getName().equals(excludeData.getClassName())) {
 					logger.debug("Disabled test class name is " + testClass.getName());
-					String[] intialGroup = annotation.getGroups();
+					String[] initialGroup = annotation.getGroups();
 					ArrayList<String> groups = new ArrayList<String> (Arrays.asList(annotation.getGroups()));
 					groups.addAll(excludeData.getExcludeGroupNames());
 					annotation.setGroups(groups.toArray(new String[0]));
@@ -119,14 +119,14 @@ public class IncludeExcludeTestAnnotationTransformer implements IAnnotationTrans
 			for (ExcludeData excludeData : excludeDatas) {
 				if (excludeData.getMethodsToExclude().equals("ALL") &&
 						testMethodClass.equals(excludeData.getClassName())) {
-						String[] intialGroup = annotation.getGroups();
+						String[] initialGroup = annotation.getGroups();
 						ArrayList<String> groups = new ArrayList<String> (Arrays.asList(annotation.getGroups()));
 						groups.addAll(excludeData.getExcludeGroupNames());
 						annotation.setGroups(groups.toArray(new String[0]));
 						logger.debug("Disabled test method is " + testMethod.getName());
 				} else if (testMethodClass.equals(excludeData.getClassName()) &&
 					testMethod.getName().equals(excludeData.getMethodsToExclude())) {
-					String[] intialGroup = annotation.getGroups();
+					String[] initialGroup = annotation.getGroups();
 					ArrayList<String> groups = new ArrayList<String> (Arrays.asList(annotation.getGroups()));
 					groups.addAll(excludeData.getExcludeGroupNames());
 					annotation.setGroups(groups.toArray(new String[0]));

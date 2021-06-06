@@ -1140,7 +1140,7 @@ typedef UDATA (* lookupNativeAddressCallback)(struct J9VMThread *currentThread, 
 		<description>This event is triggered when a the initial classpath for a classloader is ready </description>
 		<struct>J9VMClassloaderClassPathEntriesInitializedEvent</struct>
 		<data type="struct J9JavaVM*" name="vm" description="the Java VM" />
-		<data type="struct J9ClassLoader*" name="classLoader" description="ClassLoader for which the initalization is complete" />
+		<data type="struct J9ClassLoader*" name="classLoader" description="ClassLoader for which the initialization is complete" />
 	</event>
 
 	<event>

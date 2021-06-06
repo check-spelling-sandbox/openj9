@@ -1729,7 +1729,7 @@ Only available on zOS</description>
 		<ifRemoved>No dynamic loading of classes supported.</ifRemoved>
 	</flag>
 	<flag id="opt_fips">
-		<description>Add supports for FIPs</description>
+		<description>Add supports for FIPS</description>
 		<ifRemoved></ifRemoved>
 	</flag>
 	<flag id="opt_fragmentRamClasses">

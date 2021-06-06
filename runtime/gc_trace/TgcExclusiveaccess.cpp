@@ -42,13 +42,13 @@ printExclusiveAccessTimes(J9VMThread *vmThread)
 	PORT_ACCESS_FROM_ENVIRONMENT(env);
 	MM_TgcExtensions *tgcExtensions = MM_TgcExtensions::getExtensions(vmThread);
 
-	U_64 exlusiveAccessTime = j9time_hires_delta(0, env->getExclusiveAccessTime(), J9PORT_TIME_DELTA_IN_MICROSECONDS);
+	U_64 exclusiveAccessTime = j9time_hires_delta(0, env->getExclusiveAccessTime(), J9PORT_TIME_DELTA_IN_MICROSECONDS);
 	/* Note that these values were not being calculated in the GC and have been returning 0 for some time. */
 	U_64 preAcquireExclusiveTime = (U_64)0;
 	U_64 postAcquireExclusiveTime = (U_64)0;
 
 	tgcExtensions->printf("ExclusiveAccess Time(ms): total=\"%llu.%03.3llu\", preAcquire=\"%llu.%03.3llu\", postAcquire=\"%llu.%03.3llu\"\n",
-		exlusiveAccessTime /1000, exlusiveAccessTime % 1000,
+		exclusiveAccessTime /1000, exclusiveAccessTime % 1000,
 		preAcquireExclusiveTime /1000, preAcquireExclusiveTime % 1000,
 		postAcquireExclusiveTime /1000, postAcquireExclusiveTime % 1000);
 }

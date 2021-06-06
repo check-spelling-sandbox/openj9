@@ -1601,7 +1601,7 @@ TR_J9ByteCodeIlGenerator::stashArgumentsForOSR(TR_J9ByteCode byteCode)
    {
    if (!_couldOSRAtNextBC &&
        !isAtBBStart(_bcIndex)) // _couldOSRAtNextBC doesn't work if the curent bc is at bbstart,
-                               // conversatively assume OSR transition can happen at bbstart
+                               // conservatively assume OSR transition can happen at bbstart
       return;
    _couldOSRAtNextBC = false;
 

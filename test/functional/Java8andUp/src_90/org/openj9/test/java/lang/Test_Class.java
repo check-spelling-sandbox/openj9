@@ -619,7 +619,7 @@ public void test_getClasses2() {
 			combine = true;
 			return new java.security.ProtectionDomain[0];
 		}
-		public boolean isPriviledged() {
+		public boolean isPrivileged() {
 			combine = false;
 			try {
 				java.security.AccessController.checkPermission(privCheckPermission);
@@ -646,7 +646,7 @@ public void test_getClasses2() {
 			checkPackageAccess = 0;
 		}
 		public void checkPermission(java.security.Permission perm) {
-			if (combiner.isPriviledged())
+			if (combiner.isPrivileged())
 				return;
 			checkPermission++;
 		}
@@ -654,7 +654,7 @@ public void test_getClasses2() {
 			if (packageName.startsWith("java.") || packageName.startsWith("org.openj9.test.java.lang")) {
 				return;
 			}
-			if (combiner.isPriviledged())
+			if (combiner.isPrivileged())
 				return;
 			checkPackageAccess++;
 			String name = checkClass.getName();

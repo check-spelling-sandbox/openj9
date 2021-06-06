@@ -647,7 +647,7 @@ class TR_PseudoRegister : public TR_OpaquePseudoRegister
       // signStateInitialized=true when the sign has some known state (clean, preferred, a particular value) or
       // when the register is for a load that does not assume any sign state upon the value being loaded
       // The goal here is to prevent a ZAP to be used purely for widening (as opposed to FE directed cleaning)
-      // and in the process clobbing a known unsigned sign code or an optimizer (e.g. PRE) generated load that
+      // and in the process clobbering a known unsigned sign code or an optimizer (e.g. PRE) generated load that
       // could contain some known unsigned sign code that must not be clobbered.
       //
       return signStateInitialized() &&

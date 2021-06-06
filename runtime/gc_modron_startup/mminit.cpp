@@ -94,10 +94,10 @@
 #if defined(J9VM_GC_VLHGC)
 #include "RememberedSetCardList.hpp"
 #endif /* J9VM_GC_VLHGC */
-#if defined(J9VM_GC_SEGRGATED_HEAP)
+#if defined(J9VM_GC_SEGREGATED_HEAP)
 #include "ObjectHeapIteratorSegregated.hpp"
 #include "SizeClasses.hpp"
-#endif /* J9VM_GC_SEGRGATED_HEAP */
+#endif /* J9VM_GC_SEGREGATED_HEAP */
 #if defined(J9VM_GC_REALTIME)
 #include "RememberedSetSATB.hpp"
 #endif /* J9VM_GC_REALTIME */

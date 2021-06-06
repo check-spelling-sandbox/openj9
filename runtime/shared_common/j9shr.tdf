@@ -1103,7 +1103,7 @@ TraceExit=Trc_SHR_OSC_Mmap_setCacheLength_Exit NoEnv Overhead=1 Level=1 Template
 
 TraceEvent=Trc_SHR_OSC_Mmap_getError_Event NoEnv Overhead=1 Level=1 Template="SH_OSCachemmap::getError: Returning error code %zd"
 
-TraceEntry=Trc_SHR_OSC_Mmap_setError_Entry NoEnv Overhead=1 Level=1 Template="SH_OSCachemmap::setErrorr: Entered error code arg = %zd"
+TraceEntry=Trc_SHR_OSC_Mmap_setError_Entry NoEnv Overhead=1 Level=1 Template="SH_OSCachemmap::setError: Entered error code arg = %zd"
 TraceExit=Trc_SHR_OSC_Mmap_setError_Exit NoEnv Overhead=1 Level=1 Template="SH_OSCachemmap::setError: Exiting, error code = %zd"
 
 TraceEntry=Trc_SHR_OSC_Mmap_getFileMode_Entry NoEnv Overhead=1 Level=1 Template="SH_OSCachemmap::getFileMode: Entering"
@@ -2540,7 +2540,7 @@ TraceExit=Trc_SHR_OSC_Virt_errorHandler_Exit Obsolete NoEnv Overhead=1 Level=5 T
 
 TraceEvent=Trc_SHR_OSC_Virt_getError_Event Obsolete NoEnv Overhead=1 Level=5 Template="SH_OSCachevirt::getError: Returning error code %zd"
 
-TraceEntry=Trc_SHR_OSC_Virt_setError_Entry Obsolete NoEnv Overhead=1 Level=5 Template="SH_OSCachemmap::setErrorr: Function entered, error code arg = %zd"
+TraceEntry=Trc_SHR_OSC_Virt_setError_Entry Obsolete NoEnv Overhead=1 Level=5 Template="SH_OSCachemmap::setError: Function entered, error code arg = %zd"
 TraceExit=Trc_SHR_OSC_Virt_setError_Exit Obsolete NoEnv Overhead=1 Level=5 Template="SH_OSCachemmap::setError: Exiting, error code = %zd"
 
 TraceEvent=Trc_SHR_OSC_newInstance_creatingVirt Obsolete NoEnv Overhead=1 Level=1 Template="SH_OSCache::newInstance: creating virt object at %p"

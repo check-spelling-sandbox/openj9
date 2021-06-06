@@ -363,7 +363,7 @@ TR::DefaultCompilationStrategy::processInterpreterSample(TR_MethodEvent *event)
                      if (logSampling)
                         curMsg += sprintf(curMsg, " reducing count %d --> %d", count, newCount);
                      if (cmdLineOptions->getOption(TR_UseSamplingJProfilingForInterpSampledMethods))
-                        compInfo->getInterpSamplTrackingInfo()->addOrUpdate(j9method, count - newCount);
+                        compInfo->getInterpSampleTrackingInfo()->addOrUpdate(j9method, count - newCount);
                      }
                   else
                      {
@@ -398,7 +398,7 @@ TR::DefaultCompilationStrategy::processInterpreterSample(TR_MethodEvent *event)
                      if (logSampling)
                         curMsg += sprintf(curMsg, " reducing count %d --> %d", count, newCount);
                      if (cmdLineOptions->getOption(TR_UseSamplingJProfilingForInterpSampledMethods))
-                        compInfo->getInterpSamplTrackingInfo()->addOrUpdate(j9method, count - newCount);
+                        compInfo->getInterpSampleTrackingInfo()->addOrUpdate(j9method, count - newCount);
                      }
                   else
                      {
@@ -423,7 +423,7 @@ TR::DefaultCompilationStrategy::processInterpreterSample(TR_MethodEvent *event)
                      if (logSampling)
                         curMsg += sprintf(curMsg, " reducing count %d --> %d", count, newCount);
                      if (cmdLineOptions->getOption(TR_UseSamplingJProfilingForInterpSampledMethods))
-                        compInfo->getInterpSamplTrackingInfo()->addOrUpdate(j9method, count - newCount);
+                        compInfo->getInterpSampleTrackingInfo()->addOrUpdate(j9method, count - newCount);
                      }
                   else
                      {

@@ -815,9 +815,9 @@ TR::CompilationInfo::freeAllCompilationThreads()
 
 void TR::CompilationInfo::freeAllResources()
    {
-   if (_interpSamplTrackingInfo)
+   if (_interpSampleTrackingInfo)
       {
-      jitPersistentFree(_interpSamplTrackingInfo);
+      jitPersistentFree(_interpSampleTrackingInfo);
       }
 
    freeAllCompilationThreads();
@@ -1193,7 +1193,7 @@ TR::CompilationInfo::CompilationInfo(J9JITConfig *jitConfig) :
    _cpuEntitlement.init(jitConfig);
    _lowPriorityCompilationScheduler.setCompInfo(this);
    _JProfilingQueue.setCompInfo(this);
-   _interpSamplTrackingInfo = new (PERSISTENT_NEW) TR_InterpreterSamplingTracking(this);
+   _interpSampleTrackingInfo = new (PERSISTENT_NEW) TR_InterpreterSamplingTracking(this);
 #if defined(J9VM_OPT_JITSERVER)
    _clientSessionHT = NULL; // This will be set later when options are processed
    _unloadedClassesTempList = NULL;
@@ -8466,7 +8466,7 @@ TR::CompilationInfoPerThreadBase::wrappedCompile(J9PortLibrary *portLib, void * 
                         }
                      if (options->getOption(TR_UseSamplingJProfilingForInterpSampledMethods))
                         {
-                        int32_t skippedCount = that->getCompilationInfo()->getInterpSamplTrackingInfo()->findAndDelete(method);
+                        int32_t skippedCount = that->getCompilationInfo()->getInterpSampleTrackingInfo()->findAndDelete(method);
                         if (skippedCount > 0)
                            {
                            // Enable SamplingJProfiling

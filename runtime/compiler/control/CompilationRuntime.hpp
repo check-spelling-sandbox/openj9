@@ -1186,7 +1186,7 @@ public:
    TR_JProfilingQueue &getJProfilingCompQueue() { return _JProfilingQueue; }
 
    TR_JitSampleInfo &getJitSampleInfoRef() { return _jitSampleInfo; }
-   TR_InterpreterSamplingTracking *getInterpSamplTrackingInfo() const { return _interpSamplTrackingInfo; }
+   TR_InterpreterSamplingTracking *getInterpSampleTrackingInfo() const { return _interpSampleTrackingInfo; }
 
    int32_t getAppSleepNano() const { return _appSleepNano; }
    void setAppSleepNano(int32_t t) { _appSleepNano = t; }
@@ -1448,7 +1448,7 @@ private:
    // It is reset when a compilation thread is suspended, thus possibly
    // freeing scratch segments it holds to
    bool _suspendThreadDueToLowPhysicalMemory;
-   TR_InterpreterSamplingTracking *_interpSamplTrackingInfo;
+   TR_InterpreterSamplingTracking *_interpSampleTrackingInfo;
 
 #if defined(J9VM_OPT_JITSERVER)
    ClientSessionHT               *_clientSessionHT; // JITServer hashtable that holds session information about JITClients

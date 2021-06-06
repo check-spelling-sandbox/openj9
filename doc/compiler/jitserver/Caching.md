@@ -73,7 +73,7 @@ Some important per-compilation caches:
 
 #### `TR_ResolvedMethodInfoCache`
 
-This cache stores pointers to resolved methods created for the current compilaton. It is important, because messages requesting the creation of resolved methods are some of the most frequent messages. Unfortunately, persistent caching does not seem possible, since every compilation creates its own resolved methods. For more information on resolved method caching, read [this](ResolvedMethod.md).
+This cache stores pointers to resolved methods created for the current compilation. It is important, because messages requesting the creation of resolved methods are some of the most frequent messages. Unfortunately, persistent caching does not seem possible, since every compilation creates its own resolved methods. For more information on resolved method caching, read [this](ResolvedMethod.md).
 
 #### `IPTableHeap_t`
 

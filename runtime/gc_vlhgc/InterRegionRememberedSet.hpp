@@ -323,7 +323,7 @@ public:
 	bool allocateRegionBuffers(MM_EnvironmentVLHGC* env, MM_HeapRegionDescriptorVLHGC *region);
 	
 	/**
-	 * Identify buffers owned by regions being decommited. Flush their content and unlink them from any
+	 * Identify buffers owned by regions being decommitted. Flush their content and unlink them from any
 	 * list they belong (either some regions RSCL or free list)
 	 * @param env[in] of a GC thread
 	 */
@@ -557,7 +557,7 @@ public:
 
 	/**
 	 * Set _shouldFlushBuffersForDecommitedRegions to true
-	 * Invoked, when heap contraction occurred. Next GC should flush buffers for decommited regions.
+	 * Invoked, when heap contraction occurred. Next GC should flush buffers for decommitted regions.
 	 */	
 	void setShouldFlushBuffersForDecommitedRegions() { _shouldFlushBuffersForDecommitedRegions = true; }
 

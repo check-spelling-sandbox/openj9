@@ -158,7 +158,7 @@ MM_InterRegionRememberedSet::flushBuffersForDecommitedRegions(MM_EnvironmentVLHG
 		}
 		
 
-		/* finally, free up RSCL buffer memory owned by decommited regions */
+		/* finally, free up RSCL buffer memory owned by decommitted regions */
 		for (UDATA i = 0; i < _heapRegionManager->getTableRegionCount(); i++) {
 			MM_HeapRegionDescriptorVLHGC *region  = (MM_HeapRegionDescriptorVLHGC *)_heapRegionManager->mapRegionTableIndexToDescriptor(i);
 			if (!region->isCommitted() && (NULL != region->_rsclBufferPool)) {

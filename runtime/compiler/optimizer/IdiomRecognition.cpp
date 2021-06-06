@@ -7792,7 +7792,7 @@ TR_CISCTransformer::removeBitsKeepAliveCalls(List<TR::Block> *body)
 
    _BitsKeepAliveList.init();
 
-   // Iterate through loop body blcoks
+   // Iterate through loop body blocks
    for (block = bi.getFirst(); block != 0; block = bi.getNext())
       {
       for (TR::TreeTop *tt = block->getEntry(); tt != block->getExit(); tt = tt->getNextTreeTop())

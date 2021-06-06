@@ -10076,7 +10076,7 @@ J9::Z::TreeEvaluator::VMnewEvaluator(TR::Node * node, TR::CodeGenerator * cg)
             TR_Debug * debugObj = cg->getDebug();
             TR::LabelSymbol * startOOLLabel = generateLabelSymbol(cg);
             exitOOLLabel = generateLabelSymbol(cg);
-            TR_S390OutOfLineCodeSection *zeroSizeArrayChckOOL;
+            TR_S390OutOfLineCodeSection *zeroSizeArrayCheckOOL;
             if (comp->target().is64Bit())
                {
                //need 31 bit as well, combining lgfr + sllg into rsibg
@@ -10104,9 +10104,9 @@ J9::Z::TreeEvaluator::VMnewEvaluator(TR::Node * node, TR::CodeGenerator * cg)
                {
                iCursor = generateS390BranchInstruction(cg, TR::InstOpCode::BRC, TR::InstOpCode::COND_BE, node, startOOLLabel, iCursor);
                TR_Debug * debugObj = cg->getDebug();
-               zeroSizeArrayChckOOL = new (cg->trHeapMemory()) TR_S390OutOfLineCodeSection(startOOLLabel,exitOOLLabel,cg);
-               cg->getS390OutOfLineCodeSectionList().push_front(zeroSizeArrayChckOOL);
-               zeroSizeArrayChckOOL->swapInstructionListsWithCompilation();
+               zeroSizeArrayCheckOOL = new (cg->trHeapMemory()) TR_S390OutOfLineCodeSection(startOOLLabel,exitOOLLabel,cg);
+               cg->getS390OutOfLineCodeSectionList().push_front(zeroSizeArrayCheckOOL);
+               zeroSizeArrayCheckOOL->swapInstructionListsWithCompilation();
                // Check to see if array-type is a super-class of the src object
                //
                TR::Instruction * cursor;
@@ -10137,7 +10137,7 @@ J9::Z::TreeEvaluator::VMnewEvaluator(TR::Node * node, TR::CodeGenerator * cg)
                      TR::Compiler->om.discontiguousArrayHeaderSizeInBytes() - TR::Compiler->om.contiguousArrayHeaderSizeInBytes(), cursor);
 
                generateS390BranchInstruction(cg, TR::InstOpCode::BRC, TR::InstOpCode::COND_BRC, node, exitOOLLabel,cursor);
-               zeroSizeArrayChckOOL->swapInstructionListsWithCompilation();
+               zeroSizeArrayCheckOOL->swapInstructionListsWithCompilation();
                }
             else
                {

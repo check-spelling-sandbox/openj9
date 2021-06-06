@@ -2,8 +2,8 @@ dnl Copyright (c) 2021, 2022 IBM Corp. and others
 dnl
 dnl This program and the accompanying materials are made available under
 dnl the terms of the Eclipse Public License 2.0 which accompanies this
-dnl disdibution and is available at https://www.eclipse.org/legal/epl-2.0/
-dnl or the Apache License, Version 2.0 which accompanies this disdibution and
+dnl distribution and is available at https://www.eclipse.org/legal/epl-2.0/
+dnl or the Apache License, Version 2.0 which accompanies this distribution and
 dnl is available at https://www.apache.org/licenses/LICENSE-2.0.
 dnl
 dnl This Source Code may also be made available under the following

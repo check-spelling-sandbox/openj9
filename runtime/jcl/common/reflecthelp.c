@@ -1780,7 +1780,7 @@ isRecordComponentAccessorMethodMatch(J9Method *currentMethod, const char* compon
 	return FALSE;
 }
 
-/* Find the accessor method for a record component with name componantName. 
+/* Find the accessor method for a record component with name componentName. 
  * componentIndex slot for current record component will be used to optimize search
  */
 static J9Method*

@@ -13360,7 +13360,7 @@ void
 J9::Z::TreeEvaluator::generateLoadAndStoreForArrayCopy(TR::Node *node, TR::CodeGenerator *cg,
                                                        TR::MemoryReference *srcMemRef, TR::MemoryReference *dstMemRef,
                                                        TR_S390ScratchRegisterManager *srm,
-                                                       TR::DataType elenmentType, bool needsGuardedLoad,
+                                                       TR::DataType elementType, bool needsGuardedLoad,
                                                        TR::RegisterDependencyConditions* deps)
 
    {
@@ -13383,7 +13383,7 @@ J9::Z::TreeEvaluator::generateLoadAndStoreForArrayCopy(TR::Node *node, TR::CodeG
       }
    else
       {
-      OMR::TreeEvaluatorConnector::generateLoadAndStoreForArrayCopy(node, cg, srcMemRef, dstMemRef, srm, elenmentType, needsGuardedLoad, deps);
+      OMR::TreeEvaluatorConnector::generateLoadAndStoreForArrayCopy(node, cg, srcMemRef, dstMemRef, srm, elementType, needsGuardedLoad, deps);
       }
    }
 

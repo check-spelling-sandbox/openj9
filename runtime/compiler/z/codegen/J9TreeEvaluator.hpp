@@ -287,7 +287,7 @@ class OMR_EXTENSIBLE TreeEvaluator: public J9::TreeEvaluator
    static void generateLoadAndStoreForArrayCopy(TR::Node *node, TR::CodeGenerator *cg, TR::MemoryReference *srcMemRef,
                                                 TR::MemoryReference *dstMemRef,
                                                 TR_S390ScratchRegisterManager *srm,
-                                                TR::DataType elenmentType,
+                                                TR::DataType elementType,
                                                 bool needsGuardedLoad,
                                                 TR::RegisterDependencyConditions* deps = NULL);
 

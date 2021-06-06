@@ -109,7 +109,7 @@ final class LayoutStrPreprocessor {
 	 *  where "#" denotes the start of struct.
 	 *
 	 *  Note:
-	 *  1) the prefix "ByteSize#CountOfElmemnt" and "#CountOfElmemnt" are not required in
+	 *  1) the prefix "ByteSize#CountOfElement" and "#CountOfElement" are not required in
 	 *  the upcall given the converted layout stirngs are further parsed for the generated
 	 *  thunk in native, which is logically different from downcall.
 	 *  2) the parsing of primitives in layouts in Java 18 is based on the MemoryLayout.carrier()

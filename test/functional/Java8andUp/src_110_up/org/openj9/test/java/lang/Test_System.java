@@ -102,7 +102,7 @@ public class Test_System {
 		}
 		System.arraycopy(a, 0, b, 0, a.length);
 		for (i = 0; i < a.length; i++)
-			AssertJUnit.assertTrue("Copied elemets incorrectly", a[i].equals(b[i]));
+			AssertJUnit.assertTrue("Copied elements incorrectly", a[i].equals(b[i]));
 
 		/* Non primitive array types don't need to be identical */
 		String[] source1 = new String[] { "element1" };

@@ -114,13 +114,13 @@ public class CodeTrusted {
 		}, accOuter);
 	}
 
-	public void getProppertydoPrivilegedLimitedMixedRevertOrder(final String prop, 
+	public void getPropertydoPrivilegedLimitedMixedRevertOrder(final String prop, 
 			final AccessControlContext accInner, 
 			final AccessControlContext accOuter, final Permission... permOuter
 	) {
 		AccessController.doPrivileged(new PrivilegedAction<Void>() {
 			public Void run() {
-				System.out.println("Codetrusted - getProppertydoPrivilegedLimitedMixedRevertOrder prop = " + prop);
+				System.out.println("Codetrusted - getPropertydoPrivilegedLimitedMixedRevertOrder prop = " + prop);
 				getPropertydoPrivilegedWithContext(prop, accInner);
 				return null;
 			}

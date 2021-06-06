@@ -2403,7 +2403,7 @@ done:
 		{
 #if defined(J9VM_ZOS_3164_INTEROPERABILITY)
 			if (J9_IS_31BIT_INTEROP_TARGET(function)) {
-				/* For 31-bit cross-amode targets, we need to return the correponding
+				/* For 31-bit cross-amode targets, we need to return the corresponding
 				 * 31-bit JNIEnv* pointer instead.
 				 */
 				args[0] = &ffi_type_sint32;

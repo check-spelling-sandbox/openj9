@@ -74,7 +74,7 @@ typedef UDATA (* lookupNativeAddressCallback)(struct J9VMThread *currentThread, 
 		<name>J9HOOK_VM_THREAD_CREATED</name>
 		<description>
 			Triggered during initialization of a J9VMThread. At this point the thread has an object associated with it.
-			This hook can optionally cause the allocation of the J9VMThread to fail (e.g. if some substructres fail to
+			This hook can optionally cause the allocation of the J9VMThread to fail (e.g. if some substructures fail to
 			be allocated during the hook.
 		</description>
 		<struct>J9VMThreadCreatedEvent</struct>

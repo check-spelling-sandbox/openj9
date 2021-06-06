@@ -109,7 +109,7 @@ APIs to
 * Release Memory
 * Inform about the preferred segment size
 
-It is related to `TR::SegmentProvider` not by inheritence, but rather
+It is related to `TR::SegmentProvider` not by inheritance, but rather
  is chained to `J9::SystemSegmentProvider`. In OpenJ9, the Port
 Library provides APIs to allocate/deallocate segments of memory. These
 segments show up in the `Internal Memory` section of a javacore. They

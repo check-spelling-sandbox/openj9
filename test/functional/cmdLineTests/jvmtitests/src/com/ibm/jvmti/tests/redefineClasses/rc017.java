@@ -27,7 +27,7 @@ import java.lang.reflect.*;
 public class rc017 {
 	public static native boolean redefineMultipleClass(Class[] originalClasses, int classCount, byte[][] classBytes, int[] classBytesLength);
 
-	public boolean testClassGrandParenetHierarchy()	{
+	public boolean testClassGrandParentHierarchy()	{
 		Class noparams[] = {};
 		try {
 			rc017_testClassGrandParentHierarchy_grandParent_0 test[] =
@@ -65,7 +65,7 @@ public class rc017 {
 		}
 	}
 
-	public String helpClassGrandParenetHierarchy() {
+	public String helpClassGrandParentHierarchy() {
 		return "Tests redefining a class and its grandparent maintains the correct super class hierarchy in class";
 	}
 

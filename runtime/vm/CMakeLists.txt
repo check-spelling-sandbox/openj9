@@ -42,7 +42,7 @@ if(OMR_ARCH_POWER AND OMR_OS_AIX)
 		list(APPEND interp_flags_to_remove "-O3" "-g")
 		list(APPEND interp_new_flags "-O2" "-qdebug=lincomm:ptranl:tfbagg")
 		# Note: the following code is specified in the UMA builds, however,
-		# it isn't currently reachable, so it is block commneted out ( #[[ ]] )
+		# it isn't currently reachable, so it is block commented out ( #[[ ]] )
 		#[[
 		if(OMR_OS_LINUX)
 			# TODO -qpic=large -> -qpic

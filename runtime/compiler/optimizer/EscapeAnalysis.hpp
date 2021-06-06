@@ -626,7 +626,7 @@ class TR_EscapeAnalysis : public TR::Optimization
     *     The address of the possibly heapified object
     *
     * \param symRef
-    *     The \ref TR::SymbolReference for the temporay
+    *     The \ref TR::SymbolReference for the temporary
     *
     * \return A pointer to the \ref TR::TreeTop containing the store
     */

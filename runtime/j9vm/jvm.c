@@ -3392,7 +3392,7 @@ testBackupAndRestoreLibpath(void)
 	}
 
 	/* Multiple empty paths plus a single colon at the start stays ahead of the backup path */
-	printf("TESTCASE_17: Multiple empty paths plus a single colon at the start stays ahead of the backup patht\n");
+	printf("TESTCASE_17: Multiple empty paths plus a single colon at the start stays ahead of the backup path\n");
 	setLibpath("x:y");
 	backupLibpath(&bkp, 0);
 	setLibpath(":abc::def::x:y");

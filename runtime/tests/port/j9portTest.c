@@ -868,7 +868,7 @@ j9port_test8(struct J9PortLibrary *portLibrary)
 		outputErrorMessage(PORTTEST_ERROR_ARGS, "j9port_isCompatible() returned %d expected 1\n", rc);
 	}
 
-	/* Pass, don't require all capabiliteis supported */
+	/* Pass, don't require all capabilities supported */
 	J9PORT_SET_VERSION(&version, J9PORT_CAPABILITY_MASK);	
 	version.capabilities = 0;
 	rc = j9port_isCompatible(&version);

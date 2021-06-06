@@ -168,7 +168,7 @@ class Buildspec {
 }
 
 /*
- * Used to cache a map of names -> Builspecs
+ * Used to cache a map of names -> Buildspecs
  */
 class BuildspecManager {
 

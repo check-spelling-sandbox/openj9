@@ -26,7 +26,7 @@ TraceExit=Trc_Util_getDefineArgument_Exit Noenv Overhead=1 Level=1 Template="get
 TraceExit=Trc_Util_getDefineArgument_Empty Noenv Overhead=1 Level=1 Template="getDefineArgument (empty value)"
 TraceExit=Trc_Util_getDefineArgument_NotFound Noenv Overhead=1 Level=1 Template="getDefineArgument (not matched)"
 
-TraceException=Trc_Util_decodeUTF8CharN_EmbdeddedNul Noenv Overhead=1 Level=1 Template="decodeUTF8CharN - embedded NUL character found"
+TraceException=Trc_Util_decodeUTF8CharN_EmbeddedNul Noenv Overhead=1 Level=1 Template="decodeUTF8CharN - embedded NUL character found"
 TraceException=Trc_Util_decodeUTF8CharN_Truncated Noenv Overhead=1 Level=1 Template="decodeUTF8CharN - not enough data left"
 TraceException=Trc_Util_decodeUTF8CharN_Invalid2ByteEncoding Noenv Overhead=1 Level=1 Template="decodeUTF8CharN - invalid 2 byte encoding (0x%x)"
 TraceException=Trc_Util_decodeUTF8CharN_Invalid3ByteEncoding Noenv Overhead=1 Level=1 Template="decodeUTF8CharN - invalid 3 byte encoding (0x%x)"

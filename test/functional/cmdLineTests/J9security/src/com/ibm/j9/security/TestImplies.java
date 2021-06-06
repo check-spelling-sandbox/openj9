@@ -73,7 +73,7 @@ public class TestImplies {
 			try {
 				new AccessControlContext(new AccessControlContext(new ProtectionDomain[]{}), (DomainCombiner)null);
 				if (hint == 1) {
-					failed("exepected AccessControlException checking createAccessControlContext");
+					failed("expected AccessControlException checking createAccessControlContext");
 				} else {
 					System.out.println("GOOD: creation is allowed when createAccessControlContext is granted");
 				}
@@ -97,7 +97,7 @@ public class TestImplies {
 			try {
 				new AccessControlContext(AccessController.getContext(), (DomainCombiner)null);
 				if (hint == 1) {
-					failed("exepected AccessControlException checking createAccessControlContext");
+					failed("expected AccessControlException checking createAccessControlContext");
 				} else {
 					System.out.println("GOOD: creation is allowed when createAccessControlContext is granted");
 				}

@@ -57,7 +57,7 @@ public class ta001 {
 		}
 		
 		if ( !NPEThrown ) {
-			System.out.println( "Class instrumentation error, expceted NPE not received" );
+			System.out.println( "Class instrumentation error, expected NPE not received" );
 			return false;
 		} else {
 			System.out.println( "Expected NullPointerException received" );
@@ -117,7 +117,7 @@ public class ta001 {
 		}
 
 		if ( !NPEThrown ) {
-			System.out.println( "Expceted NPE not received" );
+			System.out.println( "Expected NPE not received" );
 			return false;
 		} else {
 			System.out.println( "Expected NullPointerException received" );
@@ -136,7 +136,7 @@ public class ta001 {
 		}
 		
 		if ( !AIOBEThrown ) {
-			System.out.println( "Class instrumentation error, expceted ArrayIndexOutOfBoundsException not received" );
+			System.out.println( "Class instrumentation error, expected ArrayIndexOutOfBoundsException not received" );
 			return false;
 		} else {
 			System.out.println( "Expected ArrayIndexOutOfBoundsException received" );
@@ -162,7 +162,7 @@ public class ta001 {
 		}
 
 		if ( !NPEThrown ) {
-			System.out.println( "Expceted NPE not received" );
+			System.out.println( "Expected NPE not received" );
 			return false;
 		} else {
 			System.out.println( "Expected NullPointerException received" );
@@ -202,7 +202,7 @@ public class ta001 {
 		int preStateResult = preState.returnOne();
 		
 		if ( preStateResult != 0 ) {
-			System.out.println( "Expceted pre-transform result not received" );
+			System.out.println( "Expected pre-transform result not received" );
 			return false;
 		} else {
 			System.out.println( "Expected pre-transform result received" );
@@ -238,7 +238,7 @@ public class ta001 {
 		int preStateResult = preState.returnOne();
 		
 		if ( preStateResult != 0 ) {
-			System.out.println( "Expceted pre-transform result not received" );
+			System.out.println( "Expected pre-transform result not received" );
 			return false;
 		} else {
 			System.out.println( "Expected pre-transform result received" );
@@ -274,7 +274,7 @@ public class ta001 {
 		int preStateResult = preState.returnOne();
 		
 		if ( preStateResult != 10 ) {
-			System.out.println( "Expceted pre-transform result not received" );
+			System.out.println( "Expected pre-transform result not received" );
 			return false;
 		} else {
 			System.out.println( "Expected pre-transform result received" );
@@ -310,7 +310,7 @@ public class ta001 {
 		int preStateResult = preState.returnOne();
 		
 		if ( preStateResult != 5 ) {
-			System.out.println( "Expceted pre-transform result not received" );
+			System.out.println( "Expected pre-transform result not received" );
 			return false;
 		} else {
 			System.out.println( "Expected pre-transform result received" );
@@ -361,7 +361,7 @@ public class ta001 {
 				postState12.method1();
 				
 				if ( !Timer.isMethodAccountedFor( Source12.class.getCanonicalName() + "#method1") ) {
-					System.out.println( Thread.currentThread().getName() + " : Expceted post-transform result not received after Source12.method1()" );
+					System.out.println( Thread.currentThread().getName() + " : Expected post-transform result not received after Source12.method1()" );
 					testPassed = false;
 				} else {
 					System.out.println( Thread.currentThread().getName() + " : Expected post-transform result received after Source12.method1()" );
@@ -370,7 +370,7 @@ public class ta001 {
 				postState12.method2();
 				
 				if ( !Timer.isMethodAccountedFor( Source12.class.getCanonicalName() + "#method2") ) {
-					System.out.println( Thread.currentThread().getName() + " : Expceted post-transform result not received after Source12.method2()" );
+					System.out.println( Thread.currentThread().getName() + " : Expected post-transform result not received after Source12.method2()" );
 					testPassed = false;
 				} else {
 					System.out.println( Thread.currentThread().getName() + " : Expected post-transform result received after Source12.method2()" );
@@ -386,7 +386,7 @@ public class ta001 {
 				postState13.method1();
 				
 				if ( !Timer.isMethodAccountedFor( Source13.class.getCanonicalName() + "#method1") ) {
-					System.out.println( Thread.currentThread().getName() + " : Expceted post-transform result not received after Source13.method1()" );
+					System.out.println( Thread.currentThread().getName() + " : Expected post-transform result not received after Source13.method1()" );
 					testPassed = false;
 				} else {
 					System.out.println( Thread.currentThread().getName() + " : Expected post-transform result received after Source13.method1()" );
@@ -395,7 +395,7 @@ public class ta001 {
 				postState13.method2();
 				
 				if ( !Timer.isMethodAccountedFor( Source13.class.getCanonicalName() + "#method2") ) {
-					System.out.println( Thread.currentThread().getName() + " : Expceted post-transform result not received after Source13.method2()" );
+					System.out.println( Thread.currentThread().getName() + " : Expected post-transform result not received after Source13.method2()" );
 					testPassed = false;
 				} else {
 					System.out.println( Thread.currentThread().getName() + " : Expected post-transform result received after Source13.method2()" );
@@ -404,7 +404,7 @@ public class ta001 {
 				postState13.method3();
 				
 				if ( !Timer.isMethodAccountedFor( Source13.class.getCanonicalName() + "#method3") ) {
-					System.out.println( Thread.currentThread().getName() + " : Expceted post-transform result not received after Source13.method3()" );
+					System.out.println( Thread.currentThread().getName() + " : Expected post-transform result not received after Source13.method3()" );
 					testPassed = false;
 				} else {
 					System.out.println( Thread.currentThread().getName() + " : Expected post-transform result received after Source13.method3()" );
@@ -461,7 +461,7 @@ public class ta001 {
 		System.out.println("pre : " + preStateResult );
 		
 		if ( preStateResult != 10.0 ) {
-			System.out.println( "Expceted pre-transform result not received" );
+			System.out.println( "Expected pre-transform result not received" );
 			return false;
 		} else {
 			System.out.println( "Expected pre-transform result received" );
@@ -478,7 +478,7 @@ public class ta001 {
 		System.out.println("post : " + postStateResult );
 		
 		if ( postStateResult != 0.1 ) {
-			System.out.println( "Expceted post-transform result not received" );
+			System.out.println( "Expected post-transform result not received" );
 			return false;
 		} else {
 			System.out.println( "Expected post-transform result received" );
@@ -501,7 +501,7 @@ public class ta001 {
 		System.out.println("pre : " + preStateResult );
 		
 		if ( preStateResult != 2 ) {
-			System.out.println( "Expceted pre-transform result not received" );
+			System.out.println( "Expected pre-transform result not received" );
 			return false;
 		} else {
 			System.out.println( "Expected pre-transform result received" );
@@ -518,7 +518,7 @@ public class ta001 {
 		System.out.println("post : " + postStateResult );
 		
 		if ( postStateResult != 5 ) {
-			System.out.println( "Expceted post-transform result not received" );
+			System.out.println( "Expected post-transform result not received" );
 			return false;
 		} else {
 			System.out.println( "Expected post-transform result received" );
@@ -541,7 +541,7 @@ public class ta001 {
 		System.out.println("pre : " + preStateResult );
 		
 		if ( preStateResult != 4 ) {
-			System.out.println( "Expceted pre-transform result not received" );
+			System.out.println( "Expected pre-transform result not received" );
 			return false;
 		} else {
 			System.out.println( "Expected pre-transform result received" );
@@ -558,7 +558,7 @@ public class ta001 {
 		System.out.println("post : " + postStateResult );
 		
 		if ( postStateResult != 2 ) {
-			System.out.println( "Expceted post-transform result not received" );
+			System.out.println( "Expected post-transform result not received" );
 			return false;
 		} else {
 			System.out.println( "Expected post-transform result received" );
@@ -581,7 +581,7 @@ public class ta001 {
 		System.out.println("pre : " + preStateResult );
 		
 		if ( preStateResult != 3 ) {
-			System.out.println( "Expceted pre-transform result not received" );
+			System.out.println( "Expected pre-transform result not received" );
 			return false;
 		} else {
 			System.out.println( "Expected pre-transform result received" );
@@ -598,7 +598,7 @@ public class ta001 {
 		System.out.println("post : " + postStateResult );
 		
 		if ( postStateResult != 5 ) {
-			System.out.println( "Expceted post-transform result not received" );
+			System.out.println( "Expected post-transform result not received" );
 			return false;
 		} else {
 			System.out.println( "Expected post-transform result received" );

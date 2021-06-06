@@ -411,7 +411,7 @@ public class Caa {
                     return;
                 }
             } catch (IOException e) {
-                log.logp(Level.WARNING,"com.ibm.j9ddr.corereaders.tdump.zebedee.le.Caa.Cel4rreg", "Cel4rreg","Unexepected exception", e);
+                log.logp(Level.WARNING,"com.ibm.j9ddr.corereaders.tdump.zebedee.le.Caa.Cel4rreg", "Cel4rreg","Unexpected exception", e);
                 throw new Error("Unexpected IOException: " + e);
             }
             try {
@@ -793,7 +793,7 @@ public class Caa {
                 log.logp(Level.FINER,"com.ibm.j9ddr.corereaders.tdump.zebedee.le.Caa.Cel4rreg", "validateDSA","Bad read", e);
                 return ERROR;
             } catch (Exception e) {
-                log.logp(Level.WARNING,"com.ibm.j9ddr.corereaders.tdump.zebedee.le.Caa.Cel4rreg", "validateDSA","Unexepected exception", e);
+                log.logp(Level.WARNING,"com.ibm.j9ddr.corereaders.tdump.zebedee.le.Caa.Cel4rreg", "validateDSA","Unexpected exception", e);
                 throw new Error("Unexpected Exception:: " + e);
             }
         }
@@ -863,7 +863,7 @@ public class Caa {
                     space.getUserMap().put(edbkey, edb);
                 }
             } catch (Exception e) {
-                log.logp(Level.WARNING,"com.ibm.j9ddr.corereaders.tdump.zebedee.le.Caa", "getEdb","Unexepected exception", e);
+                log.logp(Level.WARNING,"com.ibm.j9ddr.corereaders.tdump.zebedee.le.Caa", "getEdb","Unexpected exception", e);
                 throw new Error("Unexpected Exception: " + e);
             }
         }

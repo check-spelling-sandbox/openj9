@@ -1109,7 +1109,7 @@ ffi_closure_SYSV_inner (ffi_closure *closure, struct call_context *context,
       /* Register candidates are *always* returned in registers. */
 
       /* Allocate a scratchpad for the return value, we will let the
-         callee scrible the result into the scratch pad then move the
+         callee scribble the result into the scratch pad then move the
          contents into the appropriate return value location for the
          call convention.  */
       rvalue = alloca (cif->rtype->size);

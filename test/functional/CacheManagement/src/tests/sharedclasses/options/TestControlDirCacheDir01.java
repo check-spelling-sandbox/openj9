@@ -33,7 +33,7 @@ public class TestControlDirCacheDir01 extends TestUtils {
 	  runDestroyAllCaches();
 	  if (isMVS())
 	  {
-		  //this test checks persistent and non persistent cahces ... zos only has nonpersistent ... so we assume other tests cover this
+		  //this test checks persistent and non persistent caches ... zos only has nonpersistent ... so we assume other tests cover this
 		  return;
 	  }
 	  String dir = createTemporaryDirectory("TestControlDirCacheDir01");

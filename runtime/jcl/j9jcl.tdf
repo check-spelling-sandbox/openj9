@@ -347,7 +347,7 @@ TraceEvent=Trc_JCL_attach_createFileWithPermissions Overhead=1 Level=1 Template=
 TraceEvent=Trc_JCL_attach_chmod Overhead=1 Level=1 Template="Java_com_ibm_tools_attach_javaSE_IPC_chmod %s, permissions = %x status=%d"
 TraceEvent=Trc_JCL_attach_createSharedResourcesDir Overhead=1 Level=1 Template="createSharedResourcesDir %s, status=%d"
 TraceEvent=Trc_JCL_attach_openSemaphore Overhead=1 Level=1 Template="openSemaphore name=%s, control director = %s, status=%d"
-TraceEvent=Trc_JCL_attach_notifyVm obsolete Overhead=1 Noenv Level=1 Template="notifyVm on semphore %s, control director = %s, status=%d"
+TraceEvent=Trc_JCL_attach_notifyVm obsolete Overhead=1 Noenv Level=1 Template="notifyVm on semaphore %s, control director = %s, status=%d"
 TraceEntry=Trc_JCL_attach_waitSemaphoreEntry Obsolete Overhead=1 Level=1 Template="Java_com_ibm_tools_attach_javaSE_IPC_waitSemaphoreImpl waiting on semaphore"
 TraceExit=Trc_JCL_attach_waitSemaphoreExit Overhead=1 Level=1 Template="Java_com_ibm_tools_attach_javaSE_IPC_waitSemaphoreImpl received post on semaphore, status = %d"
 TraceEvent=Trc_JCL_attach_closeSemaphore Overhead=1 Level=1 Template="Java_com_ibm_tools_attach_javaSE_IPC_closeSemaphoreImpl"

@@ -332,7 +332,7 @@ j9shsem_deprecated_open (struct J9PortLibrary *portLibrary, const char* cacheDir
 								rc = J9PORT_INFO_SHSEM_OPEN_UNLINKED;
 							}
 						} else {
-							Trc_PRT_shsem_j9shsem_open_Msg("Info: Failed to unlink control file after call to openSemaphoe.");
+							Trc_PRT_shsem_j9shsem_open_Msg("Info: Failed to unlink control file after call to openSemaphore.");
 						}
 					} else {
 						Trc_PRT_shsem_j9shsem_open_Msg("Info: Control file is not unlinked after openSemaphore because it is read-only and (its modLevel does not allow unlinking or rc != SEMAPHORE_NOT_FOUND).");

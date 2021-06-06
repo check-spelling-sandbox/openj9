@@ -472,7 +472,7 @@ j9shsem_deprecated_test5(J9PortLibrary *portLibrary)
 
 	rc = j9shsem_deprecated_open(cacheDir, 0, &myhandle1, TESTSEM_NAME, numSems, 0, J9SHSEM_NO_FLAGS, NULL);
 	if(rc == J9PORT_ERROR_SHSEM_OPFAILED || rc == J9PORT_ERROR_SHSEM_WAIT_FOR_CREATION_MUTEX_TIMEDOUT) {
-		outputErrorMessage(PORTTEST_ERROR_ARGS, "Error opening waiting sempahore");
+		outputErrorMessage(PORTTEST_ERROR_ARGS, "Error opening waiting semaphore");
 		goto cleanup;
 	}
 
@@ -542,7 +542,7 @@ j9shsem_deprecated_test6(J9PortLibrary *portLibrary, const char* argv0)
 
 	rc = j9shsem_deprecated_open(cacheDir, 0, &sem0, SEMAPHOREA, SEMAPHORESETSIZE, 0, J9SHSEM_NO_FLAGS, NULL);
 	if(rc<0) {
-		outputErrorMessage(PORTTEST_ERROR_ARGS, "Error opening sempahore");
+		outputErrorMessage(PORTTEST_ERROR_ARGS, "Error opening semaphore");
 		goto cleanup;
 	}
 	

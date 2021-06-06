@@ -104,7 +104,7 @@ TraceExit=Trc_PRT_shmem_j9shmem_stat_Exit Group=j9shmem Overhead=1 Level=1 NoEnv
 TraceEntry=Trc_PRT_shsem_j9shsem_open_Entry Group=j9shsem Overhead=1 Level=1 NoEnv Template="j9shsem_open entered, semname = %s, setSize = %d, permission = %d"
 TraceDebug=Trc_PRT_shsem_j9shsem_open_Debug1 Group=j9shsem Overhead=1 Level=1 NoEnv Template="j9shsem_open: baseFile=%s"
 
-TraceEvent=Trc_PRT_shsem_j9shsem_open_Event1 Group=j9shsem Overhead=1 Level=1 NoEnv Template="j9shsem_open sempahore file %s exists, opening"
+TraceEvent=Trc_PRT_shsem_j9shsem_open_Event1 Group=j9shsem Overhead=1 Level=1 NoEnv Template="j9shsem_open semaphore file %s exists, opening"
 TraceEvent=Trc_PRT_shsem_j9shsem_open_Event2 Group=j9shsem Overhead=1 Level=1 NoEnv Template="j9shsem_open semaphore file %s does not exist, creating"
 TraceEvent=Trc_PRT_shsem_j9shsem_open_Event3 Group=j9shsem Overhead=1 Level=1 NoEnv Template="j9shsem_open retrying, count=%d"
 TraceExit=Trc_PRT_shsem_j9shsem_open_Exit1 Group=j9shsem Overhead=1 Level=1 NoEnv Template="j9shsem_open failure"

@@ -197,7 +197,7 @@ Compilation Threads AND compilations on Application Threads. When a compilation
 occurs on an Application Thread, `J9::SegmentAllocator` is instantiated instead.
 
 There are a lot of places (thanks to `TR_ALLOC` and related macros) 
-where memory is explicity allocated. However, `TR::Region` 
+where memory is explicitly allocated. However, `TR::Region` 
 should be the allocator used for all new code as much as possible.
 
 ### Allocations that persist for the lifetime of the JVM

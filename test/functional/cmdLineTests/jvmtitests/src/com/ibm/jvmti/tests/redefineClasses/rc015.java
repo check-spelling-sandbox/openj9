@@ -62,6 +62,6 @@ public class rc015 {
 	}
 
 	public String helpReflectMethodIDRedefine() {
-		return "Tests whether invocation of reflected method is virtually dispatched after redfining the class";
+		return "Tests whether invocation of reflected method is virtually dispatched after redefining the class";
 	}
 }

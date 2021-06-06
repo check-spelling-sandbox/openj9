@@ -109,7 +109,7 @@ SH_Managers::getManagerForDataType(UDATA dataType)
 	UDATA i;
 	/* TODO: Optimize */
 	for (i=0; i<NUM_MANAGERS; i++) {
-		if (_initializedManagers[i]->isDataTypeRepresended(dataType) == true) {
+		if (_initializedManagers[i]->isDataTypeRepresented(dataType) == true) {
 			retval = _initializedManagers[i];
 			goto done;
 		}

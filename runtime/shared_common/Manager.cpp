@@ -597,7 +597,7 @@ SH_Manager::countItemsInList(void* entry, void* opaque)
 }
 
 bool
-SH_Manager::isDataTypeRepresended(UDATA type)
+SH_Manager::isDataTypeRepresented(UDATA type)
 {
 	for (int i=0; i<MAX_TYPES_PER_MANAGER; i+=1) {
 		if (_dataTypesRepresented[i] == type) {

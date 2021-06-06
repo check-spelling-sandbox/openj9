@@ -147,7 +147,7 @@ public:
 	 * This should NOT include freeing any resources */
 	virtual void runExitCode(void) = 0;
 
-	bool isDataTypeRepresended(UDATA type);
+	bool isDataTypeRepresented(UDATA type);
 
 protected:
 	J9HashTable* _hashTable;

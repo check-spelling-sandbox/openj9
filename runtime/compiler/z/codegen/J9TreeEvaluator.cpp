@@ -13668,7 +13668,7 @@ J9::Z::TreeEvaluator::inlineIntegerToCharsForUTF16Strings(TR::Node *node, TR::Co
    generateVRRkInstruction(cg, TR::InstOpCode::VUPKZL, node, zonedDecimalRegLower, intToPDReg, 0 /*M3*/);
    // Remove the zone bits
    generateVRRcInstruction(cg, TR::InstOpCode::VN, node, zonedDecimalRegLower, zonedDecimalRegLower, maskReg, 0, 0, 0);
-   // Now the rightmost 16 bytes should hold the entire intege we care about. So let's add 48 to each byte.
+   // Now the rightmost 16 bytes should hold the entire integer we care about. So let's add 48 to each byte.
    generateVRRcInstruction(cg, TR::InstOpCode::VA, node, zonedDecimalRegLower, zonedDecimalRegLower, asciiOffset, 0);
    // We know zonedDecimalRegLower will be full when we unpack. So we store all bytes in it. But we don't know if
    // zonedDecimalRegLowerUpperHalf will be full. So we must calculate "stringSize-8" to figure out how many extra digits remain.

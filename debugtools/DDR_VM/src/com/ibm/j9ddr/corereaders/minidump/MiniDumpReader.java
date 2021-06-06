@@ -189,7 +189,7 @@ public class MiniDumpReader extends AbstractCoreReader implements ICoreFileReade
 	{
 		reader.setByteOrder(ByteOrder.LITTLE_ENDIAN); // make sure that the
 														// reader is set to the
-														// correct bte order for
+														// correct byte order for
 														// this dump
 		super.setReader(reader); // set the reader on the super class
 		try {

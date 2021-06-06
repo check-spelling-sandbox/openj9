@@ -490,7 +490,7 @@ public class ObjectFieldInfo {
 					myBackfillOffset = 0;
 					
 					/*
-					 * Backfill may not be end-aligned, ie 8, 16, 24btye types. In these cases the types
+					 * Backfill may not be end-aligned, ie 8, 16, 24byte types. In these cases the types
 					 * are post-padded so doubles can start on a 8byte boundary.
 					 */
 					if (isBackFillPostPadded()) {

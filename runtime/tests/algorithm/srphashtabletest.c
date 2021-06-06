@@ -265,7 +265,7 @@ checkIntegrity(J9PortLibrary *portLib, char * id, J9SRPHashTable * srptable, UDA
  * It has 3 main stages.
  *
  * 1. It tries to add every element of data array.
- * Data array might be bigger than tableSize of the SRPHAshtable.
+ * Data array might be bigger than tableSize of the SRPHashtable.
  * In such cases, it knows when an element should successfully be added to SRPHashTable
  * and when it should not cause of no vacancy.
  *

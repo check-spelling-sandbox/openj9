@@ -23,7 +23,7 @@ package org.openj9.test.lworld;
 
 import java.lang.reflect.Array;
 
-public class DDRBackfillLayouTest {
+public class DDRBackfillLayoutTest {
 	public static void main(String[] args) {
 		try {
 			createAndCheckValueType();

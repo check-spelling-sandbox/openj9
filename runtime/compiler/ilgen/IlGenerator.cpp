@@ -827,7 +827,7 @@ TR_J9ByteCodeIlGenerator::genExceptionHandlers(TR::Block * lastBlock)
             cfg()->insertBefore(blocks(firstIndex),cfg()->getEnd()->asBlock());
             }
          lastBlock=handlerInfo._lastBlock;
-         //ok what I'm trying here is saying that my first block, last block and catchblock in my catcher are all the same (the one block)
+         //ok what I'm trying here is saying that my first block, last block and catch block in my catcher are all the same (the one block)
 
          handlerInfo._catchBlock->setHandlerInfo(handlerInfo._catchType, (uint8_t)comp()->getInlineDepth(), handlerInfoIter - _tryCatchInfo.begin(), method(), comp());
          continue;

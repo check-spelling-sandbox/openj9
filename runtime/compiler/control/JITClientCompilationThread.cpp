@@ -3111,7 +3111,7 @@ remoteCompile(J9VMThread *vmThread, TR::Compilation *compiler, TR_ResolvedMethod
    if (compiler->getOption(TR_UseSymbolValidationManager))
       {
       // We do not want client to validate anything during compilation, because
-      // validations are done on the server. Creating heuristic region makes SVM assume that everything is valdiated.
+      // validations are done on the server. Creating heuristic region makes SVM assume that everything is validated.
       compiler->enterHeuristicRegion();
       }
 

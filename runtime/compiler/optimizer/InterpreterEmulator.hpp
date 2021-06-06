@@ -355,7 +355,7 @@ class InterpreterEmulator : public TR_ByteCodeIteratorWithState<TR_J9ByteCode, J
       Operand *getReturnValue(TR_ResolvedMethod *callee);
       void dumpStack();
       void pushUnknownOperand() { Base::push(_unknownOperand); }
-      // doesn't need to handle execeptions yet as they don't exist in method handle thunk archetypes
+      // doesn't need to handle exceptions yet as they don't exist in method handle thunk archetypes
       virtual void findAndMarkExceptionRanges(){ }
       /*
        * \brief Propagte state state and local variable state to next target

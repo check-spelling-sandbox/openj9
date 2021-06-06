@@ -2566,7 +2566,7 @@ J9::Z::TreeEvaluator::genLoadForObjectHeadersMasked(TR::CodeGenerator *cg, TR::N
    return iCursor;
    }
 
-// max number of cache slots used by checkcat/instanceof
+// max number of cache slots used by checkcast/instanceof
 #define NUM_PICS 3
 
 static TR::Instruction *

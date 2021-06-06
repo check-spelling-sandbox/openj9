@@ -96,7 +96,7 @@
   <output type="failure" caseSensitive="yes" regex="no">Processing dump event</output>
  </test>
 
- <test id="Test J9HOOK_VM_RUNTIME_STATE_CHANGED event is triggererd when sampling frequency in deep idle is 0">
+ <test id="Test J9HOOK_VM_RUNTIME_STATE_CHANGED event is triggered when sampling frequency in deep idle is 0">
   <command>$EXE$ -Xjit:samplingFrequencyInDeepIdleMode=0 -XX:IdleTuningMinIdleWaitTime=60 -cp $TESTSJARPATH$ -agentlib:vmruntimestateagent29=appClass:ActiveIdleTest,triggerHook:yes $TESTPROGRAM$ --busy-period=30 --idle-period=120</command>
   <output type="success" caseSensitive="yes" regex="no">All Tests Completed and Passed</output>
   <output type="required" caseSensitive="yes" regex="no">Busy looping</output>
@@ -109,7 +109,7 @@
   <output type="failure" caseSensitive="yes" regex="no">Processing dump event</output>
  </test>
 
- <test id="Test J9HOOK_VM_RUNTIME_STATE_CHANGED event is not triggererd when sampling thread expires before VM state changes to idle">
+ <test id="Test J9HOOK_VM_RUNTIME_STATE_CHANGED event is not triggered when sampling thread expires before VM state changes to idle">
   <command>$EXE$ -Xjit:samplingThreadExpirationTime=5 -XX:IdleTuningMinIdleWaitTime=60 -cp $TESTSJARPATH$ -agentlib:vmruntimestateagent29=appClass:ActiveIdleTest,triggerHook:no $TESTPROGRAM$ --busy-period=30 --idle-period=120</command>
   <output type="success" caseSensitive="yes" regex="no">All Tests Completed and Passed</output>
   <output type="required" caseSensitive="yes" regex="no">Busy looping</output>

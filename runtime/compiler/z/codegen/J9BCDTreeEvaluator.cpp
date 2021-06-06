@@ -5002,7 +5002,7 @@ J9::Z::TreeEvaluator::pdclearEvaluator(TR::Node *node, TR::CodeGenerator *cg)
    int32_t targetRegPrec = targetReg->getDecimalPrecision();
 
    if (cg->traceBCDCodeGen())
-      traceMsg(comp,"\tset targetReg prec to %d (isTrucation %s)\n",targetRegPrec,isTruncation?"yes":"no");
+      traceMsg(comp,"\tset targetReg prec to %d (isTruncation %s)\n",targetRegPrec,isTruncation?"yes":"no");
 
    bool truncatedIntoClearedDigits = false;
    if (targetRegPrec < leftMostDigit)

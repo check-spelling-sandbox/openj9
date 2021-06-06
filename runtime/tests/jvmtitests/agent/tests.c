@@ -42,7 +42,7 @@ static jvmtiTest jvmtiTestList[] =
 	{ "evmoa001", evmoa001, "com.ibm.jvmti.tests.eventVMObjectAllocation.evmoa001", "EventVMObjectAllocate - tests based around object allocation events" },
 	{ "emeng001", emeng001, "com.ibm.jvmti.tests.eventMethodEntryGrow.emeng001", "EventMethodEntryGrow - check growing the stack during MethodEntry event of a native method" },
 	{ "emex001", emex001, "com.ibm.jvmti.tests.eventMethodExit.emex001", "EventMethodExit - check firing of Method Exit events" },
-	{ "fer001", fer001, "com.ibm.jvmti.tests.forceEarlyReturn.fer001", "ForceEarlyReturn - check return values - depracated in favour of fer003" },
+	{ "fer001", fer001, "com.ibm.jvmti.tests.forceEarlyReturn.fer001", "ForceEarlyReturn - check return values - deprecated in favour of fer003" },
 	{ "fer002", fer002, "com.ibm.jvmti.tests.forceEarlyReturn.fer002", "ForceEarlyReturn - check method exit event and return value passed through it" },
 	{ "fer003", fer003, "com.ibm.jvmti.tests.forceEarlyReturn.fer003", "ForceEarlyReturn - check return values" },
 	{ "ioioc001", ioioc001, "com.ibm.jvmti.tests.iterateOverInstancesOfClass.ioioc001", "IterateOverInstancesOfClass " },

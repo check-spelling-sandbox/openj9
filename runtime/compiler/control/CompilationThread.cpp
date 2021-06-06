@@ -4817,7 +4817,7 @@ TR::CompilationInfo::addMethodToBeCompiled(TR::IlGeneratorMethodDetails & detail
          // Stop the search when we finished with sync entries
          if (cur->_priority < CP_SYNC_MIN)
             {
-            cur = NULL; // signal that we din't find the entry
+            cur = NULL; // signal that we didn't find the entry
             break;
             }
          if (cur->getMethodDetails().sameAs(details, fe))

@@ -302,7 +302,7 @@ private:
 	MMINLINE void scanOwnableSynchronizerObjectSlots(MM_EnvironmentVLHGC *env, MM_AllocationContextTarok *reservingContext, J9Object *objectPtr, ScanReason reason);
 
 	/**
-	 * Called whenever a ownable synchronizer object is scaned during CopyForwardScheme. Places the object on the thread-specific buffer of gc work thread.
+	 * Called whenever a ownable synchronizer object is scanned during CopyForwardScheme. Places the object on the thread-specific buffer of gc work thread.
 	 * @param env -- current thread environment
 	 * @param object -- The object of type or subclass of java.util.concurrent.locks.AbstractOwnableSynchronizer.
 	 */

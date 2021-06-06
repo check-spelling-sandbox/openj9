@@ -3141,7 +3141,7 @@ TR_MultipleCallTargetInliner::walkCallSites(TR::ResolvedMethodSymbol * callerSym
                            if (methodInfo)
                               {
                               methodInfo->setWasScannedForInlining(true);
-                              debugTrace(tracer(),"Walk call sites for scanning: set scaneed for methodInfo %p\n", methodInfo);
+                              debugTrace(tracer(),"Walk call sites for scanning: set scanned for methodInfo %p\n", methodInfo);
                               }
                            //printf("Walk %s, method info %p\n", calleeResolvedSymbol->signature(trMemory()), methodInfo);
                            }

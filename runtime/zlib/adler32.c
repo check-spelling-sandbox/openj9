@@ -119,7 +119,7 @@ uLong ZEXPORT adler32_z(adler, buf, len)
     }
 
     /* do remaining bytes (less than NMAX, still just one modulo) */
-    if (len) {                  /* avoid modulos if none remaining */
+    if (len) {                  /* avoid modulus if none remaining */
         while (len >= 16) {
             len -= 16;
             DO16(buf);

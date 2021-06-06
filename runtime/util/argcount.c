@@ -22,7 +22,7 @@
 
 #include "j9.h"
 
-/* These represent argcounts for java field descriptors, characters without descriptions are currently unused */
+/* These represent argCounts for java field descriptors, characters without descriptions are currently unused */
 const U_8 argCountCharConversion[] = {
     0, /* A */
     1, /* B -> byte */

@@ -198,7 +198,7 @@ class SharedCachePersister extends JarPersister {
 	    // rule of thumb: combined size of jar files * 15, rounded up to MB
 		long totalBytes = 0;
 		if (sharedCacheConfig().TRACE_DEBUG())
-			System.out.println("Starting to preduct cache size, start size is " + totalBytes);
+			System.out.println("Starting to predict cache size, start size is " + totalBytes);
 		for (String fileName: sourceFiles) {
 			File file = new File(fileName);
 			

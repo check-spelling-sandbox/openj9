@@ -420,7 +420,7 @@ TR_J9ByteCodeIlGenerator::genILFromByteCodes()
          // Disable inlining to compile fast and avoid the bug with not profiling on the fast path
          comp()->getOptions()->setDisabled(OMR::inlining, true);
          }
-      else // Canot profile or there is nothing to profile; take corrective actions
+      else // Cannot profile or there is nothing to profile; take corrective actions
          {
          // Disable the samplingJProfiling opt
          comp()->getOptions()->setDisabled(OMR::samplingJProfiling, true);

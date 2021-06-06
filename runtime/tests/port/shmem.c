@@ -645,7 +645,7 @@ j9shmem_test6(J9PortLibrary *portLibrary)
 
 	fd = j9file_open(mybaseFilePath, EsOpenRead, 0);
 	if(fd == -1) {
-		outputErrorMessage(PORTTEST_ERROR_ARGS, "canot open base file");
+		outputErrorMessage(PORTTEST_ERROR_ARGS, "cannot open base file");
 		goto exit;
 	}
 

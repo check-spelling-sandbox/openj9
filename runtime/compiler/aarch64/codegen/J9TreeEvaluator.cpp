@@ -2682,7 +2682,7 @@ genHeapAlloc(TR::Node *node, TR::CodeGenerator *cg, bool isVariableLen, uint32_t
          else
             {
             bool canBeEncoded = logicImmediateHelper(-round, true, maskN, alignmentMaskEncoding);
-            TR_ASSERT_FATAL(canBeEncoded, "mask for andimmx (%d) cannnot be encoded", (-round));
+            TR_ASSERT_FATAL(canBeEncoded, "mask for andimmx (%d) cannot be encoded", (-round));
             }
          }
       if (comp->useCompressedPointers())

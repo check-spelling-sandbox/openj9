@@ -48,7 +48,7 @@ public class XCOFFReader
 	
 	private long _textSegmentOffset = -1;
 	private long _textSegmentSize = -1;
-	private long _sybolTableOffset = -1;
+	private long _symbolTableOffset = -1;
 	
 	//values held purely for module properties
 	/**
@@ -74,7 +74,7 @@ public class XCOFFReader
 		//time and date in XCOFF is _seconds_ since epoch while in Java it is _milliseconds_ since epoch
 		_timeAndDate = 1000L * (0xFFFFFFFFL & _backing.readInt());
 		//by this point, the file pointer is at 8 so get the offset to the symbol table
-		_sybolTableOffset = (_is64Bit ? _backing.readLong() : (0xFFFFFFFFL & _backing.readInt()));
+		_symbolTableOffset = (_is64Bit ? _backing.readLong() : (0xFFFFFFFFL & _backing.readInt()));
 		seekFileRelative(16);
 		short optionalHeaderSize = _backing.readShort();
 		_flags = _backing.readShort();
@@ -117,7 +117,7 @@ public class XCOFFReader
 	
 	private long _symbolTableOffset() throws IOException
 	{
-		return _sybolTableOffset;
+		return _symbolTableOffset;
 	}
 	
 	private int _numberOfSymbols() throws IOException

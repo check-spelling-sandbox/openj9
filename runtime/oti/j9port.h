@@ -665,7 +665,7 @@ typedef struct J9ProcessorDesc {
 #define J9PORT_X86_FEATURE_RTM				96 + 11	/* Restricted Transactional Memory */
 #define J9PORT_X86_FEATURE_RDT_M			96 + 12	/* Intel RDT Monitoring */
 #define J9PORT_X86_FEATURE_DEPRECATE_FPUCS	96 + 13	/* Deprecates FPU CS and FPU DS when set */
-#define J9PORT_X86_FEATURE_MPX				96 + 14	/* Intel Memory Protextion Extensions */
+#define J9PORT_X86_FEATURE_MPX				96 + 14	/* Intel Memory Protection Extensions */
 #define J9PORT_X86_FEATURE_RDT_A			96 + 15	/* Intel RDT Allocation */
 #define J9PORT_X86_FEATURE_AVX512F			96 + 16	/* AVX512 Foundation */
 #define J9PORT_X86_FEATURE_AVX512DQ			96 + 17	/* AVX512 Doubleword & Quadword */

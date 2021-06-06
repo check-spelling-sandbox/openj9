@@ -141,7 +141,7 @@ public class OutputFile {
 		if (line == null) {
 			// previous call to skip[Un]limitedToLineContaining has failed
 			// so appropriate error message has been emitted already
-			// just return false and allow test to contine. 
+			// just return false and allow test to continue. 
 			return false;
 		}
 		return StringUtils.linePassesCheckForStringAtWord(line, whichWord, lookFor);
@@ -159,7 +159,7 @@ public class OutputFile {
 		if (line == null) {
 			// previous call to skip[Un]limitedToLineContaining has failed
 			// so appropriate error message has been emitted already
-			// just return false and allow test to contine. 
+			// just return false and allow test to continue. 
 			return false;
 		}
 		return StringUtils.linePassesCheckForStringsAtWord(line, whichWord, validValues);

@@ -1171,7 +1171,7 @@ MM_SchedulingDelegate::calculatePGCCompactionRate(MM_EnvironmentVLHGC *env, uint
 	/* estimate totalFreeMemory for recalculating PGCCompactionRate with tarokKickoffHeadroomInBytes */
 	reservedFreeMemory += _extensions->tarokKickoffHeadroomInBytes;
 	estimatedFreeMemory = estimateTotalFreeMemory(env, freeRegionMemory, defragmentedMemory, reservedFreeMemory);
-	/* Remeber the total free memory estimate, so it can be used to calculate how big eden should be */
+	/* Remember the total free memory estimate, so it can be used to calculate how big eden should be */
 	_estimatedFreeTenure = estimatedFreeMemory;
 
 	double bytesDiscardedPerByteCopied = (_averageCopyForwardBytesCopied > 0.0) ? (_averageCopyForwardBytesDiscarded / _averageCopyForwardBytesCopied) : 0.0;

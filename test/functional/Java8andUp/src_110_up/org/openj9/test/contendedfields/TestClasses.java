@@ -343,7 +343,7 @@ public  class TestClasses {
 		
 	}
 
-	static class ContendedSubclassWithmanyFieldsOfClassWithManyFields extends ClassWithManyFields {
+	static class ContendedSubclassWithManyFieldsOfClassWithManyFields extends ClassWithManyFields {
 		public int intField;
 		public long longField;
 		public Object objectField;

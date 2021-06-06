@@ -129,7 +129,7 @@ public class ContendedFieldsTests {
 	}
 
 	public void testBigContendedClass() {
-		Object testObjects[] = {new ClassWithManyFields(), new ContendedSubclassOfClassWithManyFields(), new ContendedSubclassWithmanyFieldsOfClassWithManyFields()};
+		Object testObjects[] = {new ClassWithManyFields(), new ContendedSubclassOfClassWithManyFields(), new ContendedSubclassWithManyFieldsOfClassWithManyFields()};
 		for (Object testObject: testObjects) {
 			FieldUtilities.checkObjectSize(testObject, LOCKWORD_SIZE, 0);
 			FieldUtilities.checkFieldAccesses(testObject);

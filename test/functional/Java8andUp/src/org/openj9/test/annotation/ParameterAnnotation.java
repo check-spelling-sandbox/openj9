@@ -31,5 +31,5 @@ import java.lang.annotation.ElementType;
 @Retention(RetentionPolicy.RUNTIME)
 @Inherited()
 public @interface ParameterAnnotation {
-	String value() default "ParamterAnnotationDefault";
+	String value() default "ParameterAnnotationDefault";
 }

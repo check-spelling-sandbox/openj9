@@ -45,9 +45,9 @@
 #endif /* defined(J9VM_OPT_JITSERVER) */
 
 
-struct ILOfCrashedThreadParamenters
+struct ILOfCrashedThreadParameters
    {
-   ILOfCrashedThreadParamenters(J9VMThread *vmThread, TR::Compilation *comp, TR::FILE *jitdumpFile)
+   ILOfCrashedThreadParameters(J9VMThread *vmThread, TR::Compilation *comp, TR::FILE *jitdumpFile)
    : vmThread(vmThread), comp(comp), jitdumpFile(jitdumpFile)
       {}
 
@@ -64,7 +64,7 @@ struct ILOfCrashedThreadParamenters
 static uintptr_t
 traceILOfCrashedThreadProtected(struct J9PortLibrary *portLib, void *handler_arg)
    {
-   auto p = *static_cast<ILOfCrashedThreadParamenters*>(handler_arg);
+   auto p = *static_cast<ILOfCrashedThreadParameters*>(handler_arg);
 
    TR_J9ByteCodeIlGenerator bci(p.comp->ilGenRequest().details(), p.comp->getMethodSymbol(),
       TR_J9VMBase::get(p.vmThread->javaVM->jitConfig, p.vmThread), p.comp, p.comp->getSymRefTab());
@@ -122,7 +122,7 @@ traceILOfCrashedThread(J9VMThread *vmThread, TR::Compilation *comp, TR::FILE *ji
 
    trfprintf(jitdumpFile, "<ilOfCrashedThread>\n");
 
-   ILOfCrashedThreadParamenters p(vmThread, comp, jitdumpFile);
+   ILOfCrashedThreadParameters p(vmThread, comp, jitdumpFile);
 
    U_32 flags = J9PORT_SIG_FLAG_MAY_RETURN |
                 J9PORT_SIG_FLAG_SIGSEGV | J9PORT_SIG_FLAG_SIGFPE |

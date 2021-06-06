@@ -169,7 +169,7 @@ public class MethodHandleAPI_loop {
 		MethodHandle[] clause1 = new MethodHandle[]{null, mhStep};
 		MethodHandle[] clause2 = new MethodHandle[]{mhInit, mhStep, mhPred, mhFini};
 		MethodHandle mhLoop = MethodHandles.loop(clause1, clause2);
-		Assert.fail("The test case failed to detect non-init handles with inconsistent suffix of paramter types");
+		Assert.fail("The test case failed to detect non-init handles with inconsistent suffix of parameter types");
 	}
 	
 	/**

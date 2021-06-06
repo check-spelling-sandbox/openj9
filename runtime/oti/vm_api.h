@@ -2470,7 +2470,7 @@ classPrepareWithWithUnflattenedFlattenables(J9VMThread *currentThread, J9Class *
 
 /**
  * Compare two objects for equality. This helper will perform a
- * structural comparison if both objecst are valueTypes
+ * structural comparison if both objects are valueTypes
  *
  * @param[in] currentThread the current thread
  * @param[in] lhs first operand

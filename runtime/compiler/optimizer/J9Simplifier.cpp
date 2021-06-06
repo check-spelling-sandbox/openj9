@@ -229,7 +229,7 @@ J9::Simplifier::foldAbs(TR::Node *node)
 
    if (childNode &&
        (childNode->isNonNegative() || (node->getReferenceCount()==1)) &&
-       performTransformation(comp(), "%sFolded abs for postive argument on node [%p]\n", optDetailString(), node))
+       performTransformation(comp(), "%sFolded abs for positive argument on node [%p]\n", optDetailString(), node))
       {
       TR::TreeTop::create(comp(), _curTree->getPrevTreeTop(),
                         TR::Node::create(TR::treetop, 1, childNode));

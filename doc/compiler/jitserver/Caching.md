@@ -24,10 +24,15 @@ SPDX-License-Identifier: EPL-2.0 OR Apache-2.0 OR GPL-2.0 WITH Classpath-excepti
 
 Server-side caching is an important aspect of `JITServer` and one of the main reasons why `JITServer` client consumes less CPU time compared to local compilation. This document will explain why caching is important, what kind of entities we cache, and provide examples of how some caches work.
 
-1. [Importance of caching](#importance-of-caching)
-2. [Types of caching](#types-of-caching)
-3. [Important caches](#important-caches)
-4. [Cache control](#cache-control)
+- [Caching in JITServer](#caching-in-jitserver)
+  - [Importance of caching](#importance-of-caching)
+  - [Types of caching](#types-of-caching)
+  - [Important caches](#important-caches)
+    - [`ClientSessionData`](#clientsessiondata)
+    - [`CompilationInfoPerThreadRemote`](#compilationinfoperthreadremote)
+      - [`TR_ResolvedMethodInfoCache`](#tr_resolvedmethodinfocache)
+      - [`IPTableHeap_t`](#iptableheap_t)
+  - [Cache control](#cache-control)
 
 ## Importance of caching
 
@@ -39,7 +44,7 @@ This is bad because remote calls have to go through the network, and many data s
 These are expensive operations, both in terms of latency and CPU. If the server makes hundreds of requests to the client just for one compilation, client will spend more CPU time just sending and receiving data over the network than it would take for it to compile a method locally.
 What makes it worse is that in order for the client to fetch the requested data it needs to do some work, which additionally increases CPU consumption.
 
-Caching helps alleviate this problem by storing the result of frequent remote calls on the server, so that if the same data is needed again, it can accesss it from the cache, instead of making a remote call.
+Caching helps alleviate this problem by storing the result of frequent remote calls on the server, so that if the same data is needed again, it can access it from the cache, instead of making a remote call.
 
 ## Types of caching
 

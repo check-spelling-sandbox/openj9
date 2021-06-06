@@ -2870,7 +2870,7 @@ gcInitializeDefaults(J9JavaVM* vm)
 	vm->omrVM->_gcOmrVMExtensions = (void *)extensions;
 	vm->gcExtensions = vm->omrVM->_gcOmrVMExtensions;
 
-	/* enable estimateFragmentation for all GCs as default for java, but not the estimated result would not affect concurrentgc kickoff by default */
+	/* enable estimateFragmentation for all GCs as default for java, but not the estimated result would not affect concurrentGC kickoff by default */
 	extensions->estimateFragmentation = (GLOBALGC_ESTIMATE_FRAGMENTATION | LOCALGC_ESTIMATE_FRAGMENTATION);
 	extensions->processLargeAllocateStats = true;
 	extensions->concurrentSlackFragmentationAdjustmentWeight = 0;

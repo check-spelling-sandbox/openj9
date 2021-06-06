@@ -38,8 +38,8 @@ import org.w3c.dom.*;
  * of <a href="http://java.sun.com/j2se/1.4.2/docs/api/javax/imageio/stream/ImageInputStream.html">ImageInputStream</a>
  * so that the template classes can obtain the data for the fields in each structure.
  * <p>
- * The DTD for the XML description of a template type can be found <a href="templatedtd.html">here</a> (in pretty
- * html format) or <a href="templatedtd.dtd">here</a> (in raw form). The XML is always verified and the first line
+ * The DTD for the XML description of a template type can be found <a href="template.html">here</a> (in pretty
+ * html format) or <a href="template.dtd">here</a> (in raw form). The XML is always verified and the first line
  * must contain the following DTD declaration: <b>&lt;!DOCTYPE type SYSTEM "file://template.dtd"&gt;</b>
  * (the reference to template.dtd is automatically intercepted).
  * <p>

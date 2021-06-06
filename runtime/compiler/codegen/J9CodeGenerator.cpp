@@ -4022,7 +4022,7 @@ J9::CodeGenerator::willGenerateNOPForVirtualGuard(TR::Node *node)
     *       For virtual dispatch sequence, we know that this is the safe check but in case of interface call, classes implementing
     *       that interface would have different size of VTable. This makes executing above check unsafe when VTable of the class of
     *       the receiver object is smaller, effectively making reference in n3n to pointing to a garbage location which might lead
-    *       to a segmentation fault if the reference in not memory mapped or if bychance it contains J9Method  pointer of same inlined
+    *       to a segmentation fault if the reference in not memory mapped or if by chance it contains J9Method  pointer of same inlined
     *       method then it will execute a code which should not be executed.
     *       For this kind of Virtual guards which are not nop'd we need to add a range check to make sure the address we are going to
     *       access is pointing to a valid location in VTable. There are mainly two ways we can add this range check test. First one is

@@ -837,14 +837,14 @@ ROMClassBuilder::prepareAndLaydown( BufferManager *bufferManager, ClassFileParse
 		U_16 classNameIndex = classFileOracle.getClassNameIndex();
 		U_8* classNameBytes = classFileOracle.getUTF8Data(classNameIndex);
 		U_16 classNameFullLength = classFileOracle.getUTF8Length(classNameIndex);
-		U_16 classNameRealLenghth = classNameFullLength - ROM_ADDRESS_LENGTH;
+		U_16 classNameRealLength = classNameFullLength - ROM_ADDRESS_LENGTH;
 		char* nameString = NULL;
 		char message[ROM_ADDRESS_LENGTH + 1];
 		if (J9_ARE_ALL_BITS_SET(context->findClassFlags(), J9_FINDCLASS_FLAG_REDEFINING)
 			|| J9_ARE_ALL_BITS_SET(context->findClassFlags(), J9_FINDCLASS_FLAG_RETRANSFORMING)
 		) {
 			/* When redefining we need to use the original class name */
-			nameString = ((char*) context->className() + classNameRealLenghth);
+			nameString = ((char*) context->className() + classNameRealLength);
 		} else {
 			/* fix up the ROM className with segment Address
 			 * write the name into a buffer first because j9str_printf automatically adds a NULL terminator
@@ -853,7 +853,7 @@ ROMClassBuilder::prepareAndLaydown( BufferManager *bufferManager, ClassFileParse
 			j9str_printf(PORTLIB, message, ROM_ADDRESS_LENGTH + 1, ROM_ADDRESS_FORMAT, (UDATA)romClassBuffer);
 			nameString = (char*) message;
 		}
-		memcpy((char*) (classNameBytes + classNameRealLenghth), nameString, ROM_ADDRESS_LENGTH);
+		memcpy((char*) (classNameBytes + classNameRealLength), nameString, ROM_ADDRESS_LENGTH);
 	}
 
 #if defined(J9VM_OPT_SHARED_CLASSES)

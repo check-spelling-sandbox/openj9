@@ -43,10 +43,10 @@
 typedef char* BlockPtr;
 #define GET_DEBUG_MEM_START(ca) (((BlockPtr)(ca)) + (ca)->totalBytes - (ca)->debugRegionSize)
 #define GET_DEBUG_MEM_END(ca) (((BlockPtr)(ca)) + (ca)->totalBytes)
-#define GET_DEBUG_LENTH(ca) ((U_32)((ca)->debugRegionSize))
+#define GET_DEBUG_LENGTH(ca) ((U_32)((ca)->debugRegionSize))
 #define GET_DEBUG_FLAGS(ca) ((ca)->extraFlags)
 
-#define SET_DEBUG_LENTH(ca, size) \
+#define SET_DEBUG_LENGTH(ca, size) \
 	do {\
 		((ca)->debugRegionSize) = (UDATA)size; \
 	} while(0)
@@ -522,8 +522,8 @@ U_32
 ClassDebugDataProvider::getDebugDataSize()
 {
 	Trc_SHR_ClassDebugData_getDebugDataSize_Entry();
-	Trc_SHR_ClassDebugData_getDebugDataSize_Exit(GET_DEBUG_LENTH(_theca));
-	return GET_DEBUG_LENTH(_theca);
+	Trc_SHR_ClassDebugData_getDebugDataSize_Exit(GET_DEBUG_LENGTH(_theca));
+	return GET_DEBUG_LENGTH(_theca);
 }
 
 U_32 
@@ -594,7 +594,7 @@ ClassDebugDataProvider::HeaderInit(J9SharedCacheHeader * ca, U_32 size)
 
 	Trc_SHR_ClassDebugData_HeaderInitForDebug_Entry(ca, size);
 
-	SET_DEBUG_LENTH(ca, size);
+	SET_DEBUG_LENGTH(ca, size);
 
 	startaddr = ((UDATA)GET_DEBUG_MEM_START(ca));
 	setLNTNextAddress(ca, (void*)startaddr);

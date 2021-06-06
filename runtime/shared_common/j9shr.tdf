@@ -566,7 +566,7 @@ TraceExit=Trc_SHR_OSC_detach_Exit1 NoEnv Overhead=1 Level=1 Group=OSCache Templa
 
 TraceEvent=Trc_SHR_OSC_attach_count_inc NoEnv Overhead=1 Level=1 Group=OSCache Template="OSCache increment generation JVM attach count"
 TraceEvent=Trc_SHR_OSC_attach_count_dec NoEnv Overhead=1 Level=1 Group=OSCache Template="OSCache decrement generation JVM attach count"
-TraceEvent=Trc_SHR_OSC_Header_Debug NoEnv Overhead=1 Level=1 Group=OSCache Template="OSCache add: cache_header = %p, version = %d, modlevel=%lld, specLengh=%d, path=%s"
+TraceEvent=Trc_SHR_OSC_Header_Debug NoEnv Overhead=1 Level=1 Group=OSCache Template="OSCache add: cache_header = %p, version = %d, modlevel=%lld, specLength=%d, path=%s"
 
 TraceEntry=Trc_SHR_OSC_add_Entry NoEnv Overhead=1 Level=6 Group=OSCache Template="OSCache add Entered"
 TraceExit=Trc_SHR_OSC_add_Exit1 NoEnv Overhead=1 Level=1 Group=OSCache Template="OSCache add Exit, attach failed"

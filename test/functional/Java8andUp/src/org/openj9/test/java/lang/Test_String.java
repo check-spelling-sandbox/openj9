@@ -236,7 +236,7 @@ public class Test_String {
 		// substring_length_1
 		String s = new String(("Hello World" + "\u0090").substring(11, 12));
 		AssertJUnit.assertTrue(
-				"Failed to construct correct string when the argument is a susbtring of legnth 1 and is out the range of ascii",
+				"Failed to construct correct string when the argument is a susbtring of length 1 and is out the range of ascii",
 				s.equals("\u0090"));
 	}
 

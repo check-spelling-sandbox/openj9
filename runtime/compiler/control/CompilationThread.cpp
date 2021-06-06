@@ -1585,7 +1585,7 @@ void TR::CompilationInfo::printMethodNameToVlog(const J9ROMClass* romClass, cons
 TR_Stats statBudgetEpoch("Budget len at beginning of epoch");
 TR_Stats statBudgetSmallLag("Budget/comp when smallLag");
 TR_Stats statBudgetMediumLag("Budget/comp when mediumLag");
-TR_Stats statEpochLength("Epoch lengh (ms)");
+TR_Stats statEpochLength("Epoch length (ms)");
 char *eventNames[]={"SyncReq", "SmallLag", "LargeLag", "Medium-NoBudget", "Medium-highBudget", "Medium-LowBudget", "Medium-Idle"};
 TR_StatsEvents<7> statEvents("Scenarios", eventNames, 0);
 char *priorityName[]={"High","Normal"};

@@ -5162,19 +5162,19 @@ public class MethodHandles {
 		private void createFullLengthParameterTypesForNonInitHandle() {
 			Class<?>[] iterationVarTypesArray = iterationVarTypes.toArray(new Class<?>[iterationVarTypesLength]);
 			
-			int loopHandleParamLenth = 0;
+			int loopHandleParamLength = 0;
 			/* The resulting loop handle has no parameters if null */
 			if (null != longestLoopParamTypes) {
-				loopHandleParamLenth = longestLoopParamTypes.length;
+				loopHandleParamLength = longestLoopParamTypes.length;
 			}
 			
 			/* From the full-length of parameter list (V..., A...) for all non-init handles
 			 * by copying (V...) and (A...) to an array.
 			 */
-			fullLengthParamTypes = new Class<?>[iterationVarTypesLength + loopHandleParamLenth];
+			fullLengthParamTypes = new Class<?>[iterationVarTypesLength + loopHandleParamLength];
 			System.arraycopy(iterationVarTypesArray, 0, fullLengthParamTypes, 0, iterationVarTypesLength);
-			if (loopHandleParamLenth > 0) {
-				System.arraycopy(longestLoopParamTypes, 0, fullLengthParamTypes, iterationVarTypesLength, loopHandleParamLenth);
+			if (loopHandleParamLength > 0) {
+				System.arraycopy(longestLoopParamTypes, 0, fullLengthParamTypes, iterationVarTypesLength, loopHandleParamLength);
 			}
 		}
 		

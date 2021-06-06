@@ -57,7 +57,7 @@ variable length section
 * If it fails, it reuses the existing *J9JITExceptionTable* and does nothing
 else.
 * If it succeeds, it: 
-  1. `memcpy`s the non-variable lenth section from the existing
+  1. `memcpy`s the non-variable length section from the existing
   *J9JITExceptionTable*
   2. Updates the various `prevMethod` and `nextMethod` pointers
   3. Sets the following fields to `NULL`: 

@@ -32,7 +32,7 @@ import org.openj9.test.util.VersionCheck;
 /**
  * Test cases intended for reflection and MethodHandle
  */
-public class RefectionMHTests {
+public class ReflectionMHTests {
 
 	private static boolean isSecurityFrameOrInjectedInvoker(Class<?> cls) {
 		return ("java.lang.invoke.SecurityFrame" == cls.getName()
@@ -56,7 +56,7 @@ public class RefectionMHTests {
 			if (VersionCheck.major() >= 18) {
 				isClassNameExpected = isSecurityFrameOrInjectedInvoker(cls);
 			} else {
-				isClassNameExpected = (cls == RefectionMHTests.class);
+				isClassNameExpected = (cls == ReflectionMHTests.class);
 			}
 
 			if (isClassNameExpected) {

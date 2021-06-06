@@ -124,7 +124,7 @@ J9::Z::CodeGenerator::initialize()
       }
 
    // Let's turn this on.  There is more work needed in the opt
-   // to catch the case where the BNDSCHK is inserted after
+   // to catch the case where the BNDchk is inserted after
    //
    cg->setDisableNullCheckOfArrayLength();
 
@@ -366,7 +366,7 @@ J9::Z::CodeGenerator::lowerTreeIfNeeded(
    if (self()->yankIndexScalingOp() &&
        (node->getOpCodeValue() == TR::aiadd || node->getOpCodeValue() == TR::aladd ) )
       {
-      // 390 sees a lot of scaling ops getting stuck between BNDSchk and array read/write
+      // 390 sees a lot of scaling ops getting stuck between BNDchk and array read/write
       // causing heavy AGIs.  This transformation pulls the scaling opp up a tree to unpin it.
       //
 

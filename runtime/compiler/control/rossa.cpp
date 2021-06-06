@@ -838,9 +838,9 @@ static IDATA
 internalCompileClass(J9VMThread * vmThread, J9Class * clazz)
    {
    J9JavaVM * javaVM = vmThread->javaVM;
-   J9JITConfig * jitConfg = javaVM->jitConfig;
+   J9JITConfig * jitConfig = javaVM->jitConfig;
    TR::CompilationInfo * compInfo = getCompilationInfo(jitConfig);
-   TR_J9VMBase *fe = TR_J9VMBase::get(jitConfg, NULL);
+   TR_J9VMBase *fe = TR_J9VMBase::get(jitConfig, NULL);
 
    // To prevent class unloading we need VM access
    bool threadHadNoVMAccess = (!(vmThread->publicFlags & J9_PUBLIC_FLAGS_VM_ACCESS));

@@ -792,7 +792,7 @@ public class DumpAPIBasicTests extends TestCase {
 	 */
 	public void testSystemDumpNoArgs() {
 		if( isZOS() ) {
-			System.err.printf("Skipping %s, z/OS system dumps currently inaccessable in Java 8, see CMVC 193090\n", this.getName());
+			System.err.printf("Skipping %s, z/OS system dumps currently inaccessible in Java 8, see CMVC 193090\n", this.getName());
 			return;
 		}
 		
@@ -815,7 +815,7 @@ public class DumpAPIBasicTests extends TestCase {
 	
 	public void testSystemDumpWithFile() {
 		if( isZOS() ) {
-			System.err.printf("Skipping %s, z/OS system dumps currently inaccessable in Java 8, see CMVC 193090\n", this.getName());
+			System.err.printf("Skipping %s, z/OS system dumps currently inaccessible in Java 8, see CMVC 193090\n", this.getName());
 			return;
 		}
 		
@@ -854,7 +854,7 @@ public class DumpAPIBasicTests extends TestCase {
 	 */
 	public void testSystemDumpWithOptions() {
 		if( isZOS() ) {
-			System.err.printf("Skipping %s, z/OS system dumps currently inaccessable in Java 8, see CMVC 193090\n", this.getName());
+			System.err.printf("Skipping %s, z/OS system dumps currently inaccessible in Java 8, see CMVC 193090\n", this.getName());
 			return;
 		}
 		
@@ -894,7 +894,7 @@ public class DumpAPIBasicTests extends TestCase {
 	 */
 	public void testSystemDumpNullFile() {
 		if( isZOS() ) {
-			System.err.printf("Skipping %s, z/OS system dumps currently inaccessable in Java 8, see CMVC 193090\n", this.getName());
+			System.err.printf("Skipping %s, z/OS system dumps currently inaccessible in Java 8, see CMVC 193090\n", this.getName());
 			return;
 		}
 		
@@ -936,7 +936,7 @@ public class DumpAPIBasicTests extends TestCase {
 	 */
 	public void testSystemDumpToDashFile() {
 		if( isZOS() ) {
-			System.err.printf("Skipping %s, z/OS system dumps currently inaccessable in Java 8, see CMVC 193090\n", this.getName());
+			System.err.printf("Skipping %s, z/OS system dumps currently inaccessible in Java 8, see CMVC 193090\n", this.getName());
 			return;
 		}
 		
@@ -959,7 +959,7 @@ public class DumpAPIBasicTests extends TestCase {
 	/* Test we relocate files if they clash with an existing file, but only once! */
 	public void testSystemDumpWithSameFile() {
 		if( isZOS() ) {
-			System.err.printf("Skipping %s, z/OS system dumps currently inaccessable in Java 8, see CMVC 193090\n", this.getName());
+			System.err.printf("Skipping %s, z/OS system dumps currently inaccessible in Java 8, see CMVC 193090\n", this.getName());
 			return;
 		}
 		

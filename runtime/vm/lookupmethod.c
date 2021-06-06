@@ -722,7 +722,7 @@ retry:
 					if (lookupClass != J9VMJAVALANGOBJECT_OR_NULL(currentThread->javaVM)) {
 						goto done;
 					}
-					/* interface found inaccessable method in Object - keep looking
+					/* interface found inaccessible method in Object - keep looking
 					 * as valid interface method may be found by the iTable search
 					 */
 				} else if (!isInterfaceLookup) {

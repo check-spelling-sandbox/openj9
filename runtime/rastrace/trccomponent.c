@@ -1104,7 +1104,7 @@ loadFormatStringsForComponent(UtComponentData *componentData)
 														componentData->formatStringsFileName,
 														EsOpenText | EsOpenRead, 0);
 		if (formatFileFD == -1) {
-			UT_DBGOUT(1, ("<UT> loadFormatStringsForComponent can't load = %s, from current directory either - marking it unfindeable\n", componentData->formatStringsFileName));
+			UT_DBGOUT(1, ("<UT> loadFormatStringsForComponent can't load = %s, from current directory either - marking it unfindable\n", componentData->formatStringsFileName));
 			rc = OMR_ERROR_INTERNAL;
 			goto epilogue;
 		}

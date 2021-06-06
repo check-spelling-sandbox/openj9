@@ -40,7 +40,7 @@ depends on what the Class of that method "sees"). In order to deal
 with this, the compiler needs to know where the "beholder" Class comes
 from. The Symbol Validation Manager fixes this problem by making the
 answer to the question "where does this _whatever_ come from?" explicit
-and unambigious.
+and unambiguous.
 
 ## How it works
 

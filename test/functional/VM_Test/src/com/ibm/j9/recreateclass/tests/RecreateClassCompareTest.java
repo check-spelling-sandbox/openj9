@@ -109,10 +109,10 @@ public class RecreateClassCompareTest extends TestCase {
 		System.out.println("End testSingleInterface");		
 	}
 	
-	public void testMutlipleInterfaces() throws Exception {
-		System.out.println("Start testMutlipleInterfaces");
+	public void testMultipleInterfaces() throws Exception {
+		System.out.println("Start testMultipleInterfaces");
 		runTest(MultipleInterfacesTest.class, 0);
-		System.out.println("End testMutlipleInterfaces");		
+		System.out.println("End testMultipleInterfaces");		
 	}
 	
 	public void testConstantValue() throws Exception {

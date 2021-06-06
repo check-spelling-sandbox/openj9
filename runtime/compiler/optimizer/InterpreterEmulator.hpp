@@ -25,7 +25,7 @@
  *
  * \brief This class is a bytecode iterator in estimate code size (ECS) of inliner.
  *
- * \notes The iterator has statelss and with state modes.
+ * \notes The iterator has stateless and with state modes.
  *
  *        Stateless mode is the default mode and can be used to iterate
  *        through bytecodes in the method. This mode is currently used in the

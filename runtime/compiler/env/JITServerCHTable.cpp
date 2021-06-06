@@ -209,7 +209,7 @@ bool JITClientCHTableCommit(
          {
          if (TR::Options::isAnyVerboseOptionSet(TR_VerboseRuntimeAssumptions, TR_VerboseCompileEnd, TR_VerbosePerformance, TR_VerboseCompFailure))
             {
-            TR_VerboseLog::writeLineLocked(TR_Vlog_FAILURE, "JITClientCHTableCommit failure while commiting static final field assumption for class %p for %s", clazz, comp->signature());
+            TR_VerboseLog::writeLineLocked(TR_Vlog_FAILURE, "JITClientCHTableCommit failure while committing static final field assumption for class %p for %s", clazz, comp->signature());
             }
          comp->failCompilation<TR::CompilationInterrupted>("JITClientCHTableCommit compilation interrupted: Static final field of a class has been modified");
          }

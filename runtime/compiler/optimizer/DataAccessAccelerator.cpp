@@ -406,31 +406,31 @@ int32_t TR_DataAccessAccelerator::performOnBlock(TR::Block* block, TreeTopContai
 
                   // DAA Packed Decimal comparison methods
                case TR::com_ibm_dataaccess_PackedDecimal_lessThanPackedDecimal_:
-                  if (genComparisionIntrinsic(treeTop, callNode, TR::pdcmplt))
+                  if (genComparisonIntrinsic(treeTop, callNode, TR::pdcmplt))
                      {
                      ++result;
                      }
                   break;
                case TR::com_ibm_dataaccess_PackedDecimal_lessThanOrEqualsPackedDecimal_:
-                  if (genComparisionIntrinsic(treeTop, callNode, TR::pdcmple))
+                  if (genComparisonIntrinsic(treeTop, callNode, TR::pdcmple))
                      {
                      ++result;
                      }
                   break;
                case TR::com_ibm_dataaccess_PackedDecimal_greaterThanPackedDecimal_:
-                  if (genComparisionIntrinsic(treeTop, callNode, TR::pdcmpgt))
+                  if (genComparisonIntrinsic(treeTop, callNode, TR::pdcmpgt))
                      {
                      ++result;
                      }
                   break;
                case TR::com_ibm_dataaccess_PackedDecimal_greaterThanOrEqualsPackedDecimal_:
-                  if (genComparisionIntrinsic(treeTop, callNode, TR::pdcmpge))
+                  if (genComparisonIntrinsic(treeTop, callNode, TR::pdcmpge))
                      {
                      ++result;
                      }
                   break;
                case TR::com_ibm_dataaccess_PackedDecimal_equalsPackedDecimal_:
-                  if (genComparisionIntrinsic(treeTop, callNode, TR::pdcmpeq))
+                  if (genComparisonIntrinsic(treeTop, callNode, TR::pdcmpeq))
                      {
                      ++result;
                      }
@@ -1150,7 +1150,7 @@ TR::Node* TR_DataAccessAccelerator::constructAddressNode(TR::Node* callNode, TR:
    return arrayAddressNode;
    }
 
-bool TR_DataAccessAccelerator::genComparisionIntrinsic(TR::TreeTop* treeTop, TR::Node* callNode, TR::ILOpCodes ops)
+bool TR_DataAccessAccelerator::genComparisonIntrinsic(TR::TreeTop* treeTop, TR::Node* callNode, TR::ILOpCodes ops)
    {
    if (!isChildConst(callNode, 2) || !isChildConst(callNode, 5))
       {

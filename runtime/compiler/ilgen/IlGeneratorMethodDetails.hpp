@@ -297,7 +297,7 @@ public:
    ShareableInvokeExactThunkDetails(const ShareableInvokeExactThunkDetails & other) :
       MethodHandleThunkDetails(other.getMethod(), other.getHandleRef(), other.getArgRef()) { }
 
-   virtual const char * name() const { return "SharableInvokeExactThunk"; }
+   virtual const char * name() const { return "ShareableInvokeExactThunk"; }
 
    virtual bool isShareable()  const { return true; }
 

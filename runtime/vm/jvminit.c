@@ -2646,7 +2646,7 @@ VMInitStages(J9JavaVM *vm, IDATA stage, void* reserved)
 
 #if defined(J9VM_OPT_INVARIANT_INTERNING)
 			/* the system class loader does not get unloaded, and thus is safe to share its strings for string interning */
-			vm->systemClassLoader->flags |= J9CLASSLOADER_INVARIANTS_SHARABLE;
+			vm->systemClassLoader->flags |= J9CLASSLOADER_INVARIANTS_SHAREABLE;
 			if ((NULL != vm->dynamicLoadBuffers) && (J9_ARE_ANY_BITS_SET(vm->dynamicLoadBuffers->flags, BCU_ENABLE_INVARIANT_INTERNING))) {
 				/* vm->sharedClassPreinitConfig is not NULL if shareclasses is enabled */
 				if (NULL != vm->sharedClassPreinitConfig) {

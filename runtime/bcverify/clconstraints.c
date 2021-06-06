@@ -54,10 +54,10 @@ validateArgs (J9VMThread* vmThread, J9ClassLoader* loader1, J9ClassLoader* loade
 	seg = vmThread->javaVM->classMemorySegments->nextSegment;
 	while (seg) {
 		if (seg->heapBase <= name1 && seg->heapTop >= name1) {
-			Assert_RTV_true( (seg->classLoader == loader1) || (seg->classLoader->flags & J9CLASSLOADER_INVARIANTS_SHARABLE) );
+			Assert_RTV_true( (seg->classLoader == loader1) || (seg->classLoader->flags & J9CLASSLOADER_INVARIANTS_SHAREABLE) );
 		}
 		if (seg->heapBase <= name2 && seg->heapTop >= name2) {
-			Assert_RTV_true( (seg->classLoader == loader2) || (seg->classLoader->flags & J9CLASSLOADER_INVARIANTS_SHARABLE) );
+			Assert_RTV_true( (seg->classLoader == loader2) || (seg->classLoader->flags & J9CLASSLOADER_INVARIANTS_SHAREABLE) );
 		}
 		seg = seg->nextSegment;
 	}

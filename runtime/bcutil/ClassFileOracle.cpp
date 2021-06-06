@@ -1549,7 +1549,7 @@ ClassFileOracle::walkMethodCodeAttributeAttributes(U_16 methodIndex)
 	 * I tracked the last LVTT attribute that has been verified so the second loop search is not repeated. 
 	 * Because of this for most cases the second loop will only be executed once.
 	 * 
-	 * It is also common to see LVT and LVTT entries in the same order though the spec makes no ordering guaruntees. 
+	 * It is also common to see LVT and LVTT entries in the same order though the spec makes no ordering guarantees. 
 	 * To take advantage of this each search for an LVT match starts from the index where the previous match was 
 	 * found saving iterations.
 	 * 

@@ -107,7 +107,7 @@ setupVersionInformation(struct J9PortLibraryVersion *version, U_16 majorVersionN
  * matches the expected value.
  * 
  * @param[in] portLibrary The port used for displaying messages etc.
- * @param[in] testNmae The test requesting the verification
+ * @param[in] testName The test requesting the verification
  * @param[in] fakePortLibrary The port library under test
  * @param[in] expectedVersion The expected version information
  * @param[in] fields Which fields to verify

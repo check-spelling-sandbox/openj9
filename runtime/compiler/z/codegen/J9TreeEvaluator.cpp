@@ -13176,7 +13176,7 @@ J9::Z::TreeEvaluator::generateSoftwareReadBarrier(TR::Node* node,
    const bool fieldUnresolved = node->getSymbolReference()->isUnresolved();
    if (comp->getOption(TR_TraceCG))
       {
-      traceMsg(comp, "SoftwareReadBarrier: symbol is %s. Compr shift %d. RA reg: %s Entry reg %s\n",
+      traceMsg(comp, "SoftwareReadBarrier: symbol is %s. Compressed shift %d. RA reg: %s Entry reg %s\n",
                fieldUnresolved ? "unresolved" : "resolved",
                TR::Compiler->om.compressedReferenceShift(),
                raReg->getRegisterName(comp),

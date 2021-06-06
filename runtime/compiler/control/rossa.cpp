@@ -1410,7 +1410,7 @@ onLoadInternal(
    codeCacheConfig._codeCacheKB = jitConfig->codeCacheKB;
    codeCacheConfig._codeCachePadKB = jitConfig->codeCachePadKB;
    codeCacheConfig._codeCacheAlignment = jitConfig->codeCacheAlignment;
-   codeCacheConfig._codeCacheFreeBlockRecylingEnabled = !TR::Options::getCmdLineOptions()->getOption(TR_DisableFreeCodeCacheBlockRecycling);
+   codeCacheConfig._codeCacheFreeBlockRecyclingEnabled = !TR::Options::getCmdLineOptions()->getOption(TR_DisableFreeCodeCacheBlockRecycling);
    codeCacheConfig._largeCodePageSize = jitConfig->largeCodePageSize;
    codeCacheConfig._largeCodePageFlags = jitConfig->largeCodePageFlags;
    codeCacheConfig._maxNumberOfCodeCaches = maxNumberOfCodeCaches;

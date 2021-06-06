@@ -264,7 +264,7 @@ public class DDRExtTesterBase extends TestCase {
 							+ parentCmd);
 					for (int i = 0; i < structuresToRun.size(); i++) {
 						currentCommand = structuresToRun.get(i);
-						log.info("Runing structure test with : !"
+						log.info("Running structure test with : !"
 								+ currentCommand);
 						String[] tokens = currentCommand.trim().split(" ");
 						String cmd = tokens[0];

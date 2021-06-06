@@ -67,7 +67,7 @@ where `C'` extends `B'` extends `A'`. In another JVM instance, the
 classes `A''`, `B''`, and `C''` might be loaded, where `C''` extends 
 `B''` extends `A''`. The SCC can provide information about whether, 
 `romclass(C'') == romclass(C')`, `romclass(B'') == romclass(B')`, 
-and `romclass(A'') == romclass(A')`. Ignorning interfaces for the moment, 
+and `romclass(A'') == romclass(A')`. Ignoring interfaces for the moment, 
 if all of these relationships are true, then `J9Class(C'') == J9Class(C')`. 
 This means that objects of `C''` or `C'` have the same shape, and any 
 relationships known between `J9Class(C')` and `J9Class(B')` are also 

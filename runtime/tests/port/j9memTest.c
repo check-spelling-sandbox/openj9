@@ -1166,7 +1166,7 @@ j9mem_test8_categories(struct J9PortLibrary *portLibrary)
 	}
 
 	/* On 64 bit, check that allocate32 manipulates the "unused 32 bit slab" category */
-	/* n.b. we're reliant on previous tests having initialized the 32bithelpers. */
+	/* n.b. we're reliant on previous tests having initialized the 32-bit helpers. */
 #if defined(J9VM_ENV_DATA64)
 	{
 		UDATA initialBlocks;

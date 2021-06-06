@@ -518,7 +518,7 @@ void TR_BoolArrayStoreTransformer::findLoadAddressAutoAndFigureOutType(TR::Node 
 
 /*
  * \brief
- *   This function calculcates the type info of each auto and figure out whether a
+ *   This function calculates the type info of each auto and figure out whether a
  *   bstorei node is for boolean array
  *
  * \parm block

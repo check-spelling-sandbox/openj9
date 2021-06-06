@@ -284,7 +284,7 @@ typedef UDATA (* lookupNativeAddressCallback)(struct J9VMThread *currentThread, 
 				This hook serves similar purpose as J9HOOK_VM_RELEASEVMACCESS, to ensure that required work for thread in native
 				is performed before exclusive access is obtained. 
 		</description>
-		<struct>J9VMAcquringExclusiveInNativeEvent</struct>
+		<struct>J9VMAcquiringExclusiveInNativeEvent</struct>
 		<data type="struct J9VMThread*" name="currentThread" description="calling thread" />
 		<data type="struct J9VMThread*" name="targetThread" description="thread in native" />
 	</event>

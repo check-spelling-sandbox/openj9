@@ -767,8 +767,8 @@ gcParseXXgcArguments(J9JavaVM *vm, char *optArg)
 			continue;
 		} 
 
-		if(try_scan(&scan_start, "dbfEnablePermanantHotFields")) {
-			extensions->allowPermanantHotFields = true;
+		if(try_scan(&scan_start, "dbfEnablePermanentHotFields")) {
+			extensions->allowPermanentHotFields = true;
 			continue;
 		}
 		

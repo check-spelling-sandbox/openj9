@@ -221,7 +221,7 @@ launchChildProcess (J9PortLibrary* portLibrary, const char* testname, const char
 	char **env = NULL;
 	UDATA envSize = 0;
 	char *dir = ".";
-	U_32 exeoptions = 0;
+	U_32 execOptions = 0;
 	IDATA retVal;
 	PORT_ACCESS_FROM_PORT(portLibrary);
 
@@ -255,11 +255,11 @@ launchChildProcess (J9PortLibrary* portLibrary, const char* testname, const char
 		}
 		j9tty_printf(portLibrary, "\n\n");
 
-		exeoptions = J9PORT_PROCESS_INHERIT_STDOUT | J9PORT_PROCESS_INHERIT_STDERR;
+		execOptions = J9PORT_PROCESS_INHERIT_STDOUT | J9PORT_PROCESS_INHERIT_STDERR;
 	}
 #endif 
 
-	retVal = j9process_create((const char **)command, commandLength, env, envSize, dir, exeoptions, J9PORT_INVALID_FD, J9PORT_INVALID_FD, J9PORT_INVALID_FD, &processHandle);
+	retVal = j9process_create((const char **)command, commandLength, env, envSize, dir, execOptions, J9PORT_INVALID_FD, J9PORT_INVALID_FD, J9PORT_INVALID_FD, &processHandle);
 	
 	if (0 != retVal) {
 		I_32 portableErrno = j9error_last_error_number();

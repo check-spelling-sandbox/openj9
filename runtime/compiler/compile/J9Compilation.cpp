@@ -221,7 +221,7 @@ J9::Compilation::Compilation(int32_t id,
       _cachedClassPointers[i] = NULL;
 
 
-   // Add known object index to parm 0 so that other optmizations can be unlocked.
+   // Add known object index to parm 0 so that other optimizations can be unlocked.
    // It is safe to do so because method and method symbols of a archetype specimen
    // are not shared other methods.
    //

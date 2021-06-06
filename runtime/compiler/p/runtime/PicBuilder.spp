@@ -2128,7 +2128,7 @@ _virtualUnresolvedHelper:
         staddr  r3, 7*ALen(J9SP)
         laddr   r9, VirtualJ9MethodOffset(r11)                          ! Load the J9Method
         or.     r9, r9, r9                                              ! Check if J9Method is null
-        bc      BO_IF_NOT, CR0_EQ, .L.callPrivate                       ! If not null, this is a prevously resolved private method
+        bc      BO_IF_NOT, CR0_EQ, .L.callPrivate                       ! If not null, this is a previously resolved private method
 #ifdef AIXPPC
 	laddr	RTOC, J9TR_VMThreadRTOCOffset(J9VM_STRUCT)		! Restore TOC register
 	laddr	r5, TOCjitResolveVirtualMethod(RTOC)

@@ -736,7 +736,7 @@ FUNC_LABEL(_virtualUnresolvedHelper):
 	ldr	x10, [x30, #J9TR_UVCSnippet_codeCacheReturnAddress]	// get code cache RA (L_commonLookupException expects it to be in x10)
 	mov	x11, x30					// protect snippet address in x11
 	ldr	x0, [x30, #J9TR_UVCSnippet_method]		// Load the J9Method
-	cbnz	x0, L_callPrivate				// If J9Method is not null, this is a prevously resolved private method
+	cbnz	x0, L_callPrivate				// If J9Method is not null, this is a previously resolved private method
 	add	x0, x30, #J9TR_UVCSnippet_CP			// get CP/index pair pointer
 	mov	x1, x10						// code cache RA
 	bl	FUNC_LABEL(jitResolveVirtualMethod)		// resolve the method, return value = vTable offset

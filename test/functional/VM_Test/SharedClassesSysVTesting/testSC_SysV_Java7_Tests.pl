@@ -90,7 +90,7 @@ my $cmdNonfatal = $java. " -Xshareclasses:cacheDir=".$cacheDirectory.",nonpersis
 # Script argument handling ...
 #
 if ($numargs != 1) {
-	print("Error: incorrect useage!\n");
+	print("Error: incorrect usage!\n");
 	print("\tscriptname.pl zos|aix|linux\n");
 	die ("Invalid arguments!");
 } elsif ($numargs == 1) {

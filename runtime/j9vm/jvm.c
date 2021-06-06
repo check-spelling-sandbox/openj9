@@ -4660,7 +4660,7 @@ isSignalReservedByJVM(jint sigNum)
  * via JVM_RegisterSignal.
  *
  * isSignalUsedForShutdown lists all signals characterized as shutdown signals.
- * Do not raise a shutdown signal if the -Xrs or the -Xrs:async cmdnline option
+ * Do not raise a shutdown signal if the -Xrs or the -Xrs:async cmdline option
  * is specified. If a shutdown signal is ignored by the OS, do not raise that
  * shutdown signal. Only raise a shutdown signal if the previous two conditions
  * are false.
@@ -4721,7 +4721,7 @@ JVM_RaiseSignal(jint sigNum)
  *
  * isSignalUsedForShutdown lists all signals characterized as shutdown signals.
  * This function shouldn't register a handler for shutdown signals if
- * the -Xrs or the -Xrs:async cmdnline option is specified. If a shutdown
+ * the -Xrs or the -Xrs:async cmdline option is specified. If a shutdown
  * signal is ignored by the OS, this function shouldn't register a handler
  * for that shutdown signal. Only register a handler for shutdown signals if
  * the previous two conditions are false.

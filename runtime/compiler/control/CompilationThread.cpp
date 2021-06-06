@@ -12077,7 +12077,7 @@ void TR_LowPriorityCompQueue::printStats() const
 
    fprintf(stderr, "   Conflicts        = %4u (tried to cache j9method that didn't have space)\n", _STAT_conflict);
    fprintf(stderr, "   Stale entries    = %4u\n", _STAT_staleScrubbed); // we want very few of these, hopefully 0
-   fprintf(stderr, "   Bypass ocurrences= %4u (normal comp req hapened before the fast LPQ comp req)\n", _STAT_bypass);
+   fprintf(stderr, "   Bypass ocurrences= %4u (normal comp req happened before the fast LPQ comp req)\n", _STAT_bypass);
    }
 
 void TR_LowPriorityCompQueue::invalidateRequestsForUnloadedMethods(J9Class * unloadedClass)

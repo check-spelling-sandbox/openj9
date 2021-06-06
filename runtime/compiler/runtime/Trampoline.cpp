@@ -1238,7 +1238,7 @@ bool s390zOS64CodePatching(void *method, void *callSite, void *currentPC, void *
 
    //#define CHECK_32BIT_TRAMPOLINE_RANGE(x,rip)  (((intptr_t)(x) == (intptr_t)(rip) + (int32_t)((intptr_t)(x) - (intptr_t)(rip))) && (x % 2 == 0))
 
-   // call instruction should be BASRL rRA,Imm  with immediate field aligned.
+   // call instruction should be BASR rRA,Imm  with immediate field aligned.
    if (TR::Options::getCmdLineOptions()->getOption(TR_StressTrampolines) || !CHECK_32BIT_TRAMPOLINE_RANGE(distance,0))
       {
       // Check if the call already jumps to our current trampoline.

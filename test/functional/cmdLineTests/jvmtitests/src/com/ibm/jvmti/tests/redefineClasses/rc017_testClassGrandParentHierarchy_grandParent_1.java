@@ -21,8 +21,8 @@
  *******************************************************************************/
 package com.ibm.jvmti.tests.redefineClasses;
 
-public class rc017_testClassGrandParentHierachy_grandParent_0 {
+public class rc017_testClassGrandParentHierarchy_grandParent_1 {
 	public void print() {
-		System.out.println("grandparent");
+		System.out.println("grandparent_1");
 	}
 }

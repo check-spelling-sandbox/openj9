@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2013, 2013 IBM Corp. and others
+ * Copyright (c) 2013, 2018 IBM Corp. and others
  *
  * This program and the accompanying materials are made available under
  * the terms of the Eclipse Public License 2.0 which accompanies this
@@ -21,8 +21,8 @@
  *******************************************************************************/
 package com.ibm.jvmti.tests.redefineClasses;
 
-public class rc017_testClassGrandParentHierachy_grandParent_1 {
+public class rc017_testClassGrandParentHierarchy_child_0 extends rc017_testClassGrandParentHierarchy_parent{
 	public void print() {
-		System.out.println("grandparent_1");
+		System.out.println("child");
 	}
 }

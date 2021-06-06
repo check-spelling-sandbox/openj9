@@ -21,7 +21,7 @@
  *******************************************************************************/
 package com.ibm.jvmti.tests.redefineClasses;
 
-public class rc017_testClassGrandParentHierachy_child_1 extends rc017_testClassGrandParentHierachy_parent{
+public class rc017_testClassGrandParentHierarchy_child_1 extends rc017_testClassGrandParentHierarchy_parent{
 	public void print() {
 		System.out.println("child_1");
 	}

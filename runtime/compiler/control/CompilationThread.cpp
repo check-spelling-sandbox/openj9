@@ -666,7 +666,7 @@ bool TR::CompilationInfo::shouldDowngradeCompReq(TR_MethodToBeCompiled *entry)
       else
          {
          // We may skip downgrading during grace period
-         if (TR::Options::getCmdLineOptions()->getOption(TR_DontDowgradeToColdDuringGracePeriod) &&
+         if (TR::Options::getCmdLineOptions()->getOption(TR_DontDowngradeToColdDuringGracePeriod) &&
              persistentInfo->getElapsedTime() < (uint64_t)persistentInfo->getClassLoadingPhaseGracePeriod())
             {
             }

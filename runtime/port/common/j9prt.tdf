@@ -1377,10 +1377,10 @@ TraceEntry=Trc_PRT_vmem_j9vmem_reserve_memory_Entry_replacement_v1 Obsolete Grou
 TraceException=Trc_PRT_vmem_j9vmem_reserve_memory_parameter_mismatch Obsolete Group=j9mem Overhead=1 Level=1 NoEnv Template="j9vmem_reserve_memory Cannot request large page size for executable pages (mode=%zu) in 2-32GB range (options=%zu)"
 TraceEvent=Trc_PRT_vmem_j9vmem_reserve_memory_unsupported_page_size_executable_largepages Obsolete Group=j9mem Overhead=1 Level=1 NoEnv Template="j9vmem_reserve_memory cannot allocate executable pages with page size=%zu, page flag=%zu"
 
-TraceEntry=Trc_PRT_vmem_reserve1MPageableBelowBar_Entry Obsolete Group=j9mem Overhead=1 Level=5 NoEnv Template="reserve1MPageableBelowBar Entring with byteAmount=%zu"
+TraceEntry=Trc_PRT_vmem_reserve1MPageableBelowBar_Entry Obsolete Group=j9mem Overhead=1 Level=5 NoEnv Template="reserve1MPageableBelowBar Entering with byteAmount=%zu"
 TraceExit=Trc_PRT_vmem_reserve1MPageableBelowBar_Exit Obsolete Group=j9mem Overhead=1 Level=5 NoEnv Template="reserve1MPageableBelowBar returns %p"
 
-TraceEntry=Trc_PRT_vmem_reservePagesAboveBar_Entry Obsolete Group=j9mem Overhead=1 Level=5 NoEnv Template="reservePagesAboveBar Entring with byteAmount=%zu pageSize=%zu pageType=%zu options=%zu use2To32GArea=%zu"
+TraceEntry=Trc_PRT_vmem_reservePagesAboveBar_Entry Obsolete Group=j9mem Overhead=1 Level=5 NoEnv Template="reservePagesAboveBar Entering with byteAmount=%zu pageSize=%zu pageType=%zu options=%zu use2To32GArea=%zu"
 TraceEvent=Trc_PRT_vmem_reservePagesAboveBar_allocate_4K_pages_in_2to32G_area Obsolete Group=j9mem Overhead=1 Level=1 NoEnv Template="reservePagesAboveBar Calling j9allocate_4K_pages_in_2to32G_area(%zu)"
 TraceEvent=Trc_PRT_vmem_reservePagesAboveBar_allocate_large_2G_pages Obsolete Group=j9mem Overhead=1 Level=1 NoEnv Template="reservePagesAboveBar Calling j9allocate_large_2G_pages(%zu, %zu)"
 TraceEvent=Trc_PRT_vmem_reservePagesAboveBar_allocate_large_pages Obsolete Group=j9mem Overhead=1 Level=1 NoEnv Template="reservePagesAboveBar Calling j9allocate_large_pages(%zu, %zu)"

@@ -2536,7 +2536,7 @@ CISCTransform2CopyingTROx(TR_CISCTransformer *trans)
    if (!isIndexVariableInList(inputNode, &variableList) ||
        !isIndexVariableInList(outputNode, &variableList))
       {
-      dumpOptDetails(comp, "indices used in array loads %p and %p are not consistent with the induction varaible updates\n", inputNode, outputNode);
+      dumpOptDetails(comp, "indices used in array loads %p and %p are not consistent with the induction variable updates\n", inputNode, outputNode);
       return false;
       }
    TR::SymbolReference * indexDiffVarSymRef = (indexDiffRepNode->getOpCode().isLoadVarOrStore() &&
@@ -3455,7 +3455,7 @@ CISCTransform2TROTArray(TR_CISCTransformer *trans)
    if (!isIndexVariableInList(inputNode, &variableList) ||
        !isIndexVariableInList(outputNode, &variableList))
       {
-      dumpOptDetails(comp, "indices used in array loads %p and %p are not consistent with the induction varaible updates\n", inputNode, outputNode);
+      dumpOptDetails(comp, "indices used in array loads %p and %p are not consistent with the induction variable updates\n", inputNode, outputNode);
       return false;
       }
    TR::Block *target = trans->analyzeSuccessorBlock();
@@ -4865,7 +4865,7 @@ CISCTransform2TRTOArray(TR_CISCTransformer *trans)
    if (!isIndexVariableInList(inputNode, &variableList) ||
        !isIndexVariableInList(outputNode, &variableList))
       {
-      dumpOptDetails(comp, "indices used in array loads %p and %p are not consistent with the induction varaible updates\n", inputNode, outputNode);
+      dumpOptDetails(comp, "indices used in array loads %p and %p are not consistent with the induction variable updates\n", inputNode, outputNode);
       return false;
       }
 
@@ -7883,7 +7883,7 @@ CISCTransform2ArraySet(TR_CISCTransformer *trans)
          inStoreNode = inStoreCISCNode->getHeadOfTrNodeInfo()->_node;
          if (!isIndexVariableInList(inStoreNode, &storeList))
             {
-            dumpOptDetails(comp, "an index used in an array store %p is not consistent with the induction varaible updates\n", inStoreNode);
+            dumpOptDetails(comp, "an index used in an array store %p is not consistent with the induction variable updates\n", inStoreNode);
             return false;
             }
          // this idiom operates in two modes - arrayset for all values or arrayset only for setting to zero
@@ -8864,7 +8864,7 @@ CISCTransform2ArrayCmp2Ifs(TR_CISCTransformer *trans)
    //
    if (!indicesAndStoresAreConsistent(comp, inSrc1Node, inSrc2Node, storeSrc1, storeSrc2))
       {
-      dumpOptDetails(comp, "indices used in array loads %p and %p are not consistent with the induction varaible updates\n", inSrc1Node, inSrc2Node);
+      dumpOptDetails(comp, "indices used in array loads %p and %p are not consistent with the induction variable updates\n", inSrc1Node, inSrc2Node);
       return false;
       }
    TR::Node * mulFactorNode;
@@ -9357,7 +9357,7 @@ CISCTransform2ArrayCmp(TR_CISCTransformer *trans)
    //
    if (!indicesAndStoresAreConsistent(comp, inSrc1Node, inSrc2Node, storeSrc1, storeSrc2))
       {
-      dumpOptDetails(comp, "indices used in array loads %p and %p are not consistent with the induction varaible updates\n", inSrc1Node, inSrc2Node);
+      dumpOptDetails(comp, "indices used in array loads %p and %p are not consistent with the induction variable updates\n", inSrc1Node, inSrc2Node);
       return false;
       }
 
@@ -10120,7 +10120,7 @@ CISCTransform2BitOpMem(TR_CISCTransformer *trans)
        !isIndexVariableInList(inSrc2Node, &storeList) ||
        !isIndexVariableInList(inDestNode, &storeList))
       {
-      dumpOptDetails(comp, "indices used in array loads %p, %p, and %p are not consistent with the induction varaible updates\n", inSrc1Node, inSrc2Node, inDestNode);
+      dumpOptDetails(comp, "indices used in array loads %p, %p, and %p are not consistent with the induction variable updates\n", inSrc1Node, inSrc2Node, inDestNode);
       return false;
       }
 

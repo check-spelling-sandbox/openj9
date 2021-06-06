@@ -938,7 +938,7 @@ public class MethodHandleTest{
 	 * @throws Throwable
 	 */
 	@Test(expectedExceptions = WrongMethodTypeException.class, groups = { "level.extended" })
-	public void test_asFixedArity_SamePackage_Static_VarialbeInput() throws Throwable {
+	public void test_asFixedArity_SamePackage_Static_VariableInput() throws Throwable {
 		MethodHandle mh = MethodHandles.lookup().findStatic(SamePackageExample.class, "getLengthStatic", MethodType.methodType(int.class,String[].class));
 		mh = mh.asVarargsCollector(String[].class);
 		

@@ -175,7 +175,7 @@ PersistentAllocator::allocateFromIndexedListLocked(size_t allocSize)
       block->setPrevious(NULL);
       block->setNextBlockSameSize(NULL);
       }
-   checkIntegrity("allocateFromVariabileSizeListLocked end");
+   checkIntegrity("allocateFromVariableSizeListLocked end");
    return reinterpret_cast<Block*>(block);
    }
 #endif /* defined(J9VM_OPT_JITSERVER) */

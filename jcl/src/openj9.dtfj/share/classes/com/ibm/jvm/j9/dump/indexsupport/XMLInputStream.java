@@ -342,7 +342,7 @@ public class XMLInputStream extends InputStream implements ResourceReleaser {
 	 * @return the name of the tag found
 	 * @throws IOException re-throw exceptions.
 	 */
-	private String peekTagFromStream(char delimeter) throws IOException {
+	private String peekTagFromStream(char delimiter) throws IOException {
 		try {
 		int peek = index;													//peek index is initialized to the current index
 		String tag = (String)tags.peek();
@@ -352,7 +352,7 @@ public class XMLInputStream extends InputStream implements ResourceReleaser {
 			putDataIntoBuffer(unreadDataLength);							//refill the buffer starting from the end of the preserved content
 			peek = 0;														//reset the peek to start at the beginning of the buffer
 		}
-		while((peek < indexMax) && ((char)buffer[peek] != delimeter)) {		//scan for the specified delimeter
+		while((peek < indexMax) && ((char)buffer[peek] != delimiter)) {		//scan for the specified delimiter
 			peek++;
 		}
 		return new String(buffer, index, peek - index);

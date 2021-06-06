@@ -66,7 +66,7 @@ public class rc017 {
 	}
 
 	public String helpClassGrandParenetHierachy() {
-		return "Tests redefining a class and its grandpaent maintains the correct super class hierachy in class";
+		return "Tests redefining a class and its grandparent maintains the correct super class hierachy in class";
 	}
 
 

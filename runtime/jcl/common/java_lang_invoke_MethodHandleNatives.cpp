@@ -602,7 +602,7 @@ Java_java_lang_invoke_MethodHandleNatives_init(JNIEnv *env, jclass clazz, jobjec
  * static native void expand(MemberName self);
  *
  * Given a MemberName object, try to set the uninitialized fields from existing VM metadata.
- * Uses VM metadata (vmindex & vmtarget) to set symblic data fields (name & type & defc)
+ * Uses VM metadata (vmindex & vmtarget) to set symbolic data fields (name & type & defc)
  *
  * Throws NullPointerException if MemberName object is null.
  * Throws IllegalArgumentException if MemberName doesn't contain required data to expand.

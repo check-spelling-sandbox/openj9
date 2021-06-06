@@ -1208,7 +1208,7 @@ ZZ ================================================
     START_FUNC(_jitResolveConstantDynamic,jRCD)
 
 LABEL(_jitResolveConstantDynamicBody)
-ZZ Store all the Regsiter on Java Stack and adjust J9SP.
+ZZ Store all the Register on Java Stack and adjust J9SP.
 ZZ VM Helper old_slow_jitResolveConstantDynamic allocates
 ZZ Data resolve frame for unresolved field and these frame
 ZZ assumes all registers are stored off to the Java Stack

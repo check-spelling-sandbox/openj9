@@ -679,7 +679,7 @@ size_t J9::ARM64::JNILinkage::buildJNIArgs(TR::Node *callNode, TR::RegisterDepen
             // so even though the callee's linkage won't alter a
             // given register, we still have a problem if a stack walk needs to
             // inspect/modify that register because once we're in C-land, we have
-            // no idea where that regsiter's value is located.  Therefore, we need
+            // no idea where that register's value is located.  Therefore, we need
             // to spill even the callee-saved registers around the call.
             //
             // In principle, we only need to do this for registers that contain

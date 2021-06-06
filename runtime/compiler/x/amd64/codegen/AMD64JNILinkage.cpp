@@ -428,7 +428,7 @@ J9::X86::AMD64::JNILinkage::buildVolatileAndReturnDependencies(
             // in the caller's linkage, then that flag doesn't matter much anyway.  If it's preserved
             // in the caller's linkage, then we don't want to set that flag because we want this
             // use of the register to count as a "real" use, thereby motivating the prologue to
-            // preserve the regsiter.
+            // preserve the register.
 
             // A scratch register is necessary to call the native without a trampoline.
             //
@@ -646,7 +646,7 @@ J9::X86::AMD64::JNILinkage::buildJNIMergeLabelDependencies(TR::Node *callNode, b
             // native call, so even though the callee's linkage won't alter a
             // given register, we still have a problem if a stack walk needs to
             // inspect/modify that register because once we're in C-land, we have
-            // no idea where that regsiter's value is located.  Therefore, we need
+            // no idea where that register's value is located.  Therefore, we need
             // to spill even the callee-saved registers around the call.
             //
             // In principle, we only need to do this for registers that contain

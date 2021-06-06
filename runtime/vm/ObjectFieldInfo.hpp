@@ -761,7 +761,7 @@ public:
 	 * added on -XcompressedRefs and 32bit modes on valuetypes where there
 	 * is a field with double (64bit) alignment. These types need pre-padding as
 	 * valuetypes do not have lockwords and the double cannot be placed immediately
-	 * after a 32bit header. When a type is flattened the pre-padding is ommitted.
+	 * after a 32bit header. When a type is flattened the pre-padding is omitted.
 	 *
 	 * @return true, if the type requires pre-padding
 	 */

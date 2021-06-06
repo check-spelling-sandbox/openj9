@@ -94,7 +94,7 @@ TR_ClassLookahead::perform()
    int32_t len; char * name = fej9->getClassNameChars(_classPointer, len);
 
    if (_traceIt)
-      printf("ATTN: Doing classlookahead for %.*s\n", len, name);
+      printf("ATTN: Doing ClassLookahead for %.*s\n", len, name);
 
    if (!performTransformation(comp(), "O^O CLASS LOOKAHEAD: Performing class lookahead for %s\n", name))
        return 0;
@@ -104,7 +104,7 @@ TR_ClassLookahead::perform()
    TR::ResolvedMethodSymbol *classInitializer = NULL;
 
    // check if peeking failed for any of the resolved methods
-   // if so, classLookahead cannot proceed
+   // if so, ClassLookahead cannot proceed
    //
    bool peekFailedForAnyMethod = false;
    findInitializerMethods(&resolvedMethodsInClass, &initializerMethodsInClass, &resolvedMethodSyms, &classInitializer, &peekFailedForAnyMethod);

@@ -136,7 +136,7 @@ j9gc_heap_free_memory(J9JavaVM *javaVM)
 /**
  * return integer presents all memory pool IDs supported by current jvm. 
  * base on current gcpolicy settings, set supported all memory pool IDs for current jvm
- * possible memorypool ID is defined in omrgcconsts.h, one bit for each possible memorypool, the bit is set if the memory pool is supported by currrent jvm.
+ * possible memorypool ID is defined in omrgcconsts.h, one bit for each possible memorypool, the bit is set if the memory pool is supported by current jvm.
  * gc also can decide which memory pools should expose to outside via updating this method.
  */
 UDATA

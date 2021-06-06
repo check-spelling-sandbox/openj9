@@ -2450,17 +2450,17 @@ public synchronized StringBuffer insert(int index, CharSequence sequence) {
 				}
 			}
 		} else {
-			int sequneceLength = sequence.length();
+			int sequenceLength = sequence.length();
 			
-			if (sequneceLength > 0) {
-				move(sequneceLength, index);
+			if (sequenceLength > 0) {
+				move(sequenceLength, index);
 				
-				int newLength = currentLength + sequneceLength;
+				int newLength = currentLength + sequenceLength;
 				
 				if (String.COMPACT_STRINGS) {
 					boolean isCompressed = true;
 					
-					for (int i = 0; i < sequneceLength; ++i) {
+					for (int i = 0; i < sequenceLength; ++i) {
 						if (sequence.charAt(i) > 255) {
 							isCompressed = false;
 							
@@ -2470,7 +2470,7 @@ public synchronized StringBuffer insert(int index, CharSequence sequence) {
 					
 					// Check if the StringBuffer is compressed
 					if (count >= 0 && isCompressed) {
-						for (int i = 0; i < sequneceLength; ++i) {
+						for (int i = 0; i < sequenceLength; ++i) {
 							helpers.putByteInArrayByIndex(value, index + i, (byte) sequence.charAt(i));
 						}
 						
@@ -2483,14 +2483,14 @@ public synchronized StringBuffer insert(int index, CharSequence sequence) {
 							decompress(value.length);
 						}
 						
-						for (int i = 0; i < sequneceLength; ++i) {
+						for (int i = 0; i < sequenceLength; ++i) {
 							value[index + i] = sequence.charAt(i);
 						}
 						
 						count = newLength | uncompressedBit;
 					}
 				} else {
-					for (int i = 0; i < sequneceLength; ++i) {
+					for (int i = 0; i < sequenceLength; ++i) {
 						value[index + i] = sequence.charAt(i);
 					}
 					

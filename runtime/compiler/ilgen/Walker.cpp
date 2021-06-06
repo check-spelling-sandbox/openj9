@@ -1929,7 +1929,7 @@ TR_J9ByteCodeIlGenerator::loadConstantValueIfPossible(TR::Node *topNode, uintptr
 /**
  * @brief Abort compilation due to unsupported unresolved value type operation
  *
- * When dealing with unreslved CP references, certain value type operations cannot
+ * When dealing with unresolved CP references, certain value type operations cannot
  * be handled. This helper provides a convenient way of aborting the compilation
  * in such cases.
  *

@@ -573,7 +573,7 @@ TR_J9InlinerPolicy::createTempsForUnsafeCall( TR::TreeTop *callNodeTreeTop, TR::
       // Replace the old child with a load of the new sym ref
       TR::Node *value = TR::Node::createWithSymRef(child, comp()->il.opCodeForDirectLoad(dataType), 0, newSymbolReference);
 
-      debugTrace(tracer(),"Replacing callnode %p child %p with %p",unsafeCallNode,unsafeCallNode->getChild(i),value);
+      debugTrace(tracer(),"Replacing callNode %p child %p with %p",unsafeCallNode,unsafeCallNode->getChild(i),value);
 
       unsafeCallNode->setAndIncChild(i, value);
       child->recursivelyDecReferenceCount();
@@ -1374,7 +1374,7 @@ TR_J9InlinerPolicy::createUnsafeCASCallDiamond( TR::TreeTop *callNodeTreeTop, TR
 
 
 
-   // the call itself may be commoned, so we need to create a temp for the callnode itself
+   // the call itself may be commoned, so we need to create a temp for the callNode itself
    TR::SymbolReference *newSymbolReference = 0;
    TR::DataType dataType = callNode->getDataType();
    if(callNode->getReferenceCount() > 1)
@@ -1384,7 +1384,7 @@ TR_J9InlinerPolicy::createUnsafeCASCallDiamond( TR::TreeTop *callNodeTreeTop, TR
       callNode->setSymbolReference(newSymbolReference);
       callNode->removeAllChildren();
 
-      debugTrace(tracer(),"Unsafe call has refcount > 1.  Replacing callnode with a load of symref %d",newSymbolReference->getReferenceNumber());
+      debugTrace(tracer(),"Unsafe call has refcount > 1.  Replacing callNode with a load of symref %d",newSymbolReference->getReferenceNumber());
       }
 
 
@@ -3366,7 +3366,7 @@ bool TR_MultipleCallTargetInliner::inlineCallTargets(TR::ResolvedMethodSymbol *c
          for (calltarget = _callTargets.getFirst(); calltarget; calltarget = calltarget->getNext())
             {
             totalWeight += calltarget->_weight;
-            traceMsg(comp(), "Calltarget %p callnode %p %s\n", calltarget, &calltarget->_myCallSite->_callNode, tracer()->traceSignature(calltarget->_calleeSymbol));
+            traceMsg(comp(), "Calltarget %p callNode %p %s\n", calltarget, &calltarget->_myCallSite->_callNode, tracer()->traceSignature(calltarget->_calleeSymbol));
             traceMsg(comp(), "Site size: %d site weight %d call-graph adjusted weight %lf, total weight %d\n", calltarget->_size, calltarget->_weight, calltarget->_callGraphAdjustedWeight, totalWeight);
             }
          }
@@ -4042,7 +4042,7 @@ void TR_MultipleCallTargetInliner::weighCallSite( TR_CallStack * callStack , TR_
       } //end for loop over call targets
 
 
-   heuristicTrace(tracer(),"^^^ Done Weighing of all targets in CallSite %p callnode %p\n",callsite, callsite->_callNode);
+   heuristicTrace(tracer(),"^^^ Done Weighing of all targets in CallSite %p callNode %p\n",callsite, callsite->_callNode);
    }
 
 bool TR_MultipleCallTargetInliner::inlineSubCallGraph(TR_CallTarget* calltarget)

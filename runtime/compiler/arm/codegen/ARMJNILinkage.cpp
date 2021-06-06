@@ -836,7 +836,7 @@ TR::Register *J9::ARM::JNILinkage::buildDirectDispatch(TR::Node *callNode)
              TR::addDependency(deps, gr0Reg, TR::RealRegister::gr0, TR_GPR, codeGen);
              }
          returnRegister = NULL;
-         TR_ASSERT(0, "Unknown direct call opode.\n");
+         TR_ASSERT(0, "Unknown direct call opcode.\n");
       }
 
    deps->stopAddingConditions();

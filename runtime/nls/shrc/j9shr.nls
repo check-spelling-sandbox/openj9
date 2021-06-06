@@ -5245,7 +5245,7 @@ J9NLS_SHRC_SHRINIT_USING_NORMAL_CACHE_WITH_MPROTECT_DIAGNOSTIC_WARNING=JVM is us
 # START NON-TRANSLATABLE
 J9NLS_SHRC_SHRINIT_USING_NORMAL_CACHE_WITH_MPROTECT_DIAGNOSTIC_WARNING.explanation=When running with -Xshareclasses:mprotect=diagnostic option, JVM performance is affected due to expensive system calls. This option should only be used for diagnostic purpose.
 J9NLS_SHRC_SHRINIT_USING_NORMAL_CACHE_WITH_MPROTECT_DIAGNOSTIC_WARNING.system_action=The JVM continues.
-J9NLS_SHRC_SHRINIT_USING_NORMAL_CACHE_WITH_MPROTECT_DIAGNOSTIC_WARNING.user_response=If user wants to use -Xshareclasses:mprotect=diagnostic option, it is advised to reset the cache to force JVM(s) to use the cache in mprotect diagnostic mode. Othewise, if the user wants to use the cache in normal mode then remove -Xshareclasses:mprotect=diagnostic option and re-run. This message is for information only.
+J9NLS_SHRC_SHRINIT_USING_NORMAL_CACHE_WITH_MPROTECT_DIAGNOSTIC_WARNING.user_response=If user wants to use -Xshareclasses:mprotect=diagnostic option, it is advised to reset the cache to force JVM(s) to use the cache in mprotect diagnostic mode. Otherwise, if the user wants to use the cache in normal mode then remove -Xshareclasses:mprotect=diagnostic option and re-run. This message is for information only.
 # END NON-TRANSLATABLE
 
 J9NLS_SHRC_SHRINIT_USING_NORMAL_CACHE_WITH_MPROTECT_DIAGNOSTIC_IGNORED_WARNING=JVM is attempting to use the existing shared class cache in mprotect diagnostic mode (using -Xshareclasses:mprotect=diagnostic option), but the cache was not creating in this mode. In such case mprotect=diagnostic option is ignored on z/OS.
@@ -5259,21 +5259,21 @@ J9NLS_SHRC_SHRINIT_CREATING_CACHE_WITH_MPROTECT_DIAGNOSTIC_WARNING=JVM has creat
 # START NON-TRANSLATABLE
 J9NLS_SHRC_SHRINIT_CREATING_CACHE_WITH_MPROTECT_DIAGNOSTIC_WARNING.explanation=When running with -Xshareclasses:mprotect=diagnostic, JVM performance is affected due to expensive system calls. This option should only be used for diagnostic purpose.
 J9NLS_SHRC_SHRINIT_CREATING_CACHE_WITH_MPROTECT_DIAGNOSTIC_WARNING.system_action=The JVM continues.
-J9NLS_SHRC_SHRINIT_CREATING_CACHE_WITH_MPROTECT_DIAGNOSTIC_WARNING.user_response=No action required if user has intentionally specified -Xshareclasses:mprotect=diagnostic on command line. Othewise, if the user wants to use the cache in normal mode then remove -Xshareclasses:mprotect=diagnostic option and reset the cache. This message is for information only.
+J9NLS_SHRC_SHRINIT_CREATING_CACHE_WITH_MPROTECT_DIAGNOSTIC_WARNING.user_response=No action required if user has intentionally specified -Xshareclasses:mprotect=diagnostic on command line. Otherwise, if the user wants to use the cache in normal mode then remove -Xshareclasses:mprotect=diagnostic option and reset the cache. This message is for information only.
 # END NON-TRANSLATABLE
 
 J9NLS_SHRC_SHRINIT_USING_CACHE_WITH_MPROTECT_DIAGNOSTIC_WARNING=JVM has attached to the shared class cache created in mprotect diagnostic mode (using -Xshareclasses:mprotect=diagnostic option). Using the cache in this mode can affect performance.
 # START NON-TRANSLATABLE
 J9NLS_SHRC_SHRINIT_USING_CACHE_WITH_MPROTECT_DIAGNOSTIC_WARNING.explanation=Shared class cache that JVM is attaching to is set to be used in diagnostic mode which will affect JVM's performance.
 J9NLS_SHRC_SHRINIT_USING_CACHE_WITH_MPROTECT_DIAGNOSTIC_WARNING.system_action=The JVM continues.
-J9NLS_SHRC_SHRINIT_USING_CACHE_WITH_MPROTECT_DIAGNOSTIC_WARNING.user_response=No action required if user has intentionally attached to a shared class cache created in mprotect diagnostic mode. Othewise, if the user wants to use cache in normal mode then remove -Xshareclasses:mprotect=diagnostic option and reset the cache. This message is for information only.
+J9NLS_SHRC_SHRINIT_USING_CACHE_WITH_MPROTECT_DIAGNOSTIC_WARNING.user_response=No action required if user has intentionally attached to a shared class cache created in mprotect diagnostic mode. Otherwise, if the user wants to use cache in normal mode then remove -Xshareclasses:mprotect=diagnostic option and reset the cache. This message is for information only.
 # END NON-TRANSLATABLE
 
 J9NLS_SHRC_SHRINIT_USING_CACHE_WITH_MPROTECT_DIAGNOSTIC_OVERRIDE_MPROTECT_NONE_WARNING=JVM has attached to the shared class cache created in mprotect diagnostic mode (using -Xshareclasses:mprotect=diagnostic option). -Xshareclasses:mprotect=none option will be ignored.
 # START NON-TRANSLATABLE
 J9NLS_SHRC_SHRINIT_USING_CACHE_WITH_MPROTECT_DIAGNOSTIC_OVERRIDE_MPROTECT_NONE_WARNING.explanation=Shared class cache that JVM is attaching to is set to be used in diagnostic mode which overrides -Xshareclasses:mprotect=none option specified on command line.
 J9NLS_SHRC_SHRINIT_USING_CACHE_WITH_MPROTECT_DIAGNOSTIC_OVERRIDE_MPROTECT_NONE_WARNING.system_action=The JVM continues.
-J9NLS_SHRC_SHRINIT_USING_CACHE_WITH_MPROTECT_DIAGNOSTIC_OVERRIDE_MPROTECT_NONE_WARNING.user_response=No action required if user has intentionally attached to a shared class cache created in mprotect diagnostic mode. Othewise, if the user wants to use cache with -Xshareclasses:mprotect=none option then remove -Xshareclasses:mprotect=diagnostic option and reset the cache.
+J9NLS_SHRC_SHRINIT_USING_CACHE_WITH_MPROTECT_DIAGNOSTIC_OVERRIDE_MPROTECT_NONE_WARNING.user_response=No action required if user has intentionally attached to a shared class cache created in mprotect diagnostic mode. Otherwise, if the user wants to use cache with -Xshareclasses:mprotect=none option then remove -Xshareclasses:mprotect=diagnostic option and reset the cache.
 # END NON-TRANSLATABLE
 
 J9NLS_SHRC_SHRINIT_HELPTEXT_MPROTECT_DIAGNOSTIC=Enable mprotect diagnostic mode

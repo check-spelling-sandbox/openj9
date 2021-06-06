@@ -64,7 +64,7 @@
 #define isInvokeStaticOrSpecial( x ) ( (x) == 184 || (x) == 234 || (x) == 183 || (x) == 235 )
 #define isInstanceOf( x ) ( (x) == 193 )
 #define isCheckCast( x ) ( (x) == 192 )
-#define isProfilableBranch( x ) ( (x) >= 153 && (x) <= 166 || (x) == 198 || (x) == 199 )
+#define isProfileableBranch( x ) ( (x) >= 153 && (x) <= 166 || (x) == 198 || (x) == 199 )
 // -------------------------------------------------------------------------------------------------------
 
 
@@ -296,7 +296,7 @@ void TR_JitProfiler::addBranchProfiling(TR::Node *branchNode, TR::TreeTop* tt, T
    U_8 *byteCode = (U_8 *) comp()->fej9()->getBytecodePC(branchNode->getOwningMethod(), branchNode->getByteCodeInfo());
 
    // Check that the bytecode is what we expect
-   if ( !isProfilableBranch(*byteCode) )
+   if ( !isProfileableBranch(*byteCode) )
       return;
 
 

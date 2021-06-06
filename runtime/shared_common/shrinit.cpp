@@ -3416,7 +3416,7 @@ j9shr_init(J9JavaVM *vm, UDATA loadFlags, UDATA* nonfatal)
 			/* Create a new layer */
 		} else {
 			/* layer <= maxLayer */
-			/* An existing shared cache with higer layer number already exists */
+			/* An existing shared cache with higher layer number already exists */
 			/* Use the layer number in the CML, but do not create new cache layer */
 			vm->sharedClassConfig->runtimeFlags |= J9SHR_RUNTIMEFLAG_DO_NOT_CREATE_CACHE;
 		}

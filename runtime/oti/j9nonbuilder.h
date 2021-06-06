@@ -5415,10 +5415,10 @@ typedef struct J9JavaVM {
 #if defined(J9VM_OPT_JAVA_OFFLOAD_SUPPORT)
 	void  ( *javaOffloadSwitchOnFunc)(omrthread_t thr) ;
 	void  ( *javaOffloadSwitchOffFunc)(omrthread_t thr) ;
-	void  ( *javaOffloadSwitchOnWithMethodFunc)(struct J9VMThread *vmThread, struct J9Method *methodWraper, BOOLEAN disableOffloadWithSubtasks) ;
-	void  ( *javaOffloadSwitchOffWithMethodFunc)(struct J9VMThread *vmThread, struct J9Method *methodWraper) ;
-	void  ( *javaOffloadSwitchJDBCWithMethodFunc)(struct J9VMThread *vmThread, struct J9Method *methodWraper) ;
-	void  ( *javaOffloadSwitchOnAllowSubtasksWithMethodFunc)(struct J9VMThread *vmThread, struct J9Method *methodWraper) ;
+	void  ( *javaOffloadSwitchOnWithMethodFunc)(struct J9VMThread *vmThread, struct J9Method *methodWrapper, BOOLEAN disableOffloadWithSubtasks) ;
+	void  ( *javaOffloadSwitchOffWithMethodFunc)(struct J9VMThread *vmThread, struct J9Method *methodWrapper) ;
+	void  ( *javaOffloadSwitchJDBCWithMethodFunc)(struct J9VMThread *vmThread, struct J9Method *methodWrapper) ;
+	void  ( *javaOffloadSwitchOnAllowSubtasksWithMethodFunc)(struct J9VMThread *vmThread, struct J9Method *methodWrapper) ;
 	void  ( *javaOffloadSwitchOnWithReasonFunc)(struct J9VMThread *vmThread, UDATA reason) ;
 	void  ( *javaOffloadSwitchOnAllowSubtasksWithReasonFunc)(struct J9VMThread *vmThread, UDATA reason) ;
 	void  ( *javaOffloadSwitchOnDisableSubtasksWithReasonFunc)(struct J9VMThread *vmThread, UDATA reason) ;

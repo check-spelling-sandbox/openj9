@@ -114,7 +114,7 @@ MM_VerboseEventMetronomeSynchronousGCEnd::formattedOutput(MM_VerboseOutputAgent 
 	U_64 syncGCTimeDuration = 0;
 	bool deltaTimeSuccess = getTimeDeltaInMicroSeconds(&syncGCTimeDuration, _startTime, getTimeStamp());
 	
-	agent->formatAndOutput(static_cast<J9VMThread*>(_omrThread->_language_vmthread), manager->getIndentLevel(), "<gc type=\"synchgc\" id=\"%zu\" timestamp=\"%s\" intervalms=\"%llu.%03.3llu\">",
+	agent->formatAndOutput(static_cast<J9VMThread*>(_omrThread->_language_vmthread), manager->getIndentLevel(), "<gc type=\"syncgc\" id=\"%zu\" timestamp=\"%s\" intervalms=\"%llu.%03.3llu\">",
 		manager->getMetronomeSyncGCCount(),
 		_timestamp,  /* This is the timestamp of matching SyncGC start event! */
 		timeSinceLastEvent / 1000,

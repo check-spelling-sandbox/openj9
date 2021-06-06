@@ -197,7 +197,7 @@ copyExitRegDepsAndSubstitute(TR::Node* const targetNode, TR::Node* const sourceN
  *
  * Given branch node, adds a GlRegDeps node by copying the dependencies from
  * a different GlRegDeps. This function allows *one* register dependency to
- * be changed (substituted). See `copyExitRegDepsAndSubstitue()` for details.
+ * be changed (substituted). See `copyExitRegDepsAndSubstitute()` for details.
  *
  * Note that the branch node is assumed to *not* have a GlRegDeps node already.
  *

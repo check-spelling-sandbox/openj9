@@ -151,7 +151,7 @@ class JNILinkage : public PrivateLinkage
    size_t buildJNIArgs(TR::Node *callNode, TR::RegisterDependencyConditions *deps, bool passThread, bool passReceiver, bool killNonVolatileGPRs);
 
    /**
-    * @brief Returns register holding resturn value
+    * @brief Returns register holding return value
     * @param[in] callNode : caller node
     * @param[in] deps : register dependency conditions
     * @return register holding return value. Null if return type is void.

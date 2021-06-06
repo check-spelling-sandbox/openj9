@@ -110,7 +110,7 @@ MM_Timer::nanoTime()
 	return getTimeInNanos();
 #else
 	U_64 delta = J9CONST64(0);
-	U_64 timeInNanos = _sytemTimeBase;
+	U_64 timeInNanos = _systemTimeBase;
 	U_64 ticks = getTimebase();
 	
 	if (ticks > _tickBase) {
@@ -118,7 +118,7 @@ MM_Timer::nanoTime()
 		if (delta > CLOCK_SWITCH_TICK_THRESHOLD) {
 			timeInNanos = rebaseTime();
 		} else {
-			timeInNanos = _sytemTimeBase + ((1000 * delta) / _osInterface->_ticksPerMicroSecond);
+			timeInNanos = _systemTimeBase + ((1000 * delta) / _osInterface->_ticksPerMicroSecond);
 		}
 	} else {
 		timeInNanos = rebaseTime();
@@ -152,10 +152,10 @@ MM_Timer::peekElapsedTime(U_64 timerBase)
 U_64
 MM_Timer::rebaseTime()
 {
-	_sytemTimeBase = _osInterface->nanoTime();
+	_systemTimeBase = _osInterface->nanoTime();
 	_tickBase = getTimebase();
 	
-	return _sytemTimeBase;
+	return _systemTimeBase;
 }
 
 /**

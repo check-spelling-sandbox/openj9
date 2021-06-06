@@ -315,7 +315,7 @@ internalLoadROMClass(J9VMThread * vmThread, J9LoadROMClassData *loadData, J9Tran
 	UDATA classFileBytesReplacedByRCA = FALSE;
 	U_8 * intermediateClassData = loadData->classData;
 	UDATA intermediateClassDataLength = loadData->classDataLength;
-	void* intermedtiateFreeUserData = NULL;
+	void* intermediateFreeUserData = NULL;
 	classDataFreeFunction intermediateFreeFunction = NULL;
 	PORT_ACCESS_FROM_VMC(vmThread);
 
@@ -417,7 +417,7 @@ internalLoadROMClass(J9VMThread * vmThread, J9LoadROMClassData *loadData, J9Tran
 
 		intermediateClassData = loadData->classData;
 		intermediateClassDataLength = loadData->classDataLength;
-		intermedtiateFreeUserData = loadData->freeUserData;
+		intermediateFreeUserData = loadData->freeUserData;
 		intermediateFreeFunction = loadData->freeFunction;
 		loadData->freeFunction = NULL;
 
@@ -568,7 +568,7 @@ doneFreeMem:
 			loadData->freeFunction = NULL;
 			loadData->classData = NULL;
 		}
-		intermediateFreeFunction(intermedtiateFreeUserData, intermediateClassData);
+		intermediateFreeFunction(intermediateFreeUserData, intermediateClassData);
 		intermediateClassData = NULL;
 	}
 

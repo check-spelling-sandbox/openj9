@@ -538,7 +538,7 @@ public abstract class DTFJUnitTest {
 		equalsTest(ddrList, ddrClonedList, jextractList, false);
 	}
 	
-	protected static final void equalsTest(List<Object> ddrList, List<Object> ddrClonedList, List<Object> jextractList, boolean supressCloneTest) {
+	protected static final void equalsTest(List<Object> ddrList, List<Object> ddrClonedList, List<Object> jextractList, boolean suppressCloneTest) {
 		
 		// Test veracity of test.
 		assertNotNull("ddr list is null", ddrList);
@@ -546,7 +546,7 @@ public abstract class DTFJUnitTest {
 		assertEquals("ddr list size different from the jextract list size", ddrList.size(), jextractList.size());
 	
 		// Need to suppress this test if dealing with cached DTFJ objects
-		if (!supressCloneTest) {
+		if (!suppressCloneTest) {
 			assertNotNull("ddr cloned list is null", ddrClonedList);
 			assertEquals("ddr list size different from the ddr cloned list size", ddrList.size(), ddrClonedList.size(), Math.abs(ddrList.size() - ddrClonedList.size()));
 			// Make sure the original and clone are NOT the same Object  (No reason they should be ... but can't be too careful)

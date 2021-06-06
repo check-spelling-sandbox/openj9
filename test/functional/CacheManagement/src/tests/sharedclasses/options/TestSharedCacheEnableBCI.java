@@ -49,13 +49,13 @@ public class TestSharedCacheEnableBCI extends TestUtils {
 	 * be updated accordingly.
 	 */
 	private static final int MIN_EXPECTED_ROMCLASSES = 250;
-	private static int CLASSS_FILE_LOAD_HOOK_COUNT = 250;
+	private static int CLASS_FILE_LOAD_HOOK_COUNT = 250;
 
 	public static void main(String args[]) {
 		String jvmLevel = System.getProperty("java.specification.version");
-		/* CLASSS_FILE_LOAD_HOOK_COUNT is different in Java8 and Java9 */
+		/* CLASS_FILE_LOAD_HOOK_COUNT is different in Java8 and Java9 */
 		if (Double.parseDouble(jvmLevel) >= 9) {
-			CLASSS_FILE_LOAD_HOOK_COUNT = 20;
+			CLASS_FILE_LOAD_HOOK_COUNT = 20;
 		}
 		runDestroyAllCaches();
 		runTest1();
@@ -385,10 +385,10 @@ public class TestSharedCacheEnableBCI extends TestUtils {
 						+ ". Minimum expected ROMClasses: "
 						+ MIN_EXPECTED_ROMCLASSES);
 			}
-			if (classFileLoadHookCount < CLASSS_FILE_LOAD_HOOK_COUNT) {
+			if (classFileLoadHookCount < CLASS_FILE_LOAD_HOOK_COUNT) {
 				fail("Number of times ClassFileLoadHook event triggered: "
 						+ classFileLoadHookCount + ". Expected it to be >= "
-						+ CLASSS_FILE_LOAD_HOOK_COUNT);
+						+ CLASS_FILE_LOAD_HOOK_COUNT);
 			}
 			if (Double.parseDouble(jvmLevel) < 9) {
 				/*
@@ -447,10 +447,10 @@ public class TestSharedCacheEnableBCI extends TestUtils {
 					+ ". Minimum expected ROMClasses: "
 					+ MIN_EXPECTED_ROMCLASSES);
 		}
-		if (classFileLoadHookCount < CLASSS_FILE_LOAD_HOOK_COUNT) {
+		if (classFileLoadHookCount < CLASS_FILE_LOAD_HOOK_COUNT) {
 			fail("Number of times ClassFileLoadHook event triggered: "
 					+ classFileLoadHookCount + ". Expected it to be >= "
-					+ CLASSS_FILE_LOAD_HOOK_COUNT);
+					+ CLASS_FILE_LOAD_HOOK_COUNT);
 		}
 		if (Double.parseDouble(jvmLevel) < 9) {
 		/*

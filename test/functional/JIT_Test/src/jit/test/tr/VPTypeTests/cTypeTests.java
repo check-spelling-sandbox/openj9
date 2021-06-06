@@ -105,7 +105,7 @@ public class cTypeTests {
       // ificmpeq
       //    instanceof 
       //       aload    <O1, non-null, classobject>
-      //       loadaddr <O2, non-null, classsobject>
+      //       loadaddr <O2, non-null, classobject>
       //    iconst    
       //    
       // instanceof should fail

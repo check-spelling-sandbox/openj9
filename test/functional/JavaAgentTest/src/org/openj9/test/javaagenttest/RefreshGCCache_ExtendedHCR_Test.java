@@ -51,7 +51,7 @@ public class RefreshGCCache_ExtendedHCR_Test {
 			Assert.assertNotNull(transformedClassBytes, "transformedClassBytes is null");
 
 			logger.debug("BCI complete");
-			logger.debug("Attempting to redefine instrumented classs with new method added...");
+			logger.debug("Attempting to redefine instrumented class with new method added...");
 			AgentMain.redefineClass(ClassLoader.class, transformedClassBytes);
 			logger.debug( "Retransformation complete." );
 

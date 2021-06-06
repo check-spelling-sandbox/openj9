@@ -652,8 +652,8 @@ bool TR_J9VirtualCallSite::findCallSiteTarget(TR_CallStack *callStack, TR_Inline
          }
       }
 
-   if (addTargetIfMethodIsNotOverriden(inliner) ||
-      addTargetIfMethodIsNotOverridenInReceiversHierarchy(inliner) ||
+   if (addTargetIfMethodIsNotOverridden(inliner) ||
+      addTargetIfMethodIsNotOverriddenInReceiversHierarchy(inliner) ||
       findCallSiteForAbstractClass(inliner) ||
       addTargetIfThereIsSingleImplementer(inliner))
       {

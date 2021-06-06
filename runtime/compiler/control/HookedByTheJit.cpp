@@ -2762,7 +2762,7 @@ void jitUpdateMethodOverride(J9VMThread * vmThread, J9Class * cl, J9Method * ove
 static void updateOverriddenFlag( J9VMThread *vm , J9Class *cl)
    {
 
-   static const char *traceIt = 0; //  feGetEnv("TR_TraceUpdateOverridenFlag"); //this trace should only be enabled if it is needed
+   static const char *traceIt = 0; //  feGetEnv("TR_TraceUpdateOverriddenFlag"); //this trace should only be enabled if it is needed
 
    J9ROMClass *ROMCl = cl->romClass;
 

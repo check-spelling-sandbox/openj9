@@ -6672,7 +6672,7 @@ TR_J9TransformInlinedFunction::isSyncReturnBlock(TR::Compilation *comp, TR::Bloc
  * if the initialCalleeMethod of this callsite is not overridden, add this method as the target of the callsite
  */
 bool
-TR_J9InlinerUtil::addTargetIfMethodIsNotOverridenInReceiversHierarchy(TR_IndirectCallSite *callsite)
+TR_J9InlinerUtil::addTargetIfMethodIsNotOverriddenInReceiversHierarchy(TR_IndirectCallSite *callsite)
    {
    TR_PersistentCHTable *chTable = comp()->getPersistentInfo()->getPersistentCHTable();
 

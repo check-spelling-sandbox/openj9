@@ -143,7 +143,7 @@ class TR_J9InlinerUtil: public OMR_InlinerUtil
       virtual void adjustByteCodeSize(TR_ResolvedMethod *calleeResolvedMethod, bool isInLoop, TR::Block *block, int &bytecodeSize);
       virtual void adjustCallerWeightLimit(TR::ResolvedMethodSymbol *callSymbol, int &callerWeightLimit);
       virtual void adjustMethodByteCodeSizeThreshold(TR::ResolvedMethodSymbol *callSymbol, int &methodByteCodeSizeThreshold);
-      virtual bool addTargetIfMethodIsNotOverridenInReceiversHierarchy(TR_IndirectCallSite *callsite);
+      virtual bool addTargetIfMethodIsNotOverriddenInReceiversHierarchy(TR_IndirectCallSite *callsite);
       virtual bool addTargetIfThereIsSingleImplementer (TR_IndirectCallSite *callsite);
       virtual TR_ResolvedMethod *findSingleJittedImplementer(TR_IndirectCallSite *callsite);
       virtual TR_PrexArgInfo* createPrexArgInfoForCallTarget(TR_VirtualGuardSelection *guard, TR_ResolvedMethod *implementer);

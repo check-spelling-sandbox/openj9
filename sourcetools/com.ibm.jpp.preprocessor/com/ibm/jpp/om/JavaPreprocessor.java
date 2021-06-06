@@ -596,7 +596,7 @@ public class JavaPreprocessor {
 			if (store) {
 				externalMessagesToBeAdded.put(key, value);
 			}
-			/* [PR 119681] Desing:952 - Core.JCL : Add external messages in generated source */
+			/* [PR 119681] Design:952 - Core.JCL : Add external messages in generated source */
 			if (msgCallInliner == null || msgCallInliner.inlineKeys) {
 				value = value.replaceAll("\n", "\\\\n");
 				value = value.replaceAll("\b", "\\\\b");

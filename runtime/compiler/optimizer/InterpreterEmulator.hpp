@@ -331,7 +331,7 @@ class InterpreterEmulator : public TR_ByteCodeIteratorWithState<TR_J9ByteCode, J
        *    Number of arguments of the call
        *
        * \param result
-       *    the operand reprenting the call return value
+       *    the operand representing the call return value
        *
        * \param returnType
        *    Return type of the call

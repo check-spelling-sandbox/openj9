@@ -1011,7 +1011,7 @@ TR_InstrumentedDataCacheManager::printStatistics()
    _maxConcurrentWasteEstimate = std::max( _maxConcurrentWasteEstimate, currentWaste);
    fprintf(stderr, "=== Data cache statistics ===\n");
    fprintf(stderr, "Total data cache bytes in use = %zu\n", _totalSegmentMemoryAllocated);
-   fprintf(stderr, "Bytes converted for regluar JIT use = %zu\n", _jitSpace);
+   fprintf(stderr, "Bytes converted for regular JIT use = %zu\n", _jitSpace);
    fprintf(stderr, "Average allocation size = %f\n", static_cast<double>(_bytesAllocated) / static_cast<double>(_numberOfAllocations) );
    fprintf(stderr, "Standard Deviation of allocation size = %f\n", sqrt(_squares) );
    fprintf(stderr, "Average waste per allocation = %f\n", averageWaste );

@@ -2715,7 +2715,7 @@ TR_J9ByteCodeIlGenerator::genIfTwoOperand(TR::ILOpCodes nodeop)
  *     address-typed operands as for bytecode instructions if_acmp{eq,ne}.
  *     Also generates an asynccheck if the bytecode branches backwards.
  *
- *     If value types are not enabled, then a regulare acmp operation is
+ *     If value types are not enabled, then a regular acmp operation is
  *     generated instead.
  *
  *  \param nodeop

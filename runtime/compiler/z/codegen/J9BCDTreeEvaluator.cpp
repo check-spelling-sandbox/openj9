@@ -3176,7 +3176,7 @@ J9::Z::TreeEvaluator::evaluateValueModifyingOperand(TR::Node * node,
             int32_t srcLength = sourceSize;
             // If the firstStorageReference is not a temp or a hint then the recursive dec in setStorageReference() will be wrong.
             // This should always be true because this is the initialized case and it is not legal to initialize a non-temp or non-hint.
-            TR_ASSERT( firstStorageReference->isNodeBasedHint(), "expecting the srcStorargeReference to be a node based hint\n");
+            TR_ASSERT( firstStorageReference->isNodeBasedHint(), "expecting the srcStorageReference to be a node based hint\n");
             bool performExplicitWidening = false;
             cg->initializeNewTemporaryStorageReference(node, targetReg, destLength, firstChild, firstReg, srcLength, sourceMR, performExplicitWidening, alwaysLegalToCleanSign, trackSignState);
             if (targetBCDReg)

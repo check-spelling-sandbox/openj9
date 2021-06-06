@@ -2971,7 +2971,7 @@ appendContent(char * &charPtr, uint8_t * curPos, size_t length)
    return curPos += length;
    }
 
-// Pack a TR::Options object into a std::string to be transfered to the server
+// Pack a TR::Options object into a std::string to be transferred to the server
 std::string
 J9::Options::packOptions(const TR::Options *origOptions)
    {

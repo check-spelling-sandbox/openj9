@@ -189,7 +189,7 @@ public class TestUnsafeDefineAnonClass {
 		try {
 			anonInstance = anonClass.newInstance();
 		} catch (IllegalAccessException | InstantiationException e1) {
-			Assert.fail("could not instansiate anonClass!");
+			Assert.fail("could not instantiate anonClass!");
 		}
 
 		testIntField("staticField", anonInstance, anonClass, false);

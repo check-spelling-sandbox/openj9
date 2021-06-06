@@ -3045,7 +3045,7 @@ TR::Register * J9::Z::JNILinkage::buildDirectDispatch(TR::Node * callNode)
      checkException(callNode, methodMetaDataVirtualRegister, methodAddressReg);
      }
 
-   OMR::Z::Linkage::generateDispatchReturnLable(callNode, codeGen, deps, javaReturnRegister, hasGlRegDeps, GlobalRegDeps);
+   OMR::Z::Linkage::generateDispatchReturnLabel(callNode, codeGen, deps, javaReturnRegister, hasGlRegDeps, GlobalRegDeps);
    return javaReturnRegister;
    }
 

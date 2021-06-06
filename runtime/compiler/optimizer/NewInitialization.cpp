@@ -531,7 +531,7 @@ bool TR_NewInitialization::sniffCall(TR::TreeTop *callTree)
    // See if this call is a candidate for inlining - if so, sniff it
    // to see if it would be useful to inline.
    //
-   TR::ResolvedMethodSymbol *calleeSymbol = findInlinableMethod(callTree);
+   TR::ResolvedMethodSymbol *calleeSymbol = findInlineableMethod(callTree);
    if (!calleeSymbol)
       return false;
 
@@ -569,7 +569,7 @@ bool TR_NewInitialization::sniffCall(TR::TreeTop *callTree)
    return sniffedCompleteMethod;
    }
 
-TR::ResolvedMethodSymbol *TR_NewInitialization::findInlinableMethod(TR::TreeTop *callTree)
+TR::ResolvedMethodSymbol *TR_NewInitialization::findInlineableMethod(TR::TreeTop *callTree)
    {
    // See if this call is a candidate for inlining.
    //

@@ -344,14 +344,14 @@ public class TestOperatingSystemMXBean {
 	@Test
 	public void testUnixFileDescriptorAPIs() {
 		if (TestUtil.isRunningOnUnix()) {
-			long maxFileDecriptors = 0;
-			long openFileDecriptors = 0;
+			long maxFileDescriptors = 0;
+			long openFileDescriptors = 0;
 			/* Can't cast osb to UnixExtendedOperatingSystem as it is package-scope, to call
 			 * the APIs as object-methods.  Instead, check the corresponding attributes.
 			 */
 			try {
-				maxFileDecriptors = ((Long) mbs.getAttribute(objName, "MaxFileDescriptorCount")).longValue();
-				openFileDecriptors = ((Long) mbs.getAttribute(objName, "OpenFileDescriptorCount")).longValue();
+				maxFileDescriptors = ((Long) mbs.getAttribute(objName, "MaxFileDescriptorCount")).longValue();
+				openFileDescriptors = ((Long) mbs.getAttribute(objName, "OpenFileDescriptorCount")).longValue();
 			} catch (AttributeNotFoundException e) {
 				Assert.fail("Unexpected AttributeNotFoundException exception: " + e.getMessage());
 			} catch (MBeanException e) {
@@ -362,7 +362,7 @@ public class TestOperatingSystemMXBean {
 				// An unlikely exception - if this occurs, we can't proceed with the test.
 				Assert.fail("Unexpected InstanceNotFoundException occurred: " + e.getMessage());
 			}
-			AssertJUnit.assertTrue((maxFileDecriptors > 0) && (maxFileDecriptors <= Long.MAX_VALUE));
+			AssertJUnit.assertTrue((maxFileDescriptors > 0) && (maxFileDescriptors <= Long.MAX_VALUE));
 			/* TODO: remove dependence on isSupportedOS when API becomes
 			 * available on z/OS.
 			 */
@@ -370,10 +370,10 @@ public class TestOperatingSystemMXBean {
 				/* The number of file descriptors open, at any point, must be within the
 				 * limits the underlying os configuration allows.
 				 */
-				AssertJUnit.assertTrue(maxFileDecriptors >= openFileDecriptors);
+				AssertJUnit.assertTrue(maxFileDescriptors >= openFileDescriptors);
 			}
-			logger.debug("Maximum file descriptors allowed (ulimit -n): " + maxFileDecriptors);
-			logger.debug("Current file descriptors in open state: " + openFileDecriptors);
+			logger.debug("Maximum file descriptors allowed (ulimit -n): " + maxFileDescriptors);
+			logger.debug("Current file descriptors in open state: " + openFileDescriptors);
 		}
 	}
 

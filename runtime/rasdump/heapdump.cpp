@@ -843,7 +843,7 @@ private :
 	friend class ReferenceWriter;
 
 	/* Internal methods */
-	void             openNewDumpFile(J9MM_IterateSpaceDescriptor* spaceDesriptor);
+	void             openNewDumpFile(J9MM_IterateSpaceDescriptor* spaceDescriptor);
 	void             writeDumpFileHeader(void);
 	void             writeDumpFileTrailer(void);
 	void             writeFullVersionRecord(void);

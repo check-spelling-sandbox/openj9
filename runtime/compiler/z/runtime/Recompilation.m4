@@ -370,7 +370,7 @@ ZZ r2: 2*regSize(sp)
 ZZ However, to support asynchronous compilation, the
 ZZ frame must have the values stored on the stack, highest
 ZZ arg in highest memory
-ZZ Note that with new frame shape, r0 wil contain return
+ZZ Note that with new frame shape, r0 will contain return
 ZZ address
 ZZ ========================================================  ZZ
 ZZ

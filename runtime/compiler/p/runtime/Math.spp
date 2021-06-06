@@ -950,7 +950,7 @@ __L2c:
 #else
         laddr   r11, __mathConst@got(r11)
 #endif
-	rlwinm	r3,r3,0,1,31               ! mask out the sign bitd
+	rlwinm	r3,r3,0,1,31               ! mask out the sign bit
 	cmpl	cr0,0,r3,r0                ! check dividend for infinity
 	lfs	fp2,8(r11)                 ! 0x00000000
 #if defined(__LITTLE_ENDIAN__)

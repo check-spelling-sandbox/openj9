@@ -446,7 +446,7 @@ J9NLS_GC_OPTIONS_VALUE_OVERFLOWED.sample_input_1=-Xmx
 # Note %2$s new parameter (e.g. "-Xtgc:excessivegc")
 J9NLS_GC_OPTION_DEPRECATED=%1$s est\u00e1 en desuso; utilice %2$s en su lugar
 # START NON-TRANSLATABLE
-J9NLS_GC_OPTION_DEPRECATED.explanation=The specified option is deprecated and is no longer supportd
+J9NLS_GC_OPTION_DEPRECATED.explanation=The specified option is deprecated and is no longer supported
 J9NLS_GC_OPTION_DEPRECATED.system_action=The JVM will terminate
 J9NLS_GC_OPTION_DEPRECATED.user_response=Replace the deprecated option with the suggested replacement
 J9NLS_GC_OPTION_DEPRECATED.sample_input_1=-Xgc:excessiveGCdebug=

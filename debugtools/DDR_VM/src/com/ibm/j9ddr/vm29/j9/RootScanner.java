@@ -179,7 +179,7 @@ public abstract class RootScanner
 	public void setClassDataAsRoots(boolean classDataAsRoots)
 	{
 		if (J9BuildFlags.gc_dynamicClassUnloading) {
-			throw new UnsupportedOperationException("Not supoprted without dynamic class unloading");
+			throw new UnsupportedOperationException("Not supported without dynamic class unloading");
 		}
 		_classDataAsRoots = classDataAsRoots;
 	}

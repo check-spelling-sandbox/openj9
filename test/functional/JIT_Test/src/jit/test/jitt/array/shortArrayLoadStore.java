@@ -60,21 +60,21 @@ public class shortArrayLoadStore extends jit.test.jitt.Test {
 
 		int len = arrayP.length;
 
-		short arryLocal[] = new short [len];
+		short arrayLocal[] = new short [len];
 
 		for (int i=0;i<len;i++) {
 
-			arryLocal[i] = arrayP[i];
+			arrayLocal[i] = arrayP[i];
 
 		}
 
-		if (!tstCheck(arryLocal)){
+		if (!tstCheck(arrayLocal)){
 
 			Assert.fail("char Array value bad in tstFoo");
 
 		}
 
-		return arryLocal;
+		return arrayLocal;
 
 	}
 

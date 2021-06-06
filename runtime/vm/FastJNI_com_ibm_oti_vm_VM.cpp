@@ -50,7 +50,7 @@ Fast_java_lang_VMAccess_findClassOrNull(J9VMThread *currentThread, j9object_t cl
 
 		j9Class = internalFindClassString(currentThread, NULL, className, loader,
 											J9_FINDCLASS_FLAG_USE_LOADER_CP_ENTRIES,
-											CLASSNAME_VALID_NON_ARRARY);
+											CLASSNAME_VALID_NON_ARRAY);
 		if (VM_VMHelpers::exceptionPending(currentThread)) {
 			J9Class *exceptionClass = J9VMJAVALANGCLASSNOTFOUNDEXCEPTION(vm);
 			/* If the current exception is ClassNotFoundException, discard it. */

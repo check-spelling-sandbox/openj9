@@ -910,7 +910,7 @@ I_32 j9bcutil_dumpRomMethod( J9ROMMethod *romMethod, J9ROMClass *romClass, J9Por
 	printModifiers(PORTLIB, (U_32)romMethod->modifiers, INCLUDE_INTERNAL_MODIFIERS, MODIFIERSOURCE_METHOD);
 	j9tty_printf( PORTLIB,  "\n");
 
-	j9tty_printf( PORTLIB, "  Extended modfiers (%X): ", getExtendedModifiersDataFromROMMethod(romMethod));
+	j9tty_printf( PORTLIB, "  Extended modifiers (%X): ", getExtendedModifiersDataFromROMMethod(romMethod));
 	printMethodExtendedModifiers(PORTLIB, (U_32)getExtendedModifiersDataFromROMMethod(romMethod));
 	j9tty_printf( PORTLIB,  "\n");
 

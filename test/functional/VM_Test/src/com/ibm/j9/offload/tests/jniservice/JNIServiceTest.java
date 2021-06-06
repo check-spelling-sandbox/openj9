@@ -1589,7 +1589,7 @@ public class JNIServiceTest extends TestCase {
 			assertTrue("Nonvirtual object Method4 with many arguments did not execute correctly", testClass.getStrArr4() == null);
 			assertTrue("Nonvirtual object Method4 with many arguments returned a wrong value", arg.getL().getIntField() == ret4.getL().getIntField());	
 			
-			assertTrue("Virtual method invloked", testClass.getIsChildInvoked() == false);
+			assertTrue("Virtual method invoked", testClass.getIsChildInvoked() == false);
 			
 			testClass.setStrArr1(tempStrArr);
 			testClass.setStrArr2(null);
@@ -1617,7 +1617,7 @@ public class JNIServiceTest extends TestCase {
 			assertTrue("Nonvirtual boolean Method4 with many arguments did not execute correctly", testClass.getStrArr4() == null);
 			assertTrue("Nonvirtual boolean Method4 with many arguments returned a wrong value", arg.getZ() == ret4.getZ());
 			
-			assertTrue("Virtual method invloked", testClass.getIsChildInvoked() == false);
+			assertTrue("Virtual method invoked", testClass.getIsChildInvoked() == false);
 			
 			testClass.setStrArr1(tempStrArr);
 			testClass.setStrArr2(null);
@@ -1645,7 +1645,7 @@ public class JNIServiceTest extends TestCase {
 			assertTrue("Nonvirtual byte Method4 with many arguments did not execute correctly", testClass.getStrArr4() == null);
 			assertTrue("Nonvirtual byte Method4 with many arguments returned a wrong value", arg.getB() == ret4.getB());
 			
-			assertTrue("Virtual method invloked", testClass.getIsChildInvoked() == false);
+			assertTrue("Virtual method invoked", testClass.getIsChildInvoked() == false);
 			
 			testClass.setStrArr1(tempStrArr);
 			testClass.setStrArr2(null);
@@ -1673,7 +1673,7 @@ public class JNIServiceTest extends TestCase {
 			assertTrue("Nonvirtual char Method4 with many arguments did not execute correctly", testClass.getStrArr4() == null);
 			assertTrue("Nonvirtual char Method4 with many arguments returned a wrong value", arg.getC() == ret4.getC());	
 			
-			assertTrue("Virtual method invloked", testClass.getIsChildInvoked() == false);
+			assertTrue("Virtual method invoked", testClass.getIsChildInvoked() == false);
 			
 			testClass.setStrArr1(tempStrArr);
 			testClass.setStrArr2(null);
@@ -1701,7 +1701,7 @@ public class JNIServiceTest extends TestCase {
 			assertTrue("Nonvirtual short Method4 with many arguments did not execute correctly", testClass.getStrArr4() == null);
 			assertTrue("Nonvirtual short Method4 with many arguments returned a wrong value", arg.getS() == ret4.getS());
 			
-			assertTrue("Virtual method invloked", testClass.getIsChildInvoked() == false);
+			assertTrue("Virtual method invoked", testClass.getIsChildInvoked() == false);
 			
 			testClass.setStrArr1(tempStrArr);
 			testClass.setStrArr2(null);
@@ -1729,7 +1729,7 @@ public class JNIServiceTest extends TestCase {
 			assertTrue("Nonvirtual int Method4 with many arguments did not execute correctly", testClass.getStrArr4() == null);
 			assertTrue("Nonvirtual int Method4 with many arguments returned a wrong value", arg.getI() == ret4.getI());
 			
-			assertTrue("Virtual method invloked", testClass.getIsChildInvoked() == false);		
+			assertTrue("Virtual method invoked", testClass.getIsChildInvoked() == false);		
 			
 			testClass.setStrArr1(tempStrArr);
 			testClass.setStrArr2(null);
@@ -1757,7 +1757,7 @@ public class JNIServiceTest extends TestCase {
 			assertTrue("Nonvirtual long Method4 with many arguments did not execute correctly", testClass.getStrArr4() == null);
 			assertTrue("Nonvirtual long Method4 with many arguments returned a wrong value", arg.getJ() == ret4.getJ());
 			
-			assertTrue("Virtual method invloked", testClass.getIsChildInvoked() == false);				
+			assertTrue("Virtual method invoked", testClass.getIsChildInvoked() == false);				
 			
 			testClass.setStrArr1(tempStrArr);
 			testClass.setStrArr2(null);
@@ -1785,7 +1785,7 @@ public class JNIServiceTest extends TestCase {
 			assertTrue("Nonvirtual float Method4 with many arguments did not execute correctly", testClass.getStrArr4() == null);
 			assertTrue("Nonvirtual float Method4 with many arguments returned a wrong value", arg.getF() == ret4.getF());
 			
-			assertTrue("Virtual method invloked", testClass.getIsChildInvoked() == false);	
+			assertTrue("Virtual method invoked", testClass.getIsChildInvoked() == false);	
 			
 			testClass.setStrArr1(tempStrArr);
 			testClass.setStrArr2(null);
@@ -1813,7 +1813,7 @@ public class JNIServiceTest extends TestCase {
 			assertTrue("Nonvirtual double Method4 with many arguments did not execute correctly", testClass.getStrArr4() == null);
 			assertTrue("Nonvirtual double Method4 with many arguments returned a wrong value", arg.getD() == ret4.getD());
 		
-			assertTrue("Virtual method invloked", testClass.getIsChildInvoked() == false);
+			assertTrue("Virtual method invoked", testClass.getIsChildInvoked() == false);
 		} catch (Exception e) {
 			fail("Exception occurred in testCallNonvirtualMethodV:" + e.toString());
 		}

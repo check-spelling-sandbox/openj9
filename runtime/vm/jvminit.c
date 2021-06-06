@@ -3586,7 +3586,7 @@ processVMArgsFromFirstToLast(J9JavaVM * vm)
 		if (noReduceCPUMonitorOverhead > reduceCPUMonitorOverhead) {
 #if defined(J9ZOS390)
 			PORT_ACCESS_FROM_JAVAVM(vm);
-			/* Disabling this option on z/OS as this introduces a 50% startup regression and smaller throughput regresssions */
+			/* Disabling this option on z/OS as this introduces a 50% startup regression and smaller throughput regressions */
 			j9nls_printf(PORTLIB, J9NLS_ERROR, J9NLS_VM_NO_REDUCE_CPU_OVERHEAD_UNSUPPORTED_ZOS, VMOPT_XXNOREDUCECPUMONITOROVERHEAD);
 			return JNI_ERR;
 #else

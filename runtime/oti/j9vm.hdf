@@ -729,7 +729,7 @@ typedef UDATA (* lookupNativeAddressCallback)(struct J9VMThread *currentThread, 
 	<event>
 		<name>J9HOOK_VM_CLASS_INITIALIZE</name>
 		<description>
-			Triggered just after a class is succesfully initialized.
+			Triggered just after a class is successfully initialized.
 			The current thread has VM access.
 		</description>
 		<struct>J9VMClassInitializeEvent</struct>
@@ -740,7 +740,7 @@ typedef UDATA (* lookupNativeAddressCallback)(struct J9VMThread *currentThread, 
 	<event>
 		<name>J9HOOK_VM_CLASS_INITIALIZE_FAILED</name>
 		<description>
-			Triggered just after a class is succesfully initialized.
+			Triggered just after a class is successfully initialized.
 			The current thread has VM access, and an exception is pending.
 		</description>
 		<struct>J9VMClassInitializeFailedEvent</struct>
@@ -751,7 +751,7 @@ typedef UDATA (* lookupNativeAddressCallback)(struct J9VMThread *currentThread, 
 	<event>
 		<name>J9HOOK_VM_CLASS_LOADER_INITIALIZED</name>
 		<description>
-			Triggered just after a classloader is succesfully initialized.
+			Triggered just after a classloader is successfully initialized.
 			The current thread has VM access.
 		</description>
 		<struct>J9VMClassLoaderInitializedEvent</struct>

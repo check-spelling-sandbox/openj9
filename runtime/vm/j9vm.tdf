@@ -176,7 +176,7 @@ TraceEvent=Trc_VM_openNativeLibrary NoEnv Overhead=1 Level=1 Template="Attemptin
 
 TraceEntry=Trc_VM_VMprCheckStackAndSend_overflowDetected Overhead=1 Level=1 Template="Stack overflow detected in VMprCheckStackAndSend -- checkSP=%p SOM2=%p"
 TraceExit=Trc_VM_VMprCheckStackAndSend_recursiveOverflow Overhead=1 Level=1 Template="Overflow was already pending. Continuing."
-TraceExit=Trc_VM_VMprCheckStackAndSend_successfulGrowth Overhead=1 Level=1 Template="Succesfully grew the stack. Continuing."
+TraceExit=Trc_VM_VMprCheckStackAndSend_successfulGrowth Overhead=1 Level=1 Template="Successfully grew the stack. Continuing."
 TraceExit=Trc_VM_VMprCheckStackAndSend_throwingError Overhead=1 Level=1 Template="Throwing StackOverflowError"
 
 TraceEntry=Trc_VM_ensureLocalCapacity_Entry Overhead=1 Level=3 Template="ensureLocalCapacity(%d)"

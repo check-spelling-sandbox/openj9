@@ -6780,7 +6780,7 @@ int32_t setUpHooks(J9JavaVM * javaVM, J9JITConfig * jitConfig, TR_FrontEnd * vm)
          interpreterProfilingWasOnAtStartup = true;
 
          if (TR::Options::getCmdLineOptions()->getOption(TR_VerboseInterpreterProfiling))
-            j9tty_printf(PORTLIB, "Succesfully installed J9HOOK_VM_PROFILING_BYTECODE_BUFFER_FULL listener\n");
+            j9tty_printf(PORTLIB, "Successfully installed J9HOOK_VM_PROFILING_BYTECODE_BUFFER_FULL listener\n");
          }
 #endif
       if (compInfo->getPersistentInfo()->isRuntimeInstrumentationEnabled())

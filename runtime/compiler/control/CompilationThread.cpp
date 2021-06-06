@@ -9171,7 +9171,7 @@ TR::CompilationInfoPerThreadBase::wrappedCompile(J9PortLibrary *portLib, void * 
    catch (const std::exception &e)
       {
       // Catch-all case to handle any potential failures not related to JITServer
-      // At this point we have compiled method successfuly but failed to add hints.
+      // At this point we have compiled method successfully but failed to add hints.
       // We will ignore this exception and continue hoping that compilation can be finished.
       }
    return metaData;

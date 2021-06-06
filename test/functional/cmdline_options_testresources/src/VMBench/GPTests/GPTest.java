@@ -135,7 +135,7 @@ public void run() {
 				for (int j = 0 ; j< feedbackToken.length ; j++) {
 					System.err.printf(locale, "%#x ", feedbackToken[j]);
 				}
-				System.err.println("\nSuccesfully threw exception " + (i + 1) + " times");
+				System.err.println("\nSuccessfully threw exception " + (i + 1) + " times");
 				ce.printStackTrace();
 			}
 		}

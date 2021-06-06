@@ -72,7 +72,7 @@ JVM_OnLoad( JavaVM *jvm, char* options, void *reserved )
 		TEST_errors += 1;
 		return JNI_ERR;
 	} else {
-		j9tty_printf(PORTLIB, "Succesfully installed J9HOOK_VM_PROFILING_BYTECODE_BUFFER_FULL listener\n");
+		j9tty_printf(PORTLIB, "Successfully installed J9HOOK_VM_PROFILING_BYTECODE_BUFFER_FULL listener\n");
 	}
 
 	if ((*hooks)->J9HookRegisterWithCallSite(hooks, J9HOOK_VM_SHUTTING_DOWN, shutdownListener, OMR_GET_CALLSITE(), NULL)) {
@@ -80,7 +80,7 @@ JVM_OnLoad( JavaVM *jvm, char* options, void *reserved )
 		TEST_errors += 1;
 		return JNI_ERR;
 	} else {
-		j9tty_printf(PORTLIB, "Succesfully installed J9HOOK_VM_SHUTTING_DOWN listener\n");
+		j9tty_printf(PORTLIB, "Successfully installed J9HOOK_VM_SHUTTING_DOWN listener\n");
 	}
 
 #else

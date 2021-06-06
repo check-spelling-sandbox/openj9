@@ -70,14 +70,14 @@ public class TokenIncompatibilityTest {
 		CustomURLClassLoader urlCl = new CustomURLClassLoader(pathCreator.createURLClassPath());
 		if(true == urlCl.isClassInSharedCache("Dog")){
 			passed = false;
-			System.out.println("\nURLClassLoader succesfully loaded class stored with token.");
+			System.out.println("\nURLClassLoader successfully loaded class stored with token.");
 		}
 		
 		pathCreator = new URLClassPathCreator("./Sports;");
 		CustomURLLoader urlL = new CustomURLLoader(pathCreator.createURLClassPath());
 		if(true == urlL.isClassInSharedCache(0,"Dog")){
 			passed = false;
-			System.out.println("\nURLLoader succesfully loaded class stored with token.");
+			System.out.println("\nURLLoader successfully loaded class stored with token.");
 		}
 		
 		//Load with URLCP

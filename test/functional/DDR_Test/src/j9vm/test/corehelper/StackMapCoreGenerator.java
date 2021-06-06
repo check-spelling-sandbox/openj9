@@ -232,7 +232,7 @@ public class StackMapCoreGenerator {
 			throw new HelperExceptionForCoreGeneration();
 		} catch (HelperExceptionForCoreGeneration e) {
 			System.out
-					.println("HelperExceptionForCoreGeneration is thrown and caught successfuly!");
+					.println("HelperExceptionForCoreGeneration is thrown and caught successfully!");
 		}
 
 	}

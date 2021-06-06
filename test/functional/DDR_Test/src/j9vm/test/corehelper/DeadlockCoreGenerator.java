@@ -89,7 +89,7 @@ public final class DeadlockCoreGenerator {
 		try {
 			throw new HelperExceptionForCoreGeneration();
 		} catch (HelperExceptionForCoreGeneration e) {
-			System.out.println("HelperExceptionForCoreGeneration is thrown and caught successfuly.");
+			System.out.println("HelperExceptionForCoreGeneration is thrown and caught successfully.");
 			System.out.println("Forcefully terminating process.");
 			// In all but the native-only deadlock, the JVM won't quit since not all threads died.
 			System.exit(0); // Note that this will only run once the dump is done (exclusive!).

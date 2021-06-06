@@ -58,7 +58,7 @@ public class Test_Thread {
         AssertJUnit.assertTrue(name + "thread that has ended was interrupted", t.isInterrupted());    
     }
 
-    /* Verify that thread was sucessfully interrupted before it is started, and that the interrupt flag is 
+    /* Verify that thread was successfully interrupted before it is started, and that the interrupt flag is 
      * still set after it is run. */
     @Test
     public void test_interruptAtStartSetAfterRun() throws Throwable {

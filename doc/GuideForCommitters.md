@@ -106,7 +106,7 @@ a GitHub action to run the JIT linter launches automatically. The linter can be 
 from the `Checks` tab of the PR if necessary.
 
 * If the code change(s) necessitate change(s) to the [OpenJ9 Documentation](https://www.eclipse.org/openj9/docs/),
-first add the `depends:doc` label to the OpenJ9 PR, and then ensure the contributer 
+first add the `depends:doc` label to the OpenJ9 PR, and then ensure the contributor 
 has opened an associated PR in the [openj9-docs](https://github.com/eclipse-openj9/openj9-docs) 
 repository. An OpenJ9 PR that requires documentation changes should not be merged 
 until the associated `openj9-docs` PR is also approved and ready to be merged.

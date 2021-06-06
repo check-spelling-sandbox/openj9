@@ -6106,9 +6106,9 @@ formatAttachedDataString(J9VMThread* currentThread, U_8 *attachedData, UDATA att
  * This function is called by j9shr_aotMethodOperation() to perform the required operation
  * @param[in] currentThread The current J9VMThread
  * @param[in] methodSpecs The pointer of the method specifications passed in by "invalidateAotMethods/revalidateAotMethods/findAotMethods=" option
- * @param[in] action SHR_FIND_AOT_METHOTHODS when listing the specified methods
- * 					 SHR_INVALIDATE_AOT_METHOTHODS when invalidating the specified methods
- * 					 SHR_REVALIDATE_AOT_METHOTHODS when revalidating the specified methods
+ * @param[in] action SHR_FIND_AOT_METHODS when listing the specified methods
+ * 					 SHR_INVALIDATE_AOT_METHODS when invalidating the specified methods
+ * 					 SHR_REVALIDATE_AOT_METHODS when revalidating the specified methods
  *
  * @return the number of AOT methods invalidated/revalidated/found on success or -1 on failure
  */
@@ -6163,9 +6163,9 @@ SH_CacheMap::aotMethodOperation(J9VMThread* currentThread, char* methodSpecs, UD
  * @param[in] currentThread The current J9VMThread
  * @param[in] specTable The method specification table
  * @param[in] numSpecs The number of the method specifications passed in by "invalidateAotMethods/revalidateAotMethods/findAotMethods=" option
- * @param[in] action SHR_FIND_AOT_METHOTHODS when listing the specified methods
- * 					 SHR_INVALIDATE_AOT_METHOTHODS when invalidating the specified methods
- * 					 SHR_REVALIDATE_AOT_METHOTHODS when revalidating the specified methods
+ * @param[in] action SHR_FIND_AOT_METHODS when listing the specified methods
+ * 					 SHR_INVALIDATE_AOT_METHODS when invalidating the specified methods
+ * 					 SHR_REVALIDATE_AOT_METHODS when revalidating the specified methods
  *
  * @return the number of AOT methods invalidated/revalidated/found on success or -1 on failure
  */
@@ -6175,7 +6175,7 @@ SH_CacheMap::aotMethodOperationHelper(J9VMThread* currentThread, MethodSpecTable
 	IDATA rc = 0;
 	ShcItem* it = NULL;
 	J9InternalVMFunctions* vmFunctions = currentThread->javaVM->internalVMFunctions;
-	bool lockCache = (SHR_FIND_AOT_METHOTHODS == action) ? false : true;
+	bool lockCache = (SHR_FIND_AOT_METHODS == action) ? false : true;
 	const char* fnName ="aotMethodOperationHelper";
 	PORT_ACCESS_FROM_PORT(_portlib);
 
@@ -6221,7 +6221,7 @@ SH_CacheMap::aotMethodOperationHelper(J9VMThread* currentThread, MethodSpecTable
 					CACHEMAP_TRACE(J9SHR_VERBOSEFLAG_ENABLE_VERBOSE_DEFAULT, (J9NLS_DO_NOT_PRINT_MESSAGE_TAG | J9NLS_DO_NOT_APPEND_NEWLINE), J9NLS_SHRC_CM_PRINTSTATS_STALE);
 				}
 
-				if ((SHR_FIND_AOT_METHOTHODS == action)
+				if ((SHR_FIND_AOT_METHODS == action)
 					&& TYPE_INVALIDATED_COMPILED_METHOD == ITEMTYPE(it)
 				) {
 					/* Do not print tag "INVALIDATED" when invalidating/revalidating, as user may be confused if this is based on the state before or after the (re)invalidate operation*/
@@ -6238,9 +6238,9 @@ SH_CacheMap::aotMethodOperationHelper(J9VMThread* currentThread, MethodSpecTable
 							J9NLS_SHRC_CM_PRINTSTATS_AOT_FROM_ROMCLASS, J9UTF8_LENGTH(romClassName), J9UTF8_DATA(romClassName), romClass);
 				}
 
-				if (SHR_INVALIDATE_AOT_METHOTHODS == action) {
+				if (SHR_INVALIDATE_AOT_METHODS == action) {
 					ITEMTYPE(it) = TYPE_INVALIDATED_COMPILED_METHOD;
-				} else if (SHR_REVALIDATE_AOT_METHOTHODS == action) {
+				} else if (SHR_REVALIDATE_AOT_METHODS == action) {
 					ITEMTYPE(it) = TYPE_COMPILED_METHOD;
 				}
 				rc += 1;

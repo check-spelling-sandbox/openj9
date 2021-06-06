@@ -1114,7 +1114,7 @@ public class UnsafeTestBase implements ITest {
 	protected void testObject(Object target, String method) throws Exception {
 		for (int i = 0; i < models.length; i++) {
 			long offset = offset(target, i);
-			getLogger().debug("testObject Mathod: " + method + "- Object: " + target.getClass().getName() + ", Offset: "
+			getLogger().debug("testObject Method: " + method + "- Object: " + target.getClass().getName() + ", Offset: "
 					+ offset + ", Data: " + models[i] + ", Index " + i);
 			if (method.equals(VOLATILE)) {
 				myUnsafe.putObjectVolatile(base(target, i), offset, models[i]);

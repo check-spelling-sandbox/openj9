@@ -1903,7 +1903,7 @@ TR_IProfiler::getSearchPCFromMethodAndBCIndex(TR_OpaqueMethodBlock *method, uint
       }
    else
       {
-      TR_ASSERT(false, "Bytecode index can't be higher than the methodSize: bci=%u methdSize=%u", byteCodeIndex, methodSize);
+      TR_ASSERT(false, "Bytecode index can't be higher than the methodSize: bci=%u methodSize=%u", byteCodeIndex, methodSize);
       }
 
    return searchedPC;

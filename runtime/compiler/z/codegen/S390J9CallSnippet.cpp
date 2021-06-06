@@ -362,7 +362,7 @@ TR::S390J9CallSnippet::emitSnippetBody()
 
          if (comp->getOption(TR_UseSymbolValidationManager))
             {
-            TR_ASSERT_FATAL(ramMethod, "cursor = %x, ramMehtod can not be null", cursor);
+            TR_ASSERT_FATAL(ramMethod, "cursor = %x, ramMethod can not be null", cursor);
             cg()->addExternalRelocation( new (cg()->trHeapMemory()) TR::ExternalRelocation(cursor,
                                                                         (uint8_t *)ramMethod,
                                                                         (uint8_t *)TR::SymbolType::typeMethod,

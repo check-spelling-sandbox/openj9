@@ -433,7 +433,7 @@ IDATA storeAndFindTest(J9JavaVM* vm)
 	/* PHASE 5 Test the invalidate/revalidate operation on compiled method.
 	 * Attempt to invalidate the method
 	 */
-	if (0 == cacheObject1->aotMethodOperation(vm->mainThread, methodspec, SHR_INVALIDATE_AOT_METHOTHODS)) {
+	if (0 == cacheObject1->aotMethodOperation(vm->mainThread, methodspec, SHR_INVALIDATE_AOT_METHODS)) {
 		ERRPRINTF("aotMethodOperation failed to invalidate method1\n");
 		rc = FAIL;
 		goto cleanup;
@@ -457,7 +457,7 @@ IDATA storeAndFindTest(J9JavaVM* vm)
 		goto cleanup;
 	}
 	/* Revalidate the method */
-	if (0 == cacheObject1->aotMethodOperation(vm->mainThread, methodspec, SHR_REVALIDATE_AOT_METHOTHODS)) {
+	if (0 == cacheObject1->aotMethodOperation(vm->mainThread, methodspec, SHR_REVALIDATE_AOT_METHODS)) {
 		ERRPRINTF("aotMethodOperation failed to revalidate method1 as expected\n");
 		rc = FAIL;
 	}
@@ -480,7 +480,7 @@ IDATA storeAndFindTest(J9JavaVM* vm)
 		goto cleanup;
 	}
 	/* Invalidate the method again */
-	if (0 == cacheObject1->aotMethodOperation(vm->mainThread, methodspec, SHR_INVALIDATE_AOT_METHOTHODS)) {
+	if (0 == cacheObject1->aotMethodOperation(vm->mainThread, methodspec, SHR_INVALIDATE_AOT_METHODS)) {
 		ERRPRINTF("aotMethodOperation failed to invalidate method1 as expected\n");
 		rc = FAIL;
 		goto cleanup;

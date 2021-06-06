@@ -61,8 +61,8 @@ public class VMData implements IVMData {
 	{
 		try {
 			IBootstrapRunnable runnable = (IBootstrapRunnable) clazz.newInstance();
-			Method runMenthod = clazz.getMethod("run", IVMData.class, Object[].class);
-			runMenthod.invoke(runnable, this, userData);
+			Method runMethod = clazz.getMethod("run", IVMData.class, Object[].class);
+			runMethod.invoke(runnable, this, userData);
 			return; 
 		} catch (InvocationTargetException e) {
 			Throwable cause = e.getTargetException();

@@ -415,7 +415,7 @@ static bool verifyFieldAccess(void *curStruct, TR::SymbolReference *field, bool 
 
       TR_OpaqueClassBlock *objectClass = fej9->getObjectClass((uintptr_t)curStruct);
       TR_OpaqueClassBlock *fieldClass = NULL;
-      // Fabriated fields don't have valid cp index
+      // Fabricated fields don't have valid cp index
       if (field->getCPIndex() < 0 &&
           field->getSymbol()->getRecognizedField() != TR::Symbol::UnknownField)
          {

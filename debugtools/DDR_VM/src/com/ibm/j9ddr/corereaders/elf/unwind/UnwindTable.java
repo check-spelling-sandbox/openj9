@@ -245,7 +245,7 @@ public class UnwindTable {
 	 * apply to and others save/restore state to a stack.
 	 * See: DWARF Debugging Information Format, Version 3 section 6.4.2
 	 * (Also extra instructions defined for Exception handling in:
-	 * http://refspecs.linux-foundation.org/LSB_4.0.0/LSB-Core-generic/LSB-Core-generic/dwarfext.html
+	 * http://refspecs.linuxfoundation.org/LSB_4.0.0/LSB-Core-generic/LSB-Core-generic/dwarfext.html
 	 * )
 	 */
 	public static void dumpInstructions(PrintStream out, byte[] instructions, CIE cie) throws IOException {
@@ -444,7 +444,7 @@ public class UnwindTable {
 	 * apply to and others save/restore state to a stack.
 	 * See: DWARF Debugging Information Format, Version 3 section 6.4.2
 	 * (Also extra instructions defined for Exception handling in:
-	 * http://refspecs.linux-foundation.org/LSB_4.0.0/LSB-Core-generic/LSB-Core-generic/dwarfext.html
+	 * http://refspecs.linuxfoundation.org/LSB_4.0.0/LSB-Core-generic/LSB-Core-generic/dwarfext.html
 	 * )
 	 */
 	private long processInstruction(/*PrintStream out,*/ ImageInputStream instructionStream, CIE cie, RuleState currentState, long currentAddress) throws IOException {

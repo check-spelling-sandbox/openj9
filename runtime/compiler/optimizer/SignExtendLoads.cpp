@@ -741,7 +741,7 @@ int32_t TR_SignExtendLoads::perform()
 
    if (trace())
      {
-       traceMsg(comp(), "Starting Sign Extention of Loads\n");
+       traceMsg(comp(), "Starting Sign Extension of Loads\n");
        traceMsg(comp(), "\nCFG before loop simplification:\n");
        getDebug()->print(comp()->getOutFile(), comp()->getFlowGraph());
      }

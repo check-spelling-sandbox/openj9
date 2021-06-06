@@ -3322,7 +3322,7 @@ void TR::CompilationInfo::stopCompilationThreads()
       fprintf(stderr, "numEntriesFoundInLocalChain: %d\n", aotStats->numEntriesFoundInLocalChain);
       fprintf(stderr, "numEntriesFoundAndValidatedInSharedClass: %d\n", aotStats->numEntriesFoundAndValidatedInSharedClass);
       fprintf(stderr, "numClassChainNotInSharedClass: %d\n", aotStats->numClassChainNotInSharedClass);
-      fprintf(stderr, "numCHInSharedCacheButFailValiation: %d\n", aotStats->numCHInSharedCacheButFailValiation);
+      fprintf(stderr, "numCHInSharedCacheButFailValidation: %d\n", aotStats->numCHInSharedCacheButFailValidation);
       fprintf(stderr, "numInstanceFieldInfoNotUsed: %d\n", aotStats->numInstanceFieldInfoNotUsed);
       fprintf(stderr, "numStaticFieldInfoNotUsed: %d\n", aotStats->numStaticFieldInfoNotUsed);
       fprintf(stderr, "numDefiningClassNotFound: %d\n", aotStats->numDefiningClassNotFound);

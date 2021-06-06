@@ -217,7 +217,7 @@ typedef struct TR_AOTStats
    int32_t numEntriesFoundInLocalChain;
    int32_t numEntriesFoundAndValidatedInSharedClass;
    int32_t numClassChainNotInSharedClass;
-   int32_t numCHInSharedCacheButFailValiation;
+   int32_t numCHInSharedCacheButFailValidation;
    int32_t numInstanceFieldInfoNotUsed;
    int32_t numStaticFieldInfoNotUsed;
    int32_t numDefiningClassNotFound;

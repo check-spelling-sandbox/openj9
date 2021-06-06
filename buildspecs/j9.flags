@@ -966,7 +966,7 @@ all data is stored in their own region. It additionally reduces footprint, mainl
 		<ifRemoved>NO ROMable AOT Support for TJ Watson</ifRemoved>
 	</flag>
 	<flag id="interp_sigQuitThread">
-		<description>Controls if a separate thread handles SIGQUITsignal.</description>
+		<description>Controls if a separate thread handles SIGQUIT signal.</description>
 		<ifRemoved>platform cannot answer SIGQUIT.</ifRemoved>
 		<requires>
 			<require flag="interp_gpHandler"/>

@@ -1551,7 +1551,7 @@ TR_JITServerRelocationRuntime::copyDataToCodeCache(const void *startAddress, siz
 /**
  * @brief Generate the processor feature string which is stored inside TR_AOTHeader of the SCC
  * @param[in] aotHeaderAddress : the start address of TR_AOTHeader
- * @param[out] buff : store the generated processor feautre string in this buff
+ * @param[out] buff : store the generated processor feature string in this buff
  * @param[in] BUFF_SIZE : the upper limit length of the buffer
  * @return void
  */

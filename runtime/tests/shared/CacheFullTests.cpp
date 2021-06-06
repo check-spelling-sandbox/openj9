@@ -2847,7 +2847,7 @@ IDATA test9(J9JavaVM* vm)
 
 	rc = (IDATA) vm->sharedClassConfig->storeAttachedData(vm->mainThread, SEGUPDATEPTR(ca), &dataDescriptor, true);
 	if (0 == rc) {
-		INFOPRINTF("Successfully added JIT data into the resvered JIT space");
+		INFOPRINTF("Successfully added JIT data into the reserved JIT space");
 	} else {
 		ERRPRINTF1("Error: Adding JIT data to cache failed with error code = %d", rc);
 		rc = FAIL;

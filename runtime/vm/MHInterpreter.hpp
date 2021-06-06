@@ -626,9 +626,9 @@ public:
 
 	/**
 	 * FilterReturn:
-	 * 		[ ... MH bytecodeframe returnSlot0 returnslot1] --> [ ... MH returnSlot0 returnslot1]
+	 * 		[ ... MH bytecode frame returnSlot0 returnslot1] --> [ ... MH returnSlot0 returnslot1]
 	 * ConstructorHandle:
-	 * 		[ ... newUninitializedObject bytecodeframe] --> [ ... newInitializedObject]
+	 * 		[ ... newUninitializedObject bytecode frame] --> [ ... newInitializedObject]
 	 * FoldHandle:
 	 * 		Refer to the implementation in MHInterpreter.inc
 	 * GuardWithTestHandle:

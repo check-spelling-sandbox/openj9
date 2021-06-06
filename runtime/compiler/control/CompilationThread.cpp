@@ -9815,7 +9815,7 @@ TR::CompilationInfoPerThreadBase::compile(
       }
 
    // At this point the compilation has either succeeded and compilation cannot be
-   // interrupted anymore, or it has failed. In either case _compilationShouldBeinterrupted flag
+   // interrupted anymore, or it has failed. In either case _compilationShouldBeInterrupted flag
    // is not needed anymore
    setCompilationShouldBeInterrupted(0);
 

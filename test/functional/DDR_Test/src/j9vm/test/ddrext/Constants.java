@@ -604,7 +604,7 @@ public class Constants {
 	public static final String DCLIBS_CMD = "dclibs";
 	public static final String DCLIBS_SUCCESS_KEYS = "Showing library list for,(Lib.+)+";
 	public static final String DCLIBS_FAILURE_KEYS = "Problem running command";
-	public static final String DCLIBS_LIB_COLLENTED = "Library has been collected";
+	public static final String DCLIBS_LIB_COLLECTED = "Library has been collected";
 	public static final String DCLIBS_EXTRACT_SUCCESS_KEYS = "Extracting libraries to,(Extracting.+)+";
 
 	public static final String J9METHOD_CMD = "j9method";

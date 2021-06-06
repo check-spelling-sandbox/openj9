@@ -1150,7 +1150,7 @@ TR_J9InlinerPolicy::createUnsafePutWithOffset(TR::ResolvedMethodSymbol *calleeSy
    TR::Node* valueWithConversion = NULL;
    TR::Node* unsafeNodeWithConversion = NULL;
 
-   debugTrace(tracer(), "\tvalueWithouTConversion = %p\n", valueWithoutConversion);
+   debugTrace(tracer(), "\tvalueWithoutConversion = %p\n", valueWithoutConversion);
 
 
    bool conversionNeeded = comp()->fe()->dataTypeForLoadOrStore(type) != type;

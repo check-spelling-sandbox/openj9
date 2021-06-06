@@ -47,7 +47,7 @@ UDATA unlockConfig(void);
 #define IGNORE_DUMP(x)		( rasDumpAgentEnabled &= ~(1<<(x)) )
 #define NO_DUMPS				( rasDumpAgentEnabled = 0 )
 
-/* GLOBAL: dump agent bitvectors */
+/* GLOBAL: dump agent bit vectors */
 extern UDATA rasDumpAgentEnabled;
 extern const UDATA j9RasDumpKnownSpecs;
 

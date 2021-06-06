@@ -716,7 +716,7 @@ exit:
 
 /**
  * Verify @ref j9shmem.c::j9shmem_findfirst "j9shmem_findfirst",
- * @ref j9shmem.c::j9shmem_findnext "j9shmem_findnext" and @ref j9shmem.c::j9shmem_findclose "j9shmem_findclse"
+ * @ref j9shmem.c::j9shmem_findnext "j9shmem_findnext" and @ref j9shmem.c::j9shmem_findclose "j9shmem_findclose"
  * functions.
  *
  * @param[in] portLibrary The port library under test

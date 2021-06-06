@@ -5796,7 +5796,7 @@ SH_CacheMap::managers()
  * THREADING: Only ever single threaded
  *
  * @param [in] currentThread The current thread
- * @param [in] ctrlDirName The cache control directroy
+ * @param [in] ctrlDirName The cache control directory
  * @param [in] groupPerm Group permissions to open the cache directory
  * @param [in] oscache An exiting top layer SH_OSCache
  * @param [in] runtimeflags The runtime flags used by this cache

@@ -2216,7 +2216,7 @@ TR::TreeTop* generateArraycopyFromSequentialLoads(TR::Compilation* comp, bool tr
     * n23n              lsub
     * n10n                ==>i2l
     * n24n                lconst -10  <<-- byteOffsets (2)
-    * n25n        iconst 0x10000      <<-- convreted to shiftValue (2)
+    * n25n        iconst 0x10000      <<-- converted to shiftValue (2)
     * n26n    imul                  <<-- processedByteNodes (3)
     * n27n      b2i                 <<-- byteConversionNode (3)
     * n28n        bloadi

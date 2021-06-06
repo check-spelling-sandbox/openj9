@@ -49,7 +49,7 @@ set(OMR_THR_SPIN_WAKE_CONTROL OFF CACHE BOOL "")
 set(OMR_THR_THREE_TIER_LOCKING OFF CACHE BOOL "")
 
 # Note: In CMake, 'set's on cache variables only apply if the cache variable
-# is not already set. Thus any cache varaibles set in this file, override
+# is not already set. Thus any cache variables set in this file, override
 # anything set in common.cmake
 
 include("${CMAKE_CURRENT_LIST_DIR}/common.cmake")

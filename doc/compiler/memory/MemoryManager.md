@@ -144,7 +144,7 @@ It uses `J9::SegmentAllocator` to allocate memory and `TR::RawAllocator`
 for all its internal memory management requirements. It receives these 
 allocators via the `TR::PersistentAllocatorKit`. All allocations/deallocations 
 are thread safe. Therefore, there is extra overhead due to the need to 
-acquire a lock before each allocation/dellocation. It also contains an automatic 
+acquire a lock before each allocation/deallocation. It also contains an automatic 
 conversion (which wraps it in a `TR::typed_allocator`) for ease of use with 
 STL containers.
 

@@ -877,26 +877,26 @@ public void test_getDeclaredFieldLjava_lang_String() {
 	// This JCL workitem added (and registerFieldsToFilter) field j.l.Class.classLoader.
 	try {
 		java.lang.reflect.Field f = Class.class.getDeclaredField("classLoader");
-		fail("java.lang.Class.classLoader shoud NOT be accessible via reflection");
+		fail("java.lang.Class.classLoader should NOT be accessible via reflection");
 	} catch (NoSuchFieldException e) {
 	}
 */
 
 	try {
 		java.lang.reflect.Field f = System.class.getDeclaredField("security");
-		Assert.fail("java.lang.System.security shoud NOT be accessible via reflection");
+		Assert.fail("java.lang.System.security should NOT be accessible via reflection");
 	} catch (NoSuchFieldException e) {
 	}
 
 	try {
 		java.lang.reflect.Field f = sun.reflect.Reflection.class.getDeclaredField("fieldFilterMap");
-		Assert.fail("sun.reflect.Reflection.fieldFilterMap shoud NOT be accessible via reflection");
+		Assert.fail("sun.reflect.Reflection.fieldFilterMap should NOT be accessible via reflection");
 	} catch (NoSuchFieldException e) {
 	}
 
 	try {
 		java.lang.reflect.Field f = sun.reflect.Reflection.class.getDeclaredField("methodFilterMap");
-		Assert.fail("sun.reflect.Reflection.methodFilterMap shoud NOT be accessible via reflection");
+		Assert.fail("sun.reflect.Reflection.methodFilterMap should NOT be accessible via reflection");
 	} catch (NoSuchFieldException e) {
 	}
 }

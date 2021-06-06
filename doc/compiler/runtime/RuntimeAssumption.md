@@ -113,7 +113,7 @@ value) must be atomic in the context of an executing instruction which
 generally imposes very strict patchability requirements. The stop-the-world 
 assumptions are much less strict. The assumption in the JIT will be that 
 any these guards can only be tripped at treetops that return true to 
-canGCAndReturn or canGCAndExecpt, and that while at one of these trees and 
+canGCAndReturn or canGCAndExcept, and that while at one of these trees and 
 execution is halted guards may be patched. This is a much looser patching 
 requirement (you can overwrite multiple instructions for example on x86). 
 Currently HCR assumptions and OSR assumptions are considered 

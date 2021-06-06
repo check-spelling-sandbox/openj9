@@ -131,9 +131,9 @@ public class SoftmxRemoteTest{
 			logger.debug ( "	Reset max heap size to: " + (max_limit + 1024) + " bytes");
 			try {
 				ibmBean.setMaxHeapSize(max_limit + 1024);
-				Assert.fail("	FAIL: Expected to get an Exception while trying to set max sixe bigger than max heap size limit!");
+				Assert.fail("	FAIL: Expected to get an Exception while trying to set max size bigger than max heap size limit!");
 			} catch (java.lang.IllegalArgumentException e){
-				logger.debug ("	PASS: get below expected exception while trying to set max sixe bigger than max heap size limit!");
+				logger.debug ("	PASS: get below expected exception while trying to set max size bigger than max heap size limit!");
 				logger.debug("Expected exception", e);
 			} catch (java.lang.UnsupportedOperationException  e){
 				logger.warn ("	java.lang.UnsupportedOperationException: this operation is not supported!");
@@ -159,9 +159,9 @@ public class SoftmxRemoteTest{
 
 			try {
 				ibmBean.setMaxHeapSize(min_size - 1024);
-				Assert.fail("	FAIL: Expected to get an exception while trying to set max sixe smaller than min heap size!");
+				Assert.fail("	FAIL: Expected to get an exception while trying to set max size smaller than min heap size!");
 			}  catch (java.lang.IllegalArgumentException e){
-				logger.debug ("	PASS: get below expected exception while trying to set max sixe bigger than max heap size limit!");
+				logger.debug ("	PASS: get below expected exception while trying to set max size bigger than max heap size limit!");
 				logger.debug("Expected exception", e);
 			} catch (java.lang.UnsupportedOperationException  e){
 				logger.warn ("	java.lang.UnsupportedOperationException: this operation is not supported!");

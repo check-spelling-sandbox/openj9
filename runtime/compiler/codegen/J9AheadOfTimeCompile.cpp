@@ -766,10 +766,10 @@ J9::AheadOfTimeCompile::initializeCommonAOTRelocationHeader(TR::IteratedExternal
          TR_OpaqueClassBlock *classToValidate = svmRecord->_class;
          void *classChainForClassToValidate = svmRecord->_classChain;
 
-         //store the classchain's offset for the classloader for the class
+         //store the ClassChain's offset for the classloader for the class
          uintptr_t classChainOffsetInSharedCacheForCL = sharedCache->getClassChainOffsetIdentifyingLoader(classToValidate);
 
-         //store the classchain's offset for the class that needs to be validated in the second run
+         //store the ClassChain's offset for the class that needs to be validated in the second run
          uintptr_t classChainOffsetInSharedCache = self()->offsetInSharedCacheFromPointer(sharedCache, classChainForClassToValidate);
 
          pcRecord->setClassID(reloTarget, symValManager->getSymbolIDFromValue(classToValidate));

@@ -1338,7 +1338,7 @@ MM_MemorySubSpaceTarok::performContract(MM_EnvironmentBase *env, MM_AllocateDesc
  * 1) The heap free ratio multipliers
  * 2) The heap maximum/minimum contraction sizes
  * 3) The heap alignment
- * @note We use the approximate heap size to account for defered work that may during execution free up more memory.
+ * @note We use the approximate heap size to account for deferred work that may during execution free up more memory.
  * @return the recommended amount of heap in bytes to contract.
  */
 uintptr_t

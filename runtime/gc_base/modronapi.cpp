@@ -122,7 +122,7 @@ j9gc_is_garbagecollection_disabled(J9JavaVM *javaVM)
 /**
  * VM API for determining the amount of free memory available on the heap.
  * The call returns the approximate free memory on the heap available for allocation.  An approximation is used
- * in part because defered work (e.g., concurrent sweep) may be hiding potential free memory.
+ * in part because deferred work (e.g., concurrent sweep) may be hiding potential free memory.
  * @return The approximate free memory available on the heap.
  */
 UDATA 

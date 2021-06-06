@@ -106,7 +106,7 @@ class Buildspec {
         return field
     }
 
-    /* Get a list of values composed by concatinating the values of the
+    /* Get a list of values composed by concatenating the values of the
      * following fields in order:
      * - <parent>.getVectorField()
      * if <name> is a map:

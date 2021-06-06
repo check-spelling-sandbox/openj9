@@ -421,7 +421,7 @@ void TR_OSRGuardInsertion::removeHCRGuards(TR_BitVector &fearGeneratingNodes, TR
          {
          if (guardInfo->getKind() == TR_HCRGuard)
             {
-            TR::DebugCounter::prependDebugCounter(comp(), TR::DebugCounter::debugCounterName(comp(), "hcrGuardRemoval/notsuppoted"), cursor->getLastRealTreeTop());
+            TR::DebugCounter::prependDebugCounter(comp(), TR::DebugCounter::debugCounterName(comp(), "hcrGuardRemoval/notsupported"), cursor->getLastRealTreeTop());
             }
          }
       }

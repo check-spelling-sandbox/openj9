@@ -1139,7 +1139,7 @@ memoryCheck_lockAllBlocks(OMRPortLibrary *portLib, J9MemoryCheckHeader *listHead
  *
  * @precondition The global variable "J9HashTable vmemIDTable" must be already initialized.
  * @param[in] portLib	An initialized OMRPortLibrary structure with its original functions
- * @param[in] memcheckHeader	An initialized J9MemoryCheckheader.
+ * @param[in] memcheckHeader	An initialized J9MemoryCheckHeader.
  * @param[in] requestedMode	The flags to apply to the guardPages.  This should be either lockMode or unlockMode;
  * @return 0 on Success, -1 on failure
  */

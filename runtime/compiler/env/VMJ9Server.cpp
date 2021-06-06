@@ -2102,7 +2102,7 @@ TR_J9ServerVM::acquireClassTableMutex()
 void
 TR_J9ServerVM::releaseClassTableMutex(bool releaseVMAccess)
    {
-   // Release per-cient class table lock
+   // Release per-client class table lock
    TR::Monitor *classTableMonitor = static_cast<JITServerPersistentCHTable *>(_compInfoPT->getClientData()->getCHTable())->getCHTableMonitor();
    TR_ASSERT_FATAL(classTableMonitor, "CH table and its monitor must be initialized");
    classTableMonitor->exit();

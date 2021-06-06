@@ -549,7 +549,7 @@ TR_YesNoMaybe TR::CompilationInfo::shouldActivateNewCompThread()
          {
          // If the server reached low memory and then recovered to normal,
          // subdue activation of new compilation threads on the client
-         if (_queueWeight > _compThreadActivationThresholdsonStarvation[getNumCompThreadsActive()] << 1)
+         if (_queueWeight > _compThreadActivationThresholdsOnStarvation[getNumCompThreadsActive()] << 1)
             return TR_yes;
          return TR_no;
          }
@@ -567,14 +567,14 @@ TR_YesNoMaybe TR::CompilationInfo::shouldActivateNewCompThread()
          // because the latencies are larger. Beyond 'numProc-1' we will use the
          // 'starvation activation schedule', but accelerated (divide those thresholds by 2)
          // NOTE: compilation thread activation policy is AGGRESSIVE if we reached this point
-         if (_queueWeight > (_compThreadActivationThresholdsonStarvation[getNumCompThreadsActive()] >> 1))
+         if (_queueWeight > (_compThreadActivationThresholdsOnStarvation[getNumCompThreadsActive()] >> 1))
             return TR_yes;
          }
 #endif /* defined(J9VM_OPT_JITSERVER) */
       else if (_starvationDetected)
          {
          // comp thread starvation; may activate threads beyond 'numCpu-1'
-         if (_queueWeight > _compThreadActivationThresholdsonStarvation[getNumCompThreadsActive()])
+         if (_queueWeight > _compThreadActivationThresholdsOnStarvation[getNumCompThreadsActive()])
             return TR_yes;
          }
       }
@@ -796,9 +796,9 @@ TR::CompilationInfo::freeAllCompilationThreads()
       jitPersistentFree(_compThreadSuspensionThresholds);
       }
 
-   if (_compThreadActivationThresholdsonStarvation)
+   if (_compThreadActivationThresholdsOnStarvation)
       {
-      jitPersistentFree(_compThreadActivationThresholdsonStarvation);
+      jitPersistentFree(_compThreadActivationThresholdsOnStarvation);
       }
 
    if (_arrayOfCompilationInfoPerThread)
@@ -2728,7 +2728,7 @@ TR::CompilationInfoPerThread* TR::CompilationInfo::getCompInfoForThread(J9VMThre
 
 int32_t *TR::CompilationInfo::_compThreadActivationThresholds = NULL;
 int32_t *TR::CompilationInfo::_compThreadSuspensionThresholds = NULL;
-int32_t *TR::CompilationInfo::_compThreadActivationThresholdsonStarvation = NULL;
+int32_t *TR::CompilationInfo::_compThreadActivationThresholdsOnStarvation = NULL;
 
 void TR::CompilationInfo::updateNumUsableCompThreads(int32_t &numUsableCompThreads)
    {
@@ -2772,7 +2772,7 @@ TR::CompilationInfo::allocateCompilationThreads(int32_t numUsableCompThreads)
    {
    if (_compThreadActivationThresholds ||
        _compThreadSuspensionThresholds ||
-       _compThreadActivationThresholdsonStarvation ||
+       _compThreadActivationThresholdsOnStarvation ||
        _arrayOfCompilationInfoPerThread)
       {
       TR_ASSERT_FATAL(false, "Compilation threads have been allocated\n");
@@ -2806,13 +2806,13 @@ TR::CompilationInfo::allocateCompilationThreads(int32_t numUsableCompThreads)
 
    _compThreadActivationThresholds = static_cast<int32_t *>(jitPersistentAlloc((numTotalCompThreads + 1) * sizeof(int32_t)));
    _compThreadSuspensionThresholds = static_cast<int32_t *>(jitPersistentAlloc((numTotalCompThreads + 1) * sizeof(int32_t)));
-   _compThreadActivationThresholdsonStarvation = static_cast<int32_t *>(jitPersistentAlloc((numTotalCompThreads + 1) * sizeof(int32_t)));
+   _compThreadActivationThresholdsOnStarvation = static_cast<int32_t *>(jitPersistentAlloc((numTotalCompThreads + 1) * sizeof(int32_t)));
 
    _arrayOfCompilationInfoPerThread = static_cast<TR::CompilationInfoPerThread **>(jitPersistentAlloc(numTotalCompThreads * sizeof(TR::CompilationInfoPerThread *)));
 
    if (_compThreadActivationThresholds &&
        _compThreadSuspensionThresholds &&
-       _compThreadActivationThresholdsonStarvation &&
+       _compThreadActivationThresholdsOnStarvation &&
        _arrayOfCompilationInfoPerThread)
       {
       // How to read it: the queueWeight has to be over 100 to activate second comp thread
@@ -2820,7 +2820,7 @@ TR::CompilationInfo::allocateCompilationThreads(int32_t numUsableCompThreads)
       // For example:
       // compThreadActivationThresholds[MAX_TOTAL_COMP_THREADS+1] = {-1, 100, 200, 300, 400, 500, 600, 700, 800};
       // compThreadSuspensionThresholds[MAX_TOTAL_COMP_THREADS+1] = {-1,  -1,  10, 110, 210, 310, 410, 510, 610};
-      // compThreadActivationThresholdsonStarvation[MAX_TOTAL_COMP_THREADS+1] = {-1, 800, 1600, 3200, 6400, 12800, 19200, 25600, 32000};
+      // compThreadActivationThresholdsOnStarvation[MAX_TOTAL_COMP_THREADS+1] = {-1, 800, 1600, 3200, 6400, 12800, 19200, 25600, 32000};
       _compThreadActivationThresholds[0] = -1;
       _compThreadActivationThresholds[1] = 100;
       _compThreadActivationThresholds[2] = 200;
@@ -2835,18 +2835,18 @@ TR::CompilationInfo::allocateCompilationThreads(int32_t numUsableCompThreads)
          _compThreadSuspensionThresholds[i] = _compThreadSuspensionThresholds[i-1] + 100;
          }
 
-      _compThreadActivationThresholdsonStarvation[0] = -1;
-      _compThreadActivationThresholdsonStarvation[1] = 800;
+      _compThreadActivationThresholdsOnStarvation[0] = -1;
+      _compThreadActivationThresholdsOnStarvation[1] = 800;
 
       for (int32_t i=2; i<(numTotalCompThreads+1); ++i)
          {
-         if (_compThreadActivationThresholdsonStarvation[i-1] < 12800)
+         if (_compThreadActivationThresholdsOnStarvation[i-1] < 12800)
             {
-            _compThreadActivationThresholdsonStarvation[i] = _compThreadActivationThresholdsonStarvation[i-1] * 2;
+            _compThreadActivationThresholdsOnStarvation[i] = _compThreadActivationThresholdsOnStarvation[i-1] * 2;
             }
          else
             {
-            _compThreadActivationThresholdsonStarvation[i] = _compThreadActivationThresholdsonStarvation[i-1] + 6400;
+            _compThreadActivationThresholdsOnStarvation[i] = _compThreadActivationThresholdsOnStarvation[i-1] + 6400;
             }
          }
 

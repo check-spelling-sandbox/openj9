@@ -1305,7 +1305,7 @@ private:
 
    static int32_t *_compThreadActivationThresholds;
    static int32_t *_compThreadSuspensionThresholds;
-   static int32_t *_compThreadActivationThresholdsonStarvation;
+   static int32_t *_compThreadActivationThresholdsOnStarvation;
 
    TR::CompilationInfoPerThread **_arrayOfCompilationInfoPerThread; // First NULL entry means end of the array
    TR::CompilationInfoPerThread *_compInfoForDiagnosticCompilationThread; // compinfo for dump compilation thread

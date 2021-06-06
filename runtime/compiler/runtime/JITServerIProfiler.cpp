@@ -581,7 +581,7 @@ JITServerIProfiler::persistIprofileInfo(TR::ResolvedMethodSymbol *methodSymbol, 
    auto compInfoPT = (TR::CompilationInfoPerThreadRemote *)(comp->fej9()->_compInfoPT);
    ClientSessionData *clientSessionData = compInfoPT->getClientData();
 
-   if (clientSessionData->getOrCacheVMInfo(stream)->_elgibleForPersistIprofileInfo)
+   if (clientSessionData->getOrCacheVMInfo(stream)->_eligibleForPersistIprofileInfo)
       {
       auto serverMethod = static_cast<TR_ResolvedJ9JITServerMethod *>(method);
       compInfoPT->cacheResolvedMirrorMethodsPersistIPInfo(serverMethod->getRemoteMirror());

@@ -533,7 +533,7 @@ public:
    leave the TR_ResolvedMethodSymbol argument for debugging purpose when called from Ilgen
    */
    virtual void persistIprofileInfo(TR::ResolvedMethodSymbol *methodSymbol, TR_ResolvedMethod *method, TR::Compilation *comp); // JITServer: mark virtual
-   bool elgibleForPersistIprofileInfo(TR::Compilation *comp) const;
+   bool eligibleForPersistIprofileInfo(TR::Compilation *comp) const;
 
    void checkMethodHashTable();
 

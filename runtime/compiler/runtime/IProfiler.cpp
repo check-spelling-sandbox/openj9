@@ -349,7 +349,7 @@ TR_IProfiler::walkILTreeForEntries(uintptr_t *pcEntries, uint32_t &numEntries, T
    }
 
 bool
-TR_IProfiler::elgibleForPersistIprofileInfo(TR::Compilation *comp) const
+TR_IProfiler::eligibleForPersistIprofileInfo(TR::Compilation *comp) const
    {
       return (TR::Options::sharedClassCache() &&
              !comp->getOption(TR_DisablePersistIProfile) &&
@@ -377,7 +377,7 @@ TR_IProfiler::persistIprofileInfo(TR::ResolvedMethodSymbol *resolvedMethodSymbol
    fprintf(stderr, "persistIprofileInfo for %s while compiling %s\n", methodSig, comp->signature());
 #endif
 
-   if (elgibleForPersistIprofileInfo(comp) &&
+   if (eligibleForPersistIprofileInfo(comp) &&
       (!SCfull || !comp->getOption(TR_DisableUpdateJITBytesSize)))
       {
       TR_J9VMBase *fej9 = (TR_J9VMBase *)_vm;

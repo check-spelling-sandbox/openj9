@@ -429,7 +429,7 @@ handleServerMessage(JITServer::ClientStream *client, TR_J9VM *fe, JITServer::Mes
          vmInfo._j9SharedClassCacheDescriptorList = NULL;
          vmInfo._stringCompressionEnabled = fe->isStringCompressionEnabledVM();
          vmInfo._hasSharedClassCache = TR::Options::sharedClassCache();
-         vmInfo._elgibleForPersistIprofileInfo = vmInfo._isIProfilerEnabled ? fe->getIProfiler()->elgibleForPersistIprofileInfo(comp) : false;
+         vmInfo._eligibleForPersistIprofileInfo = vmInfo._isIProfilerEnabled ? fe->getIProfiler()->eligibleForPersistIprofileInfo(comp) : false;
          vmInfo._reportByteCodeInfoAtCatchBlock = comp->getOptions()->getReportByteCodeInfoAtCatchBlock();
          for (int32_t i = 0; i <= 7; i++)
             {

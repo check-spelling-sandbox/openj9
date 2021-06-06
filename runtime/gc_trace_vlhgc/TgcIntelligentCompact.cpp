@@ -173,11 +173,11 @@ tgcHookReportIntelligentCompactStatistics(J9HookInterface** hook, UDATA eventNum
 	J9JavaVM *javaVM = static_cast<J9VMThread*>(event->currentThread->_language_vmthread)->javaVM;
 	MM_TgcExtensions *tgcExtensions = MM_TgcExtensions::getExtensions(javaVM);
 	
-	/* report TGC stats for all regoins */
+	/* report TGC stats for all regions */
 	tgcExtensions->printf("Compact(%zu): For All Regions:\n", gcCount);
 	processCompactDataForTGC(javaVM, event, false);
 	
-	/* report TGC stats for compact regoins */
+	/* report TGC stats for compact regions */
 	tgcExtensions->printf("Compact(%zu): For Compact Regions:\n", gcCount);
 	processCompactDataForTGC(javaVM, event, true);
 }

@@ -58,3 +58,4 @@ jobs:
         check_extra_dictionaries: ''
         experimental_apply_changes_via_bot: 1
         only_check_changed_files: 1
+        debug: 1

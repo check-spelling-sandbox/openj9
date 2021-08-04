@@ -3138,9 +3138,9 @@ public class ValueTypeTests {
 	}
 
 	@Test(priority=1, expectedExceptions=VerifyError.class)
-	static public void testValueTypeHasSychMethods() throws Throwable {
+	static public void testValueTypeHasSyncMethods() throws Throwable {
 		String fields[] = {"longField:J"};
-		Class valueClass = ValueTypeGenerator.generateIllegalValueClassWithSychMethods("testValueTypeHasSychMethods", fields);
+		Class valueClass = ValueTypeGenerator.generateIllegalValueClassWithSyncMethods("testValueTypeHasSyncMethods", fields);
 	}
 
 	@Test(priority = 1)

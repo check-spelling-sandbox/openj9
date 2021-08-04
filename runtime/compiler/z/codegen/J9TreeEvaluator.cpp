@@ -2175,7 +2175,7 @@ J9::Z::TreeEvaluator::inlineStringHashCode(TR::Node* node, TR::CodeGenerator* cg
    {
    TR::Compilation* comp = cg->comp();
    //stringSize = Number of bytes to load to process 4 characters in SIMD loop
-   //terminateVal = SIMD loop cotroller allowing characters in multiple of 4 to be processes by loop
+   //terminateVal = SIMD loop controller allowing characters in multiple of 4 to be processes by loop
    //VLLEZ instruction will load word(compressed String) or double word (decompressed String), elementSize is used for that
    const short stringSize = (isCompressed ? 4 : 8);
    const short terminateVal = (isCompressed ? 3 : 6);

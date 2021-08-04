@@ -135,3 +135,10 @@ VLF\s+Cof\w{5}$
 
 # javax.management.MBeanNotificationInfo.getNotifTypes
 \bgetNotifTypes\b
+
+# acceptable duplicates
+\s(long|LONG) \g{-1}\s
+\@param\s+(\w+)\s+\g{-1}\s
+
+# ignore long runs of a single character:
+\b([A-Za-z])\g{-1}{3,}\b

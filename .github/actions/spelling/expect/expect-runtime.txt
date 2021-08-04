@@ -385,9 +385,12 @@ cardmarking
 cardscleaned
 CARGS
 carray
+casalw
+casalx
 caseflag
 CASTART
 CASTMON
+casw
 catchtype
 CAWITEM
 cba
@@ -455,6 +458,7 @@ CEEMRCE
 CEEMRCR
 CEEMRCX
 ceepcb
+CEEPCBFLAG
 CEESTART
 ceetbck
 CEEVRONU
@@ -680,6 +684,7 @@ CLGRJ
 CLGRL
 CLGT
 CLHHSI
+clientsessiondata
 clij
 clilen
 CLjava
@@ -721,10 +726,12 @@ CMMI
 CMMMMES
 CMMUTEX
 cmn
+CMOVA
 CMOVE
 CMOVGE
 CMOVNE
 cmovnz
+CMOVP
 cmpbuf
 cmpeqb
 cmpi
@@ -824,6 +831,7 @@ compensateblock
 COMPFAIL
 COMPILATIONBASE
 COMPILATIONCONTROLLER
+compilationinfoperthreadremote
 COMPILATIONPRIORITY
 COMPILATIONRUNTIME
 COMPILATIONTHREAD
@@ -992,6 +1000,8 @@ crgtp
 CRINT
 Criticals
 critsectionblock
+criuhelpers
+criusupport
 CRJ
 CROOT
 cror
@@ -1079,6 +1089,8 @@ CVTRI
 cvtsd
 cvtss
 cvtt
+CVTTSD
+CVTTSS
 CVTTX
 CVTTXC
 CVTVEF
@@ -1146,6 +1158,7 @@ dcbtst
 dcbtstt
 dcbtt
 dcf
+dcfs
 dcmp
 dcmpeq
 dcmpequ
@@ -1163,6 +1176,7 @@ dcode
 dconfiginfo
 dcp
 dcs
+DCSS
 DCU
 DCUT
 DCW
@@ -1259,6 +1273,7 @@ DEPRECATEDLIST
 DEPSUFF
 deregistering
 derek
+deserializer
 DESTROYALLLAYERS
 DESTROYSEM
 DESTROYSHM
@@ -1816,6 +1831,7 @@ flc
 flccvt
 FLCINF
 flddle
+FLDDUP
 fldl
 fldmd
 fldmiad
@@ -1833,6 +1849,8 @@ floatstubs
 FLOATSUPPORT
 flowersaremerelytarts
 flsanity
+FLSTP
+FLSTTP
 fltconst
 fltconv
 fltdmath
@@ -1859,6 +1877,7 @@ fmessage
 fmov
 fmovd
 fmove
+fmovs
 fmr
 fmsr
 fmstat
@@ -1983,6 +2002,7 @@ fstmd
 fstmfdd
 fstmiadeq
 fstorei
+FSTPST
 fstpt
 fsts
 fstseq
@@ -2801,6 +2821,7 @@ iprintf
 IProfiled
 iprofilerbuffer
 iprofiling
+iptableheap
 iquote
 irdbar
 irdbari
@@ -3297,6 +3318,7 @@ jweak
 JWORD
 JXECOLON
 JXEPOINTER
+Kaboom
 KAFFINITY
 kbit
 kbytes
@@ -3407,6 +3429,7 @@ lcmpne
 LCMPXCHG
 LCMPXCHGNOP
 lcode
+lcodes
 Lcommon
 LCompare
 LContainer
@@ -3462,6 +3485,7 @@ ldroffx
 ldrsb
 ldrsbimmw
 ldrsbimmx
+ldrsboffw
 ldrsh
 ldrshimmw
 ldrshimmx
@@ -4685,8 +4709,8 @@ NTREEBINS
 NULL'ed
 NULLa
 nullchecks
-nullchk
 NULLCHK'ed
+nullchk
 nullcmp
 nullindexer
 NULLVALUE
@@ -5497,6 +5521,7 @@ qsearch
 qsimd
 qsize
 qsource
+qstackprotect
 qstrict
 qsuppress
 qsyrusri
@@ -5716,6 +5741,7 @@ residueweight
 RESINC
 resman
 RESOLVECONSTANTDYNAMIC
+resolvedmethodinfocache
 RESOLVEDMETHODSYMBOL
 resolvehelp
 resolvesupport
@@ -5763,6 +5789,7 @@ RETURNVAL
 RETVALUE
 RETVOID
 retw
+reupgrade
 REUSEADDR
 reverseopcode
 revirtualize
@@ -6085,6 +6112,7 @@ SEGMENTMUTEX
 segsz
 SEGUPDATEPTR
 segv
+SEGVs
 seh
 selinux
 selinuxfs
@@ -6303,6 +6331,7 @@ slgr
 slibnvidia
 sliphandle
 sllg
+SLLK
 sloadi
 slong
 slotlist
@@ -6419,6 +6448,7 @@ sreplaced
 sres
 sreset
 srlg
+SRLK
 srm
 SRPHASHTABLEINTERNAL
 SRPHASHTABLENEW
@@ -6555,6 +6585,7 @@ sthu
 STKALIGN
 STKPPA
 STKREG
+stlrw
 stlrx
 stlxrw
 stlxrx
@@ -7093,6 +7124,7 @@ treenodes
 treeteops
 treetopped
 treeview
+treg
 tregp
 trem
 TRep
@@ -7172,6 +7204,7 @@ typedef'ed
 TYPEDO
 typenum
 typestub
+TYPESTUBS
 uaddr
 uanword
 uaword
@@ -7184,6 +7217,7 @@ Uchains
 uchar
 uchf
 ucomisd
+UCOMISS
 UCP
 ucrt
 Ucs
@@ -7482,6 +7516,7 @@ VLHGCACCESSBARRIER
 VLHGCCYCLESTATS
 VLHGCIn
 VLL
+VLLEZ
 VLREP
 VLRL
 VLRLR
@@ -7489,6 +7524,7 @@ VLVG
 VLVGP
 VMacc
 VMACCESSCRITICALSECTION
+VMAL
 VMALLOCZEROARRAY
 VMarray
 VMASMDEBUG
@@ -7513,6 +7549,7 @@ vmfns
 vmfntbl
 vmfo
 vmfunc
+vmfuncs
 VMgen
 VMgenerate
 vmgetinfo
@@ -7537,6 +7574,7 @@ vminternals
 vmipadding
 VMIs
 vmizip
+vml
 VMLAB
 VMLINK
 vmls
@@ -7654,7 +7692,9 @@ vstroffd
 vstroffs
 vstrpostd
 vstrposts
+VSTRS
 vsububm
+VSUMQ
 vsx
 VSXSTORES
 VTALRM
@@ -7668,6 +7708,7 @@ vupkhsh
 vupklsh
 VUPKZ
 VUPLH
+VUPLL
 vxor
 VXRS
 vxyz
@@ -7859,6 +7900,7 @@ xgr
 XHEALTHCENTER
 XHEAPONLYRTSJ
 xhelpers
+XIHF
 XINCGC
 XINITACSH
 XINITSH
@@ -8022,6 +8064,8 @@ XXDIAGNOSE
 XXDISABLE
 XXDISABLEALWAYSSPLITBYTECODES
 XXDISABLECPUMONITOR
+XXDISABLECRIU
+XXDISABLECRIUNONPORTABLEMODE
 XXDISABLEEXITONOUTOFMEMORYERROR
 XXDISABLEEXPLICITGC
 XXDISABLEJITWATCH
@@ -8042,6 +8086,8 @@ XXDUMPLOADEDCLASSLIST
 XXENABLE
 XXENABLEALWAYSSPLITBYTECODES
 XXENABLECPUMONITOR
+XXENABLECRIU
+XXENABLECRIUNONPORTABLEMODE
 XXENABLEEXITONOUTOFMEMORYERROR
 XXENABLEEXPLICITGC
 XXENABLEHCR

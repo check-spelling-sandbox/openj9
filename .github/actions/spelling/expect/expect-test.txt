@@ -973,6 +973,7 @@ sectd
 SECURITYJARPATH
 securitymanager
 SEDIR
+semeru
 semfile
 semsremoved
 senum

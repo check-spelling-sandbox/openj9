@@ -26,6 +26,7 @@ Ceeedboptcb
 CIBs
 clzs
 cmdargs
+criu
 cubins
 datamines
 deduplicates
@@ -163,6 +164,7 @@ hexdump
 hexfmt
 hexformat
 hgpr
+HGPRS
 hhmmss
 highpos
 HIOS
@@ -618,6 +620,7 @@ MISCINFO
 Mjk
 mkdocker
 mlib
+mlibs
 Mmethod
 Mmhook
 mmilinkov
@@ -983,6 +986,7 @@ pxi
 pxp
 pxr
 pxz
+QAtomic
 QMARK
 qpcb
 Qsce
@@ -1033,6 +1037,7 @@ Refactorings
 refc
 REFSCALE
 refspec
+refspecs
 region'type
 Regionlistener
 registryies
@@ -1211,6 +1216,7 @@ spoole
 spsr
 sptate
 srb
+SRBs
 srcfolder
 sread
 sridevi

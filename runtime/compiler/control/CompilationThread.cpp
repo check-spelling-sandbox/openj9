@@ -1289,7 +1289,7 @@ TR_YesNoMaybe TR::CompilationInfo::detectCompThreadStarvation()
    // If there are idle cycles on the CPU set where this JVM can run
    // then the compilation threads should be able to use those cycles
    // The following is just an approximation because we look at idle
-   // cyles on the entire machine
+   // cycles on the entire machine
    if (getCpuUtil()->isFunctional() &&
       getCpuUtil()->getAvgCpuIdle() > 5 && // This is for the entire machine
       getCpuUtil()->getVmCpuUsage() + 10 < getJvmCpuEntitlement()) // at least 10% unutilized by this JVM

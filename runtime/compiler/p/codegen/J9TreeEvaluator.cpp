@@ -511,6 +511,13 @@ static void VMnonNullSrcWrtBarCardCheckEvaluator(TR::Node *node, TR::Register *s
          || comp->getOptions()->realTimeGC());
    bool temp3RegIsNull = (temp3Reg == NULL);
 
+   //registers for old/new space boundaries
+   TR::Register *bound1 = cg->allocateRegister();
+   TR::Register *bound2 = cg->allocateRegister();
+
+   deps->addPostCondition(bound1, TR::RealRegister::NoReg);
+   deps->addPostCondition(bound2, TR::RealRegister::NoReg);
+
    TR_ASSERT(doWrtBar == true, "VMnonNullSrcWrtBarCardCheckEvaluator: Invalid call to VMnonNullSrcWrtBarCardCheckEvaluator\n");
 
    if (temp3RegIsNull)
@@ -551,16 +558,18 @@ static void VMnonNullSrcWrtBarCardCheckEvaluator(TR::Node *node, TR::Register *s
 
       TR::Register *metaReg = cg->getMethodMetaDataRegister();
 
+      TR::LabelSymbol* startICF = generateLabelSymbol(cg);
+      startICF->setStartInternalControlFlow();
+
       // dstReg - heapBaseForBarrierRange0
-      TR::Register *tempRegister = (temp4Reg != NULL) ? temp4Reg : temp3Reg;
-      generateTrg1MemInstruction(cg,TR::InstOpCode::Op_load, node, tempRegister,
+      generateTrg1MemInstruction(cg,TR::InstOpCode::Op_load, node, bound1,
             TR::MemoryReference::createWithDisplacement(cg, metaReg, offsetof(J9VMThread, heapBaseForBarrierRange0), TR::Compiler->om.sizeofReferenceAddress()));
-      generateTrg1Src2Instruction(cg, TR::InstOpCode::subf, node, temp3Reg, tempRegister, dstReg);
+      generateTrg1Src2Instruction(cg, TR::InstOpCode::subf, node, temp3Reg, bound1, dstReg);
 
       // if (temp3Reg >= heapSizeForBarrierRage0), object not in the tenured area
-      generateTrg1MemInstruction(cg,TR::InstOpCode::Op_load, node, temp2Reg,
+      generateTrg1MemInstruction(cg,TR::InstOpCode::Op_load, node, bound2,
             TR::MemoryReference::createWithDisplacement(cg, metaReg, offsetof(J9VMThread, heapSizeForBarrierRange0), TR::Compiler->om.sizeofReferenceAddress()));
-      generateTrg1Src2Instruction(cg,TR::InstOpCode::Op_cmpl, node, condReg, temp3Reg, temp2Reg);
+      generateTrg1Src2Instruction(cg,TR::InstOpCode::Op_cmpl, node, condReg, temp3Reg, bound2);
       generateConditionalBranchInstruction(cg, TR::InstOpCode::bge, node, doneLabel, condReg);
 
       if (!flagsInTemp1)
@@ -586,6 +595,9 @@ static void VMnonNullSrcWrtBarCardCheckEvaluator(TR::Node *node, TR::Register *s
             TR_ASSERT(J9_PRIVATE_FLAGS_CONCURRENT_MARK_ACTIVE >= 0x00010000 && J9_PRIVATE_FLAGS_CONCURRENT_MARK_ACTIVE <= 0x80000000,
                   "Concurrent mark active Value assumption broken.");
             generateTrg1Src1ImmInstruction(cg, TR::InstOpCode::andis_r, node, temp2Reg, temp2Reg, condReg, J9_PRIVATE_FLAGS_CONCURRENT_MARK_ACTIVE >> 16);
+
+            //start of control flow
+            generateLabelInstruction(cg, TR::InstOpCode::label, node, startICF);
             generateConditionalBranchInstruction(cg, TR::InstOpCode::beq, node, noChkLabel, condReg);
             }
 
@@ -607,18 +619,18 @@ static void VMnonNullSrcWrtBarCardCheckEvaluator(TR::Node *node, TR::Register *s
          generateMemSrc1Instruction(cg, TR::InstOpCode::stb, node, TR::MemoryReference::createWithIndexReg(cg, temp2Reg, temp3Reg, 1), temp4Reg);
 
          if (noChkLabel)
+         {
+            //end of control flow
+            noChkLabel->setEndInternalControlFlow();
             generateLabelInstruction(cg, TR::InstOpCode::label, node, noChkLabel);
+         }
 
          if (gcMode == gc_modron_wrtbar_cardmark_and_oldcheck)
             {
             //check for src in new space
-            generateTrg1MemInstruction(cg,TR::InstOpCode::Op_load, node, temp2Reg,
-                  TR::MemoryReference::createWithDisplacement(cg, metaReg, offsetof(J9VMThread, heapBaseForBarrierRange0), TR::Compiler->om.sizeofReferenceAddress()));
-            generateTrg1Src2Instruction(cg, TR::InstOpCode::subf, node, temp2Reg, temp2Reg, srcReg);
+            generateTrg1Src2Instruction(cg, TR::InstOpCode::subf, node, temp2Reg, bound1, srcReg);
 
-            generateTrg1MemInstruction(cg,TR::InstOpCode::Op_load, node, temp3Reg,
-                  TR::MemoryReference::createWithDisplacement(cg, metaReg, offsetof(J9VMThread, heapSizeForBarrierRange0), TR::Compiler->om.sizeofReferenceAddress()));
-            generateTrg1Src2Instruction(cg,TR::InstOpCode::Op_cmpl, node, condReg, temp2Reg, temp3Reg);
+            generateTrg1Src2Instruction(cg,TR::InstOpCode::Op_cmpl, node, condReg, temp2Reg, bound2);
             generateConditionalBranchInstruction(cg, TR::InstOpCode::blt, node, doneLabel, condReg);
             }
          }
@@ -627,17 +639,8 @@ static void VMnonNullSrcWrtBarCardCheckEvaluator(TR::Node *node, TR::Register *s
          if (gcMode == gc_modron_wrtbar_cardmark_and_oldcheck || gcMode == gc_modron_wrtbar_oldcheck)
             {
             //check for src in new space
-            if (temp4Reg != NULL)
-               {
-               generateTrg1Src2Instruction(cg, TR::InstOpCode::subf, node, temp3Reg, temp4Reg, srcReg);
-               }
-            else
-               {
-               generateTrg1MemInstruction(cg,TR::InstOpCode::Op_load, node, temp3Reg,
-                     TR::MemoryReference::createWithDisplacement(cg, metaReg, offsetof(J9VMThread, heapBaseForBarrierRange0), TR::Compiler->om.sizeofReferenceAddress()));
-               generateTrg1Src2Instruction(cg, TR::InstOpCode::subf, node, temp3Reg, temp3Reg, srcReg);
-               }
-            generateTrg1Src2Instruction(cg,TR::InstOpCode::Op_cmpl, node, condReg, temp3Reg, temp2Reg);
+            generateTrg1Src2Instruction(cg, TR::InstOpCode::subf, node, temp3Reg, bound1, srcReg);
+            generateTrg1Src2Instruction(cg,TR::InstOpCode::Op_cmpl, node, condReg, temp3Reg, bound2);
             generateConditionalBranchInstruction(cg, TR::InstOpCode::blt, node, doneLabel, condReg);
             }
          }
@@ -689,6 +692,9 @@ static void VMnonNullSrcWrtBarCardCheckEvaluator(TR::Node *node, TR::Register *s
    generateDepImmSymInstruction(cg, TR::InstOpCode::bl, node, (uintptr_t) wbRef->getSymbol()->castToMethodSymbol()->getMethodAddress(),
          new (cg->trHeapMemory()) TR::RegisterDependencyConditions((uint8_t) 0, 0, cg->trMemory()), wbRef, NULL);
    cg->machine()->setLinkRegisterKilled(true);
+
+   cg->stopUsingRegister(bound1);
+   cg->stopUsingRegister(bound2);
 
    if (temp3RegIsNull && temp3Reg)
       cg->stopUsingRegister(temp3Reg);
@@ -794,7 +800,7 @@ static void VMwrtbarEvaluator(TR::Node *node, TR::Register *srcReg, TR::Register
       numRegs += 3;
 
    if (doWrtBar || doCrdMrk)
-      numRegs += 2;
+      numRegs += 4; //two extra deps for space boundaries
 
    if ((!doWrtBar && !doCrdMrk) || (node->getOpCode().isWrtBar() && node->skipWrtBar()))
       {
@@ -3224,7 +3230,7 @@ TR::Register *J9::Power::TreeEvaluator::ArrayStoreCHKEvaluator(TR::Node *node, T
    dstReg = cg->evaluate(destinationChild);
    srcReg = cg->evaluate(sourceChild);
 
-   conditions = new (cg->trHeapMemory()) TR::RegisterDependencyConditions(7, 7, cg->trMemory());
+   conditions = new (cg->trHeapMemory()) TR::RegisterDependencyConditions(9, 9, cg->trMemory());
    temp1Reg = cg->allocateRegister();
    temp2Reg = cg->allocateRegister();
    temp3Reg = cg->allocateRegister();
@@ -6482,6 +6488,62 @@ TR::Register *J9::Power::TreeEvaluator::VMnewEvaluator(TR::Node *node, TR::CodeG
             genInitArrayHeader(node, iCursor, isVariableLen, clazz, NULL, resReg, zeroReg, condReg, enumReg, dataSizeReg,
                   tmp5Reg, tmp4Reg, conditions, needZeroInit, cg);
 
+#ifdef TR_TARGET_64BIT
+         /* Here we'll update dataAddr slot for both fixed and variable length arrays. Fixed length arrays are
+          * simple as we just need to check first child of the node for array size. For variable length arrays
+          * runtime size checks are needed to determine whether to use contiguous or discontiguous header layout.
+          * 
+          * In both scenarios, arrays of non-zero size use contiguous header layout while zero size arrays use
+          * discontiguous header layout.
+          */
+         TR::Register *offsetReg = tmp5Reg;
+         TR::Register *firstDataElementReg = tmp4Reg;
+         TR::MemoryReference *dataAddrSlotMR = NULL;
+
+         if (isVariableLen && TR::Compiler->om.compressObjectReferences())
+            {
+            /* We need to check enumReg at runtime to determine correct offset of dataAddr field.
+             * Here we deal only with compressed refs because dataAddr offset for discontiguous
+             * and contiguous arrays is the same in full refs.
+             */
+            if (comp->getOption(TR_TraceCG))
+               traceMsg(comp, "Node (%p): Dealing with compressed refs variable length array.\n", node);
+
+            TR_ASSERT_FATAL_WITH_NODE(node, (fej9->getOffsetOfDiscontiguousDataAddrField() - fej9->getOffsetOfContiguousDataAddrField()) == 8, 
+            "Offset of dataAddr field in discontiguous array is expected to be 8 bytes more than contiguous array. But was %d bytes for discontigous and %d bytes for contiguous array.\n", fej9->getOffsetOfDiscontiguousDataAddrField(), fej9->getOffsetOfContiguousDataAddrField());
+
+            iCursor = generateTrg1Src1Instruction(cg, TR::InstOpCode::cntlzd, node, offsetReg, enumReg, iCursor);
+            iCursor = generateTrg1Src1Imm2Instruction(cg, TR::InstOpCode::rlwinm, node, offsetReg, offsetReg, 29, 8, iCursor);
+            // offsetReg should either be 0 (if enumReg > 0) or 8 (if enumReg == 0)
+            iCursor = generateTrg1Src2Instruction(cg, TR::InstOpCode::add, node, offsetReg, resReg, offsetReg, iCursor);
+
+            iCursor = generateTrg1Src1ImmInstruction(cg, TR::InstOpCode::addi, node, firstDataElementReg, offsetReg, TR::Compiler->om.contiguousArrayHeaderSizeInBytes(), iCursor);
+            dataAddrSlotMR = TR::MemoryReference::createWithDisplacement(cg, offsetReg, fej9->getOffsetOfContiguousDataAddrField(), TR::Compiler->om.sizeofReferenceAddress());
+            }
+         else if (!isVariableLen && node->getFirstChild()->getOpCode().isLoadConst() && node->getFirstChild()->getInt() == 0)
+            {
+            if (comp->getOption(TR_TraceCG))
+               traceMsg(comp, "Node (%p): Dealing with full/compressed refs fixed length zero size array.\n", node);
+
+            iCursor = generateTrg1Src1ImmInstruction(cg, TR::InstOpCode::addi, node, firstDataElementReg, resReg, TR::Compiler->om.discontiguousArrayHeaderSizeInBytes(), iCursor);
+            dataAddrSlotMR = TR::MemoryReference::createWithDisplacement(cg, resReg, fej9->getOffsetOfDiscontiguousDataAddrField(), TR::Compiler->om.sizeofReferenceAddress());
+            }
+         else
+            {
+            if (comp->getOption(TR_TraceCG))
+               traceMsg(comp, "Node (%p): Dealing with either full/compressed refs fixed length non-zero size array or full refs variable length array.\n", node);
+
+            if (!TR::Compiler->om.compressObjectReferences())
+               TR_ASSERT_FATAL_WITH_NODE(node, fej9->getOffsetOfDiscontiguousDataAddrField() == fej9->getOffsetOfContiguousDataAddrField(), "dataAddr field offset is expected to be same for both contiguous and discontiguous arrays in full refs. But was %d bytes for discontiguous and %d bytes for contiguous array.\n", fej9->getOffsetOfDiscontiguousDataAddrField(), fej9->getOffsetOfContiguousDataAddrField());
+
+            iCursor = generateTrg1Src1ImmInstruction(cg, TR::InstOpCode::addi, node, firstDataElementReg, resReg, TR::Compiler->om.contiguousArrayHeaderSizeInBytes(), iCursor);
+            dataAddrSlotMR = TR::MemoryReference::createWithDisplacement(cg, resReg, fej9->getOffsetOfContiguousDataAddrField(), TR::Compiler->om.sizeofReferenceAddress());
+            }
+
+         // store the first data element address to dataAddr slot
+         iCursor = generateMemSrc1Instruction(cg, TR::InstOpCode::std, node, dataAddrSlotMR, firstDataElementReg, iCursor);
+#endif /* TR_TARGET_64BIT */
+
          if (generateArraylets)
             {
             //write arraylet pointer to object header
@@ -8269,6 +8331,10 @@ static TR::Register *VMinlineCompareAndSwapObject(TR::Node *node, TR::CodeGenera
       resultReg = genCAS(node, cg, objReg, offsetReg, oldVReg, newVReg, cndReg, doneLabel, secondChild, 0, true, (comp->target().is64Bit() && !comp->useCompressedPointers()));
 
    uint32_t numDeps = (doWrtBar || doCrdMrk) ? 13 : 11;
+
+   if (doWrtBar) //two extra deps for space boundaries
+      numDeps += 2;
+
    conditions = createConditionsAndPopulateVSXDeps(cg, numDeps);
 
    if (doWrtBar && doCrdMrk)
@@ -9692,6 +9758,12 @@ static TR::Register *inlineConcurrentLinkedQueueTMOffer(TR::Node *node, TR::Code
    TR::InstOpCode::Mnemonic storeOpCode = (addressFieldSize == 8) ? TR::InstOpCode::std : TR::InstOpCode::stw;
    bool usesCompressedrefs = comp->useCompressedPointers();
 
+   // wrt bar
+   auto gcMode = TR::Compiler->om.writeBarrierType();
+   bool doWrtBar = (gcMode == gc_modron_wrtbar_satb || gcMode == gc_modron_wrtbar_oldcheck || gcMode == gc_modron_wrtbar_cardmark_and_oldcheck || gcMode == gc_modron_wrtbar_always
+         || TR::Options::getCmdLineOptions()->realTimeGC());
+   bool doCrdMrk = ((gcMode == gc_modron_wrtbar_cardmark || gcMode == gc_modron_wrtbar_cardmark_and_oldcheck || gcMode == gc_modron_wrtbar_cardmark_incremental) && (!node->getOpCode().isWrtBar() || !node->isNonHeapObjectWrtBar()));
+
    TR_OpaqueClassBlock * classBlock = NULL;
    classBlock = fej9->getClassFromSignature("Ljava/util/concurrent/ConcurrentLinkedQueue$Node;", 49, comp->getCurrentMethod(), true);
    int32_t offsetNext = fej9->getObjectHeaderSizeInBytes() + fej9->getInstanceFieldOffset(classBlock, "next", 4, "Ljava/util/concurrent/ConcurrentLinkedQueue$Node;", 49);
@@ -9714,7 +9786,9 @@ static TR::Register *inlineConcurrentLinkedQueueTMOffer(TR::Node *node, TR::Code
    TR::LabelSymbol * returnLabel = TR::LabelSymbol::create(cg->trHeapMemory(),cg);
    TR::LabelSymbol * wrtbar1Donelabel = TR::LabelSymbol::create(cg->trHeapMemory(),cg);
 
-   TR::RegisterDependencyConditions *conditions = new (cg->trHeapMemory()) TR::RegisterDependencyConditions(9, 9, cg->trMemory());
+   int numDeps = doWrtBar? 11 : 9; //two extra deps for space boundaries (used in wrtbar)
+
+   TR::RegisterDependencyConditions *conditions = new (cg->trHeapMemory()) TR::RegisterDependencyConditions(numDeps, numDeps, cg->trMemory());
 
    TR::addDependency(conditions, cndReg, TR::RealRegister::cr0, TR_CCR, cg);
    TR::addDependency(conditions, resultReg, TR::RealRegister::NoReg, TR_GPR, cg);
@@ -9815,11 +9889,6 @@ static TR::Register *inlineConcurrentLinkedQueueTMOffer(TR::Node *node, TR::Code
    // TM success
    generateTrg1ImmInstruction(cg, TR::InstOpCode::li, node, resultReg, 0);
 
-   // wrt bar
-   auto gcMode = TR::Compiler->om.writeBarrierType();
-   bool doWrtBar = (gcMode == gc_modron_wrtbar_satb || gcMode == gc_modron_wrtbar_oldcheck || gcMode == gc_modron_wrtbar_cardmark_and_oldcheck || gcMode == gc_modron_wrtbar_always
-         || comp->getOptions()->realTimeGC());
-   bool doCrdMrk = ((gcMode == gc_modron_wrtbar_cardmark || gcMode == gc_modron_wrtbar_cardmark_and_oldcheck || gcMode == gc_modron_wrtbar_cardmark_incremental) && (!node->getOpCode().isWrtBar() || !node->isNonHeapObjectWrtBar()));
    if (doWrtBar)
       {
       if (doCrdMrk)
@@ -9833,7 +9902,7 @@ static TR::Register *inlineConcurrentLinkedQueueTMOffer(TR::Node *node, TR::Code
 
       VMnonNullSrcWrtBarCardCheckEvaluator(node, nReg, pReg, cndReg, qReg, retryCountReg, temp3Reg, temp4Reg, wrtbar1Donelabel, conditions, false, cg, false);
       // ALG: *** wrtbar1Donelabel
-      generateLabelInstruction(cg, TR::InstOpCode::label, node, wrtbar1Donelabel);
+      generateDepLabelInstruction(cg, TR::InstOpCode::label, node, wrtbar1Donelabel, conditions);
 
       generateTrg1Src1Instruction(cg, TR::InstOpCode::mr, node, pReg, objReg);
 
@@ -11847,6 +11916,13 @@ TR::Register *J9::Power::TreeEvaluator::directCallEvaluator(TR::Node *node, TR::
    TR::MethodSymbol    *callee    = symRef->getSymbol()->castToMethodSymbol();
    TR::Linkage      *linkage;
    TR::Register        *returnRegister;
+
+   if (callee->getRecognizedMethod() == TR::jdk_incubator_vector_FloatVector_add &&
+       node->getOpCodeValue() == TR::vcall) // was vectorized
+      {
+      TR::Node::recreate(node, TR::vadd);
+      return vaddEvaluator(node, cg);
+      }
 
    if (!cg->inlineDirectCall(node, returnRegister))
       {

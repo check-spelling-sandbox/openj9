@@ -49,18 +49,13 @@
 #include "infra/Assert.hpp"
 #include "infra/BitVector.hpp"
 #include "infra/List.hpp"
+#include "infra/String.hpp"
 #include "runtime/RuntimeAssumptions.hpp"
 #include "env/PersistentCHTable.hpp"
 #include "optimizer/TransformUtil.hpp"
 #if defined(J9VM_OPT_JITSERVER)
 #include "env/j9methodServer.hpp"
 #endif /* defined(J9VM_OPT_JITSERVER) */
-
-#include <stdio.h>
-
-#if defined (_MSC_VER) && _MSC_VER < 1900
-#define snprintf _snprintf
-#endif
 
 namespace J9
 {
@@ -699,20 +694,25 @@ J9::SymbolReferenceTable::findOrFabricateShadowSymbol(TR::ResolvedMethodSymbol *
    //J9::SymbolReferenceTable::findOrCreateShadowSymbol
    TR::SymbolReference * symRef = NULL;
    TR::Symbol * sym = NULL;
-   symRef = findShadowSymbol(owningMethod, -1, type, &recognizedField);
 
-   if (symRef)
-      return symRef;
-   else
+   if (!comp()->compileRelocatableCode()
+#if defined(J9VM_OPT_JITSERVER)
+       && !comp()->isOutOfProcessCompilation()
+#endif
+       )
       {
-      sym = createShadowSymbol(
-         type,
-         isVolatile,
-         isPrivate,
-         isFinal,
-         name,
-         recognizedField);
+      symRef = findShadowSymbol(owningMethod, -1, type, &recognizedField);
+
+      if (symRef)
+         return symRef;
       }
+   sym = createShadowSymbol(
+      type,
+      isVolatile,
+      isPrivate,
+      isFinal,
+      name,
+      recognizedField);
 
    symRef = new (trHeapMemory()) TR::SymbolReference(self(), sym, owningMethodSymbol->getResolvedMethodIndex(), -1);
    // isResolved = true, isUnresolvedInCP = false
@@ -786,7 +786,7 @@ J9::SymbolReferenceTable::findOrFabricateShadowSymbol(
 
    int qualifiedFieldNameSize = classNameLen + 1 + strlen(name) + 1 + strlen(signature) + 1;
    char *qualifiedFieldName = (char*)trHeapMemory().allocate(qualifiedFieldNameSize);
-   snprintf(
+   TR::snprintfNoTrunc(
       qualifiedFieldName,
       qualifiedFieldNameSize,
       "%.*s.%s %s",
@@ -1260,6 +1260,22 @@ J9::SymbolReferenceTable::findOrCreateJ9MethodExtraFieldSymbolRef(intptr_t offse
    return result;
    }
 
+TR::SymbolReference *
+J9::SymbolReferenceTable::findOrCreateJ9JNIMethodIDvTableIndexFieldSymbol(intptr_t offset)
+   {
+   if (!element(J9JNIMethodIDvTableIndexFieldSymbol))
+      {
+      TR::Symbol * sym;
+      if (self()->comp()->target().is64Bit())
+         sym = TR::Symbol::createShadow(trHeapMemory(),TR::Int64);
+      else
+         sym = TR::Symbol::createShadow(trHeapMemory(),TR::Int32);
+
+      element(J9JNIMethodIDvTableIndexFieldSymbol) = new (trHeapMemory()) TR::SymbolReference(self(), J9JNIMethodIDvTableIndexFieldSymbol, sym);
+      element(J9JNIMethodIDvTableIndexFieldSymbol)->setOffset(offset);
+      }
+   return element(J9JNIMethodIDvTableIndexFieldSymbol);
+   }
 
 TR::SymbolReference *
 J9::SymbolReferenceTable::findOrCreateStartPCLinkageInfoSymbolRef(intptr_t offset)

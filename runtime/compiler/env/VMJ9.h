@@ -708,7 +708,7 @@ public:
    virtual bool               startAsyncCompile(TR_OpaqueMethodBlock *methodInfo, void *oldStartPC, bool *queued, TR_OptimizationPlan *optimizationPlan  = NULL);
    virtual bool               isBeingCompiled(TR_OpaqueMethodBlock *methodInfo, void *startPC);
    virtual uint32_t           virtualCallOffsetToVTableSlot(uint32_t offset);
-   virtual uint32_t           vTableSlotToVirtualCallOffset(uint32_t vTableSlot);
+   virtual int32_t            vTableSlotToVirtualCallOffset(uint32_t vTableSlot);
    virtual void *             addressOfFirstClassStatic(TR_OpaqueClassBlock *);
 
    virtual TR_ResolvedMethod * getDefaultConstructor(TR_Memory *, TR_OpaqueClassBlock *);
@@ -879,6 +879,26 @@ public:
     * \return char * the signature for linkToStatic
     */
    char * getSignatureForLinkToStaticForInvokeDynamic(TR::Compilation* comp, J9UTF8* romMethodSignature, int32_t &signatureLength);
+
+   /**
+    * \brief
+    *    Get the target of a DelegatingMethodHandle
+    *
+    * If the target cannot be determined (including any cases where dmhIndex
+    * does not indicate an instance of DelegatingMethodHandle), the result is
+    * TR::KnownObjectTable::UNKNOWN.
+    *
+    * \param comp the compilation object
+    * \param dmhIndex the known object index of the (purported) DelegatingMethodHandle
+    * \param trace whether to enable trace messages
+    * \return the known object index of the target, or TR::KnownObjectTable::UNKNOWN
+    */
+   TR::KnownObjectTable::Index delegatingMethodHandleTarget(
+      TR::Compilation *comp, TR::KnownObjectTable::Index dmhIndex, bool trace);
+   virtual TR::KnownObjectTable::Index delegatingMethodHandleTargetHelper(
+      TR::Compilation *comp, TR::KnownObjectTable::Index dmhIndex, TR_OpaqueClassBlock *cwClass);
+   virtual UDATA getVMTargetOffset();
+   virtual UDATA getVMIndexOffset();
 #endif
 
    // JSR292 }}}
@@ -917,6 +937,16 @@ public:
    virtual bool isStable(int cpIndex, TR_ResolvedMethod *owningMethod, TR::Compilation *comp);
    virtual bool isStable(J9Class *fieldClass, int cpIndex);
 
+   /*
+    * \brief
+    *    tell whether a method was annotated as @ForceInline.
+    *
+    * \param method
+    *    method
+    *
+    */
+   virtual bool isForceInline(TR_ResolvedMethod *method);
+   
    /*
     * \brief
     *    tell whether it's possible to dereference a field given the field symbol at compile time
@@ -1328,6 +1358,7 @@ public:
    virtual bool               needsContiguousCodeAndDataCacheAllocation()     { return true; }
    virtual bool               needRelocatableTarget()                          { return true; }
    virtual bool               isStable(int cpIndex, TR_ResolvedMethod *owningMethod, TR::Compilation *comp) { return false; }
+
    virtual bool               shouldDelayAotLoad();
 
    virtual bool               isClassLibraryMethod(TR_OpaqueMethodBlock *method, bool vettedForAOT = false);

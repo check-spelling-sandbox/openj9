@@ -8294,6 +8294,11 @@ done:
 	}
 
 #if defined(J9VM_OPT_OPENJDK_METHODHANDLE)
+	/* This INL only covers invokeBasic dispatched directly from bytecode, invokeBasic calls
+	 * dispatched from linkToVirtual is inlined to avoid need of flags and tempValues to
+	 * pass the correct argCount during VM transition since the ramCP index still points
+	 * to the invokeStatic bytecode for linkToVirtual.
+	 */
 	VMINLINE VM_BytecodeAction
 	invokeBasic(REGISTER_ARGS_LIST)
 	{
@@ -8366,9 +8371,34 @@ done:
 		if (fromJIT) {
 			/* Restore SP to before popping memberNameObject. */
 			_sp -= 1;
+			UDATA stackOffset = 1;
 
-			/* Shift arguments by 1 and place memberNameObject before the first argument. */
-			memmove(_sp, _sp + 1, methodArgCount * sizeof(UDATA));
+			/* The JIT stores the parameter slot count of the call in floatTemp1 for the unresolved case.
+			 * For the resolved case where the appendix object is known, the JIT stores -1 in floatTemp1.
+			 */
+			const IDATA jitResolvedCall = (IDATA)-1;
+
+			/* The JIT calls linkToStatic for unresolved invokedynamic and invokehandle sequences.
+			 * For invokedynamic and invokehandle, the appendix object should not be appended to the
+			 * stack if it is null. For the unresolved cases, the JIT does not know the value of the
+			 * appendix object prior to calling linkToStatic. For such JIT paths, the appendix object
+			 * should be removed from the stack if it is null.
+			 *
+			 * Stack shape should look like:
+			 *		_sp[0] = MemberName
+			 *		_sp[1] = Appendix (if not null)
+			 *		_sp[2] = Argument ...
+			 *
+			 * Or:
+			 *		_sp[0] = MemberName
+			 *		_sp[1] = Argument ...
+			 */
+			if ((jitResolvedCall != (IDATA)_currentThread->floatTemp1) && (NULL == ((j9object_t *)_sp)[1])) {
+				stackOffset = 2;
+			}
+
+			/* Shift arguments by stackOffset and place memberNameObject before the first argument. */
+			memmove(_sp, _sp + stackOffset, methodArgCount * sizeof(UDATA));
 			_sp[methodArgCount] = (UDATA)memberNameObject;
 
 			_currentThread->jitStackFrameFlags = 0;
@@ -8406,7 +8436,20 @@ throw_npe:
 
 		J9JNIMethodID *methodID = (J9JNIMethodID *)(UDATA)J9OBJECT_U64_LOAD(_currentThread, memberNameObject, _vm->vmindexOffset);
 		J9ROMMethod *romMethod = J9_ROM_METHOD_FROM_RAM_METHOD(methodID->method);
-		UDATA methodArgCount = romMethod->argCount;
+		UDATA methodArgCount = 0;
+		bool isInvokeBasic = (J9_BCLOOP_SEND_TARGET_METHODHANDLE_INVOKEBASIC == J9_BCLOOP_DECODE_SEND_TARGET(methodID->method->methodRunAddress));
+
+		/* In MethodHandle.loop API it may generate a invokeBasic NamedFunction (see LambdaForm$NamedFunction(MethodType basicInvokerType))
+		 * that is linked by linkToVirtual. As invokeBasic is signature polymorphic, the romMethod->argCount may not match the actual
+		 * parameter count on stack so VM have to retrieve the argCount from the target MemberName's methodType for these special cases.
+		 */
+		if (isInvokeBasic) {
+			j9object_t methodType = J9VMJAVALANGINVOKEMEMBERNAME_TYPE(_currentThread, memberNameObject);
+			/* +1 to account for the receiver */
+			methodArgCount = VM_VMHelpers::methodTypeParameterSlotCount(_currentThread, methodType) + 1;
+		} else {
+			methodArgCount = romMethod->argCount;
+		}
 
 		j9object_t receiverObject = ((j9object_t *)_sp)[methodArgCount - 1];
 		if (J9_UNEXPECTED(NULL == receiverObject)) {
@@ -8430,7 +8473,43 @@ throw_npe:
 			_sendMethod = (J9Method *)(UDATA)J9OBJECT_U64_LOAD(_currentThread, memberNameObject, _vm->vmtargetOffset);
 		} else {
 			J9Class *receiverClass = J9OBJECT_CLAZZ(_currentThread, receiverObject);
+
+			if (J9_ARE_ANY_BITS_SET(vTableOffset, J9_JNI_MID_INTERFACE)) {
+				/* Treat as iTable index for the method if J9_JNI_MID_INTERFACE is set. */
+				UDATA iTableIndex = vTableOffset & ~(UDATA)J9_JNI_MID_INTERFACE;
+				J9Class *interfaceClass = J9_CLASS_FROM_METHOD(methodID->method);
+				/* Get the latest version of the class for the iTable search. */
+				interfaceClass = VM_VMHelpers::currentClass(interfaceClass);
+				vTableOffset = 0;
+				J9ITable * iTable = receiverClass->lastITable;
+				if (interfaceClass == iTable->interfaceClass) {
+					goto foundITable;
+				}
+				iTable = (J9ITable*)receiverClass->iTable;
+				while (NULL != iTable) {
+					if (interfaceClass == iTable->interfaceClass) {
+						receiverClass->lastITable = iTable;
+foundITable:
+						vTableOffset = ((UDATA*)(iTable + 1))[iTableIndex];
+						break;
+					}
+					iTable = iTable->next;
+				}
+			}
 			_sendMethod = *(J9Method **)(((UDATA)receiverClass) + vTableOffset);
+		}
+
+		/* The invokeBasic INL uses the methodArgCount from ramCP to locate the receiver object,
+		 * so when dispatched using linkToVirtual, it will still access the ramCP of the linkToVirtual call
+		 * Hence if the argument count of linkToVirtual doesn't match invokeBasic's romMethod ArgCount, then
+		 * invokeBasic will be reading an incorrect receiver.
+		 * To avoid use of flags and tempValues to pass the correct argCount during VM transition, the
+		 * invokeBasic operation is inlined here to directly dispatch the actual target.
+		 */
+		if (isInvokeBasic) {
+			j9object_t lambdaForm = J9VMJAVALANGINVOKEMETHODHANDLE_FORM(_currentThread, receiverObject);
+			j9object_t memberName = J9VMJAVALANGINVOKELAMBDAFORM_VMENTRY(_currentThread, lambdaForm);
+			_sendMethod = (J9Method *)(UDATA)J9OBJECT_U64_LOAD(_currentThread, memberName, _vm->vmtargetOffset);
 		}
 
 		if (fromJIT) {

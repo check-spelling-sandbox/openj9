@@ -65,6 +65,9 @@ J9::ARM64::CodeGenerator::initialize()
    cg->setSupportsDivCheck();
    if (!comp()->getOption(TR_FullSpeedDebug))
       cg->setSupportsDirectJNICalls();
+
+   cg->setSupportsPrimitiveArrayCopy();
+   cg->setSupportsReferenceArrayCopy();
    }
 
 TR::Linkage *

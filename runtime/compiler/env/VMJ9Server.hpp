@@ -156,6 +156,7 @@ public:
    virtual TR_OpaqueMethodBlock *getMethodFromName(char *className, char *methodName, char *signature) override;
    virtual TR_OpaqueMethodBlock *getMethodFromClass(TR_OpaqueClassBlock *methodClass, char *methodName, char *signature, TR_OpaqueClassBlock *callingClass) override;
    virtual bool isStable(J9Class *fieldClass, int cpIndex) override;
+   virtual bool isForceInline(TR_ResolvedMethod *method) override;
    virtual bool isClassVisible(TR_OpaqueClassBlock *sourceClass, TR_OpaqueClassBlock *destClass) override;
    virtual void markClassForTenuredAlignment(TR::Compilation *comp, TR_OpaqueClassBlock *clazz, uint32_t alignFromStart) override;
    virtual void reportHotField(int32_t reducedCpuUtil, J9Class* clazz, uint8_t fieldOffset,  uint32_t reducedFrequency) override;
@@ -232,6 +233,9 @@ public:
    virtual J9JNIMethodID* jniMethodIdFromMemberName(TR::Compilation* comp, TR::KnownObjectTable::Index objIndex) override;
    virtual int32_t vTableOrITableIndexFromMemberName(uintptr_t memberName) override;
    virtual int32_t vTableOrITableIndexFromMemberName(TR::Compilation* comp, TR::KnownObjectTable::Index objIndex) override;
+   virtual TR::KnownObjectTable::Index delegatingMethodHandleTargetHelper( TR::Compilation *comp, TR::KnownObjectTable::Index dmhIndex, TR_OpaqueClassBlock *cwClass) override;
+   virtual UDATA getVMTargetOffset() override;
+   virtual UDATA getVMIndexOffset() override;
 #endif
    virtual TR::KnownObjectTable::Index getMemberNameFieldKnotIndexFromMethodHandleKnotIndex(TR::Compilation *comp, TR::KnownObjectTable::Index mhIndex, char *fieldName) override;
 

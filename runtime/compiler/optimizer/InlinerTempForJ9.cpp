@@ -209,6 +209,17 @@ static bool insideIntPipelineForEach(TR_ResolvedMethod *method, TR::Compilation 
 bool
 TR_J9InlinerPolicy::inlineRecognizedMethod(TR::RecognizedMethod method)
    {
+
+   if (method > TR::First_vector_api_method &&
+       method < TR::Last_vector_api_method)
+      {
+      comp()->getMethodSymbol()->setHasVectorAPI(true);
+
+      if (method <= TR::Last_vector_api_intrinsic_method &&
+          !comp()->getOption(TR_DisableVectorAPIExpansion))
+         return false;
+      }
+
 //    if (method ==
 //        TR::java_lang_String_init_String_char)
 //       return false;
@@ -419,6 +430,23 @@ TR_J9InlinerPolicy::alwaysWorthInlining(TR_ResolvedMethod * calleeMethod, TR::No
       return true;
    else if (length == 15 && !strncmp(className, "sun/misc/Unsafe", 15))
       return true;
+
+   // This is a temporary check to apply @ForceInline to the VectorAPI methods only
+   // @ForceInline will be fully enabled after broader performance testing
+   bool vectorMethod = false;
+   if (length >= 23 && !strncmp(className, "jdk/internal/vm/vector/", 23))
+       vectorMethod = true;
+   if (length >= 21 && !strncmp(className, "jdk/incubator/vector/", 21))
+       vectorMethod = true;
+
+   if (vectorMethod &&
+       !comp()->getOption(TR_DisableForceInlineAnnotations) &&
+       comp()->fej9()->isForceInline(calleeMethod))
+      {
+      if (comp()->trace(OMR::inlining))
+         traceMsg(comp(), "@ForceInline was specified for %s, in alwaysWorthInlining\n", calleeMethod->signature(comp()->trMemory()));
+      return true;
+      }
 
    return false;
    }
@@ -2162,6 +2190,29 @@ TR_J9InlinerPolicy::tryToInline(TR_CallTarget * calltarget, TR_CallStack * callS
       return true;
       }
 
+   if (toInline)
+      {
+      // This is a temporary check to apply @ForceInline to the VectorAPI methods only
+      // @ForceInline will be fully enabled after broader performance testing
+      int32_t length = method->classNameLength();
+      char* className = method->classNameChars();
+
+      bool vectorMethod = false;
+      if (length >= 23 && !strncmp(className, "jdk/internal/vm/vector/", 23))
+         vectorMethod = true;
+      if (length >= 21 && !strncmp(className, "jdk/incubator/vector/", 21))
+         vectorMethod = true;
+
+      if (vectorMethod &&
+          !comp()->getOption(TR_DisableForceInlineAnnotations) &&
+          comp()->fej9()->isForceInline(method))
+         {
+         if (comp()->trace(OMR::inlining))
+            traceMsg(comp(), "@ForceInline was specified for %s, in tryToInline\n", method->signature(comp()->trMemory()));
+         return true;
+         }
+      }
+
    if (OMR_InlinerPolicy::tryToInlineGeneral(calltarget, callStack, toInline))
       return true;
 
@@ -2460,6 +2511,11 @@ TR_J9InlinerPolicy::skipHCRGuardForCallee(TR_ResolvedMethod *callee)
       default:
          break;
       }
+
+   // VectorSupport intrinsic candidates should not be redefined by the user
+   if (rm > TR::First_vector_api_method &&
+       rm <= TR::Last_vector_api_intrinsic_method)
+      return true;
 
    // Skip HCR guard for non-public methods in java/lang/invoke package. These methods
    // are related to implementation details of MethodHandle and VarHandle
@@ -3402,11 +3458,6 @@ bool TR_MultipleCallTargetInliner::inlineCallTargets(TR::ResolvedMethodSymbol *c
                }
             }
          }
-
-      if (tracer()->heuristicLevel())
-         {
-         tracer()->dumpInline(&_callTargets, "inline script");
-         }
       }
 
    if (prevCallStack == 0)
@@ -4011,9 +4062,13 @@ bool TR_MultipleCallTargetInliner::inlineSubCallGraph(TR_CallTarget* calltarget)
     * keep the target if it meets either of the following condition:
     * 1. It's a JSR292 related method. This condition allows inlining method handle thunk chain without inlining the leaf java method.
     * 2. It's force inline target
+    * 3. It's a method deemed always worth inlining, e.g. an Unsafe method
+    *    which would otherwise generate a j2i transition.
     */
+   TR::Node *callNode = NULL; // no call node has been generated yet
    if (j9inlinerPolicy->isJSR292Method(calltarget->_calleeMethod)
-       || forceInline(calltarget))
+       || forceInline(calltarget)
+       || j9inlinerPolicy->alwaysWorthInlining(calltarget->_calleeMethod, callNode))
       {
       for (TR_CallSite* callsite = calltarget->_myCallees.getFirst(); callsite ; callsite = callsite->getNext())
          {
@@ -4964,6 +5019,23 @@ TR_InlinerFailureReason
          break;
    }
 
+   /**
+    * Do not inline LambdaForm generated reinvoke() methods as they are on the
+    * slow path and may consume inlining budget.
+    */
+   if (comp->fej9()->isLambdaFormGeneratedMethod(resolvedMethod))
+      {
+      if (resolvedMethod->nameLength() == strlen("reinvoke") &&
+          !strncmp(resolvedMethod->nameChars(), "reinvoke", strlen("reinvoke")))
+         {
+         traceMsg(comp, "Intentionally avoided inlining generated %.*s.%.*s%.*s\n",
+                  resolvedMethod->classNameLength(), resolvedMethod->classNameChars(),
+                  resolvedMethod->nameLength(), resolvedMethod->nameChars(),
+                  resolvedMethod->signatureLength(), resolvedMethod->signatureChars());
+         return DontInline_Callee;
+         }
+      }
+
    if (comp->getOptions()->getEnableGPU(TR_EnableGPU))
       {
       switch (rm)
@@ -5079,7 +5151,7 @@ bool TR_J9InlinerPolicy::isJSR292SmallHelperMethod(TR_ResolvedMethod *resolvedMe
       case TR::java_lang_invoke_MethodHandle_doCustomizationLogic:
       case TR::java_lang_invoke_MethodHandle_undoCustomizationLogic:
          return true;
-      
+
       default:
          break;
       }
@@ -5094,6 +5166,8 @@ bool TR_J9InlinerPolicy::isJSR292SmallGetterMethod(TR_ResolvedMethod *resolvedMe
       {
       case TR::java_lang_invoke_MutableCallSite_getTarget:
       case TR::java_lang_invoke_MethodHandle_type:
+      case TR::java_lang_invoke_DirectMethodHandle_internalMemberName:
+      case TR::java_lang_invoke_MethodHandleImpl_CountingWrapper_getTarget:
          return true;
 
       default:
@@ -5330,7 +5404,13 @@ TR_J9InlinerUtil::computePrexInfo(TR_InlinerBase *inliner, TR_CallSite* site, TR
          {
          prexArg = new (inliner->trHeapMemory()) TR_PrexArgument(symRef->getKnownObjectIndex(), comp);
          if (tracePrex)
-            traceMsg(comp, "PREX.inl:      %p: is known object obj%d\n", prexArg, symRef->getKnownObjectIndex());
+            traceMsg(comp, "PREX.inl:      %p: is symref known object obj%d\n", prexArg, symRef->getKnownObjectIndex());
+         }
+      else if (argument->hasKnownObjectIndex())
+         {
+         prexArg = new (inliner->trHeapMemory()) TR_PrexArgument(argument->getKnownObjectIndex(), comp);
+         if (tracePrex)
+            traceMsg(comp, "PREX.inl:      %p: is node known object obj%d\n", prexArg, argument->getKnownObjectIndex());
          }
       else if (argument->getOpCodeValue() == TR::aload)
          {

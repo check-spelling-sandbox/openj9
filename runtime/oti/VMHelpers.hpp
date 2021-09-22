@@ -1791,7 +1791,7 @@ exit:
 	/**
 	 * Determine if the method is from a LambdaForm generated class.
 	 *
-	 * A LamddaForm generated method/class will have LambdaFrom.class as its hostclass
+	 * A LambdaForm generated method/class will have LambdaForm.class as its hostclass
 	 * and is either a hidden class or anonymous class.
 	 *
 	 * @param currentThread the VM thread
@@ -1855,6 +1855,42 @@ exit:
 		currentThread->literals = NULL;
 		currentThread->jitStackFrameFlags = 0;
 		return oldPC;
+	}
+
+#if defined(J9VM_OPT_OPENJDK_METHODHANDLE)
+	static VMINLINE UDATA
+	methodTypeParameterSlotCount(J9VMThread *currentThread, j9object_t methodType)
+	{
+		j9object_t methodTypeForm = (j9object_t)J9VMJAVALANGINVOKEMETHODTYPE_FORM(currentThread, methodType);
+#if JAVA_SPEC_VERSION >= 14
+		return (UDATA)J9VMJAVALANGINVOKEMETHODTYPEFORM_PARAMETERSLOTCOUNT(currentThread, methodTypeForm);
+#else /* JAVA_SPEC_VERSION >= 14 */
+		U_64 argCounts = (U_64)J9VMJAVALANGINVOKEMETHODTYPEFORM_ARGCOUNTS(currentThread, methodTypeForm);
+		return (UDATA)((argCounts >> 16) & 0xFFFF);
+#endif /* JAVA_SPEC_VERSION >= 14 */
+	}
+#endif /* defined(J9VM_OPT_OPENJDK_METHODHANDLE) */
+
+	/**
+	 * Get the String representing the name of a Class. If the String has not been created
+	 * yet, create it and optionally intern and assign it to the Class.
+	 *
+	 * Current thread must have VM access and have a special frame on top of stack
+	 * with the J9VMThread roots up-to-date.
+	 *
+	 * @param[in] currentThread the current J9VMThread
+	 * @param[in] classObject the java/lang/Class being queried
+	 * @param[in] internAndAssign if true, intern the String and assign it to the Class object
+	 * @return the Class name String, or NULL on out of memory (exception will be pending)
+	 */
+	static VMINLINE j9object_t
+	getClassNameString(J9VMThread *currentThread, j9object_t classObject, bool internAndAssign)
+	{
+		j9object_t classNameObject = J9VMJAVALANGCLASS_CLASSNAMESTRING(currentThread, classObject);
+		if (NULL == classNameObject) {
+			classNameObject = J9_VM_FUNCTION(currentThread, getClassNameString)(currentThread, classObject, internAndAssign);
+		}
+		return classNameObject;
 	}
 
 };

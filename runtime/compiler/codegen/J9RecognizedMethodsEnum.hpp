@@ -167,6 +167,7 @@
    java_lang_String_decompressedArrayCopy_BICII,
    java_lang_String_decompressedArrayCopy_CIBII,
    java_lang_String_decompressedArrayCopy_CICII,
+   java_lang_StringLatin1_inflate,
    java_lang_String_concat,
    java_lang_String_length,
    java_lang_String_lengthInternal,
@@ -437,15 +438,24 @@
    sun_misc_Unsafe_fullFence,
 
    sun_misc_Unsafe_ensureClassInitialized,
+   sun_misc_Unsafe_allocateInstance,
 
    jdk_internal_misc_Unsafe_copyMemory0,
-
    jdk_internal_loader_NativeLibraries_load,
 
+   First_vector_api_method,
    jdk_internal_vm_vector_VectorSupport_load,
-   jdk_internal_vm_vector_VectorSupport_binaryOp,
    jdk_internal_vm_vector_VectorSupport_store,
-      
+   jdk_internal_vm_vector_VectorSupport_binaryOp,
+   Last_vector_api_intrinsic_method = jdk_internal_vm_vector_VectorSupport_binaryOp,
+   jdk_incubator_vector_FloatVector_fromArray,
+   jdk_incubator_vector_FloatVector_intoArray,
+   jdk_incubator_vector_FloatVector_fromArray_mask,
+   jdk_incubator_vector_FloatVector_intoArray_mask,
+   jdk_incubator_vector_FloatVector_add,
+   jdk_incubator_vector_VectorSpecies_indexInRange,
+   Last_vector_api_method,
+
    java_lang_reflect_Array_getLength,
    java_lang_reflect_Method_invoke,
    java_util_Arrays_fill,
@@ -465,7 +475,7 @@
    sun_nio_cs_UTF_8_Decoder_decodeUTF_8,
    sun_nio_cs_UTF_8_Encoder_encodeUTF_8,
    sun_nio_cs_ext_IBM1388_Encoder_encodeArrayLoop,
-   
+
    sun_nio_cs_UTF_16_Encoder_encodeUTF16Big,
    sun_nio_cs_UTF_16_Encoder_encodeUTF16Little,
    com_ibm_jit_JITHelpers_transformedEncodeUTF16Big,
@@ -764,6 +774,8 @@
    com_ibm_jit_JITHelpers_acmplt,
    com_ibm_jit_JITHelpers_jitHelpers,
    com_ibm_jit_JITHelpers_getClassInitializeStatus,
+   com_ibm_jit_JITHelpers_dispatchComputedStaticCall,
+   com_ibm_jit_JITHelpers_dispatchVirtual,
 
    com_ibm_jit_DecimalFormatHelper_formatAsDouble,
    com_ibm_jit_DecimalFormatHelper_formatAsFloat,
@@ -1010,6 +1022,8 @@
    java_lang_invoke_MethodHandle_linkToSpecial,
    java_lang_invoke_MethodHandle_linkToVirtual,
    java_lang_invoke_MethodHandle_linkToInterface,
+   java_lang_invoke_MethodHandleImpl_CountingWrapper_getTarget,
+   java_lang_invoke_DelegatingMethodHandle_getTarget,
    java_lang_invoke_DirectMethodHandle_internalMemberName,
    java_lang_invoke_DirectMethodHandle_internalMemberNameEnsureInit,
    java_lang_invoke_DirectMethodHandle_constructorMethod,
@@ -1067,6 +1081,10 @@
    java_lang_invoke_VirtualHandle_virtualCall,
    java_lang_invoke_VirtualHandle_invokeExact,
 
+   // OpenJDK MethodHandles
+   java_lang_invoke_MethodHandleImpl_profileBoolean,
+   java_lang_invoke_MethodHandleImpl_isCompileConstant,
+
    // Clone and Deep Copy
    java_lang_J9VMInternals_is32Bit,
    java_lang_J9VMInternals_isClassModifierPublic,
@@ -1107,7 +1125,7 @@
    com_ibm_jit_crypto_JITFullHardwareDigest_z_kimd,
    com_ibm_jit_crypto_JITFullHardwareDigest_z_klmd,
    com_ibm_jit_crypto_JITFullHardwareDigest_z_kmac,
-   
+
    java_lang_StringCoding_decode,
    java_lang_StringCoding_encode,
    java_lang_StringCoding_StringDecoder_decode,

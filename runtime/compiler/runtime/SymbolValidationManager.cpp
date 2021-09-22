@@ -29,6 +29,7 @@
 #include "compile/Compilation.hpp"
 #include "control/CompilationRuntime.hpp"
 #include "control/CompilationThread.hpp"
+#include "infra/String.hpp"
 #include "runtime/RelocationRuntime.hpp"
 #include "runtime/SymbolValidationManager.hpp"
 
@@ -37,10 +38,6 @@
 #endif
 
 #include "j9protos.h"
-
-#if defined (_MSC_VER) && _MSC_VER < 1900
-#define snprintf _snprintf
-#endif
 
 TR::SymbolValidationManager::SystemClassNotWorthRemembering
 TR::SymbolValidationManager::_systemClassesNotWorthRemembering[] = {
@@ -197,8 +194,7 @@ TR::SymbolValidationManager::getSystemClassNotWorthRemembering(int idx)
 void
 TR::SymbolValidationManager::getWellKnownClassesSCCKey(char *buffer, size_t size, unsigned int includedClasses)
    {
-   int len = snprintf(buffer, size, "AOTWellKnownClasses:%x", includedClasses);
-   TR_ASSERT(len <= size, "Buffer too small");
+   TR::snprintfNoTrunc(buffer, size, "AOTWellKnownClasses:%x", includedClasses);
    }
 
 void
@@ -1147,14 +1143,6 @@ TR::SymbolValidationManager::validateClassFromCPRecord(uint16_t classID,  uint16
 bool
 TR::SymbolValidationManager::validateDefiningClassFromCPRecord(uint16_t classID, uint16_t beholderID, uint32_t cpIndex, bool isStatic)
    {
-   TR::CompilationInfo *compInfo = TR::CompilationInfo::get(_fej9->_jitConfig);
-   TR::CompilationInfoPerThreadBase *compInfoPerThreadBase = compInfo->getCompInfoForCompOnAppThread();
-   TR_RelocationRuntime *reloRuntime;
-   if (compInfoPerThreadBase)
-      reloRuntime = compInfoPerThreadBase->reloRuntime();
-   else
-      reloRuntime = compInfo->getCompInfoForThread(_vmThread)->reloRuntime();
-
    J9Class *beholder = getJ9ClassFromID(beholderID);
    J9ConstantPool *beholderCP = J9_CP_FROM_CLASS(beholder);
    return validateSymbol(classID, TR_ResolvedJ9Method::definingClassFromCPFieldRef(_comp, beholderCP, cpIndex, isStatic));

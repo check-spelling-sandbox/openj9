@@ -970,8 +970,6 @@ TR::OptionTable OMR::Options::_feOptions[] = {
 #if defined(J9VM_OPT_JITSERVER)
    {"sharedROMClassCacheNumPartitions=", " \tnumber of JITServer ROMClass cache partitions (each has its own monitor)",
         TR::Options::setStaticNumeric, (intptr_t)&TR::Options::_sharedROMClassCacheNumPartitions, 0, "F%d", NOT_IN_SUBSET},
-   {"shareROMClasses", " \tstore a single copy of each distinct ROMClass shared by all clients at JITServer",
-        TR::Options::setStaticBool, (intptr_t)&TR::Options::_shareROMClasses, 1, "F", NOT_IN_SUBSET},
 #endif /* defined(J9VM_OPT_JITSERVER) */
    {"singleCache", "C\tallow only one code cache and one data cache to be allocated", RESET_JITCONFIG_RUNTIME_FLAG(J9JIT_GROW_CACHES) },
    {"smallMethodBytecodeSizeThreshold=", "O<nnn> Threshold for determining small methods\t "
@@ -986,7 +984,7 @@ TR::OptionTable OMR::Options::_feOptions[] = {
    {"statisticsFrequency=", "R<nnn>\tnumber of milliseconds between statistics print",
         TR::Options::setStaticNumeric, (intptr_t)&TR::Options::_statisticsFrequency, 0, "F%d", NOT_IN_SUBSET},
 #endif /* defined(J9VM_OPT_JITSERVER) */
-   {"testMode",           "D\tcompile but do not run the compiled code",  SET_JITCONFIG_RUNTIME_FLAG(J9JIT_TESTMODE) },
+   {"testMode",           "D\tequivalent to tossCode",  SET_JITCONFIG_RUNTIME_FLAG(J9JIT_TOSS_CODE) },
 #if defined(J9VM_OPT_JITSERVER)
    {"timeBetweenPurges=", " \tDefines how often we are willing to scan for old entries to be purged",
         TR::Options::setStaticNumeric, (intptr_t)&TR::Options::_timeBetweenPurges,  0, "F%d"},
@@ -1328,6 +1326,7 @@ void J9::Options::preProcessMode(J9JavaVM *vm, J9JITConfig *jitConfig)
       if (vm->runtimeFlags & J9_RUNTIME_TUNE_VIRTUALIZED)
          {
          _aggressivenessLevel = TR::Options::AGGRESSIVE_AOT;
+         _scratchSpaceFactorWhenJSR292Workload = 1;
          }
       if (_aggressivenessLevel == -1) // not yet set
          {
@@ -1990,6 +1989,17 @@ bool J9::Options::preProcessJitServer(J9JavaVM *vm, J9JITConfig *jitConfig)
          // Increase the default timeout value for JITServer.
          // It can be overridden with -XX:JITServerTimeout= option in JITServerParseCommonOptions().
          compInfo->getPersistentInfo()->setSocketTimeout(DEFAULT_JITSERVER_TIMEOUT);
+
+         // Check if cached ROM classes should be shared between clients
+         const char *xxJITServerShareROMClassesOption = "-XX:+JITServerShareROMClasses";
+         const char *xxDisableJITServerShareROMClassesOption = "-XX:-JITServerShareROMClasses";
+
+         int32_t xxJITServerShareROMClassesArgIndex = FIND_ARG_IN_VMARGS(EXACT_MATCH, xxJITServerShareROMClassesOption, 0);
+         int32_t xxDisableJITServerShareROMClassesArgIndex = FIND_ARG_IN_VMARGS(EXACT_MATCH, xxDisableJITServerShareROMClassesOption, 0);
+         if (xxJITServerShareROMClassesArgIndex > xxDisableJITServerShareROMClassesArgIndex)
+            {
+            _shareROMClasses = true;
+            }
          }
       else
          {
@@ -2014,7 +2024,9 @@ bool J9::Options::preProcessJitServer(J9JavaVM *vm, J9JITConfig *jitConfig)
             int32_t xxJITServerTechPreviewMessageArgIndex = FIND_ARG_IN_VMARGS(EXACT_MATCH, xxJITServerTechPreviewMessageOption, 0);
             int32_t xxDisableJITServerTechPreviewMessageArgIndex = FIND_ARG_IN_VMARGS(EXACT_MATCH, xxDisableJITServerTechPreviewMessageOption, 0);
 
-            if (xxJITServerTechPreviewMessageArgIndex >= xxDisableJITServerTechPreviewMessageArgIndex)
+            // Only display tech preview message for Z
+            if (xxJITServerTechPreviewMessageArgIndex > xxDisableJITServerTechPreviewMessageArgIndex ||
+                TR::Compiler->target.cpu.isZ() && xxJITServerTechPreviewMessageArgIndex == xxDisableJITServerTechPreviewMessageArgIndex)
                {
                j9tty_printf(PORTLIB, "JITServer is currently a technology preview. Its use is not yet supported\n");
                }
@@ -2027,6 +2039,17 @@ bool J9::Options::preProcessJitServer(J9JavaVM *vm, J9JITConfig *jitConfig)
                char *address = NULL;
                GET_OPTION_VALUE(xxJITServerAddressArgIndex, '=', &address);
                compInfo->getPersistentInfo()->setJITServerAddress(address);
+               }
+
+            const char *xxJITServerLocalSyncCompilesOption = "-XX:+JITServerLocalSyncCompiles";
+            const char *xxDisableJITServerLocalSyncCompilesOption = "-XX:-JITServerLocalSyncCompiles";
+
+            int32_t xxJITServerLocalSyncCompilesArgIndex = FIND_ARG_IN_VMARGS(EXACT_MATCH, xxJITServerLocalSyncCompilesOption, 0);
+            int32_t xxDisableJITServerLocalSyncCompilesArgIndex = FIND_ARG_IN_VMARGS(EXACT_MATCH, xxDisableJITServerLocalSyncCompilesOption, 0);
+
+            if (xxJITServerLocalSyncCompilesArgIndex > xxDisableJITServerLocalSyncCompilesArgIndex)
+               {
+               compInfo->getPersistentInfo()->setLocalSyncCompiles(true);
                }
             }
          }
@@ -2394,8 +2417,8 @@ J9::Options::fePostProcessJIT(void * base)
    uint32_t flags = *(uint32_t *)(&jitConfig->runtimeFlags);
    jitConfig->runtimeFlags |= flags;
 
-   if (jitConfig->runtimeFlags & J9JIT_TESTMODE || jitConfig->runtimeFlags & J9JIT_TOSS_CODE)
-      self()->setOption(TR_DisableCompilationThread, true);
+   if (jitConfig->runtimeFlags & J9JIT_TOSS_CODE)
+      self()->setOption(TR_DisableAsyncCompilation, true);
 
    if (jitConfig->runtimeFlags & J9JIT_RUNTIME_RESOLVE)
       jitConfig->gcOnResolveThreshold = 0;
@@ -2476,9 +2499,8 @@ bool J9::Options::feLatePostProcess(void * base, TR::OptionSet * optionSet)
 
    // runtimeFlags are properly setup only in fePostProcessJit,
    // so for AOT we can properly set dependent options only here
-   if (jitConfig->runtimeFlags & J9JIT_TESTMODE ||
-       jitConfig->runtimeFlags & J9JIT_TOSS_CODE)
-      self()->setOption(TR_DisableCompilationThread, true);
+   if (jitConfig->runtimeFlags & J9JIT_TOSS_CODE)
+      self()->setOption(TR_DisableAsyncCompilation, true);
 
    PORT_ACCESS_FROM_JAVAVM(jitConfig->javaVM);
    if (vm->isAOT_DEPRECATED_DO_NOT_USE() || (jitConfig->runtimeFlags & J9JIT_TOSS_CODE))

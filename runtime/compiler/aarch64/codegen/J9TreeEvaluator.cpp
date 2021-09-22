@@ -2681,6 +2681,74 @@ J9::ARM64::TreeEvaluator::VMnewEvaluator(TR::Node *node, TR::CodeGenerator *cg)
       {
       genInitArrayHeader(node, cg, clazz, resultReg, classReg, lengthReg, zeroReg, tempReg1, isBatchClearTLHEnabled, tlhHasNotBeenCleared);
 
+      /* Here we'll update dataAddr slot for both fixed and variable length arrays. Fixed length arrays are
+       * simple as we just need to check first child of the node for array size. For variable length arrays
+       * runtime size checks are needed to determine whether to use contiguous or discontiguous header layout.
+       *
+       * In both scenarios, arrays of non-zero size use contiguous header layout while zero size arrays use
+       * discontiguous header layout.
+       */
+      TR::Register *offsetReg = tempReg1;
+      TR::Register *firstDataElementReg = tempReg2;
+      TR::MemoryReference *dataAddrSlotMR = NULL;
+
+      if (isVariableLength && TR::Compiler->om.compressObjectReferences())
+         {
+         /* We need to check lengthReg (array size) at runtime to determine correct offset of dataAddr field.
+          * Here we deal only with compressed refs because dataAddr offset for discontiguous and contiguous
+          * arrays is the same in full refs.
+          */
+         if (comp->getOption(TR_TraceCG))
+            traceMsg(comp, "Node (%p): Dealing with compressed refs variable length array.\n", node);
+
+         TR_ASSERT_FATAL_WITH_NODE(node,
+            (fej9->getOffsetOfDiscontiguousDataAddrField() - fej9->getOffsetOfContiguousDataAddrField()) == 8,
+            "Offset of dataAddr field in discontiguous array is expected to be 8 bytes more than contiguous array. "
+            "But was %d bytes for discontigous and %d bytes for contiguous array.\n",
+            fej9->getOffsetOfDiscontiguousDataAddrField(), fej9->getOffsetOfContiguousDataAddrField());
+
+         // Since array size is capped at 32 bits, we don't need to check all 64 bits of lengthReg.
+         generateCompareImmInstruction(cg, node, lengthReg, 0, false);
+         generateCSetInstruction(cg, node, offsetReg, TR::CC_EQ);
+         // offsetReg at this point is either 1 (if lengthReg == 0) or 0 (otherwise).
+         // offsetReg = resultReg + (offsetReg << 3)
+         generateTrg1Src2ShiftedInstruction(cg, TR::InstOpCode::addx, node, offsetReg, resultReg, offsetReg, TR::SH_LSL, 3);
+
+         dataAddrSlotMR = new (cg->trHeapMemory()) TR::MemoryReference(offsetReg, fej9->getOffsetOfContiguousDataAddrField(), cg);
+         generateTrg1Src1ImmInstruction(cg, TR::InstOpCode::addimmx, node, firstDataElementReg, offsetReg, TR::Compiler->om.contiguousArrayHeaderSizeInBytes());
+         }
+      else if (!isVariableLength && node->getFirstChild()->getOpCode().isLoadConst() && node->getFirstChild()->getInt() == 0)
+         {
+         if (comp->getOption(TR_TraceCG))
+            traceMsg(comp, "Node (%p): Dealing with full/compressed refs fixed length zero size array.\n", node);
+
+         dataAddrSlotMR = new (cg->trHeapMemory()) TR::MemoryReference(resultReg, fej9->getOffsetOfDiscontiguousDataAddrField(), cg);
+         generateTrg1Src1ImmInstruction(cg, TR::InstOpCode::addimmx, node, firstDataElementReg, resultReg, TR::Compiler->om.discontiguousArrayHeaderSizeInBytes());
+         }
+      else
+         {
+         if (comp->getOption(TR_TraceCG))
+            {
+            traceMsg(comp,
+               "Node (%p): Dealing with either full/compressed refs fixed length non-zero size array or full refs variable length array.\n",
+               node);
+            }
+
+         if (!TR::Compiler->om.compressObjectReferences())
+            {
+            TR_ASSERT_FATAL_WITH_NODE(node,
+            fej9->getOffsetOfDiscontiguousDataAddrField() == fej9->getOffsetOfContiguousDataAddrField(),
+            "dataAddr field offset is expected to be same for both contiguous and discontiguous arrays in full refs. "
+            "But was %d bytes for discontiguous and %d bytes for contiguous array.\n",
+            fej9->getOffsetOfDiscontiguousDataAddrField(), fej9->getOffsetOfContiguousDataAddrField());
+            }
+
+         dataAddrSlotMR = new (cg->trHeapMemory()) TR::MemoryReference(resultReg, fej9->getOffsetOfContiguousDataAddrField(), cg);
+         generateTrg1Src1ImmInstruction(cg, TR::InstOpCode::addimmx, node, firstDataElementReg, resultReg, TR::Compiler->om.contiguousArrayHeaderSizeInBytes());
+         }
+
+      generateMemSrc1Instruction(cg, TR::InstOpCode::strimmx, node, dataAddrSlotMR, firstDataElementReg);
+
       if (generateArraylets)
          {
          // write arraylet pointer to object header
@@ -3521,6 +3589,328 @@ TR::Register *
 J9::ARM64::TreeEvaluator::ArrayCHKEvaluator(TR::Node *node, TR::CodeGenerator *cg)
    {
    return VMarrayCheckEvaluator(node, cg);
+   }
+
+void
+J9::ARM64::TreeEvaluator::genWrtbarForArrayCopy(TR::Node *node, TR::Register *srcObjReg, TR::Register *dstObjReg, TR::CodeGenerator *cg)
+   {
+   TR::Compilation *comp = cg->comp();
+   bool ageCheckIsNeeded;
+   bool cardMarkIsNeeded;
+   auto gcMode = TR::Compiler->om.writeBarrierType();
+
+   ageCheckIsNeeded = (gcMode == gc_modron_wrtbar_oldcheck ||
+                       gcMode == gc_modron_wrtbar_cardmark_and_oldcheck ||
+                       gcMode == gc_modron_wrtbar_always);
+   cardMarkIsNeeded = (gcMode == gc_modron_wrtbar_cardmark ||
+                       gcMode == gc_modron_wrtbar_cardmark_incremental);
+
+   if (!ageCheckIsNeeded && !cardMarkIsNeeded)
+      return;
+
+   if (ageCheckIsNeeded)
+      {
+      TR::Register *tmp1Reg = NULL;
+      TR::Register *tmp2Reg = NULL;
+      TR::RegisterDependencyConditions *deps;
+      TR::Instruction *gcPoint;
+      TR::LabelSymbol *doneLabel;
+
+      if (gcMode != gc_modron_wrtbar_always)
+         {
+         tmp1Reg = cg->allocateRegister();
+         tmp2Reg = cg->allocateRegister();
+         deps = new (cg->trHeapMemory()) TR::RegisterDependencyConditions(3, 3, cg->trMemory());
+         TR::addDependency(deps, tmp1Reg, TR::RealRegister::NoReg, TR_GPR, cg);
+         TR::addDependency(deps, tmp2Reg, TR::RealRegister::NoReg, TR_GPR, cg);
+         }
+      else
+         {
+         deps = new (cg->trHeapMemory()) TR::RegisterDependencyConditions(1, 1, cg->trMemory());
+         }
+
+      TR::addDependency(deps, dstObjReg, TR::RealRegister::x0, TR_GPR, cg);
+
+      TR::SymbolReference *wbRef = comp->getSymRefTab()->findOrCreateWriteBarrierBatchStoreSymbolRef(comp->getMethodSymbol());
+
+      if (gcMode != gc_modron_wrtbar_always)
+         {
+         doneLabel = generateLabelSymbol(cg);
+
+         TR::Register *metaReg = cg->getMethodMetaDataRegister();
+
+         // tmp1Reg = dstObjReg - heapBaseForBarrierRange0
+         generateTrg1MemInstruction(cg, TR::InstOpCode::ldrimmx, node, tmp1Reg,
+                                    new (cg->trHeapMemory()) TR::MemoryReference(metaReg, offsetof(J9VMThread, heapBaseForBarrierRange0), cg));
+         generateTrg1Src2Instruction(cg, TR::InstOpCode::subx, node, tmp1Reg, dstObjReg, tmp1Reg);
+
+         // if (tmp1Reg >= heapSizeForBarrierRange0), object not in the tenured area
+         generateTrg1MemInstruction(cg, TR::InstOpCode::ldrimmx, node, tmp2Reg,
+                                    new (cg->trHeapMemory()) TR::MemoryReference(metaReg, offsetof(J9VMThread, heapSizeForBarrierRange0), cg));
+         generateCompareInstruction(cg, node, tmp1Reg, tmp2Reg, true);
+         generateConditionalBranchInstruction(cg, TR::InstOpCode::b_cond, node, doneLabel, TR::CC_CS); // greater or equal (unsigned)
+         }
+
+      gcPoint = generateImmSymInstruction(cg, TR::InstOpCode::bl, node, reinterpret_cast<uintptr_t>(wbRef->getSymbol()->castToMethodSymbol()->getMethodAddress()),
+                                          new (cg->trHeapMemory()) TR::RegisterDependencyConditions((uint8_t) 0, 0, cg->trMemory()), wbRef, NULL);
+      cg->machine()->setLinkRegisterKilled(true);
+
+      if (gcMode != gc_modron_wrtbar_always)
+         generateLabelInstruction(cg, TR::InstOpCode::label, node, doneLabel, deps);
+
+      gcPoint->ARM64NeedsGCMap(cg, 0xFFFFFFFF);
+
+      if (tmp1Reg)
+         cg->stopUsingRegister(tmp1Reg);
+      if (tmp2Reg)
+         cg->stopUsingRegister(tmp2Reg);
+      }
+
+   if (!ageCheckIsNeeded && cardMarkIsNeeded)
+      {
+      if (!comp->getOptions()->realTimeGC())
+         {
+         TR::LabelSymbol *doneLabel = generateLabelSymbol(cg);
+
+         TR_ARM64ScratchRegisterManager *srm = cg->generateScratchRegisterManager();
+
+         TR::RegisterDependencyConditions *deps = new (cg->trHeapMemory()) TR::RegisterDependencyConditions(1, 1, cg->trMemory());
+         TR::addDependency(deps, dstObjReg, TR::RealRegister::NoReg, TR_GPR, cg);
+         srm->addScratchRegistersToDependencyList(deps);
+         VMCardCheckEvaluator(node, dstObjReg, srm, doneLabel, cg);
+         generateLabelInstruction(cg, TR::InstOpCode::label, node, doneLabel, deps);
+         srm->stopUsingRegisters();
+         }
+      else
+         {
+         TR_ASSERT(0, "genWrtbarForArrayCopy card marking not supported for RT");
+         }
+      }
+   }
+
+TR::Register *
+J9::ARM64::TreeEvaluator::arraycopyEvaluator(TR::Node *node, TR::CodeGenerator *cg)
+   {
+#ifdef OMR_GC_CONCURRENT_SCAVENGER
+   /*
+    * This version of arraycopyEvaluator is designed to handle the special case where read barriers are
+    * needed for field loads. At the time of writing, read barriers are used for Concurrent Scavenge GC.
+    * If there are no read barriers then the original implementation of arraycopyEvaluator can be used.
+    */
+   if (TR::Compiler->om.readBarrierType() == gc_modron_readbar_none ||
+       !node->chkNoArrayStoreCheckArrayCopy() ||
+       !node->isReferenceArrayCopy())
+      {
+      return OMR::TreeEvaluatorConnector::arraycopyEvaluator(node, cg);
+      }
+
+   TR::Compilation *comp = cg->comp();
+   TR_J9VMBase *fej9 = (TR_J9VMBase *)(cg->fe());
+
+   // child 0 ------  Source array object
+   // child 1 ------  Destination array object
+   // child 2 ------  Source byte address
+   // child 3 ------  Destination byte address
+   // child 4 ------  Copy length in bytes
+   TR::Node *srcObjNode  = node->getFirstChild();
+   TR::Node *dstObjNode  = node->getSecondChild();
+   TR::Node *srcAddrNode = node->getChild(2);
+   TR::Node *dstAddrNode = node->getChild(3);
+   TR::Node *lengthNode  = node->getChild(4);
+   TR::Register *srcObjReg, *dstObjReg, *srcAddrReg, *dstAddrReg, *lengthReg;
+   bool stopUsingCopyReg1, stopUsingCopyReg2, stopUsingCopyReg3, stopUsingCopyReg4, stopUsingCopyReg5 = false;
+
+   stopUsingCopyReg1 = stopUsingCopyReg(srcObjNode, srcObjReg, cg);
+   stopUsingCopyReg2 = stopUsingCopyReg(dstObjNode, dstObjReg, cg);
+   stopUsingCopyReg3 = stopUsingCopyReg(srcAddrNode, srcAddrReg, cg);
+   stopUsingCopyReg4 = stopUsingCopyReg(dstAddrNode, dstAddrReg, cg);
+
+   lengthReg = cg->evaluate(lengthNode);
+   if (!cg->canClobberNodesRegister(lengthNode))
+      {
+      TR::Register *lenCopyReg = cg->allocateRegister();
+      generateMovInstruction(cg, lengthNode, lenCopyReg, lengthReg);
+      lengthReg = lenCopyReg;
+      stopUsingCopyReg5 = true;
+      }
+
+   TR::Register *metaReg = cg->getMethodMetaDataRegister();
+   TR::Register *x0Reg = cg->allocateRegister();
+   TR::Register *tmp1Reg = cg->allocateRegister();
+   TR::Register *tmp2Reg = cg->allocateRegister();
+   TR::Register *tmp3Reg = cg->allocateRegister();
+
+   TR::RegisterDependencyConditions *deps = new (cg->trHeapMemory()) TR::RegisterDependencyConditions(16, 16, cg->trMemory());
+
+   TR::addDependency(deps, x0Reg, TR::RealRegister::x0, TR_GPR, cg); // copy of metaReg
+   TR::addDependency(deps, tmp1Reg, TR::RealRegister::x1, TR_GPR, cg); // copy of srcObjReg
+   TR::addDependency(deps, tmp2Reg, TR::RealRegister::x2, TR_GPR, cg); // copy of dstObjReg
+   TR::addDependency(deps, srcAddrReg, TR::RealRegister::x3, TR_GPR, cg);
+   TR::addDependency(deps, dstAddrReg, TR::RealRegister::x4, TR_GPR, cg);
+   TR::addDependency(deps, lengthReg, TR::RealRegister::x5, TR_GPR, cg);
+   TR::addDependency(deps, tmp3Reg, TR::RealRegister::x6, TR_GPR, cg); // this is not an argument
+   for (int32_t i = (int32_t)TR::RealRegister::x7; i <= (int32_t)TR::RealRegister::x15; i++)
+      {
+      TR::addDependency(deps, NULL, (TR::RealRegister::RegNum)i, TR_GPR, cg);
+      }
+
+   generateMovInstruction(cg, node, x0Reg, metaReg);
+   generateMovInstruction(cg, node, tmp1Reg, srcObjReg);
+   generateMovInstruction(cg, node, tmp2Reg, dstObjReg);
+
+   // The C routine expects length measured by slots
+   int32_t elementSize = comp->useCompressedPointers() ?
+      TR::Compiler->om.sizeofReferenceField() : TR::Compiler->om.sizeofReferenceAddress();
+   generateLogicalShiftRightImmInstruction(cg, node, lengthReg, lengthReg, trailingZeroes(elementSize));
+
+   intptr_t *funcdescrptr = (intptr_t *)fej9->getReferenceArrayCopyHelperAddress();
+   loadAddressConstant(cg, node, (intptr_t)funcdescrptr, tmp3Reg, NULL, false, TR_ArrayCopyHelper);
+
+   // call the C routine
+   TR::Instruction *gcPoint = generateRegBranchInstruction(cg, TR::InstOpCode::blr, node, tmp3Reg, deps);
+   gcPoint->ARM64NeedsGCMap(cg, 0xFFFFFFFF);
+
+   TR::TreeEvaluator::genWrtbarForArrayCopy(node, srcObjReg, dstObjReg, cg);
+
+   // ARM64HelperCallSnippet generates "bl" instruction
+   cg->machine()->setLinkRegisterKilled(true);
+
+   cg->decReferenceCount(srcObjNode);
+   cg->decReferenceCount(dstObjNode);
+   cg->decReferenceCount(srcAddrNode);
+   cg->decReferenceCount(dstAddrNode);
+   cg->decReferenceCount(lengthNode);
+
+   if (stopUsingCopyReg1)
+      cg->stopUsingRegister(srcObjReg);
+   if (stopUsingCopyReg2)
+      cg->stopUsingRegister(dstObjReg);
+   if (stopUsingCopyReg3)
+      cg->stopUsingRegister(srcAddrReg);
+   if (stopUsingCopyReg4)
+      cg->stopUsingRegister(dstAddrReg);
+   if (stopUsingCopyReg5)
+      cg->stopUsingRegister(lengthReg);
+
+   cg->stopUsingRegister(x0Reg);
+   cg->stopUsingRegister(tmp1Reg);
+   cg->stopUsingRegister(tmp2Reg);
+   cg->stopUsingRegister(tmp3Reg);
+
+   return NULL;
+#else /* OMR_GC_CONCURRENT_SCAVENGER */
+   return OMR::TreeEvaluatorConnector::arraycopyEvaluator(node, cg);
+#endif /* OMR_GC_CONCURRENT_SCAVENGER */
+}
+
+void
+J9::ARM64::TreeEvaluator::genArrayCopyWithArrayStoreCHK(TR::Node *node, TR::CodeGenerator *cg)
+   {
+   TR::Compilation *comp = cg->comp();
+   TR_J9VMBase *fej9 = (TR_J9VMBase *)(cg->fe());
+
+   // child 0 ------  Source array object
+   // child 1 ------  Destination array object
+   // child 2 ------  Source byte address
+   // child 3 ------  Destination byte address
+   // child 4 ------  Copy length in bytes
+   TR::Node *srcObjNode  = node->getFirstChild();
+   TR::Node *dstObjNode  = node->getSecondChild();
+   TR::Node *srcAddrNode = node->getChild(2);
+   TR::Node *dstAddrNode = node->getChild(3);
+   TR::Node *lengthNode  = node->getChild(4);
+   TR::Register *srcObjReg, *dstObjReg, *srcAddrReg, *dstAddrReg, *lengthReg;
+   bool stopUsingCopyReg1, stopUsingCopyReg2, stopUsingCopyReg3, stopUsingCopyReg4, stopUsingCopyReg5 = false;
+
+   stopUsingCopyReg1 = stopUsingCopyReg(srcObjNode, srcObjReg, cg);
+   stopUsingCopyReg2 = stopUsingCopyReg(dstObjNode, dstObjReg, cg);
+   stopUsingCopyReg3 = stopUsingCopyReg(srcAddrNode, srcAddrReg, cg);
+   stopUsingCopyReg4 = stopUsingCopyReg(dstAddrNode, dstAddrReg, cg);
+
+   lengthReg = cg->evaluate(lengthNode);
+   if (!cg->canClobberNodesRegister(lengthNode))
+      {
+      TR::Register *lenCopyReg = cg->allocateRegister();
+      generateMovInstruction(cg, lengthNode, lenCopyReg, lengthReg);
+      lengthReg = lenCopyReg;
+      stopUsingCopyReg5 = true;
+      }
+
+   // the C routine expects length measured by slots
+   int32_t elementSize = comp->useCompressedPointers() ?
+      TR::Compiler->om.sizeofReferenceField() : TR::Compiler->om.sizeofReferenceAddress();
+   generateLogicalShiftRightImmInstruction(cg, node, lengthReg, lengthReg, trailingZeroes(elementSize), true);
+
+   // pass vmThread as the first parameter
+   TR::Register *x0Reg = cg->allocateRegister();
+   TR::Register *metaReg = cg->getMethodMetaDataRegister();
+   generateMovInstruction(cg, node, x0Reg, metaReg);
+
+   TR::Register *tmpReg = cg->allocateRegister();
+
+   // I_32 referenceArrayCopy(J9VMThread *vmThread,
+   //                         J9IndexableObjectContiguous *srcObject,
+   //                         J9IndexableObjectContiguous *destObject,
+   //                         U_8 *srcAddress,
+   //                         U_8 *destAddress,
+   //                         I_32 lengthInSlots)
+   TR::RegisterDependencyConditions *deps = new (cg->trHeapMemory()) TR::RegisterDependencyConditions(16, 16, cg->trMemory());
+   TR::addDependency(deps, x0Reg, TR::RealRegister::x0, TR_GPR, cg);
+   TR::addDependency(deps, srcObjReg, TR::RealRegister::x1, TR_GPR, cg);
+   TR::addDependency(deps, dstObjReg, TR::RealRegister::x2, TR_GPR, cg);
+   TR::addDependency(deps, srcAddrReg, TR::RealRegister::x3, TR_GPR, cg);
+   TR::addDependency(deps, dstAddrReg, TR::RealRegister::x4, TR_GPR, cg);
+   TR::addDependency(deps, lengthReg, TR::RealRegister::x5, TR_GPR, cg);
+   TR::addDependency(deps, tmpReg, TR::RealRegister::x6, TR_GPR, cg); // this is not an argument
+   for (int32_t i = (int32_t)TR::RealRegister::x7; i <= (int32_t)TR::RealRegister::x15; i++)
+      {
+      TR::addDependency(deps, NULL, (TR::RealRegister::RegNum)i, TR_GPR, cg);
+      }
+
+   intptr_t *funcdescrptr = (intptr_t *)fej9->getReferenceArrayCopyHelperAddress();
+   loadAddressConstant(cg, node, (intptr_t)funcdescrptr, tmpReg, NULL, false, TR_ArrayCopyHelper);
+
+   // call the C routine
+   TR::Instruction *gcPoint = generateRegBranchInstruction(cg, TR::InstOpCode::blr, node, tmpReg, deps);
+   gcPoint->ARM64NeedsGCMap(cg, 0xFFFFFFFF);
+   // check return value (-1 on success)
+   generateCompareImmInstruction(cg, node, x0Reg, -1); // 32-bit compare
+   // throw exception if needed
+   TR::SymbolReference *throwSymRef = comp->getSymRefTab()->findOrCreateArrayStoreExceptionSymbolRef(comp->getJittedMethodSymbol());
+   TR::LabelSymbol *exceptionSnippetLabel = cg->lookUpSnippet(TR::Snippet::IsHelperCall, throwSymRef);
+   if (exceptionSnippetLabel == NULL)
+      {
+      exceptionSnippetLabel = generateLabelSymbol(cg);
+      TR::Snippet *snippet = new (cg->trHeapMemory()) TR::ARM64HelperCallSnippet(cg, node, exceptionSnippetLabel, throwSymRef);
+      cg->addSnippet(snippet);
+      snippet->gcMap().setGCRegisterMask(0xFFFFFFFF);
+      }
+
+   gcPoint = generateConditionalBranchInstruction(cg, TR::InstOpCode::b_cond, node, exceptionSnippetLabel, TR::CC_NE, deps);
+   gcPoint->ARM64NeedsGCMap(cg, 0xFFFFFFFF);
+
+   // ARM64HelperCallSnippet generates "bl" instruction
+   cg->machine()->setLinkRegisterKilled(true);
+
+   if (stopUsingCopyReg1)
+      cg->stopUsingRegister(srcObjReg);
+   if (stopUsingCopyReg2)
+      cg->stopUsingRegister(dstObjReg);
+   if (stopUsingCopyReg3)
+      cg->stopUsingRegister(srcAddrReg);
+   if (stopUsingCopyReg4)
+      cg->stopUsingRegister(dstAddrReg);
+   if (stopUsingCopyReg5)
+      cg->stopUsingRegister(lengthReg);
+
+   cg->stopUsingRegister(x0Reg);
+   cg->stopUsingRegister(tmpReg);
+
+   cg->decReferenceCount(srcObjNode);
+   cg->decReferenceCount(dstObjNode);
+   cg->decReferenceCount(srcAddrNode);
+   cg->decReferenceCount(dstAddrNode);
+   cg->decReferenceCount(lengthNode);
    }
 
 static TR::Register *

@@ -149,7 +149,7 @@ jitserver:
 # OpenSSL
 #========================================#
 openssl:
-  extra_getsource_options: '--openssl-version=1.1.1k'
+  extra_getsource_options: '--openssl-version=1.1.1l'
   extra_configure_options: '--with-openssl=fetched'
 #========================================#
 # OpenSSL Bundling
@@ -407,8 +407,8 @@ x86-64_linux:
       8: 'ci.role.build && hw.arch.x86 && sw.tool.docker'
       11: 'ci.role.build && hw.arch.x86 && sw.tool.docker'
     docker_image:
-      8: 'eclipseopenj9/jenkins-agent-x86-centos6:15'
-      11: 'eclipseopenj9/jenkins-agent-x86-centos6:15'
+      8: 'eclipseopenj9/jenkins-agent-x86-centos6:16'
+      11: 'eclipseopenj9/jenkins-agent-x86-centos6:16'
   extra_configure_options:
     all: '--enable-jitserver'
   build_env:
@@ -495,9 +495,10 @@ aarch64_linux:
     8: 'linux-aarch64-normal-server-release'
     11: 'linux-aarch64-normal-server-release'
   node_labels:
-    build: 'ci.role.build && hw.arch.aarch64 && sw.os.cent.7'
+    build: 'ci.role.build && hw.arch.aarch64 && sw.tool.docker'
+    docker_image: 'adoptopenjdk/centos7_build_image@sha256:b2cc072a5c6196461a0993c6817d7540b8c8fcbce40f63cd5bb49eb6d7d61d89'
   build_env:
-    vars: 'PATH+TOOLS=/usr/local/gcc-7.5.0/bin'
+    vars: 'CC=/usr/local/gcc/bin/gcc-7.5 CXX=/usr/local/gcc/bin/g++-7.5'
 #========================================#
 # Linux Aarch 64bits Compressed Pointers /w cmake
 #========================================#
@@ -545,11 +546,11 @@ x86-64_windows:
   freemarker: '/cygdrive/c/openjdk/freemarker.jar'
   extra_configure_options:
     all: '--disable-ccache --with-cuda="C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v9.0"'
-    8: '--with-toolchain-version=2013 --with-freetype-src=/cygdrive/c/openjdk/freetype-2.5.3 --with-openssl=/cygdrive/c/openjdk/OpenSSL-1.1.1k-x86_64-VS2013'
-    11: '--with-toolchain-version=2017 --with-openssl=/cygdrive/c/openjdk/OpenSSL-1.1.1k-x86_64-VS2017'
-    16: '--with-toolchain-version=2019 --with-openssl=/cygdrive/c/openjdk/OpenSSL-1.1.1k-x86_64-VS2019'
-    17: '--with-toolchain-version=2019 --with-openssl=/cygdrive/c/openjdk/OpenSSL-1.1.1k-x86_64-VS2019'
-    next: '--with-toolchain-version=2019 --with-openssl=/cygdrive/c/openjdk/OpenSSL-1.1.1k-x86_64-VS2019'
+    8: '--with-toolchain-version=2013 --with-freetype-src=/cygdrive/c/openjdk/freetype-2.5.3 --with-openssl=/cygdrive/c/openjdk/OpenSSL-1.1.1l-x86_64-VS2013'
+    11: '--with-toolchain-version=2017 --with-openssl=/cygdrive/c/openjdk/OpenSSL-1.1.1l-x86_64-VS2017'
+    16: '--with-toolchain-version=2019 --with-openssl=/cygdrive/c/openjdk/OpenSSL-1.1.1l-x86_64-VS2019'
+    17: '--with-toolchain-version=2019 --with-openssl=/cygdrive/c/openjdk/OpenSSL-1.1.1l-x86_64-VS2019'
+    next: '--with-toolchain-version=2019 --with-openssl=/cygdrive/c/openjdk/OpenSSL-1.1.1l-x86_64-VS2019'
   node_labels:
     build: 'ci.role.build && hw.arch.x86 && sw.os.windows'
   build_env:
@@ -602,7 +603,7 @@ x86-32_windows:
   release:
     8: 'windows-x86-normal-server-release'
   extra_configure_options:
-    8: '--with-toolchain-version=2013 --with-freetype-src=/cygdrive/c/openjdk/freetype-2.5.3 --with-target-bits=32 --disable-ccache --with-openssl=/cygdrive/c/openjdk/OpenSSL-1.1.1k-x86_32-VS2013'
+    8: '--with-toolchain-version=2013 --with-freetype-src=/cygdrive/c/openjdk/freetype-2.5.3 --with-target-bits=32 --disable-ccache --with-openssl=/cygdrive/c/openjdk/OpenSSL-1.1.1l-x86_32-VS2013'
   freemarker: '/cygdrive/c/openjdk/freemarker.jar'
   node_labels:
     build:

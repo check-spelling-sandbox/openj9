@@ -190,6 +190,9 @@ enum MessageType : uint16_t
    VM_vTableOrITableIndexFromMemberName,
    VM_getMemberNameFieldKnotIndexFromMethodHandleKnotIndex,
    VM_isStable,
+   VM_delegatingMethodHandleTarget,
+   VM_getVMTargetOffset,
+   VM_getVMIndexOffset,
 
    // For static TR::CompilationInfo methods
    CompInfo_isCompiled,
@@ -435,6 +438,9 @@ static const char *messageNames[] =
    "VM_vTableOrITableIndexFromMemberName",
    "VM_getMemberNameFieldKnotIndexFromMethodHandleKnotIndex",
    "VM_isStable",
+   "VM_delegatingMethodHandleTarget",
+   "VM_getVMTargetOffset",
+   "VM_getVMIndexOffset",
    "CompInfo_isCompiled",
    "CompInfo_getPCIfCompiled",
    "CompInfo_getInvocationCount",

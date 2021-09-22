@@ -36,14 +36,6 @@
 #include "env/j9methodServer.hpp"
 #endif /* defined(J9VM_OPT_JITSERVER) */
 
-#include <stdio.h>
-
-#if defined (_MSC_VER) && (_MSC_VER < 1900)
-#define snprintf _snprintf
-#endif
-
-#define OPERAND_STR_BUF_SIZE 128
-
 const char* Operand::KnowledgeStrings[] = {"NONE", "OBJECT", "MUTABLE_CALLSITE_TARGET", "PREEXISTENT", "FIXED_CLASS", "KNOWN_OBJECT", "ICONST" };
 
 char*
@@ -183,54 +175,34 @@ MutableCallsiteTargetOperand::merge1(Operand* other)
       return NULL;
    }
 
-int
-Operand::printToString(char *buffer, size_t size)
+void
+Operand::printToString(TR::StringBuf *buf)
    {
-   return snprintf(buffer, size, "(unknown)");
+   buf->appendf("(unknown)");
    }
 
-int
-IconstOperand::printToString(char *buffer, size_t size)
+void
+IconstOperand::printToString(TR::StringBuf *buf)
    {
-   return snprintf(buffer, size, "(iconst=%d)", intValue);
+   buf->appendf("(iconst=%d)", intValue);
    }
 
-int
-ObjectOperand::printToString(char *buffer, size_t size)
+void
+ObjectOperand::printToString(TR::StringBuf *buf)
    {
-   return snprintf(buffer, size, "(%s=clazz%p)", KnowledgeStrings[getKnowledgeLevel()], getClass());
+   buf->appendf("(%s=clazz%p)", KnowledgeStrings[getKnowledgeLevel()], getClass());
    }
 
-int
-KnownObjOperand::printToString(char *buffer, size_t size)
+void
+KnownObjOperand::printToString(TR::StringBuf *buf)
    {
-   return snprintf(buffer, size, "(obj%d)", getKnownObjectIndex());
+   buf->appendf("(obj%d)", getKnownObjectIndex());
    }
 
-int
-MutableCallsiteTargetOperand::printToString(char *buffer, size_t size)
+void
+MutableCallsiteTargetOperand::printToString(TR::StringBuf *buf)
    {
-   return snprintf(buffer, size, "(mh=%d, mcs=%d)", getMethodHandleIndex(), getMutableCallsiteIndex());
-   }
-
-static void printToString(TR::Compilation *comp, Operand *operand, char *buffer, size_t size)
-   {
-   TR_ASSERT_FATAL(size >= 1, "undersized buffer has no space for the NUL terminator");
-
-   int len = operand->printToString(buffer, size);
-
-   // If the formatted length is > size, MSVC _snprintf() returns a negative
-   // value instead of the length, so check for len < 0 as well.
-   if (len < 0 || len >= size)
-      {
-      // When the formatted length is >= size, MSVC _snprintf() fails to
-      // NUL-terminate.
-      buffer[size - 1] = '\0';
-
-      // Warn that the output has been truncated. Do not assert here, since
-      // that risks producing less diagnostic information.
-      traceMsg(comp, "warning: Operand::printToString() result is truncated: %s\n", buffer);
-      }
+   buf->appendf("(mh=%d, mcs=%d)", getMethodHandleIndex(), getMutableCallsiteIndex());
    }
 
 void
@@ -239,9 +211,9 @@ InterpreterEmulator::printOperandArray(OperandArray* operands)
    int32_t size = operands->size();
    for (int32_t i = 0; i < size; i++)
       {
-      char buffer[OPERAND_STR_BUF_SIZE];
-      printToString(comp(), (*operands)[i], buffer, sizeof (buffer));
-      traceMsg(comp(), "[%d]=%s, ", i, buffer);
+      _operandBuf->clear();
+      (*operands)[i]->printToString(_operandBuf);
+      traceMsg(comp(), "[%d]=%s, ", i, _operandBuf->text());
       }
    if (size > 0)
       traceMsg(comp(), "\n");
@@ -534,9 +506,15 @@ InterpreterEmulator::setupMethodEntryLocalObjectState()
              }
          if (tracer()->heuristicLevel())
             {
-            char buffer[OPERAND_STR_BUF_SIZE];
-            printToString(comp(), (*_currentLocalObjectInfo)[slotIndex], buffer, sizeof (buffer));
-            heuristicTrace(tracer(), "Creating operand %s for parm %d slot %d from PrexArgument %p", buffer, ordinal, slotIndex, prexArgument);
+            _operandBuf->clear();
+            (*_currentLocalObjectInfo)[slotIndex]->printToString(_operandBuf);
+            heuristicTrace(
+               tracer(),
+               "Creating operand %s for parm %d slot %d from PrexArgument %p",
+               _operandBuf->text(),
+               ordinal,
+               slotIndex,
+               prexArgument);
             }
          }
       }
@@ -904,9 +882,9 @@ InterpreterEmulator::dumpStack()
    for (int i = 0; i < _stack->size(); i++ )
       {
       Operand *x = (*_stack)[i];
-      char buffer[OPERAND_STR_BUF_SIZE];
-      printToString(comp(), x, buffer, sizeof (buffer));
-      debugTrace(tracer(), "[%d]=%s", i, buffer);
+      _operandBuf->clear();
+      x->printToString(_operandBuf);
+      debugTrace(tracer(), "[%d]=%s", i, _operandBuf->text());
       }
    }
 
@@ -935,6 +913,23 @@ InterpreterEmulator::getReturnValue(TR_ResolvedMethod *callee)
       case TR::java_lang_invoke_ILGenMacros_isShareableThunk:
          result = new (trStackMemory()) IconstOperand(0);
          break;
+
+#if defined(J9VM_OPT_OPENJDK_METHODHANDLE)
+      case TR::java_lang_invoke_DelegatingMethodHandle_getTarget:
+         {
+         TR::KnownObjectTable::Index dmhIndex = top()->getKnownObjectIndex();
+         bool trace = tracer()->debugLevel();
+         TR::KnownObjectTable::Index targetIndex =
+            comp()->fej9()->delegatingMethodHandleTarget(comp(), dmhIndex, trace);
+
+         if (targetIndex == TR::KnownObjectTable::UNKNOWN)
+            return NULL;
+
+         result = new (trStackMemory()) KnownObjOperand(targetIndex);
+         break;
+         }
+#endif
+
       case TR::java_lang_invoke_MutableCallSite_getTarget:
       case TR::java_lang_invoke_Invokers_getCallSiteTarget:
          {
@@ -1330,9 +1325,9 @@ void
 InterpreterEmulator::updateKnotAndCreateCallSiteUsingInvokeCacheArray(TR_ResolvedJ9Method* owningMethod, uintptr_t * invokeCacheArray, int32_t cpIndex)
    {
    TR_J9VMBase *fej9 = comp()->fej9();
+   TR::KnownObjectTable::Index idx = fej9->getKnotIndexOfInvokeCacheArrayAppendixElement(comp(), invokeCacheArray);
    if (_iteratorWithState)
       {
-      TR::KnownObjectTable::Index idx = fej9->getKnotIndexOfInvokeCacheArrayAppendixElement(comp(), invokeCacheArray);
       if (idx != TR::KnownObjectTable::UNKNOWN)
          push(new (trStackMemory()) KnownObjOperand(idx));
       else
@@ -1357,7 +1352,7 @@ InterpreterEmulator::updateKnotAndCreateCallSiteUsingInvokeCacheArray(TR_Resolve
                                                                         resolvedSymbol, isIndirectCall, isInterface, *_newBCInfo, comp(),
                                                                         _recursionDepth, allconsts);
 
-   findTargetAndUpdateInfoForCallsite(callsite);
+   findTargetAndUpdateInfoForCallsite(callsite, idx);
    }
 
 #endif //J9VM_OPT_OPENJDK_METHODHANDLE
@@ -1789,7 +1784,8 @@ InterpreterEmulator::createPrexArgFromOperand(Operand* operand)
    }
 
 TR_PrexArgInfo*
-InterpreterEmulator::computePrexInfo(TR_CallSite *callsite)
+InterpreterEmulator::computePrexInfo(
+   TR_CallSite *callsite, TR::KnownObjectTable::Index appendix)
    {
    if (tracer()->heuristicLevel())
       _ecs->getInliner()->tracer()->dumpCallSite(callsite, "Compute prex info for call site %p\n", callsite);
@@ -1844,16 +1840,44 @@ InterpreterEmulator::computePrexInfo(TR_CallSite *callsite)
          return prexArgInfo;
          }
       }
+#if defined(J9VM_OPT_OPENJDK_METHODHANDLE)
+   else if (appendix != TR::KnownObjectTable::UNKNOWN)
+      {
+      TR_ASSERT_FATAL(!callsite->isIndirectCall(), "appendix with indirect call");
+      TR_ASSERT_FATAL(
+         comp()->fej9()->isLambdaFormGeneratedMethod(callsite->_initialCalleeMethod),
+         "appendix with non-LambdaForm method - expected a call site adapter");
+
+      TR::KnownObjectTable *knot = comp()->getKnownObjectTable();
+      if (!knot->isNull(appendix))
+         {
+         TR_PrexArgInfo* prexArgInfo =
+            new (comp()->trHeapMemory()) TR_PrexArgInfo(numOfArgs, comp()->trMemory());
+
+         auto arg = new (comp()->trHeapMemory()) TR_PrexArgument(appendix, comp());
+         prexArgInfo->set(numOfArgs - 1, arg);
+
+         if (tracer()->heuristicLevel())
+            {
+            alwaysTrace(tracer(), "argInfo from appendix object:");
+            prexArgInfo->dumpTrace();
+            }
+
+         return prexArgInfo;
+         }
+      }
+#endif
 
    return NULL;
    }
 
 void
-InterpreterEmulator::findTargetAndUpdateInfoForCallsite(TR_CallSite *callsite)
+InterpreterEmulator::findTargetAndUpdateInfoForCallsite(
+   TR_CallSite *callsite, TR::KnownObjectTable::Index appendix)
    {
    _currentCallSite = callsite;
    callsite->_callerBlock = _currentInlinedBlock;
-   callsite->_ecsPrexArgInfo = computePrexInfo(callsite);
+   callsite->_ecsPrexArgInfo = computePrexInfo(callsite, appendix);
 
    if (_ecs->isInlineable(_callStack, callsite))
       {

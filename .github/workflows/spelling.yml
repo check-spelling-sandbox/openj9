@@ -40,7 +40,7 @@ jobs:
     concurrency:
       group: spelling-${{ github.event.pull_request.number || github.ref }}
       # note: If you use only_check_changed_files, you do not want cancel-in-progress
-      cancel-in-progress: false
+      cancel-in-progress: true
     steps:
     - name: checkout-merge
       if: "contains(github.event_name, 'pull_request')"
@@ -62,7 +62,6 @@ jobs:
           cspell:filetypes/filetypes.txt
         check_extra_dictionaries: ''
         post_comment: 0
-        only_check_changed_files: 1
     - name: store-comment
       if: failure()
       uses: actions/upload-artifact@v2

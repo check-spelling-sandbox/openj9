@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 1998, 2020 IBM Corp. and others
+ * Copyright (c) 1998, 2021 IBM Corp. and others
  *
  * This program and the accompanying materials are made available under
  * the terms of the Eclipse Public License 2.0 which accompanies this
@@ -195,7 +195,11 @@ standardInit( J9JavaVM *vm, char *dllName)
 				if (NULL == clz) {
 					goto _fail;
 				}
+#if JAVA_SPEC_VERSION >= 18
+				mid = (*env)->GetStaticMethodID(env, clz, "load", "(Ljdk/internal/loader/NativeLibraries$NativeLibraryImpl;Ljava/lang/String;ZZZ)Z");
+#else /* JAVA_SPEC_VERSION >= 18 */
 				mid = (*env)->GetStaticMethodID(env, clz, "load", "(Ljdk/internal/loader/NativeLibraries$NativeLibraryImpl;Ljava/lang/String;ZZ)Z");
+#endif /* JAVA_SPEC_VERSION >= 18 */
 				if (NULL == mid) {
 					goto _fail;
 				}
@@ -209,6 +213,10 @@ standardInit( J9JavaVM *vm, char *dllName)
 			vmFuncs->internalReleaseVMAccess(vmThread);
 	#endif /* J9VM_INTERP_ATOMIC_FREE_JNI */
 			vmFuncs->initializeAttachedThread(vmThread, threadName, (j9object_t *)threadGroup, FALSE, vmThread);
+#if JAVA_SPEC_VERSION >= 11
+			/* Trigger the VMStart event via jvmtiHookVMStarted handler if the can_generate_early_vmstart capability is set */
+			TRIGGER_J9HOOK_JAVA_BASE_LOADED(vm->hookInterface, vmThread);
+#endif /* JAVA_SPEC_VERSION >= 11 */
 
 			vmFuncs->internalAcquireVMAccess(vmThread);
 
@@ -243,13 +251,22 @@ standardInit( J9JavaVM *vm, char *dllName)
 
 #ifdef J9VM_OPT_REFLECT
 	if (vm->reflectFunctions.idToReflectMethod) {
-		jmethodID invokeMethod;
+		jmethodID invokeMethod = NULL;
 
 		clazz = (*(JNIEnv*)vmThread)->FindClass((JNIEnv*)vmThread, "java/lang/reflect/Method");
 		if (!clazz) goto _fail;
 		invokeMethod = (*(JNIEnv*)vmThread)->GetMethodID((JNIEnv*)vmThread, clazz, "invoke", "(Ljava/lang/Object;[Ljava/lang/Object;)Ljava/lang/Object;");
 		if (!invokeMethod) goto _fail;
 		vm->jlrMethodInvoke = ((J9JNIMethodID *) invokeMethod)->method;
+#if JAVA_SPEC_VERSION >= 18
+		{
+			jmethodID invokeMethodMH = (*(JNIEnv*)vmThread)->GetMethodID((JNIEnv*)vmThread, clazz, "invoke", "(Ljava/lang/Object;[Ljava/lang/Object;Ljava/lang/Class;)Ljava/lang/Object;");
+			if (NULL == invokeMethodMH) {
+				goto _fail;
+			}
+			vm->jlrMethodInvokeMH = ((J9JNIMethodID *) invokeMethodMH)->method;
+		}
+#endif /* JAVA_SPEC_VERSION >= 18 */
 		(*(JNIEnv*)vmThread)->DeleteLocalRef((JNIEnv*)vmThread, clazz);
 
 #ifndef J9VM_IVE_RAW_BUILD /* J9VM_IVE_RAW_BUILD is not enabled by default */
@@ -576,6 +593,8 @@ initializeBootstrapClassPath(J9JavaVM *vm)
 	if (-1 == (IDATA)loader->classPathEntryCount) {
 		return -1;
 	} else {
+		omrthread_rwmutex_init(&loader->cpEntriesMutex, 0, "classPathEntries Mutex");
+		loader->initClassPathEntryCount = loader->classPathEntryCount;
 		/* Mark the class path as having been set */
 		loader->flags |= J9CLASSLOADER_CLASSPATH_SET;
 

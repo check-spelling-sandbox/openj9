@@ -26,21 +26,19 @@
 #include "env/PersistentCHTable.hpp"
 #include "env/VMAccessCriticalSection.hpp"
 #include "exceptions/AOTFailure.hpp"
-#include "compile/Compilation.hpp"
+#include "compile/J9Compilation.hpp"
 #include "control/CompilationRuntime.hpp"
 #include "control/CompilationThread.hpp"
+#include "infra/String.hpp"
 #include "runtime/RelocationRuntime.hpp"
 #include "runtime/SymbolValidationManager.hpp"
 
 #if defined(J9VM_OPT_JITSERVER)
 #include "runtime/JITClientSession.hpp"
-#endif
+#endif /* defined(J9VM_OPT_JITSERVER) */
 
 #include "j9protos.h"
 
-#if defined (_MSC_VER) && _MSC_VER < 1900
-#define snprintf _snprintf
-#endif
 
 TR::SymbolValidationManager::SystemClassNotWorthRemembering
 TR::SymbolValidationManager::_systemClassesNotWorthRemembering[] = {
@@ -70,12 +68,15 @@ TR::SymbolValidationManager::SymbolValidationManager(TR::Region &region, TR_Reso
         _vmThread,
 #if defined(J9VM_OPT_JITSERVER)
         TR::CompilationInfo::get()->getPersistentInfo()->getRemoteCompilationMode() == JITServer::SERVER ? TR_J9VMBase::J9_SERVER_VM : 
-#endif
+#endif /* defined(J9VM_OPT_JITSERVER) */
         TR_J9VMBase::DEFAULT_VM)),
      _trMemory(_comp->trMemory()),
      _chTable(_comp->getPersistentInfo()->getPersistentCHTable()),
      _rootClass(compilee->classOfMethod()),
      _wellKnownClassChainOffsets(NULL),
+#if defined(J9VM_OPT_JITSERVER)
+     _aotCacheWellKnownClassesRecord(NULL),
+#endif /* defined(J9VM_OPT_JITSERVER) */
      _symbolValidationRecords(_region),
      _alreadyGeneratedRecords(LessSymbolValidationRecord(), _region),
      _classesFromAnyCPIndex(LessClassFromAnyCPIndex(), _region),
@@ -197,8 +198,7 @@ TR::SymbolValidationManager::getSystemClassNotWorthRemembering(int idx)
 void
 TR::SymbolValidationManager::getWellKnownClassesSCCKey(char *buffer, size_t size, unsigned int includedClasses)
    {
-   int len = snprintf(buffer, size, "AOTWellKnownClasses:%x", includedClasses);
-   TR_ASSERT(len <= size, "Buffer too small");
+   TR::snprintfNoTrunc(buffer, size, "AOTWellKnownClasses:%x", includedClasses);
    }
 
 void
@@ -238,6 +238,13 @@ TR::SymbolValidationManager::populateWellKnownClasses()
    uintptr_t *classCount = &classChainOffsets[0];
    uintptr_t *nextClassChainOffset = &classChainOffsets[1];
 
+#if defined(J9VM_OPT_JITSERVER)
+   ClientSessionData *clientData = _comp->getClientData();
+   bool aotCacheStore = _comp->isAOTCacheStore();
+   const AOTCacheClassChainRecord *classChainRecords[WELL_KNOWN_CLASS_COUNT] = {0};
+   bool missingClassChainRecords = false;
+#endif /* defined(J9VM_OPT_JITSERVER) */
+
    for (int i = 0; i < WELL_KNOWN_CLASS_COUNT; i++)
       {
       const char *name = names[i];
@@ -246,11 +253,24 @@ TR::SymbolValidationManager::populateWellKnownClasses()
 
       void *chain = NULL;
       if (wkClass == NULL)
+         {
          traceMsg(_comp, "well-known class %s not found\n", name);
+         }
       else if (!_fej9->isPublicClass(wkClass))
+         {
          traceMsg(_comp, "well-known class %s is not public\n", name);
+         }
       else
+         {
+#if defined(J9VM_OPT_JITSERVER)
+         auto recordPtr = &classChainRecords[_wellKnownClasses.size()];
+         chain = _fej9->sharedCache()->rememberClass(wkClass, recordPtr);
+         if (aotCacheStore && !*recordPtr)
+            missingClassChainRecords = true;
+#else /* defined(J9VM_OPT_JITSERVER) */
          chain = _fej9->sharedCache()->rememberClass(wkClass);
+#endif /* defined(J9VM_OPT_JITSERVER) */
+         }
 
       if (chain == NULL)
          {
@@ -274,12 +294,12 @@ TR::SymbolValidationManager::populateWellKnownClasses()
    *classCount = _wellKnownClasses.size();
 
 #if defined(J9VM_OPT_JITSERVER)
-   ClientSessionData *clientData = _comp->getClientData();
    if (clientData)
       {
       // This is an out-of-process compilation; check the cache in the client session first
       _wellKnownClassChainOffsets = clientData->getCachedWellKnownClassChainOffsets(
-         includedClasses, _wellKnownClasses.size(), classChainOffsets + 1);
+         includedClasses, _wellKnownClasses.size(), classChainOffsets + 1, _aotCacheWellKnownClassesRecord
+      );
       if (_wellKnownClassChainOffsets)
          return;
       }
@@ -305,8 +325,10 @@ TR::SymbolValidationManager::populateWellKnownClasses()
       {
       // This is an out-of process compilation; cache the pointer to the newly created well-known
       // class chain offsets in the client session to avoid sending repeated requests to the client
-      clientData->cacheWellKnownClassChainOffsets(includedClasses, _wellKnownClasses.size(),
-                                                  classChainOffsets + 1, _wellKnownClassChainOffsets);
+      clientData->cacheWellKnownClassChainOffsets(
+         includedClasses, _wellKnownClasses.size(), classChainOffsets + 1, _wellKnownClassChainOffsets,
+         (aotCacheStore && !missingClassChainRecords) ? classChainRecords : NULL, _aotCacheWellKnownClassesRecord
+      );
       }
 #endif /* defined(J9VM_OPT_JITSERVER) */
 
@@ -583,13 +605,17 @@ TR::SymbolValidationManager::getClassChainInfo(
       {
       // info._baseComponent is a non-array reference type. It can't be a
       // primitive because primitives always satisfy isAlreadyValidated().
+      const AOTCacheClassChainRecord *classChainRecord = NULL;
       info._baseComponentClassChain =
-         _fej9->sharedCache()->rememberClass(info._baseComponent);
+         _fej9->sharedCache()->rememberClass(info._baseComponent, &classChainRecord);
       if (info._baseComponentClassChain == NULL)
          {
          _region.deallocate(record);
          return false;
          }
+#if defined(J9VM_OPT_JITSERVER)
+      info._baseComponentAOTCacheClassChainRecord = classChainRecord;
+#endif /* defined(J9VM_OPT_JITSERVER) */
       }
 
    return true;
@@ -619,7 +645,11 @@ TR::SymbolValidationManager::appendClassChainInfoRecords(
          info._baseComponent,
          new (_region) ClassChainRecord(
             info._baseComponent,
-            info._baseComponentClassChain));
+            info._baseComponentClassChain
+#if defined(J9VM_OPT_JITSERVER)
+            , info._baseComponentAOTCacheClassChainRecord
+#endif /* defined(J9VM_OPT_JITSERVER) */
+         ));
       }
    }
 
@@ -665,13 +695,17 @@ TR::SymbolValidationManager::addClassRecordWithChain(TR::ClassValidationRecordWi
 
    if (!_fej9->isPrimitiveClass(record->_class))
       {
-      record->_classChain = _fej9->sharedCache()->rememberClass(record->_class);
+      const AOTCacheClassChainRecord *classChainRecord = NULL;
+      record->_classChain = _fej9->sharedCache()->rememberClass(record->_class, &classChainRecord);
       if (record->_classChain == NULL)
          {
          _region.deallocate(record);
          return false;
          }
 
+#if defined(J9VM_OPT_JITSERVER)
+      record->_aotCacheClassChainRecord = classChainRecord;
+#endif /* defined(J9VM_OPT_JITSERVER) */
       appendRecordIfNew(record->_class, record);
       }
 
@@ -765,12 +799,13 @@ TR::SymbolValidationManager::addProfiledClassRecord(TR_OpaqueClassBlock *clazz)
    int32_t arrayDims = 0;
    clazz = getBaseComponentClass(clazz, arrayDims);
 
-   void *classChain = _fej9->sharedCache()->rememberClass(clazz);
+   const AOTCacheClassChainRecord *classChainRecord = NULL;
+   void *classChain = _fej9->sharedCache()->rememberClass(clazz, &classChainRecord);
    if (classChain == NULL)
       return false;
 
    if (!isAlreadyValidated(clazz))
-      appendNewRecord(clazz, new (_region) ProfiledClassRecord(clazz, classChain));
+      appendNewRecord(clazz, new (_region) ProfiledClassRecord(clazz, classChain, classChainRecord));
 
    addMultipleArrayRecords(clazz, arrayDims);
    return true;
@@ -1147,14 +1182,6 @@ TR::SymbolValidationManager::validateClassFromCPRecord(uint16_t classID,  uint16
 bool
 TR::SymbolValidationManager::validateDefiningClassFromCPRecord(uint16_t classID, uint16_t beholderID, uint32_t cpIndex, bool isStatic)
    {
-   TR::CompilationInfo *compInfo = TR::CompilationInfo::get(_fej9->_jitConfig);
-   TR::CompilationInfoPerThreadBase *compInfoPerThreadBase = compInfo->getCompInfoForCompOnAppThread();
-   TR_RelocationRuntime *reloRuntime;
-   if (compInfoPerThreadBase)
-      reloRuntime = compInfoPerThreadBase->reloRuntime();
-   else
-      reloRuntime = compInfo->getCompInfoForThread(_vmThread)->reloRuntime();
-
    J9Class *beholder = getJ9ClassFromID(beholderID);
    J9ConstantPool *beholderCP = J9_CP_FROM_CLASS(beholder);
    return validateSymbol(classID, TR_ResolvedJ9Method::definingClassFromCPFieldRef(_comp, beholderCP, cpIndex, isStatic));

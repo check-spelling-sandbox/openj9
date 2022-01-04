@@ -62,6 +62,8 @@ extern "C" {
 /* PlaceHolder value used for MN.vmindex that has default method conflict */
 #define J9VM_RESOLVED_VMINDEX_FOR_DEFAULT_THROW 1
 
+J9_DECLARE_CONSTANT_UTF8(mutableCallSite, "java/lang/invoke/MutableCallSite");
+
 static bool
 isPolymorphicMHMethod(J9JavaVM *vm, J9Class *declaringClass, J9UTF8 *methodName)
 {
@@ -176,7 +178,7 @@ initImpl(J9VMThread *currentThread, j9object_t membernameObject, j9object_t refO
 		}
 
 		nameObject = J9VMJAVALANGREFLECTMETHOD_NAME(currentThread, refObject);
-		clazzObject = J9VMJAVALANGREFLECTMETHOD_DECLARINGCLASS(currentThread, refObject);
+		clazzObject = J9VMJAVALANGREFLECTMETHOD_CLAZZ(currentThread, refObject);
 	} else if (refClass == J9VMJAVALANGREFLECTCONSTRUCTOR(vm)) {
 		J9JNIMethodID *methodID = vm->reflectFunctions.idFromConstructorObject(currentThread, refObject);
 		vmindex = (jlong)methodID;
@@ -190,7 +192,7 @@ initImpl(J9VMThread *currentThread, j9object_t membernameObject, j9object_t refO
 		}
 		flags |= MN_IS_CONSTRUCTOR | (MH_REF_INVOKESPECIAL << MN_REFERENCE_KIND_SHIFT);
 
-		clazzObject = J9VMJAVALANGREFLECTMETHOD_DECLARINGCLASS(currentThread, refObject);
+		clazzObject = J9VMJAVALANGREFLECTMETHOD_CLAZZ(currentThread, refObject);
 	} else {
 		vmFuncs->setCurrentExceptionUTF(currentThread, J9VMCONSTANTPOOL_JAVALANGILLEGALARGUMENTEXCEPTION, NULL);
 	}
@@ -520,7 +522,8 @@ lookupMethod(J9VMThread *currentThread, J9Class *resolvedClass, J9UTF8 *name, J9
 static void
 setCallSiteTargetImpl(J9VMThread *currentThread, jobject callsite, jobject target, bool isVolatile)
 {
-	const J9InternalVMFunctions *vmFuncs = currentThread->javaVM->internalVMFunctions;
+	J9JavaVM *javaVM = currentThread->javaVM;
+	const J9InternalVMFunctions *vmFuncs = javaVM->internalVMFunctions;
 	vmFuncs->internalEnterVMFromJNI(currentThread);
 
 	if ((NULL == callsite) || (NULL == target)) {
@@ -542,13 +545,17 @@ setCallSiteTargetImpl(J9VMThread *currentThread, jobject callsite, jobject targe
 		MM_ObjectAccessBarrierAPI objectAccessBarrier = MM_ObjectAccessBarrierAPI(currentThread);
 
 		/* Check for MutableCallSite modification. */
-		J9JITConfig* jitConfig = currentThread->javaVM->jitConfig;
-		J9UTF8 *clazzNameUTF8 = J9ROMCLASS_CLASSNAME(clazz->romClass);
-		U_8 *clazzName = J9UTF8_DATA(clazzNameUTF8);
-		UDATA clazzLength = J9UTF8_LENGTH(clazzNameUTF8);
+		J9JITConfig* jitConfig = javaVM->jitConfig;
+		J9Class *mcsClass = vmFuncs->peekClassHashTable(
+			currentThread,
+			javaVM->systemClassLoader,
+			J9UTF8_DATA(&mutableCallSite),
+			J9UTF8_LENGTH(&mutableCallSite));
+
 		if (!isVolatile /* MutableCallSite uses setTargetNormal(). */
-		&& NULL != jitConfig
-		&& J9UTF8_LITERAL_EQUALS(clazzName, clazzLength, "java/lang/invoke/MutableCallSite")
+		&& (NULL != jitConfig)
+		&& (NULL != mcsClass)
+		&& VM_VMHelpers::inlineCheckCast(clazz, mcsClass)
 		) {
 			jitConfig->jitSetMutableCallSiteTarget(currentThread, callsiteObject, targetObject);
 		} else {
@@ -626,7 +633,7 @@ Java_java_lang_invoke_MethodHandleNatives_expand(JNIEnv *env, jclass clazz, jobj
 				/* if name/type field is uninitialized, create j.l.String from ROM field name/sig and store in MN fields. */
 				if (NULL == J9VMJAVALANGINVOKEMEMBERNAME_NAME(currentThread, membernameObject)) {
 					J9UTF8 *name = J9ROMFIELDSHAPE_NAME(field->field);
-					j9object_t nameString = vm->memoryManagerFunctions->j9gc_createJavaLangString(currentThread, J9UTF8_DATA(name), (U_32)J9UTF8_LENGTH(name), J9_STR_INTERN);
+					j9object_t nameString = vm->memoryManagerFunctions->j9gc_createJavaLangStringWithUTFCache(currentThread, name);
 					if (NULL != nameString) {
 						/* Refetch reference after GC point */
 						membernameObject = J9_JNI_UNWRAP_REFERENCE(self);
@@ -635,7 +642,7 @@ Java_java_lang_invoke_MethodHandleNatives_expand(JNIEnv *env, jclass clazz, jobj
 				}
 				if (NULL == J9VMJAVALANGINVOKEMEMBERNAME_TYPE(currentThread, membernameObject)) {
 					J9UTF8 *signature = J9ROMFIELDSHAPE_SIGNATURE(field->field);
-					j9object_t signatureString = vm->memoryManagerFunctions->j9gc_createJavaLangString(currentThread, J9UTF8_DATA(signature), (U_32)J9UTF8_LENGTH(signature), J9_STR_INTERN);
+					j9object_t signatureString = vm->memoryManagerFunctions->j9gc_createJavaLangStringWithUTFCache(currentThread, signature);
 					if (NULL != signatureString) {
 						/* Refetch reference after GC point */
 						membernameObject = J9_JNI_UNWRAP_REFERENCE(self);
@@ -658,7 +665,7 @@ Java_java_lang_invoke_MethodHandleNatives_expand(JNIEnv *env, jclass clazz, jobj
 				}
 				if (NULL == J9VMJAVALANGINVOKEMEMBERNAME_NAME(currentThread, membernameObject)) {
 					J9UTF8 *name = J9ROMMETHOD_NAME(romMethod);
-					j9object_t nameString = vm->memoryManagerFunctions->j9gc_createJavaLangString(currentThread, J9UTF8_DATA(name), (U_32)J9UTF8_LENGTH(name), J9_STR_INTERN);
+					j9object_t nameString = vm->memoryManagerFunctions->j9gc_createJavaLangStringWithUTFCache(currentThread, name);
 					if (NULL != nameString) {
 						/* Refetch reference after GC point */
 						membernameObject = J9_JNI_UNWRAP_REFERENCE(self);
@@ -667,7 +674,7 @@ Java_java_lang_invoke_MethodHandleNatives_expand(JNIEnv *env, jclass clazz, jobj
 				}
 				if (NULL == J9VMJAVALANGINVOKEMEMBERNAME_TYPE(currentThread, membernameObject)) {
 					J9UTF8 *signature = J9ROMMETHOD_SIGNATURE(romMethod);
-					j9object_t signatureString = vm->memoryManagerFunctions->j9gc_createJavaLangString(currentThread, J9UTF8_DATA(signature), (U_32)J9UTF8_LENGTH(signature), J9_STR_INTERN);
+					j9object_t signatureString = vm->memoryManagerFunctions->j9gc_createJavaLangStringWithUTFCache(currentThread, signature);
 					if (NULL != signatureString) {
 						/* Refetch reference after GC point */
 						membernameObject = J9_JNI_UNWRAP_REFERENCE(self);
@@ -874,12 +881,51 @@ Java_java_lang_invoke_MethodHandleNatives_resolve(JNIEnv *env, jclass clazz, job
 					vmindex = (jlong)(UDATA)methodID;
 					target = (jlong)(UDATA)method;
 
-					new_clazz = J9VM_J9CLASS_TO_HEAPCLASS(J9_CLASS_FROM_METHOD(method));
-
 					J9ROMMethod *romMethod = J9_ROM_METHOD_FROM_RAM_METHOD(methodID->method);
-					new_flags = flags | (romMethod->modifiers & CFR_METHOD_ACCESS_MASK);
-					if (J9_ARE_ANY_BITS_SET(romMethod->modifiers, J9AccMethodCallerSensitive)) {
+					J9UTF8 *methodName = J9ROMMETHOD_NAME(romMethod);
+					U_32 methodModifiers = romMethod->modifiers;
+					new_clazz = J9VM_J9CLASS_TO_HEAPCLASS(J9_CLASS_FROM_METHOD(method));
+					new_flags = methodModifiers & CFR_METHOD_ACCESS_MASK;
+
+					if (J9_ARE_ANY_BITS_SET(methodModifiers, J9AccMethodCallerSensitive)) {
 						new_flags |= MN_CALLER_SENSITIVE;
+					}
+
+					if (J9_ARE_ALL_BITS_SET(flags, MN_IS_METHOD)) {
+						new_flags |= MN_IS_METHOD;
+						if (MH_REF_INVOKEINTERFACE == ref_kind) {
+							Assert_JCL_true(J9_ARE_NO_BITS_SET(methodModifiers, J9AccStatic));
+							if (J9_ARE_ALL_BITS_SET(methodID->vTableIndex, J9_JNI_MID_INTERFACE)) {
+								new_flags |= MH_REF_INVOKEINTERFACE << MN_REFERENCE_KIND_SHIFT;
+							} else if (!J9ROMMETHOD_HAS_VTABLE(romMethod)) {
+								new_flags |= MH_REF_INVOKESPECIAL << MN_REFERENCE_KIND_SHIFT;
+							} else {
+								new_flags |= MH_REF_INVOKEVIRTUAL << MN_REFERENCE_KIND_SHIFT;
+							}
+						} else if (MH_REF_INVOKESPECIAL == ref_kind) {
+							Assert_JCL_true(J9_ARE_NO_BITS_SET(methodModifiers, J9AccStatic));
+							new_flags |= MH_REF_INVOKESPECIAL << MN_REFERENCE_KIND_SHIFT;
+						} else if (MH_REF_INVOKESTATIC == ref_kind) {
+							Assert_JCL_true(J9_ARE_ALL_BITS_SET(methodModifiers, J9AccStatic));
+							new_flags |= MH_REF_INVOKESTATIC << MN_REFERENCE_KIND_SHIFT;
+						} else if (MH_REF_INVOKEVIRTUAL == ref_kind) {
+							Assert_JCL_true(J9_ARE_NO_BITS_SET(methodModifiers, J9AccStatic));
+							if (!J9ROMMETHOD_HAS_VTABLE(romMethod)) {
+								new_flags |= MH_REF_INVOKESPECIAL << MN_REFERENCE_KIND_SHIFT;
+							} else {
+								if (J9_ARE_ALL_BITS_SET(methodID->vTableIndex, J9_JNI_MID_INTERFACE)) {
+									new_clazz = J9VM_J9CLASS_TO_HEAPCLASS(resolvedClass);
+								}
+								new_flags |= MH_REF_INVOKEVIRTUAL << MN_REFERENCE_KIND_SHIFT;
+							}
+						} else {
+							Assert_JCL_unreachable();
+						}
+					} else if (J9_ARE_NO_BITS_SET(methodModifiers, J9AccStatic) && ('<' == (char)*J9UTF8_DATA(methodName))) {
+						new_flags |= MN_IS_CONSTRUCTOR;
+						new_flags |= MH_REF_INVOKESPECIAL << MN_REFERENCE_KIND_SHIFT;
+					} else {
+						Assert_JCL_unreachable();
 					}
 				}
 			} if (J9_ARE_ANY_BITS_SET(flags, MN_IS_FIELD)) {
@@ -1001,7 +1047,7 @@ Java_java_lang_invoke_MethodHandleNatives_resolve(JNIEnv *env, jclass clazz, job
 				J9OBJECT_U64_STORE(currentThread, membernameObject, vm->vmindexOffset, (U_64)vmindex);
 				J9OBJECT_U64_STORE(currentThread, membernameObject, vm->vmtargetOffset, (U_64)target);
 
-				Trc_JCL_java_lang_invoke_MethodHandleNatives_resolve_resolved(env, vmindex, target, new_clazz, flags);
+				Trc_JCL_java_lang_invoke_MethodHandleNatives_resolve_resolved(env, vmindex, target, new_clazz, new_flags);
 
 				result = vmFuncs->j9jni_createLocalRef(env, membernameObject);
 			}
@@ -1487,19 +1533,40 @@ Java_java_lang_invoke_MethodHandleNatives_getMemberVMInfo(JNIEnv *env, jclass cl
 				arrayObject = POP_OBJECT_IN_SPECIAL_FRAME(currentThread);
 				j9object_t membernameObject = J9_JNI_UNWRAP_REFERENCE(self);
 				jint flags = J9VMJAVALANGINVOKEMEMBERNAME_FLAGS(currentThread, membernameObject);
-				jlong vmindex = (jlong)(UDATA)J9OBJECT_U64_LOAD(currentThread, membernameObject, vm->vmindexOffset);
 				j9object_t target = NULL;
+
+				/* For fields, vmindexOffset (J9JNIFieldID) is initialized using the field offset in
+				 * jnicsup.cpp::getJNIFieldID. For methods, vmindexOffset (J9JNIMethodID) is initialized
+				 * using jnicsup.cpp::initializeMethodID.
+				 */
+				jlong vmindex = (jlong)(UDATA)J9OBJECT_U64_LOAD(currentThread, membernameObject, vm->vmindexOffset);
+
 				if (J9_ARE_ANY_BITS_SET(flags, MN_IS_FIELD)) {
+					/* vmindex points to the field offset. */
 					vmindex = ((J9JNIFieldID*)vmindex)->offset;
 					target = J9VMJAVALANGINVOKEMEMBERNAME_CLAZZ(currentThread, membernameObject);
 				} else {
-					J9JNIMethodID *methodID = (J9JNIMethodID*)vmindex;
-					if (J9_ARE_ANY_BITS_SET(methodID->vTableIndex, J9_JNI_MID_INTERFACE)) {
-						vmindex = methodID->vTableIndex & ~J9_JNI_MID_INTERFACE;
-					} else if (0 == methodID->vTableIndex) {
-						vmindex = -1;
+					jint refKind = (flags >> MN_REFERENCE_KIND_SHIFT) & MN_REFERENCE_KIND_MASK;
+					if ((MH_REF_INVOKEVIRTUAL == refKind) || (MH_REF_INVOKEINTERFACE == refKind)) {
+						J9JNIMethodID *methodID = (J9JNIMethodID*)vmindex;
+						if (J9_ARE_ANY_BITS_SET(methodID->vTableIndex, J9_JNI_MID_INTERFACE)) {
+							/* vmindex points to an iTable index. */
+							vmindex = (jlong)(methodID->vTableIndex & ~J9_JNI_MID_INTERFACE);
+						} else if (0 == methodID->vTableIndex) {
+							/* initializeMethodID will set J9JNIMethodID->vTableIndex to 0 for private interface
+							 * methods and j.l.Object methods. Reference implementation (RI) expects vmindex to
+							 * be 0 in such cases.
+							 */
+							vmindex = 0;
+						} else {
+							/* vmindex points to a vTable index. */
+							vmindex = (jlong)methodID->vTableIndex;
+						}
 					} else {
-						vmindex = methodID->vTableIndex;
+						/* RI expects direct invocation, i.e. !invokevirtual and !invokeinterface ref kinds,
+						 * to have a negative vmindex.
+						 */
+						vmindex = -1;
 					}
 					target = membernameObject;
 				}
@@ -1615,7 +1682,7 @@ Java_java_lang_invoke_MethodHandleNatives_copyOutBootstrapArguments(JNIEnv *env,
 						obj = resolveRefToObject(currentThread, J9_CP_FROM_CLASS(callerClass), bsmCPIndex, true);
 					} else if (start == -3) {
 						J9UTF8 *name = J9ROMNAMEANDSIGNATURE_NAME(nameAndSig);
-						obj = vm->memoryManagerFunctions->j9gc_createJavaLangString(currentThread, J9UTF8_DATA(name), (U_32)J9UTF8_LENGTH(name), J9_STR_INTERN);
+						obj = vm->memoryManagerFunctions->j9gc_createJavaLangStringWithUTFCache(currentThread, name);
 					} else if (start == -2) {
 						J9UTF8 *signature = J9ROMNAMEANDSIGNATURE_SIGNATURE(nameAndSig);
 						/* Call VM Entry point to create the MethodType - Result is put into the

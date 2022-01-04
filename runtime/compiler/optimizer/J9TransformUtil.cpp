@@ -187,6 +187,72 @@ static bool isFieldOfJavaObject(TR::SymbolReference *symRef, TR::Compilation *co
    return false;
    }
 
+static bool isNullValueAtAddress(TR::Compilation *comp, TR::DataType loadType, uintptr_t fieldAddress, TR::Symbol *field)
+   {
+   TR_J9VMBase *fej9 = comp->fej9();
+
+   switch (loadType)
+      {
+      case TR::Int8:
+         {
+         int8_t value = *(int8_t*)fieldAddress;
+         if (value == 0)
+            return true;
+         }
+         break;
+      case TR::Int16:
+         {
+         int16_t value = *(int16_t*)fieldAddress;
+         if (value == 0)
+            return true;
+         }
+         break;
+      case TR::Int32:
+         {
+         int32_t value = *(int32_t*)fieldAddress;
+         if (value == 0)
+            return true;
+         }
+         break;
+      case TR::Int64:
+         {
+         int64_t value = *(int64_t*)fieldAddress;
+         if (value == 0)
+            return true;
+         }
+         break;
+      case TR::Float:
+         {
+         float value = *(float*)fieldAddress;
+         // This will not fold -0.0 but will fold NaN
+         if (value == 0.0)
+            return true;
+         }
+         break;
+     case TR::Double:
+        {
+        double value = *(double*)fieldAddress;
+        // This will not fold -0.0 but will fold NaN
+        if (value == 0.0)
+           return true;
+        }
+        break;
+     case TR::Address:
+        {
+        TR_ASSERT_FATAL(field->isCollectedReference(), "Expecting a collectable reference\n");
+        uintptr_t value = fej9->getReferenceFieldAtAddress((uintptr_t)fieldAddress);
+        if (value == 0)
+           return true;
+        }
+        break;
+     default:
+        TR_ASSERT_FATAL(false, "Unknown type of field being dereferenced\n");
+        break;
+     }
+
+   return false;
+   }
+
 bool J9::TransformUtil::avoidFoldingInstanceField(
    uintptr_t object,
    TR::Symbol *field,
@@ -212,54 +278,12 @@ bool J9::TransformUtil::avoidFoldingInstanceField(
    if (fej9->isStable(cpIndex, owningMethod, comp) && !field->isFinal())
       {
       uintptr_t fieldAddress = object + fieldOffset;
-
       TR::DataType loadType = field->getDataType();
-      switch (loadType)
-         {
-         case TR::Int32:
-            {
-            int32_t value = *(int32_t*)fieldAddress;
-            if (value == 0)
-               return true;
-            }
-            break;
-         case TR::Int64:
-            {
-            int64_t value = *(int64_t*)fieldAddress;
-            if (value == 0)
-               return true;
-            }
-            break;
-         case TR::Float:
-            {
-            float value = *(float*)fieldAddress;
-            // This will not fold -0.0 but will fold NaN
-            if (value == 0.0)
-               return true;
-            }
-            break;
-         case TR::Double:
-            {
-            double value = *(double*)fieldAddress;
-            // This will not fold -0.0 but will fold NaN
-            if (value == 0.0)
-               return true;
-            }
-            break;
-         case TR::Address:
-            {
-            TR_ASSERT_FATAL(field->isCollectedReference(), "Expecting a collectable reference\n");
-            uintptr_t value = fej9->getReferenceFieldAtAddress((uintptr_t)fieldAddress);
-            if (value == 0)
-               return true;
-            }
-            break;
-         default:
-            TR_ASSERT_FATAL(false, "Unknown type of field being dereferenced\n");
-            break;
-         }
+
+      if (isNullValueAtAddress(comp, loadType, fieldAddress, field))
+         return true;
       }
-   
+
    switch (field->getRecognizedField())
       {
       // In the LambdaForm-based JSR292 implementation, CallSite declares a
@@ -347,7 +371,25 @@ static bool isArrayWithConstantElements(TR::SymbolReference *symRef, TR::Compila
    return false;
    }
 
-static bool verifyFieldAccess(void *curStruct, TR::SymbolReference *field, TR::Compilation *comp)
+static int32_t isArrayWithStableElements(TR::SymbolReference *symRef, TR::Compilation *comp)
+   {
+   TR_J9VMBase *fej9 = comp->fej9();
+   if (fej9->isStable(symRef->getCPIndex(), symRef->getOwningMethod(comp), comp))
+      {
+      int32_t signatureLength = 0;
+      char *signature = symRef->getOwningMethod(comp)->classSignatureOfFieldOrStatic(symRef->getCPIndex(), signatureLength);
+      // Support only one dimension for now (rank 1)
+      if (signature && signature[0] == '[')
+         {
+         traceMsg(comp, "Stable array: signature %.*s\n", signatureLength, signature);
+         return 1;
+         }
+      }
+   return 0;
+   }
+
+
+static bool verifyFieldAccess(void *curStruct, TR::SymbolReference *field, bool isStableArrayElement, TR::Compilation *comp)
    {
    // Return true only if loading the given field from the given struct will
    // itself produce a verifiable value.  (Primitives are trivially verifiable.)
@@ -384,7 +426,7 @@ static bool verifyFieldAccess(void *curStruct, TR::SymbolReference *field, TR::C
       TR_YesNoMaybe objectContainsField = fej9->isInstanceOf(objectClass, fieldClass, true);
       return objectContainsField == TR_yes;
       }
-   else if (comp->getSymRefTab()->isImmutableArrayShadow(field))
+   else if (comp->getSymRefTab()->isImmutableArrayShadow(field) || isStableArrayElement)
       {
       TR_OpaqueClassBlock *arrayClass = fej9->getObjectClass((uintptr_t)curStruct);
       if (!fej9->isClassArray(arrayClass) ||
@@ -393,6 +435,13 @@ static bool verifyFieldAccess(void *curStruct, TR::SymbolReference *field, TR::C
           (!field->getSymbol()->isCollectedReference() &&
           fej9->isReferenceArray(arrayClass)))
          return false;
+
+      if (isStableArrayElement && fej9->isPrimitiveArray(arrayClass))
+         {
+         if (TR::Compiler->om.getArrayElementWidthInBytes(comp, (uintptr_t)curStruct) != field->getSymbol()->getSize())
+            return false;
+         }
+
 
       return true;
       }
@@ -440,7 +489,7 @@ static bool verifyFieldAccess(void *curStruct, TR::SymbolReference *field, TR::C
  * The concepts of "verified" and "verifiable" are used here, they're explained in
  * J9::TransformUtil::transformIndirectLoadChainImpl
  */
-static void *dereferenceStructPointerChain(void *baseStruct, TR::Node *baseNode, TR::Node *curNode, TR::Compilation *comp)
+static void *dereferenceStructPointerChain(void *baseStruct, TR::Node *baseNode, bool isBaseStableArray, TR::Node *curNode, TR::Compilation *comp)
    {
    if (baseNode == curNode)
       {
@@ -461,6 +510,9 @@ static void *dereferenceStructPointerChain(void *baseStruct, TR::Node *baseNode,
       if (!addressChildNode->getOpCode().hasSymbolReference())
          return NULL;
 
+      if (isBaseStableArray)
+         TR_ASSERT_FATAL(addressChildNode == baseNode, "We should have only one level of indirection for stable arrays\n");
+
       // Use uintptr_t for pointer arithmetic operations and to save type conversions
       uintptr_t curStruct = 0;
       if (addressChildNode == baseNode)
@@ -473,7 +525,7 @@ static void *dereferenceStructPointerChain(void *baseStruct, TR::Node *baseNode,
          {
          TR::SymbolReference *addressChildSymRef = addressChildNode->getSymbolReference();
          // Get the address of struct containing current field and dereference it
-         void* addressChildAddress = dereferenceStructPointerChain(baseStruct, baseNode, addressChildNode, comp);
+         void* addressChildAddress = dereferenceStructPointerChain(baseStruct, baseNode, false, addressChildNode, comp);
 
          if (addressChildAddress == NULL)
             {
@@ -495,7 +547,7 @@ static void *dereferenceStructPointerChain(void *baseStruct, TR::Node *baseNode,
       // Get the field address of curNode
       if (curStruct)
          {
-         if (verifyFieldAccess((void*)curStruct, symRef, comp))
+         if (verifyFieldAccess((void*)curStruct, symRef, isBaseStableArray, comp))
             {
             uintptr_t fieldAddress = 0;
             // The offset of a java field is in its symRef
@@ -516,7 +568,8 @@ static void *dereferenceStructPointerChain(void *baseStruct, TR::Node *baseNode,
 
                fieldAddress = curStruct + symRef->getOffset();
                }
-            else if (comp->getSymRefTab()->isImmutableArrayShadow(symRef))
+            else if (comp->getSymRefTab()->isImmutableArrayShadow(symRef) ||
+                     isBaseStableArray)
                {
                TR::Node* offsetNode = curNode->getFirstChild()->getSecondChild();
                if (!offsetNode->getOpCode().isLoadConst())
@@ -541,6 +594,15 @@ static void *dereferenceStructPointerChain(void *baseStruct, TR::Node *baseNode,
                   }
 
                fieldAddress = TR::Compiler->om.getAddressOfElement(comp, curStruct, offset);
+
+               if (!comp->getSymRefTab()->isImmutableArrayShadow(symRef))
+                  {
+                  // if stable array, check that we are loading from the beginning of an element that it's not Null
+                  // size of the element was checked in verifyFieldAccess
+                  if (fieldAddress % symRef->getSymbol()->getSize() != 0 ||
+                      isNullValueAtAddress(comp, symRef->getSymbol()->getDataType(), fieldAddress, symRef->getSymbol()))
+                     return NULL;
+                  }
                }
             else
                {
@@ -1230,7 +1292,7 @@ J9::TransformUtil::transformIndirectLoadChainAt(TR::Compilation *comp, TR::Node 
       {
       baseAddress = *baseReferenceLocation;
       }
-   bool result = TR::TransformUtil::transformIndirectLoadChainImpl(comp, node, baseExpression, (void*)baseAddress, removedNode);
+   bool result = TR::TransformUtil::transformIndirectLoadChainImpl(comp, node, baseExpression, (void*)baseAddress, false, removedNode);
    return result;
    }
 
@@ -1256,7 +1318,7 @@ J9::TransformUtil::transformIndirectLoadChain(TR::Compilation *comp, TR::Node *n
 #endif /* defined(J9VM_OPT_JITSERVER) */
 
    TR::VMAccessCriticalSection transformIndirectLoadChain(comp->fej9());
-   bool result = TR::TransformUtil::transformIndirectLoadChainImpl(comp, node, baseExpression, (void*)comp->getKnownObjectTable()->getPointer(baseKnownObject), removedNode);
+   bool result = TR::TransformUtil::transformIndirectLoadChainImpl(comp, node, baseExpression, (void*)comp->getKnownObjectTable()->getPointer(baseKnownObject), comp->getKnownObjectTable()->isArrayWithStableElements(baseKnownObject), removedNode);
    return result;
    }
 
@@ -1324,7 +1386,7 @@ J9::TransformUtil::transformIndirectLoadChain(TR::Compilation *comp, TR::Node *n
  *
  */
 bool
-J9::TransformUtil::transformIndirectLoadChainImpl(TR::Compilation *comp, TR::Node *node, TR::Node *baseExpression, void *baseAddress, TR::Node **removedNode)
+J9::TransformUtil::transformIndirectLoadChainImpl(TR::Compilation *comp, TR::Node *node, TR::Node *baseExpression, void *baseAddress, bool isBaseStableArray, TR::Node **removedNode)
    {
    TR_J9VMBase *fej9 = comp->fej9();
 
@@ -1338,6 +1400,9 @@ J9::TransformUtil::transformIndirectLoadChainImpl(TR::Compilation *comp, TR::Nod
       }
 
    TR::SymbolReference *symRef = node->getSymbolReference();
+
+   if (isBaseStableArray && !symRef->getSymbol()->isArrayShadowSymbol())
+      return false;
 
    if (symRef->hasKnownObjectIndex())
       return false;
@@ -1370,7 +1435,7 @@ J9::TransformUtil::transformIndirectLoadChainImpl(TR::Compilation *comp, TR::Nod
          return false;
       }
 
-   if (!fej9->canDereferenceAtCompileTime(symRef, comp))
+   if (!isBaseStableArray && !fej9->canDereferenceAtCompileTime(symRef, comp))
       {
       if (comp->getOption(TR_TraceOptDetails))
          {
@@ -1380,7 +1445,7 @@ J9::TransformUtil::transformIndirectLoadChainImpl(TR::Compilation *comp, TR::Nod
       }
 
    // Dereference the chain starting from baseAddress and get the field address
-   void *fieldAddress = dereferenceStructPointerChain(baseAddress, baseExpression, node, comp);
+   void *fieldAddress = dereferenceStructPointerChain(baseAddress, baseExpression, isBaseStableArray, node, comp);
    if (!fieldAddress)
       {
       if (comp->getOption(TR_TraceOptDetails))
@@ -1393,6 +1458,9 @@ J9::TransformUtil::transformIndirectLoadChainImpl(TR::Compilation *comp, TR::Nod
    // The last step in the dereference chain is not necessarily an address.
    // Determine what it is and transform node appropriately.
    //
+   if (isBaseStableArray && comp->getOption(TR_TraceOptDetails))
+      traceMsg(comp, "Transforming a load from stable array %p\n", node);
+
    TR::DataType loadType = node->getDataType();
    switch (loadType)
       {
@@ -1478,12 +1546,20 @@ J9::TransformUtil::transformIndirectLoadChainImpl(TR::Compilation *comp, TR::Nod
             if (value)
                {
                TR::SymbolReference *improvedSymRef = comp->getSymRefTab()->findOrCreateSymRefWithKnownObject(symRef, &value, isArrayWithConstantElements(symRef, comp));
-               if (  improvedSymRef->hasKnownObjectIndex()
+               int32_t stableArrayRank = isArrayWithStableElements(symRef, comp);
+
+               if (improvedSymRef->hasKnownObjectIndex()
                   && performTransformation(comp, "O^O transformIndirectLoadChain: %s [%p] with fieldOffset %d is obj%d referenceAddr is %p\n", node->getOpCode().getName(), node, improvedSymRef->getKnownObjectIndex(), symRef->getOffset(), value))
                   {
                   node->setSymbolReference(improvedSymRef);
                   node->setIsNull(false);
                   node->setIsNonNull(true);
+
+                  if (stableArrayRank > 0)
+                     {
+                     TR::KnownObjectTable *knot = comp->getOrCreateKnownObjectTable();
+                     knot->addStableArray(improvedSymRef->getKnownObjectIndex(), stableArrayRank);
+                     }
                   }
                else
                   {
@@ -1637,17 +1713,10 @@ TR::Node * J9::TransformUtil::calculateElementAddress(TR::Compilation *comp, TR:
    else
       addrCalc = TR::Node::create(TR::aiadd, 2, array, TR::Node::create(TR::l2i, 1, offset));
 
+   addrCalc->setIsInternalPointer(true);
    return addrCalc;
 }
 
-/**
- * Calculate offset for an array element given its index
- *
- * @param index The index in the array of type Int32
- * @param type  The data type of the array element
- *
- * @return The Int64 value representing the offset into an array of the specified type given the index
- */
 TR::Node * J9::TransformUtil::calculateOffsetFromIndexInContiguousArray(TR::Compilation *comp, TR::Node * index, TR::DataType type)
    {
    int32_t width = TR::Symbol::convertTypeToSize(type);
@@ -1657,7 +1726,50 @@ TR::Node * J9::TransformUtil::calculateOffsetFromIndexInContiguousArray(TR::Comp
    if (comp->useCompressedPointers() && type == TR::Address)
       width = TR::Compiler->om.sizeofReferenceField();
 
-   int32_t shift = TR::TransformUtil::convertWidthToShift(width);
+   return calculateOffsetFromIndexInContiguousArrayWithElementStride(comp, index, width);
+   }
+
+TR::Node * J9::TransformUtil::calculateElementAddressWithElementStride(TR::Compilation *comp, TR::Node *array, TR::Node *index, int32_t elementStride)
+{
+   TR::Node * offset = TR::TransformUtil::calculateOffsetFromIndexInContiguousArrayWithElementStride(comp, index, elementStride);
+   offset->setIsNonNegative(true);
+
+   // Calculate element address
+   TR::Node *addrCalc = NULL;
+   if (comp->target().is64Bit())
+      addrCalc = TR::Node::create(TR::aladd, 2, array, offset);
+   else
+      addrCalc = TR::Node::create(TR::aiadd, 2, array, TR::Node::create(TR::l2i, 1, offset));
+
+   addrCalc->setIsInternalPointer(true);
+   return addrCalc;
+}
+
+static int32_t checkNonNegativePowerOfTwo(int32_t value)
+   {
+   if (isNonNegativePowerOf2(value))
+      {
+      int32_t shiftAmount = 0;
+      while ((value = ((uint32_t) value) >> 1))
+         {
+         ++shiftAmount;
+         }
+      return shiftAmount;
+      }
+   else
+      {
+      return -1;
+      }
+   }
+
+TR::Node * J9::TransformUtil::calculateOffsetFromIndexInContiguousArrayWithElementStride(TR::Compilation *comp, TR::Node * index, int32_t elementStride)
+   {
+   int32_t shift = -1;
+   if (elementStride > 0)
+      {
+      shift = checkNonNegativePowerOfTwo(elementStride);
+      }
+
    int32_t headerSize = TR::Compiler->om.contiguousArrayHeaderSizeInBytes();
 
    TR::Node * offset = index;
@@ -1669,13 +1781,21 @@ TR::Node * J9::TransformUtil::calculateOffsetFromIndexInContiguousArray(TR::Comp
    TR::ILOpCodes constOp = comp->target().is64Bit() ? TR::lconst : TR::iconst;
    TR::ILOpCodes shlOp = comp->target().is64Bit() ? TR::lshl : TR::ishl;
    TR::ILOpCodes addOp = comp->target().is64Bit() ? TR::ladd : TR::iadd;
+   TR::ILOpCodes mulOp = comp->target().is64Bit() ? TR::lmul : TR::imul;
 
-   if (shift)
+   if (shift > 0)
       {
       TR::Node *shiftNode = TR::Node::create(TR::iconst, 0);
       shiftNode->setConstValue(shift);
       offset = TR::Node::create(shlOp, 2, offset, shiftNode);
       }
+   else
+      {
+      TR::Node *elementStrideNode = TR::Node::create(constOp, 0);
+      elementStrideNode->setConstValue(elementStride);
+      offset = TR::Node::create(mulOp, 2, offset, elementStrideNode);
+      }
+
    if (headerSize > 0)
       {
       TR::Node *headerSizeNode = TR::Node::create(constOp, 0);
@@ -2173,33 +2293,57 @@ J9::TransformUtil::refineMethodHandleLinkTo(TR::Compilation* comp, TR::TreeTop* 
 
    TR_ASSERT(targetMethod, "Can't get target method from MethodName obj%d\n", mnIndex);
 
-   if (!performTransformation(comp, "O^O Refine linkToXXX n%dn [%p] with known MemberName object\n", node->getGlobalIndex(), node))
-      return false;
-
    TR::MethodSymbol::Kinds callKind = getTargetMethodCallKind(rm);
    TR::ILOpCodes callOpCode = getTargetMethodCallOpCode(rm, node->getDataType());
 
    TR::SymbolReference* newSymRef = NULL;
+   uint32_t vTableSlot = 0;
+   int32_t jitVTableOffset = 0;
    if (rm == TR::java_lang_invoke_MethodHandle_linkToVirtual)
       {
-      uint32_t vTableSlot = fej9->vTableOrITableIndexFromMemberName(comp, mnIndex);
-      auto resolvedMethod = fej9->createResolvedMethodWithVTableSlot(comp->trMemory(), vTableSlot, targetMethod, symRef->getOwningMethod(comp));
-      newSymRef = comp->getSymRefTab()->findOrCreateMethodSymbol(symRef->getOwningMethodIndex(), -1, resolvedMethod, callKind);
-      newSymRef->setOffset(fej9->vTableSlotToVirtualCallOffset(vTableSlot));
+      uintptr_t slot = fej9->vTableOrITableIndexFromMemberName(comp, mnIndex);
+      if ((slot & J9_JNI_MID_INTERFACE) != 0)
+         {
+         // TODO: Refine this to an interface call to the method identified by
+         // the itable slot and the method's defining (interface) class from
+         // the MemberName.
+         //
+         // Unfortunately, such a call will not be representable until
+         // interface calls are allowed to be resolved. As it stands, code
+         // generation requires a CP index for the dispatch.
+         //
+         // For the moment, just leave the call unrefined.
+         //
+         return false;
+         }
+
+      vTableSlot = (uint32_t)slot;
+      jitVTableOffset = fej9->vTableSlotToVirtualCallOffset(vTableSlot);
+      // For private virtual methods and java/lang/Object; type virtual methods, there is no corresponding
+      // entry in the vtable, and for such methods the interpreter vtable index is 0.
+      // The dispatch is not performed through the vtable entry, but directly dispatched to the J9Method
+      // in Membername.vmtarget. In such cases, we can refine a linkToVirtual call similar to linkToStatic.
+      // jitVTableOffset is obtained using sizeof(J9Class) - interpreter vtable offset, resulting in a positive
+      // value when the interpreter vtable index we get (from MemberName.vmindex.vtableoffset) is set as 0.
+      if (jitVTableOffset > 0)
+         callKind = TR::MethodSymbol::Static;
       }
-   else
-      {
-      uint32_t vTableSlot = 0;
-      auto resolvedMethod = fej9->createResolvedMethodWithVTableSlot(comp->trMemory(), vTableSlot, targetMethod, symRef->getOwningMethod(comp));
-      newSymRef = comp->getSymRefTab()->findOrCreateMethodSymbol(symRef->getOwningMethodIndex(), -1, resolvedMethod, callKind);
-      }
+
+   if (!performTransformation(comp, "O^O Refine linkToXXX n%dn [%p] with known MemberName object\n", node->getGlobalIndex(), node))
+      return false;
+
+   auto resolvedMethod = fej9->createResolvedMethodWithVTableSlot(comp->trMemory(), vTableSlot, targetMethod, symRef->getOwningMethod(comp));
+   newSymRef = comp->getSymRefTab()->findOrCreateMethodSymbol(symRef->getOwningMethodIndex(), -1, resolvedMethod, callKind);
+   if (callKind == TR::MethodSymbol::Virtual)
+      newSymRef->setOffset(jitVTableOffset);
 
    bool needNullChk, needVftChild, needResolveChk;
    needNullChk = needVftChild = false;
    switch (rm)
       {
       case TR::java_lang_invoke_MethodHandle_linkToVirtual:
-         needVftChild = true;
+         if (callKind == TR::MethodSymbol::Virtual)
+            needVftChild = true;
          // fall through
       case TR::java_lang_invoke_MethodHandle_linkToSpecial:
          needNullChk = true;

@@ -301,9 +301,24 @@ allocateClassLoader(J9JavaVM *javaVM);
 void
 freeClassLoader(J9ClassLoader *classLoader, J9JavaVM *javaVM, J9VMThread *vmThread, UDATA needsFrameBuild);
 
+/* ---------------- classsname.cpp ---------------- */
+
+/**
+ * Get the String representing the name of a Class. If the String has not been created
+ * yet, create it and optionally intern and assign it to the Class.
+ *
+ * Current thread must have VM access and have a special frame on top of stack
+ * with the J9VMThread roots up-to-date.
+ *
+ * @param[in] currentThread the current J9VMThread
+ * @param[in] classObject the java/lang/Class being queried
+ * @param[im] internAndAssign if true, intern the String and assign it to the Class object
+ * @return the Class name String, or NULL on out of memory (exception will be pending)
+ */
+j9object_t
+getClassNameString(J9VMThread *currentThread, j9object_t classObject, jboolean internAndAssign);
+
 /* ---------------- classsupport.c ---------------- */
-
-
 
 /**
 * @brief
@@ -473,11 +488,12 @@ internalCreateRAMClassFromROMClass(J9VMThread *vmThread, J9ClassLoader *classLoa
 	IDATA entryIndex, I_32 locationType, J9Class *classBeingRedefined, J9Class *hostClass);
 
 
+#if defined(J9VM_OPT_CRIU_SUPPORT)
+
 /* ---------------- criuhelpers.cpp ---------------- */
 /**
  * @brief Queries if CRIU support is enabled. By default support
  * is not enabled, it can be enabled with `-XX:+EnableCRIUSupport`
- *
  *
  * @param currentThread vmthread token
  * @return TRUE if enabled, FALSE otherwise
@@ -490,7 +506,6 @@ isCRIUSupportEnabled(J9VMThread *currentThread);
  * -XX:+CRIURestoreNonPortableMode option is specified checkpointing
  * will not be permitted after the JVM has been restored from a checkpoint
  * (checkpoint once mode).
- *
  *
  * @param currentThread vmthread token
  * @return TRUE if permitted, FALSE otherwise
@@ -516,6 +531,8 @@ jvmCheckpointHooks(J9VMThread *currentThread);
  */
 BOOLEAN
 jvmRestoreHooks(J9VMThread *currentThread);
+
+#endif /* defined(J9VM_OPT_CRIU_SUPPORT) */
 
 /* ---------------- classloadersearch.c ---------------- */
 
@@ -715,6 +732,14 @@ setClassLoadingConstraintError(J9VMThread * currentThread, J9ClassLoader * initi
 void
 setClassCastException(J9VMThread *currentThread, J9Class * instanceClass, J9Class * castClass);
 
+/**
+ * @brief
+ * @param *currentThread
+ * @param size
+ * @return void
+ */
+void
+setNegativeArraySizeException(J9VMThread *currentThread, I_32 size);
 
 /**
 * @brief
@@ -1162,6 +1187,16 @@ gpCheckSetNativeOutOfMemoryError(J9VMThread* env, U_32 moduleName, U_32 messageN
 /**
 * @brief
 * @param env
+* @param size
+* @return void
+*/
+void JNICALL
+gpCheckSetNegativeArraySizeException(J9VMThread* env, I_32 size);
+
+
+/**
+* @brief
+* @param env
 * @return void
 */
 void JNICALL
@@ -1481,7 +1516,7 @@ deallocateVMThread(J9VMThread * vmThread, UDATA decrementZombieCount, UDATA send
 * @return void
 */
 void
-freeClassLoaderEntries(J9VMThread * vmThread, J9ClassPathEntry * entries, UDATA count);
+freeClassLoaderEntries(J9VMThread * vmThread, J9ClassPathEntry **entries, UDATA count, UDATA initCount);
 
 /**
 * @brief
@@ -1685,12 +1720,12 @@ VMInitStages(J9JavaVM *vm, IDATA stage, void* reserved);
  * @param[in] classPathSeparator platform specific class path separator
  * @param[in] cpFlags clas path entry flags
  * @param[in] initClassPathEntry if TRUE initialize each class path entry
- * @param[out] classPathEntries returns the class path entries allocated and initialized by the function
+ * @param[out] classPathEntries returns the pointer array of class path entries.
  *
  * @return number of class path entries initialized
  */
 UDATA
-initializeClassPath(J9JavaVM *vm, char *classPath, U_8 classPathSeparator, U_16 cpFlags, BOOLEAN initClassPathEntry, J9ClassPathEntry **classPathEntries);
+initializeClassPath(J9JavaVM *vm, char *classPath, U_8 classPathSeparator, U_16 cpFlags, BOOLEAN initClassPathEntry, J9ClassPathEntry ***classPathEntries);
 
 /*
  * Initialize the given class path entry. This involves determining what kind
@@ -2235,7 +2270,6 @@ profilingBytecodeBufferFullHookRegistered(J9JavaVM* vm);
 
 /* ---------------- rasdump.c ---------------- */
 
-#if (defined(J9VM_RAS_DUMP_AGENTS))
 /**
 * @brief
 * @param *vm
@@ -2243,7 +2277,6 @@ profilingBytecodeBufferFullHookRegistered(J9JavaVM* vm);
 */
 IDATA
 configureRasDump(J9JavaVM *vm);
-#endif /* J9VM_RAS_DUMP_AGENTS */
 
 
 struct J9JavaVM;
@@ -3189,7 +3222,7 @@ addStatistic (J9JavaVM* javaVM, U_8 * name, U_8 dataType);
 void *
 getStatistic (J9JavaVM* javaVM, U_8 * name);
 
-/* ---------------- stringhelpers.c ---------------- */
+/* ---------------- stringhelpers.cpp ---------------- */
 
 /**
  * @brief Compare a java string to another java string for character equality.
@@ -4118,7 +4151,6 @@ IDATA J9THREAD_PROC
 javaThreadProc(void *entryarg);
 
 
-#if (defined(J9VM_RAS_DUMP_AGENTS))  || (defined(J9VM_INTERP_SIG_QUIT_THREAD))
 /**
 * @brief
 * @param *vm
@@ -4128,7 +4160,6 @@ javaThreadProc(void *entryarg);
 */
 void
 printThreadInfo(J9JavaVM *vm, J9VMThread *self, char *toFile, BOOLEAN allThreads);
-#endif /* J9VM_('RAS_DUMP_AGENTS' 'INTERP_SIG_QUIT_THREAD') */
 
 
 /**
@@ -4383,6 +4414,7 @@ setLogOptions (J9JavaVM *vm, char *options);
 
 /* -------------------- NativeHelpers.cpp ------------ */
 
+#if defined(J9VM_OPT_METHOD_HANDLE)
 /**
 * @brief
 * @param currentThread
@@ -4391,6 +4423,7 @@ setLogOptions (J9JavaVM *vm, char *options);
 */
 J9SFMethodTypeFrame *
 buildMethodTypeFrame(J9VMThread * currentThread, j9object_t methodType);
+#endif /* defined(J9VM_OPT_METHOD_HANDLE) */
 
 /* -------------------- drophelp.c ------------ */
 
@@ -4683,7 +4716,7 @@ void
 throwNewJavaIoIOException(JNIEnv *env, const char *message);
 
 #ifdef __cplusplus
-}
+} /* extern "C" */
 #endif
 
 #endif /* vm_api_h */

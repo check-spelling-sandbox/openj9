@@ -109,6 +109,9 @@ cInterpGetStackClassJEP176Iterator(J9VMThread * currentThread, J9StackWalkState 
 		if ((walkState->method == vm->jliMethodHandleInvokeWithArgs)
 				|| (walkState->method == vm->jliMethodHandleInvokeWithArgsList)
 				|| (walkState->method == vm->jlrMethodInvoke)
+#if JAVA_SPEC_VERSION >= 18
+				|| (walkState->method == vm->jlrMethodInvokeMH)
+#endif /* JAVA_SPEC_VERSION >= 18 */
 				|| (vm->srMethodAccessor && vmFuncs->instanceOfOrCheckCast(currentClass, J9VM_J9CLASS_FROM_HEAPCLASS(currentThread, *((j9object_t*) vm->srMethodAccessor))))
 				|| (vm->srConstructorAccessor && vmFuncs->instanceOfOrCheckCast(currentClass, J9VM_J9CLASS_FROM_HEAPCLASS(currentThread, *((j9object_t*) vm->srConstructorAccessor))))
 		) {
@@ -149,6 +152,20 @@ convertCStringToByteArray(J9VMThread *currentThread, const char *cString)
 	return result;
 }
 
+U_64 *
+convertToNativeArgArray(J9VMThread *currentThread, j9object_t argArray, U_64 *ffiArgs)
+{
+	UDATA argCount = (UDATA)J9INDEXABLEOBJECT_SIZE(currentThread, argArray);
+	/* 3 means each element of the array to be copied is 8 bytes (64bits) in size
+	 * as specified in memcpyToOrFromArrayContiguous() at ArrayCopyHelpers.hpp.
+	 * Note: all parameters are converted to long in ProgrammableInvoker, so the size of
+	 * element in the argument array must be 64bits.
+	 */
+	VM_ArrayCopyHelpers::memcpyFromArray(currentThread, argArray, 3, 0, argCount, (void*)ffiArgs);
+	return ffiArgs;
+}
+
+#if defined(J9VM_OPT_METHOD_HANDLE)
 J9SFMethodTypeFrame *
 buildMethodTypeFrame(J9VMThread * currentThread, j9object_t methodType)
 {
@@ -157,9 +174,9 @@ buildMethodTypeFrame(J9VMThread * currentThread, j9object_t methodType)
 	j9object_t stackDescriptionBits = J9VMJAVALANGINVOKEMETHODTYPE_STACKDESCRIPTIONBITS(currentThread, methodType);
 	U_32 descriptionInts = J9INDEXABLEOBJECT_SIZE(currentThread, stackDescriptionBits);
 	U_32 descriptionBytes = ROUND_U32_TO(sizeof(UDATA), descriptionInts * sizeof(I_32));
-	I_32 * description;
-	U_32 i;
-	J9SFMethodTypeFrame * methodTypeFrame;
+	I_32 * description = NULL;
+	U_32 i = 0;
+	J9SFMethodTypeFrame * methodTypeFrame = NULL;
 	UDATA * newA0 = currentThread->sp + argSlots;
 
 	/* Push the description bits */
@@ -190,5 +207,6 @@ buildMethodTypeFrame(J9VMThread * currentThread, j9object_t methodType)
 	return methodTypeFrame;
 #undef ROUND_U32_TO
 }
+#endif /* defined(J9VM_OPT_METHOD_HANDLE) */
 
-}
+} /* extern "C" */

@@ -100,9 +100,6 @@ struct TR_SignatureCountPair
    int32_t count;
 };
 
-#ifndef J9_INVOCATION_COUNT_MASK
-#define J9_INVOCATION_COUNT_MASK                   0x00000000FFFFFFFF
-#endif
 
 class TR_LowPriorityCompQueue
    {
@@ -448,7 +445,6 @@ public:
    static bool shouldRetryCompilation(TR_MethodToBeCompiled *entry, TR::Compilation *comp);
    static bool shouldAbortCompilation(TR_MethodToBeCompiled *entry, TR::PersistentInfo *persistentInfo);
    static bool canRelocateMethod(TR::Compilation * comp);
-   static bool useSeparateCompilationThread();
    static int computeCompilationThreadPriority(J9JavaVM *vm);
    static void *compilationEnd(J9VMThread *context, TR::IlGeneratorMethodDetails & details, J9JITConfig *jitConfig, void * startPC,
                                void *oldStartPC, TR_FrontEnd *vm=0, TR_MethodToBeCompiled *entry=NULL, TR::Compilation *comp=NULL);
@@ -514,6 +510,8 @@ public:
       // and so we don't have to care if the VM has a FastJNI version
       return (((uintptr_t)method->constantPool) & J9_STARTPC_JNI_NATIVE) != 0;
       }
+
+   static const intptr_t J9_INVOCATION_COUNT_MASK = 0xffffffff;
 
    static int32_t getInvocationCount(J9Method *method)
       {
@@ -601,8 +599,6 @@ public:
       TR_ASSERT_FATAL(!TR::CompilationInfo::getStream(), "not yet implemented for JITServer");
 #endif /* defined(J9VM_OPT_JITSERVER) */
       intptr_t oldValue = (intptr_t)method->extra;
-      //intptr_t newValue = oldValue & (intptr_t)~J9_INVOCATION_COUNT_MASK;
-      //newValue |= (intptr_t)value;
       intptr_t newValue = (intptr_t)value;
       return setJ9MethodExtraAtomic(method, oldValue, newValue);
       }
@@ -644,6 +640,25 @@ public:
             dltHT->adjustStoredCounterForMethod(method, oldCount - newCount);
          }
       return success;
+      }
+   // If the invocation count is 0, set it to the value indicated by newCount
+   static bool replenishInvocationCountIfExpired(J9Method *method, int32_t newCount)
+      {
+      intptr_t oldMethodExtra = (intptr_t) method->extra;
+      if ((oldMethodExtra & J9_STARTPC_NOT_TRANSLATED) == 0)
+         return false; // Do not touch compiled methods
+
+      int32_t oldCount = (int32_t)oldMethodExtra;
+      if (oldCount < 0)
+         return false; // Do not touch uncountable methods
+      oldCount >>= 1; // Eliminate the J9_STARTPC_NOT_TRANSLATED bit
+      if (oldCount != 0)
+         return false; // Only replenish invocation count if it expired
+      // Prepare the new method->extra
+      intptr_t oldMethodExtraUpperPart = oldMethodExtra & (~J9_INVOCATION_COUNT_MASK);
+      newCount = (newCount << 1) | J9_STARTPC_NOT_TRANSLATED;
+      intptr_t newMethodExtra = oldMethodExtraUpperPart | newCount;
+      return setJ9MethodExtraAtomic(method, oldMethodExtra, newMethodExtra);
       }
    static void setInitialInvocationCountUnsynchronized(J9Method *method, int32_t value)
       {
@@ -719,7 +734,6 @@ public:
    void freeAllResources();
 
    uintptr_t startCompilationThread(int32_t priority, int32_t id, bool isDiagnosticThread);
-   bool initializeCompilationOnApplicationThread();
    bool  asynchronousCompilation();
    void stopCompilationThreads();
 
@@ -728,21 +742,18 @@ public:
     *    Stops a compilation thread by issuing an interruption request at the threads next yield point and by changing
     *    its state to signal termination. Note that there can be a delay between making this request and the thread
     *    state changing to `COMPTHREAD_STOPPED`.
-    * 
+    *
     * \param compInfoPT
     *    The thread to be stopped.
     */
    void stopCompilationThread(CompilationInfoPerThread* compInfoPT);
-   
+
    void suspendCompilationThread();
    void resumeCompilationThread();
    void purgeMethodQueue(TR_CompilationErrorCode errorCode);
    void *compileMethod(J9VMThread * context, TR::IlGeneratorMethodDetails &details, void *oldStartPC,
       TR_YesNoMaybe async, TR_CompilationErrorCode *, bool *queued, TR_OptimizationPlan *optPlan);
 
-   void *compileOnApplicationThread(J9VMThread * context, TR::IlGeneratorMethodDetails &details, void *oldStartPC,
-                                    TR_CompilationErrorCode *,
-                                    TR_OptimizationPlan *optPlan);
    void *compileOnSeparateThread(J9VMThread * context, TR::IlGeneratorMethodDetails &details, void *oldStartPC,
                                  TR_YesNoMaybe async, TR_CompilationErrorCode*,
                                  bool *queued, TR_OptimizationPlan *optPlan);
@@ -867,7 +878,6 @@ public:
    void    incrementNumMethodsFoundInSharedCache() { _numMethodsFoundInSharedCache++; }
    int32_t numMethodsFoundInSharedCache() { return _numMethodsFoundInSharedCache; }
    int32_t getNumInvRequestsInCompQueue() const { return _numInvRequestsInCompQueue; }
-   TR::CompilationInfoPerThreadBase *getCompInfoForCompOnAppThread() const { return _compInfoForCompOnAppThread; }
    J9JITConfig *getJITConfig() { return _jitConfig; }
    TR::CompilationInfoPerThread *getCompInfoForThread(J9VMThread *vmThread);
    int32_t getNumUsableCompilationThreads() const { return _numCompThreads; }
@@ -1129,7 +1139,6 @@ private:
 
    TR::CompilationInfoPerThread **_arrayOfCompilationInfoPerThread; // First NULL entry means end of the array
    TR::CompilationInfoPerThread *_compInfoForDiagnosticCompilationThread; // compinfo for dump compilation thread
-   TR::CompilationInfoPerThreadBase *_compInfoForCompOnAppThread; // This is NULL for separate compilation thread
    TR_MethodToBeCompiled *_methodQueue;
    TR_MethodToBeCompiled *_methodPool;
    int32_t                _methodPoolSize; // shouldn't this and _methodPool be static?
@@ -1150,7 +1159,6 @@ private:
    TR::Monitor *_vlogMonitor;
    TR::Monitor *_rtlogMonitor;
    TR::Monitor *_iprofilerBufferArrivalMonitor;
-   TR::Monitor *_applicationThreadMonitor;
    TR::MonitorTable *_j9MonitorTable; // used only for RAS (debuggerExtensions); no accessor; use TR_J9MonitorTable::get() everywhere else
    TR_LinkHead0<TR_ClassHolder> _classesToCompileList; // used by compileClasses; adjusted by unload hooks
    intptr_t               _numSyncCompilations;

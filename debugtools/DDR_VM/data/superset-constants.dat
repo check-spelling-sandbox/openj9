@@ -1,3 +1,23 @@
+# Copyright (c) 2021, 2021 IBM Corp. and others
+#
+# This program and the accompanying materials are made available under
+# the terms of the Eclipse Public License 2.0 which accompanies this
+# distribution and is available at https://www.eclipse.org/legal/epl-2.0/
+# or the Apache License, Version 2.0 which accompanies this distribution and
+# is available at https://www.apache.org/licenses/LICENSE-2.0.
+#
+# This Source Code may also be made available under the following
+# Secondary Licenses when the conditions for such availability set
+# forth in the Eclipse Public License, v. 2.0 are satisfied: GNU
+# General Public License, version 2 with the GNU Classpath
+# Exception [1] and GNU General Public License, version 2 with the
+# OpenJDK Assembly Exception [2].
+#
+# [1] https://www.gnu.org/software/classpath/license.html
+# [2] http://openjdk.java.net/legal/assembly-exception.html
+#
+# SPDX-License-Identifier: EPL-2.0 OR Apache-2.0 OR GPL-2.0 WITH Classpath-exception-2.0 OR LicenseRef-GPL-2.0 WITH Assembly-exception
+
 S|AgentType|AgentTypePointer|
 C|FILE_LOGGING
 C|HOOK
@@ -961,9 +981,6 @@ C|port_zosCEEHDLRSupport
 C|prof_countArgsTemps
 C|prof_eventReporting
 C|prof_jvmti
-C|ras_dumpAgents
-C|ras_eyecatchers
-C|ras_fatalAssert
 C|size_optimizeSendTargets
 C|size_smallCode
 C|size_smallOsStack
@@ -3396,7 +3413,6 @@ S|J9RASdumpAgent|J9RASdumpAgentPointer|
 C|J9RAS_DUMP_DO_ATTACH_THREAD
 C|J9RAS_DUMP_DO_COMPACT_HEAP
 C|J9RAS_DUMP_DO_EXCLUSIVE_VM_ACCESS
-C|J9RAS_DUMP_DO_HALT_ALL_THREADS
 C|J9RAS_DUMP_DO_MULTIPLE_HEAPS
 C|J9RAS_DUMP_DO_PREEMPT_THREADS
 C|J9RAS_DUMP_DO_PREPARE_HEAP_FOR_WALK
@@ -3463,7 +3479,6 @@ C|J9RAS_DUMP_GOT_VM_ACCESS
 C|J9RAS_DUMP_HEAP_COMPACTED
 C|J9RAS_DUMP_HEAP_PREPARED
 C|J9RAS_DUMP_PREEMPT_THREADS
-C|J9RAS_DUMP_THREADS_HALTED
 C|J9RAS_DUMP_TRACE_DISABLED
 S|J9RAS|J9RASPointer|
 C|J9RASMajorVersion
@@ -4597,9 +4612,6 @@ C|allocation_category_mixed
 S|MM_LargeObjectAllocateStats|MM_LargeObjectAllocateStatsPointer|MM_Base
 C|MAX_FREE_ENTRY_COUNTERS_PER_FREQ_ALLOC_SIZE
 C|VERY_LARGE_ENTRY_POOL_SIZE_FOR_THREAD
-S|MM_LightweightNonReentrantReaderWriterLock|MM_LightweightNonReentrantReaderWriterLockPointer|MM_BaseNonVirtual
-C|LWRW_INCREMENTAL_BASE_READERS
-C|LWRW_WRITER_MODE
 S|MM_LockingHeapRegionQueue|MM_LockingHeapRegionQueuePointer|MM_HeapRegionQueue
 C|ASSERT_LEVEL
 S|MM_MarkMap|MM_MarkMapPointer|MM_HeapMap
@@ -5059,7 +5071,6 @@ C|OMR_PORT_ALLOCATE_TOP_DOWN
 C|OMR_PORT_ZOS_CEEHDLRSUPPORT
 C|OMR_TEST_COMPILER
 C|OMR_THR_FORK_SUPPORT
-C|OMR_THR_TRACING
 S|OmragentConstants|OmragentConstantsPointer|
 C|OMR_TI_VERSION_0
 S|OmrcfgConstants|OmrcfgConstantsPointer|

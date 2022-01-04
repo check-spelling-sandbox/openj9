@@ -27,6 +27,7 @@
 #include "env/PersistentCollections.hpp" // for PersistentUnorderedMap
 #include "il/DataTypes.hpp" // for DataType
 #include "env/VMJ9.h" // for TR_StaticFinalData
+#include "runtime/JITServerAOTCache.hpp"
 #include "runtime/SymbolValidationManager.hpp"
 
 class J9ROMClass;
@@ -48,11 +49,11 @@ using IPTable_t = PersistentUnorderedMap<uint32_t, TR_IPBytecodeHashTableEntry*>
 using TR_JitFieldsCacheEntry = std::pair<J9Class*, UDATA>;
 using TR_JitFieldsCache = PersistentUnorderedMap<int32_t, TR_JitFieldsCacheEntry>;
 
+
 /**
    @class TR_J9MethodFieldAttributes
    @brief Class used for caching various field attributes of a j9method
  */
-
 class TR_J9MethodFieldAttributes
    {
    public:
@@ -91,7 +92,7 @@ class TR_J9MethodFieldAttributes
       if (_definingClass != other._definingClass) return false;
       return true;
       }
-   
+
    void setMethodFieldAttributesResult(uint32_t *fieldOffset, TR::DataType *type, bool *volatileP, bool *isFinal, bool *isPrivate, bool *unresolvedInCP, bool *result, TR_OpaqueClassBlock **definingClass = NULL)
       {
       setMethodFieldAttributesResult(type, volatileP, isFinal, isPrivate, unresolvedInCP, result, definingClass);
@@ -119,7 +120,7 @@ class TR_J9MethodFieldAttributes
       }
 
    uintptr_t _fieldOffsetOrAddress; // Stores a uint32_t representing an offset for non-static fields, or an address for static fields.
-   TR::DataType _type; 
+   TR::DataType _type;
    bool _volatileP;
    bool _isFinal;
    bool _isPrivate;
@@ -161,24 +162,27 @@ struct J9MethodNameAndSignature
    (several compilation threads from the client can issue compilation requests)
    access to most fields need to be protected by monitors.
  */
-
 class ClientSessionData
    {
 public:
+
+   // This constant is inserted into the list of unloaded classes to indicate
+   // that all caches must be cleared due to a class redefinition
+   static TR_OpaqueClassBlock * const mustClearCachesFlag;
+
    /**
       @class ClassInfo
       @brief Struct that holds cached data about a class loaded on the JITClient.
 
-      It contains the ROM class, which is copied in full to the JITServer, as well 
+      It contains the ROM class, which is copied in full to the JITServer, as well
       as other items which are just pointers to data on the JITClient. ClassInfo will
       persist on the server until corresponding Java class gets unloaded or replaced by
       HCR mechanism (which JITServer also treats as a class unload event). At that point,
       JITServer will be notified and the cache will be purged.
    */
-
    struct ClassInfo
       {
-      ClassInfo();
+      ClassInfo(TR_PersistentMemory *persistentMemory);
       void freeClassInfo(TR_PersistentMemory *persistentMemory); // this method is in place of a destructor. We can't have destructor
       // because it would be called after inserting ClassInfo into the ROM map, freeing romClass
 
@@ -190,19 +194,22 @@ public:
       int32_t _numDimensions;
       TR_OpaqueClassBlock *_parentClass;
       PersistentVector<TR_OpaqueClassBlock *> *_interfaces;
-      bool _classHasFinalFields;
-      uintptr_t _classDepthAndFlags;
-      bool _classInitialized;
       uint32_t _byteOffsetToLockword;
-      TR_OpaqueClassBlock * _leafComponentClass;
+      bool _classHasFinalFields;
+      bool _classInitialized;
+      uintptr_t _classDepthAndFlags;
+      TR_OpaqueClassBlock *_leafComponentClass;
       void *_classLoader;
-      TR_OpaqueClassBlock * _hostClass;
-      TR_OpaqueClassBlock * _componentClass; // caching the componentType of the J9ArrayClass
-      TR_OpaqueClassBlock * _arrayClass;
+      TR_OpaqueClassBlock *_hostClass;
+      TR_OpaqueClassBlock *_componentClass; // caching the componentType of the J9ArrayClass
+      TR_OpaqueClassBlock *_arrayClass;
       uintptr_t _totalInstanceSize;
       J9ConstantPool *_constantPool;
       uintptr_t _classFlags;
-      uintptr_t _classChainOffsetOfIdentifyingLoaderForClazz;
+      uintptr_t _classChainOffsetIdentifyingLoader;
+      std::string _classNameIdentifyingLoader;
+      const AOTCacheClassRecord *_aotCacheClassRecord;
+
       PersistentUnorderedMap<int32_t, TR_OpaqueClassBlock *> _classOfStaticCache;
       PersistentUnorderedMap<int32_t, TR_OpaqueClassBlock *> _constantClassPoolCache;
       TR_FieldAttributesCache _fieldAttributesCache;
@@ -218,22 +225,29 @@ public:
       PersistentUnorderedSet<J9ClassLoader *> _referencingClassLoaders;
       }; // struct ClassInfo
 
-
    /**
       @class J9MethodInfo
       @brief Struct that holds relevant data for a j9method
    */
    struct J9MethodInfo
       {
+      J9MethodInfo(J9ROMMethod *romMethod, J9ROMMethod *origROMMethod,
+                   TR_OpaqueClassBlock *owningClass, uint32_t index, bool isMethodTracingEnabled) :
+         _romMethod(romMethod), _origROMMethod(origROMMethod), _IPData(NULL),
+         _owningClass(owningClass), _index(index), _isMethodTracingEnabled(isMethodTracingEnabled),
+         _isCompiledWhenProfiling(false), _isLambdaFormGeneratedMethod(false), _aotCacheMethodRecord(NULL) { }
+
       J9ROMMethod *_romMethod; // pointer to local/server cache
       J9ROMMethod *_origROMMethod; // pointer to the client-side method
       // The following is a hashtable that maps a bcIndex to IProfiler data
       // The hashtable is created on demand (NULL means it is missing)
       IPTable_t *_IPData;
-      bool _isMethodTracingEnabled;
       TR_OpaqueClassBlock * _owningClass;
+      uint32_t _index;// Index in the array of methods of the defining class
+      bool _isMethodTracingEnabled;
       bool _isCompiledWhenProfiling; // To record if the method is compiled when doing Profiling
       bool _isLambdaFormGeneratedMethod;
+      const AOTCacheMethodRecord * _aotCacheMethodRecord;
       }; // struct J9MethodInfo
 
    /**
@@ -295,6 +309,13 @@ public:
       bool _isAllocateZeroedTLHPagesEnabled;
       uint32_t _staticObjectAllocateFlags;
       void *_referenceArrayCopyHelperAddress;
+#if defined(J9VM_OPT_OPENJDK_METHODHANDLE)
+      UDATA _vmtargetOffset;
+      UDATA _vmindexOffset;
+#endif /* defined(J9VM_OPT_OPENJDK_METHODHANDLE) */
+      bool _useAOTCache;
+      TR_AOTHeader _aotHeader;
+      TR_OpaqueClassBlock *_JavaLangObject;
       }; // struct VMInfo
 
    /**
@@ -309,6 +330,12 @@ public:
       uintptr_t metadataStartAddress;
       };
 
+   struct ClassChainData
+      {
+      uintptr_t *_classChain;
+      const AOTCacheClassChainRecord *_aotCacheClassChainRecord;
+      };
+
    TR_PERSISTENT_ALLOC(TR_Memory::ClientSessionData)
    ClientSessionData(uint64_t clientUID, uint32_t seqNo, TR_PersistentMemory *persistentMemory, bool usesPerClientMemory);
    ~ClientSessionData();
@@ -317,13 +344,13 @@ public:
    TR_PersistentMemory *persistentMemory() { return _persistentMemory; }
    bool usesPerClientMemory() { return _usesPerClientMemory; }
    void setJavaLangClassPtr(TR_OpaqueClassBlock* j9clazz) { _javaLangClassPtr = j9clazz; }
-   TR_OpaqueClassBlock * getJavaLangClassPtr() const { return _javaLangClassPtr; }
+   TR_OpaqueClassBlock *getJavaLangClassPtr() const { return _javaLangClassPtr; }
    TR_PersistentCHTable *getCHTable();
-   PersistentUnorderedMap<J9Class*, ClassInfo> & getROMClassMap() { return _romClassMap; }
-   PersistentUnorderedMap<J9Method*, J9MethodInfo> & getJ9MethodMap() { return _J9MethodMap; }
-   PersistentUnorderedMap<ClassLoaderStringPair, TR_OpaqueClassBlock*> & getClassBySignatureMap() { return _classBySignatureMap; }
-   PersistentUnorderedMap<J9Class *, UDATA *> & getClassChainDataCache() { return _classChainDataMap; }
-   PersistentUnorderedMap<J9ConstantPool *, TR_OpaqueClassBlock*> & getConstantPoolToClassMap() { return _constantPoolToClassMap; }
+   PersistentUnorderedMap<J9Class *, ClassInfo> &getROMClassMap() { return _romClassMap; }
+   PersistentUnorderedMap<J9Method *, J9MethodInfo> &getJ9MethodMap() { return _J9MethodMap; }
+   PersistentUnorderedMap<ClassLoaderStringPair, TR_OpaqueClassBlock *> &getClassBySignatureMap() { return _classBySignatureMap; }
+   PersistentUnorderedMap<J9Class *, ClassChainData> &getClassChainDataMap() { return _classChainDataMap; }
+   PersistentUnorderedMap<J9ConstantPool *, TR_OpaqueClassBlock *> &getConstantPoolToClassMap() { return _constantPoolToClassMap; }
    void initializeUnloadedClassAddrRanges(const std::vector<TR_AddressRange> &unloadedClassRanges, int32_t maxRanges);
    void processUnloadedClasses(const std::vector<TR_OpaqueClassBlock*> &classes, bool updateUnloadedClasses);
    void processIllegalFinalFieldModificationList(const std::vector<TR_OpaqueClassBlock*> &classes);
@@ -333,7 +360,8 @@ public:
    TR_IPBytecodeHashTableEntry *getCachedIProfilerInfo(TR_OpaqueMethodBlock *method, uint32_t byteCodeIndex, bool *methodInfoPresent);
    bool cacheIProfilerInfo(TR_OpaqueMethodBlock *method, uint32_t byteCodeIndex, TR_IPBytecodeHashTableEntry *entry, bool isCompiled);
    VMInfo *getOrCacheVMInfo(JITServer::ServerStream *stream);
-   void clearCaches(); // destroys _chTableClassMap, _romClassMap, _J9MethodMap and _unloadedClassAddresses
+   void clearCaches(bool locked=false); // destroys _chTableClassMap, _romClassMap, _J9MethodMap and _unloadedClassAddresses
+   void clearCachesLocked(TR_J9VMBase *fe);
    bool cachesAreCleared() const { return _requestUnloadedClasses; }
    void setCachesAreCleared(bool b) { _requestUnloadedClasses = b; }
    TR_AddressSet& getUnloadedClassAddresses()
@@ -389,8 +417,8 @@ public:
    J9SharedClassCacheDescriptor * reconstructJ9SharedClassCacheDescriptorList(const std::vector<CacheDescriptor> &listOfCacheDescriptors);
    void destroyJ9SharedClassCacheDescriptorList();
 
-   volatile bool isClassUnloadingAttempted() const { return _bClassUnloadingAttempt; }
-   volatile bool isReadingClassUnload() { return !omrthread_rwmutex_is_writelocked(_classUnloadRWMutex); }
+   bool isClassUnloadingAttempted() const { return _bClassUnloadingAttempt; }
+   bool isReadingClassUnload() { return !omrthread_rwmutex_is_writelocked(_classUnloadRWMutex); }
 
    void readAcquireClassUnloadRWMutex(TR::CompilationInfoPerThreadBase *compInfoPT);
    void readReleaseClassUnloadRWMutex(TR::CompilationInfoPerThreadBase *compInfoPT);
@@ -402,16 +430,46 @@ public:
    // Returns the cached client-side pointer to well-known class chain offsets
    // if included classes and their SCC offsets match, otherwise returns NULL
    const void *getCachedWellKnownClassChainOffsets(unsigned int includedClasses, size_t numClasses,
-                                                   const uintptr_t *classChainOffsets);
+                                                   const uintptr_t *classChainOffsets,
+                                                   const AOTCacheWellKnownClassesRecord *&wellKnownClassesRecord);
    // Cache the client-side pointer to well-known class chain offsets
    void cacheWellKnownClassChainOffsets(unsigned int includedClasses, size_t numClasses,
-                                        const uintptr_t *classChainOffsets, const void *wellKnownClassChainOffsets);
+                                        const uintptr_t *classChainOffsets, const void *wellKnownClassChainOffsets,
+                                        const AOTCacheClassChainRecord *const *classChainRecords,
+                                        const AOTCacheWellKnownClassesRecord *&wellKnownClassesRecord);
 
    bool isInStartupPhase() const { return _isInStartupPhase; }
    void setIsInStartupPhase(bool isInStartupPhase) { _isInStartupPhase = isInStartupPhase; }
- 
+
+   JITServerAOTCache *getOrCreateAOTCache(JITServer::ServerStream *stream);
+
+   bool usesAOTCache() const { return _aotCache != NULL; }
+
+   JITServerAOTCache *getAOTCache() const
+      {
+      TR_ASSERT(_aotCache, "Must have valid AOTCache");
+      return _aotCache;
+      }
+
+   const AOTCacheAOTHeaderRecord *getAOTHeaderRecord() const
+      {
+      TR_ASSERT(_aotHeaderRecord, "Must have valid AOT header record");
+      return _aotHeaderRecord;
+      }
+
+   const AOTCacheClassRecord *getClassRecord(J9Class *clazz, JITServer::ServerStream *stream);
+   const AOTCacheMethodRecord *getMethodRecord(J9Method *method, J9Class *definingClass, JITServer::ServerStream *stream);
+   const AOTCacheClassChainRecord *getClassChainRecord(J9Class *clazz, uintptr_t *classChain,
+                                                       const std::vector<J9Class *> &ramClassChain, JITServer::ServerStream *stream);
+
+   JITServerAOTCache::KnownIdSet &getAOTCacheKnownIds() { return _aotCacheKnownIds; }
+   TR::Monitor *getAOTCacheKnownIdsMonitor() const { return _aotCacheKnownIdsMonitor; }
+
 private:
    void destroyMonitors();
+
+   const AOTCacheClassRecord *getClassRecord(ClientSessionData::ClassInfo &classInfo);
+   const AOTCacheClassRecord *getClassRecord(J9Class *clazz, bool &missingLoaderRecord);
 
    const uint64_t _clientUID;
    int64_t  _timeOfLastAccess; // in ms
@@ -428,7 +486,7 @@ private:
    // All classes in here are loaded by the systemClassLoader so we know they cannot be unloaded
    PersistentUnorderedMap<ClassLoaderStringPair, TR_OpaqueClassBlock*> _classBySignatureMap;
 
-   PersistentUnorderedMap<J9Class *, UDATA *> _classChainDataMap;
+   PersistentUnorderedMap<J9Class *, ClassChainData> _classChainDataMap;
    //Constant pool to class map
    PersistentUnorderedMap<J9ConstantPool *, TR_OpaqueClassBlock *> _constantPoolToClassMap;
    TR::Monitor *_romMapMonitor;
@@ -446,8 +504,8 @@ private:
 
    uint32_t _lastProcessedCriticalSeqNo; // highest seqNo processed request carrying info that needs to be applied in order
 
-   int32_t  _inUse; // Number of concurrent compilations from the same client
-                    // Accessed with compilation monitor in hand
+   int32_t _inUse; // Number of concurrent compilations from the same client
+                   // Accessed with compilation monitor in hand
    int32_t _numActiveThreads; // Number of threads working on compilations for this client
                               // This is smaller or equal to _inUse because some threads
                               // could be just starting or waiting in _OOSequenceEntryList
@@ -479,12 +537,20 @@ private:
       unsigned int _includedClasses;// bitset of indices in the list of well-known classes
       uintptr_t _classChainOffsets[WELL_KNOWN_CLASS_COUNT];// ROMClass SCC offsets
       const void *_wellKnownClassChainOffsets;// client-side pointer to "well-known class chain offsets" in SCC
+      const AOTCacheWellKnownClassesRecord *_aotCacheWellKnownClassesRecord;
       };
 
    WellKnownClassesCache _wellKnownClasses;
    TR::Monitor *_wellKnownClassesMonitor;
-   
+
    bool _isInStartupPhase;
+
+   std::string _aotCacheName;
+   JITServerAOTCache *_aotCache;
+   const AOTCacheAOTHeaderRecord *_aotHeaderRecord;
+
+   JITServerAOTCache::KnownIdSet _aotCacheKnownIds;
+   TR::Monitor *_aotCacheKnownIdsMonitor;
    }; // class ClientSessionData
 
 
@@ -499,7 +565,6 @@ private:
    compilation. The StatistcisThread can also perform purging duties.
    Entried with inUse > 0 must not be purged.
  */
-
 class ClientSessionHT
    {
    public:

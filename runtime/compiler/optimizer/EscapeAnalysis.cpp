@@ -4898,7 +4898,7 @@ void TR_EscapeAnalysis::checkEscapeViaCall(TR::Node *node, TR::NodeChecklist& vi
                TR::MethodSymbol *sym = symRef->getSymbol()->castToMethodSymbol();
                TR::Method * originalMethod = sym->getMethod();
                int32_t len = originalMethod->classNameLength();
-               char *s = classNameToSignature(originalMethod->classNameChars(), len, comp());
+               char *s = TR::Compiler->cls.classNameToSignature(originalMethod->classNameChars(), len, comp());
                TR_OpaqueClassBlock *originalMethodClass = comp()->fej9()->getClassFromSignature(s, len, owningMethod);
                TR_OpaqueClassBlock *thisType = (TR_OpaqueClassBlock *) candidate->_node->getFirstChild()->getSymbol()->castToStaticSymbol()->getStaticAddress();
                int32_t offset = -1;
@@ -8166,8 +8166,11 @@ static TR_DependentAllocations *getDependentAllocationsFor(Candidate *c, List<TR
 static Candidate *getCandidate(TR_LinkHead<Candidate> *candidates, FlushCandidate *flushCandidate)
    {
    Candidate *candidate = flushCandidate->getCandidate();
-   if (candidate)
+   if (candidate || flushCandidate->getIsKnownToLackCandidate())
+      {
       return candidate;
+      }
+
    for (candidate = candidates->getFirst(); candidate; candidate = candidate->getNext())
       {
       if (flushCandidate->getAllocation() == candidate->_node)
@@ -8175,6 +8178,11 @@ static Candidate *getCandidate(TR_LinkHead<Candidate> *candidates, FlushCandidat
          flushCandidate->setCandidate(candidate);
          break;
          }
+      }
+
+   if (!candidate)
+      {
+      flushCandidate->setIsKnownToLackCandidate(true);
       }
 
    return candidate;

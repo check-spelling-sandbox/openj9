@@ -385,6 +385,10 @@ enum INIT_STAGE {
 #define VMOPT_XXDISABLEORIGINALJDK8HEAPSIZECOMPATIBILITY "-XX:-OriginalJDK8HeapSizeCompatibilityMode"
 #define VMOPT_XXDISABLELEGACYMANGLING "-XX:-UseLegacyJNINameEscaping"
 #define VMOPT_XXENABLELEGACYMANGLING "-XX:+UseLegacyJNINameEscaping"
+#define VMOPT_XXENABLEUTFCACHE "-XX:+UTFCache"
+#define VMOPT_XXDISABLEUTFCACHE "-XX:-UTFCache"
+#define VMOPT_XXENABLEENSUREHASHED "-XX:+EnsureHashed:"
+#define VMOPT_XXDISABLEENSUREHASHED "-XX:-EnsureHashed:"
 
 #if defined(J9VM_ZOS_3164_INTEROPERABILITY)
 #define VMOPT_XXENABLE3164INTEROPERABILITY "-XX:+Enable3164Interoperability"
@@ -490,6 +494,8 @@ enum INIT_STAGE {
 
 #define VMOPT_XCOMPRESSEDREFS "-Xcompressedrefs"
 #define VMOPT_XNOCOMPRESSEDREFS "-Xnocompressedrefs"
+#define VMOPT_XXUSECOMPRESSEDOOPS "-XX:+UseCompressedOops"
+#define VMOPT_XXNOUSECOMPRESSEDOOPS "-XX:-UseCompressedOops"
 
 #define VMOPT_XXTRANSPARENT_HUGEPAGE "-XX:+TransparentHugePage"
 #define VMOPT_XXNOTRANSPARENT_HUGEPAGE "-XX:-TransparentHugePage"
@@ -589,6 +595,9 @@ enum INIT_STAGE {
 #define VMOPT_PATCH_MODULE "--patch-module"
 #define VMOPT_ILLEGAL_ACCESS "--illegal-access="
 #define VMOPT_ENABLE_NATIVE_ACCESS "--enable-native-access"
+
+/* JEP 421: Deprecate Finalization for Removal */
+#define VMOPT_DISABLE_FINALIZATION "--finalization="
 
 #define ENVVAR_IBM_MIXED_MODE_THRESHOLD "IBM_MIXED_MODE_THRESHOLD"
 #define ENVVAR_JAVA_COMPILER "JAVA_COMPILER"

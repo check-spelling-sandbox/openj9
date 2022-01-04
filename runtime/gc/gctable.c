@@ -226,6 +226,7 @@ J9MemoryManagerFunctions MemoryManagerFunctions = {
 	j9gc_objaccess_postStoreClassToClassLoader,
 	j9gc_objaccess_getObjectHashCode,
 	j9gc_createJavaLangString,
+	j9gc_createJavaLangStringWithUTFCache,
 	j9gc_internString,
 #if defined(J9VM_GC_FINALIZATION)
 	j9gc_runFinalizersOnExit,
@@ -255,5 +256,6 @@ J9MemoryManagerFunctions MemoryManagerFunctions = {
 	j9gc_notifyGCOfClassReplacement,
 	j9gc_get_jit_string_dedup_policy,
 	j9gc_stringHashFn,
-	j9gc_stringHashEqualFn
+	j9gc_stringHashEqualFn,
+	j9gc_ensureLockedSynchronizersIntegrity
 };

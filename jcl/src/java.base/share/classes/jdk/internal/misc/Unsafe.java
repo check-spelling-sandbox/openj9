@@ -1013,6 +1013,7 @@ public final class Unsafe {
 	/* @return size of address on machine in use */
 	private native int addressSize0();
 
+	/*[IF JAVA_SPEC_VERSION < 17]*/
 	/* 
 	 * Define a class without making it known to the class loader.
 	 * 
@@ -1024,6 +1025,7 @@ public final class Unsafe {
 	 * @return class created from bytecodes and constPatches
 	 */
 	private native Class<?> defineAnonymousClass0(Class<?> hostingClass, byte[] bytecodes, Object[] constPatches);
+	/*[ENDIF] JAVA_SPEC_VERSION < 17 */
 
 	/* 
 	 * Get the load average in the system.
@@ -1615,6 +1617,7 @@ public final class Unsafe {
 		return result;
 	}
 
+	/*[IF JAVA_SPEC_VERSION < 17]*/
 	/**
 	 * Define a class without making it known to the class loader.
 	 * 
@@ -1638,6 +1641,7 @@ public final class Unsafe {
 
 		return defineAnonymousClass0(hostingClass, bytecodes, constPatches);
 	}
+	/*[ENDIF] JAVA_SPEC_VERSION < 17 */
 
 	/**
 	 * Allocate new array of same type as class parameter and 
@@ -6542,4 +6546,267 @@ public final class Unsafe {
 	private static char convEndian(boolean isBigEndian, char value) {
 		return (IS_BIG_ENDIAN == isBigEndian) ? value : Character.reverseBytes(value);
 	}
+
+	/*[IF INLINE-TYPES]*/
+	/**
+	 * ToDo: add comments for public methods - https://github.com/eclipse-openj9/openj9/issues/13614
+	 */
+	public native <V> V getValue(Object obj, long offset, Class<?> clz);
+	public native <V> void putValue(Object obj, long offset, Class<?> clz, V value);
+
+	/**
+	 * Returns the uninitialized default instance of the specified primitive class
+	 *
+	 * @param clz the specificed primitive class
+	 * @return the uninitialized default instance of clz
+	 */
+	public native <V> V uninitializedDefaultValue(Class<?> clz);
+
+	/**
+	 * Determines the size of the header for a specified primitive class
+	 *
+	 * @param clz the specified primitive class
+	 * @return the size of the header for clz
+	 */
+	public native <V> long valueHeaderSize(Class<V> clz);
+
+	/**
+	 * Determines whether a class is a flattened array
+	 *
+	 * @param clz the class to check
+	 * @return boolean value indicating whether the class is a flattened array
+	 */
+	public native boolean isFlattenedArray(Class<?> clz);
+
+	/**
+	 * Determines whether a field is flattened
+	 *
+	 * @param field the field to check
+	 * @return boolean value indicating whether the field is flattened
+	 */
+	public native boolean isFlattened(Field field);
+
+	public final <V> boolean compareAndSetValue(Object obj, long offset, Class<?> clz, V v1, V v2) {
+		throw OpenJDKCompileStubThrowError();
+	}
+
+	public final <V> Object compareAndExchangeValue(Object obj, long offset, Class<?> clz, V v1, V v2) {
+		throw OpenJDKCompileStubThrowError();
+	}
+
+	public final <V> Object compareAndExchangeValueAcquire(Object obj, long offset, Class<?> clz, V v1, V v2) {
+		throw OpenJDKCompileStubThrowError();
+	}
+
+	public final <V> Object compareAndExchangeValueRelease(Object obj, long offset, Class<?> clz, V v1, V v2) {
+		throw OpenJDKCompileStubThrowError();
+	}
+
+	public final <V> boolean weakCompareAndSetValuePlain(Object obj, long offset, Class<?> clz, V v1, V v2) {
+		throw OpenJDKCompileStubThrowError();
+	}
+
+	public final <V> boolean weakCompareAndSetValueAcquire(Object obj, long offset, Class<?> clz, V v1, V v2) {
+		throw OpenJDKCompileStubThrowError();
+	}
+
+	public final <V> boolean weakCompareAndSetValueRelease(Object obj, long offset, Class<?> clz, V v1, V v2) {
+		throw OpenJDKCompileStubThrowError();
+	}
+
+	public final <V> boolean weakCompareAndSetValue(Object obj, long offset, Class<?> clz, V v1, V v2) {
+		throw OpenJDKCompileStubThrowError();
+	}
+
+	public final <V> Object getValueVolatile(Object obj, long offset, Class<?> clz) {
+		throw OpenJDKCompileStubThrowError();
+	}
+
+	public final <V> void putValueVolatile(Object obj, long offset, Class<?> clz, V v) {
+		throw OpenJDKCompileStubThrowError();
+	}
+
+	public final <V> Object getValueAcquire(Object obj, long offset, Class<?> clz) {
+		throw OpenJDKCompileStubThrowError();
+	}
+
+	public final <V> void putValueRelease(Object obj, long offset, Class<?> clz, V v) {
+		throw OpenJDKCompileStubThrowError();
+	}
+
+	public final <V> Object getValueOpaque(Object obj, long offset, Class<?> clz) {
+		throw OpenJDKCompileStubThrowError();
+	}
+
+	public final <V> void putValueOpaque(Object obj, long offset, Class<?> clz, V v) {
+		throw OpenJDKCompileStubThrowError();
+	}
+
+	public final <V> Object getAndSetValue(Object obj, long offset, Class<?> clz, V v) {
+		throw OpenJDKCompileStubThrowError();
+	}
+
+	public final <V> Object getAndSetValueRelease(Object obj, long offset, Class<?> clz, V v) {
+		throw OpenJDKCompileStubThrowError();
+	}
+
+	public final <V> Object getAndSetValueAcquire(Object obj, long offset, Class<?> clz, V v) {
+		throw OpenJDKCompileStubThrowError();
+	}
+
+	public long getObjectSize(Object o) {
+		throw OpenJDKCompileStubThrowError();
+	}
+
+	/**
+	 * Atomically sets the reference at offset in obj if the compare value
+	 * matches the existing value in the object.
+	 * The get operation has memory semantics of get.
+	 * The set operation has the memory semantics of setRelease.
+	 *
+	 * @param obj object into which to store the value
+	 * @param offset location to compare and store value in obj
+	 * @param clz Class of the obj
+	 * @param compareValue value that is expected to be in obj at offset
+	 * @param setValue value that will be set in obj at offset if compare is successful
+	 * @return boolean value indicating whether the field was updated
+	 */
+	public final <V> boolean compareAndSetReference(Object obj, long offset, Class<?> clz, V compareValue, V setValue) {
+		return compareAndSetReference(obj, offset, compareValue, setValue);
+	}
+
+	/**
+	 * Atomically sets the reference at offset in obj if the compare value
+	 * matches the existing value in the object.
+	 * The get operation has memory semantics of getAcquire.
+	 * The set operation has the memory semantics of set.
+	 *
+	 * @param obj object into which to store the value
+	 * @param offset location to compare and store value in obj
+	 * @param clz Class of the obj
+	 * @param compareValue value that is expected to be in obj at offset
+	 * @param setValue value that will be set in obj at offset if compare is successful
+	 * @return boolean value indicating whether the field was updated
+	 */
+	public final <V> boolean weakCompareAndSetReferenceAcquire(Object obj, long offset, Class<?> clz, V compareValue, V setValue) {
+		return weakCompareAndSetReferenceAcquire(obj, offset, compareValue, setValue);
+	}
+
+	/**
+	 * Sets the reference at offset in obj if the compare value
+	 * matches the existing value in the object.
+	 * The get operation has memory semantics of get.
+	 * The set operation has the memory semantics of setRelease.
+	 *
+	 * @param obj object into which to store the value
+	 * @param offset location to compare and store value in obj
+	 * @param clz Class of the obj
+	 * @param compareValue value that is expected to be in obj at offset
+	 * @param setValue value that will be set in obj at offset if compare is successful
+	 * @return boolean value indicating whether the field was updated
+	 */
+	public final <V> boolean weakCompareAndSetReferenceRelease(Object obj, long offset, Class<?> clz, V compareValue, V setValue) {
+		return weakCompareAndSetReferenceRelease(obj, offset, compareValue, setValue);
+	}
+
+	/**
+	 * Atomically sets the reference at offset in obj if the compare value
+	 * matches the existing value in the object.
+	 * The get operation has memory semantics of getVolatile.
+	 * The set operation has the memory semantics of setVolatile.
+	 *
+	 * @param obj object into which to store the value
+	 * @param offset location to compare and store value in obj
+	 * @param clz Class of the obj
+	 * @param compareValue value that is expected to be in obj at offset
+	 * @param exchangeValue value that will be set in obj at offset if compare is successful
+	 * @return value in obj at offset before this operation. This will be compareValue if the exchange was successful
+	 */
+	public final <V> Object compareAndExchangeReference(Object obj, long offset, Class<?> clz, V compareValue, V exchangeValue) {
+		return compareAndExchangeReference(obj, offset, compareValue, exchangeValue);
+	}
+
+	/**
+	 * Atomically sets the reference at offset in obj if the compare value
+	 * matches the existing value in the object.
+	 * The get operation has memory semantics of getAcquire.
+	 * The set operation has the memory semantics of set.
+	 *
+	 * @param obj object into which to store the value
+	 * @param offset location to compare and store value in obj
+	 * @param clz Class of the obj
+	 * @param compareValue value that is expected to be in obj at offset
+	 * @param exchangeValue value that will be set in obj at offset if compare is successful
+	 * @return value in obj at offset before this operation. This will be compareValue if the exchange was successful
+	 */
+	public final <V> Object compareAndExchangeReferenceAcquire(Object obj, long offset, Class<?> clz, V compareValue, V exchangeValue) {
+		return compareAndExchangeReferenceAcquire(obj, offset, compareValue, exchangeValue);
+	}
+
+	/**
+	 * Atomically sets the reference at offset in obj if the compare value
+	 * matches the existing value in the object.
+	 * The get operation has memory semantics of get.
+	 * The set operation has the memory semantics of setRelease.
+	 *
+	 * @param obj object into which to store the value
+	 * @param offset location to compare and store value in obj
+	 * @param clz Class of the obj
+	 * @param compareValue value that is expected to be in obj at offset
+	 * @param exchangeValue value that will be set in obj at offset if compare is successful
+	 * @return value in obj at offset before this operation. This will be compareValue if the exchange was successful
+	 */
+	public final <V> Object compareAndExchangeReferenceRelease(Object obj, long offset, Class<?> clz, V compareValue, V exchangeValue) {
+		return compareAndExchangeReferenceRelease(obj, offset, compareValue, exchangeValue);
+	}
+
+	/**
+	 * Sets the reference at offset in obj if the compare value
+	 * matches the existing value in the object.
+	 * The get operation has memory semantics of get.
+	 * The set operation has the memory semantics of set.
+	 *
+	 * @param obj object into which to store the value
+	 * @param offset location to compare and store value in obj
+	 * @param clz Class of the obj
+	 * @param compareValue value that is expected to be in obj at offset
+	 * @param setValue value that will be set in obj at offset if compare is successful
+	 * @return boolean value indicating whether the field was updated
+	 */
+	public final <V> boolean weakCompareAndSetReferencePlain(Object obj, long offset, Class<?> clz, V compareValue, V setValue) {
+		return weakCompareAndSetReferencePlain(obj, offset, compareValue, setValue);
+	}
+
+	/**
+	 * Sets the reference at offset in obj if the compare value
+	 * matches the existing value in the object.
+	 * The get operation has memory semantics of get.
+	 * The set operation has the memory semantics of set.
+	 *
+	 * @param obj object into which to store the value
+	 * @param offset location to compare and store value in obj
+	 * @param clz Class of the obj
+	 * @param compareValue value that is expected to be in obj at offset
+	 * @param setValue value that will be set in obj at offset if compare is successful
+	 * @return boolean value indicating whether the field was updated
+	 */
+	public final <V> boolean weakCompareAndSetReference(Object obj, long offset, Class<?> clz, V compareValue, V setValue) {
+		return weakCompareAndSetReference(obj, offset, compareValue, setValue);
+	}
+
+	public Object getReferenceVolatile(Object obj, long offset, Class<?> clz) {
+		// ToDo: this is a temporary implementation - https://github.com/eclipse-openj9/openj9/issues/13614
+		return getReferenceVolatile(obj, offset);
+	}
+
+	public Object getReference(Object obj, long offset, Class<?> clz) {
+		// ToDo: this is a temporary implementation - https://github.com/eclipse-openj9/openj9/issues/13614
+		return getReference(obj, offset);
+	}
+
+	private static InternalError OpenJDKCompileStubThrowError() {
+		// ToDo: https://github.com/eclipse-openj9/openj9/issues/13614
+		throw new InternalError("Compile stub invoked! Apart from deliberate reflective access, this should not happen. Please report this to the project so it can be addressed");	//$NON-NLS-1$
+	}
+	/*[ENDIF] INLINE-TYPES */
 }

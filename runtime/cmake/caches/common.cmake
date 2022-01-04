@@ -1,5 +1,5 @@
 ################################################################################
-# Copyright (c) 1991, 2020 IBM Corp. and others
+# Copyright (c) 1991, 2021 IBM Corp. and others
 #
 # This program and the accompanying materials are made available under
 # the terms of the Eclipse Public License 2.0 which accompanies this
@@ -220,11 +220,10 @@ set(J9VM_OPT_ZLIB_SUPPORT ON CACHE BOOL "")
 set(J9VM_PORT_OMRSIG_SUPPORT ON CACHE BOOL "")
 set(J9VM_PORT_SIGNAL_SUPPORT ON CACHE BOOL "")
 set(J9VM_PROF_EVENT_REPORTING ON CACHE BOOL "")
-set(J9VM_RAS_DUMP_AGENTS ON CACHE BOOL "")
-set(J9VM_RAS_EYECATCHERS ON CACHE BOOL "")
 set(J9VM_SIZE_OPTIMIZE_SEND_TARGETS ON CACHE BOOL "")
 set(J9VM_THR_ASYNC_NAME_UPDATE ON CACHE BOOL "")
 set(J9VM_THR_LOCK_NURSERY ON CACHE BOOL "")
 set(J9VM_THR_LOCK_RESERVATION ON CACHE BOOL "")
 set(J9VM_THR_PREEMPTIVE ON CACHE BOOL "")
 set(J9VM_THR_SMART_DEFLATION ON CACHE BOOL "")
+set(J9VM_OPT_OPENJDK_FFI ON CACHE BOOL "")

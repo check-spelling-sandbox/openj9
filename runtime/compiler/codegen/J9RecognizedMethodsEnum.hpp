@@ -167,6 +167,7 @@
    java_lang_String_decompressedArrayCopy_BICII,
    java_lang_String_decompressedArrayCopy_CIBII,
    java_lang_String_decompressedArrayCopy_CICII,
+   java_lang_StringLatin1_inflate,
    java_lang_String_concat,
    java_lang_String_length,
    java_lang_String_lengthInternal,
@@ -335,6 +336,9 @@
    java_util_HashMap_findNonNullKeyEntry,
    java_util_HashMap_putImpl,
    java_util_HashMap_resize,
+   java_util_HashMap_prepareArray,
+   java_util_HashMap_keysToArray,
+   java_util_HashMap_valuesToArray,
    java_util_HashMapHashIterator_nextNode,
    java_util_HashMapHashIterator_init,
    java_util_zip_CRC32_update,
@@ -437,15 +441,26 @@
    sun_misc_Unsafe_fullFence,
 
    sun_misc_Unsafe_ensureClassInitialized,
+   sun_misc_Unsafe_allocateInstance,
 
    jdk_internal_misc_Unsafe_copyMemory0,
-
    jdk_internal_loader_NativeLibraries_load,
 
-   jdk_internal_vm_vector_VectorSupport_load,
-   jdk_internal_vm_vector_VectorSupport_binaryOp,
+   FirstVectorMethod,
+   jdk_internal_vm_vector_VectorSupport_load = FirstVectorMethod,
    jdk_internal_vm_vector_VectorSupport_store,
-      
+   jdk_internal_vm_vector_VectorSupport_binaryOp,
+   jdk_internal_vm_vector_VectorSupport_broadcastCoerced,
+   jdk_internal_vm_vector_VectorSupport_unaryOp,
+   LastVectorIntrinsicMethod = jdk_internal_vm_vector_VectorSupport_unaryOp,
+   jdk_incubator_vector_FloatVector_fromArray,
+   jdk_incubator_vector_FloatVector_intoArray,
+   jdk_incubator_vector_FloatVector_fromArray_mask,
+   jdk_incubator_vector_FloatVector_intoArray_mask,
+   jdk_incubator_vector_FloatVector_add,
+   jdk_incubator_vector_VectorSpecies_indexInRange,
+   LastVectorMethod = jdk_incubator_vector_VectorSpecies_indexInRange,
+
    java_lang_reflect_Array_getLength,
    java_lang_reflect_Method_invoke,
    java_util_Arrays_fill,
@@ -465,7 +480,7 @@
    sun_nio_cs_UTF_8_Decoder_decodeUTF_8,
    sun_nio_cs_UTF_8_Encoder_encodeUTF_8,
    sun_nio_cs_ext_IBM1388_Encoder_encodeArrayLoop,
-   
+
    sun_nio_cs_UTF_16_Encoder_encodeUTF16Big,
    sun_nio_cs_UTF_16_Encoder_encodeUTF16Little,
    com_ibm_jit_JITHelpers_transformedEncodeUTF16Big,
@@ -764,6 +779,8 @@
    com_ibm_jit_JITHelpers_acmplt,
    com_ibm_jit_JITHelpers_jitHelpers,
    com_ibm_jit_JITHelpers_getClassInitializeStatus,
+   com_ibm_jit_JITHelpers_dispatchComputedStaticCall,
+   com_ibm_jit_JITHelpers_dispatchVirtual,
 
    com_ibm_jit_DecimalFormatHelper_formatAsDouble,
    com_ibm_jit_DecimalFormatHelper_formatAsFloat,
@@ -994,7 +1011,6 @@
    java_lang_invoke_InsertHandle_numPrefixArgs,
    java_lang_invoke_InsertHandle_numSuffixArgs,
    java_lang_invoke_InsertHandle_numValuesToInsert,
-   java_lang_invoke_InterfaceHandle_interfaceCall,
    java_lang_invoke_InterfaceHandle_invokeExact,
    java_lang_invoke_Invokers_checkCustomized,
    java_lang_invoke_Invokers_checkExactType,
@@ -1010,6 +1026,8 @@
    java_lang_invoke_MethodHandle_linkToSpecial,
    java_lang_invoke_MethodHandle_linkToVirtual,
    java_lang_invoke_MethodHandle_linkToInterface,
+   java_lang_invoke_MethodHandleImpl_CountingWrapper_getTarget,
+   java_lang_invoke_DelegatingMethodHandle_getTarget,
    java_lang_invoke_DirectMethodHandle_internalMemberName,
    java_lang_invoke_DirectMethodHandle_internalMemberNameEnsureInit,
    java_lang_invoke_DirectMethodHandle_constructorMethod,
@@ -1067,6 +1085,10 @@
    java_lang_invoke_VirtualHandle_virtualCall,
    java_lang_invoke_VirtualHandle_invokeExact,
 
+   // OpenJDK MethodHandles
+   java_lang_invoke_MethodHandleImpl_profileBoolean,
+   java_lang_invoke_MethodHandleImpl_isCompileConstant,
+
    // Clone and Deep Copy
    java_lang_J9VMInternals_is32Bit,
    java_lang_J9VMInternals_isClassModifierPublic,
@@ -1107,7 +1129,7 @@
    com_ibm_jit_crypto_JITFullHardwareDigest_z_kimd,
    com_ibm_jit_crypto_JITFullHardwareDigest_z_klmd,
    com_ibm_jit_crypto_JITFullHardwareDigest_z_kmac,
-   
+
    java_lang_StringCoding_decode,
    java_lang_StringCoding_encode,
    java_lang_StringCoding_StringDecoder_decode,
@@ -1197,6 +1219,6 @@
    com_ibm_crypto_provider_AEScryptInHardware_cbcDecrypt,
    com_ibm_crypto_provider_AEScryptInHardware_cbcEncrypt,
 
-   LastIBMMethod = com_ibm_crypto_provider_P384PrimeField_mod,
+   LastJ9Method = com_ibm_crypto_provider_P384PrimeField_mod,
 
-#endif
+#endif /* J9_RECOGNIZEDMETHODS_ENUM_INCL */

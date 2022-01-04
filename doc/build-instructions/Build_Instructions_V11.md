@@ -39,7 +39,7 @@ Build instructions are available for the following platforms:
 
 User documentation for the latest release of Eclipse OpenJ9 is available at the [Eclipse Foundation](https://www.eclipse.org/openj9/docs).
 If you build a binary from the current OpenJ9 source, new features and changes might be in place for the next release of OpenJ9. Draft user
-documentation for the next release of OpenJ9 can be found [here](https://eclipse.github.io/openj9-docs/).
+documentation for the next release of OpenJ9 can be found [here](https://eclipse-openj9.github.io/openj9-docs/).
 
 ----------------------------------
 
@@ -73,7 +73,7 @@ wget https://raw.githubusercontent.com/eclipse-openj9/openj9/master/buildenv/doc
 
 3. Next, run the following command to build a Docker image, called **openj9**:
 ```
-bash mkdocker.sh --tag=openj9 --dist=ubuntu --version=16.04 --build
+bash mkdocker.sh --tag=openj9 --dist=ubuntu --version=16.04 --gitcache=no --jdk=11 --build
 ```
 
 4. Start a Docker container from the **openj9** image with the following command, where `-v` maps any directory, `<host_directory>`,
@@ -91,7 +91,7 @@ Now that you have the Docker image running, you are ready to move to the next st
 If you don't want to user Docker, you can still build directly on your Ubuntu system or in a Ubuntu virtual machine. Use the output of the following command like a recipe card to determine the software dependencies that must be installed on the system, plus a few configuration steps.
 
 ```
-bash mkdocker.sh --tag=openj9 --dist=ubuntu --version=16.04 --print
+bash mkdocker.sh --tag=openj9 --dist=ubuntu --version=16.04 --gitcache=no --jdk=11 --print
 ```
 
 1. Install the list of dependencies that can be obtained with the `apt-get` command from the following section of the Dockerfile:
@@ -146,7 +146,7 @@ bash get_source.sh
 :penguin:
 When you have all the source files that you need, run the configure script, which detects how to build in the current build environment.
 ```
-bash configure --with-boot-jdk=/usr/lib/jvm/adoptojdk-java-11
+bash configure --with-boot-jdk=/home/jenkins/bootjdks/jdk11
 ```
 :warning: The path in the example --with-boot-jdk= option is appropriate for the Docker installation. If not using the Docker environment, set the path appropriate for your setup, such as "<my_home_dir>/bootjdk11" as setup in the previous instructions.
 

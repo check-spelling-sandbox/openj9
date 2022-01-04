@@ -99,9 +99,12 @@ void J9::X86::AheadOfTimeCompile::processRelocations()
       if (useSVM)
          {
          TR::SymbolValidationManager *svm = comp->getSymbolValidationManager();
-         void *offsets = const_cast<void*>(svm->wellKnownClassChainOffsets());
-         *(uintptr_t *)relocationDataCursor =
-            self()->offsetInSharedCacheFromPointer(fej9->sharedCache(), offsets);
+         void *offsets = const_cast<void *>(svm->wellKnownClassChainOffsets());
+         uintptr_t *wkcOffsetAddr = (uintptr_t *)relocationDataCursor;
+         *wkcOffsetAddr = self()->offsetInSharedCacheFromPointer(fej9->sharedCache(), offsets);
+#if defined(J9VM_OPT_JITSERVER)
+         self()->addWellKnownClassesSerializationRecord(svm->aotCacheWellKnownClassesRecord(), wkcOffsetAddr);
+#endif /* defined(J9VM_OPT_JITSERVER) */
          relocationDataCursor += SIZEPOINTER;
          }
 
@@ -118,12 +121,14 @@ void J9::X86::AheadOfTimeCompile::processRelocations()
       }
    }
 
-void
+bool
 J9::X86::AheadOfTimeCompile::initializePlatformSpecificAOTRelocationHeader(TR::IteratedExternalRelocation *relocation,
                                                                            TR_RelocationTarget *reloTarget,
                                                                            TR_RelocationRecord *reloRecord,
                                                                            uint8_t targetKind)
    {
+   bool platformSpecificReloInitialized = true;
+
    switch (targetKind)
       {
       case TR_PicTrampolines:
@@ -137,7 +142,9 @@ J9::X86::AheadOfTimeCompile::initializePlatformSpecificAOTRelocationHeader(TR::I
         break;
 
       default:
-         self()->initializeCommonAOTRelocationHeader(relocation, reloTarget, reloRecord, targetKind);
+         platformSpecificReloInitialized = false;
       }
+
+   return platformSpecificReloInitialized;
    }
 

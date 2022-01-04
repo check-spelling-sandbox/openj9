@@ -52,6 +52,7 @@ TR_ResolvedJ9JITServerMethodInfoStruct
    void *addressContainingIsOverriddenBit;
    J9ClassLoader *classLoader;
    bool isLambdaFormGeneratedMethod;
+   bool isForceInline;
    };
 
 
@@ -196,8 +197,10 @@ public:
    virtual void * methodTypeTableEntryAddress(int32_t cpIndex) override;
    virtual bool isUnresolvedCallSiteTableEntry(int32_t callSiteIndex) override;
    virtual void * callSiteTableEntryAddress(int32_t callSiteIndex) override;
+#if defined(J9VM_OPT_METHOD_HANDLE)
    virtual bool isUnresolvedVarHandleMethodTypeTableEntry(int32_t cpIndex) override;
    virtual void * varHandleMethodTypeTableEntryAddress(int32_t cpIndex) override;
+#endif /* defined(J9VM_OPT_METHOD_HANDLE) */
    virtual TR_ResolvedMethod * getResolvedDynamicMethod(TR::Compilation *, int32_t cpIndex, bool * unresolvedInCP) override;
    virtual bool isSameMethod(TR_ResolvedMethod *) override;
    virtual bool isInlineable(TR::Compilation *) override;
@@ -213,6 +216,7 @@ public:
    virtual uint16_t archetypeArgPlaceholderSlot() override;
    virtual bool isFieldQType(int32_t cpIndex) override;
    virtual bool isFieldFlattened(TR::Compilation *comp, int32_t cpIndex, bool isStatic) override;
+   bool isForceInline() const { return _isForceInline; }
 
    TR_ResolvedJ9Method *getRemoteMirror() const { return _remoteMirror; }
    static void createResolvedMethodMirror(TR_ResolvedJ9JITServerMethodInfo &methodInfo, TR_OpaqueMethodBlock *method, uint32_t vTableSlot, TR_ResolvedMethod *owningMethod, TR_FrontEnd *fe, TR_Memory *trMemory);
@@ -250,6 +254,7 @@ private:
                                            // If method is not yet compiled this is null
    TR_IPMethodHashTableEntry *_iProfilerMethodEntry;
    bool _isLambdaFormGeneratedMethod;
+   bool _isForceInline;
 
    virtual char * fieldOrStaticName(I_32 cpIndex, int32_t & len, TR_Memory * trMemory, TR_AllocationKind kind = heapAlloc) override;
    void unpackMethodInfo(TR_OpaqueMethodBlock * aMethod, TR_FrontEnd * fe, TR_Memory * trMemory, uint32_t vTableSlot, TR::CompilationInfoPerThread *threadCompInfo, const TR_ResolvedJ9JITServerMethodInfo &methodInfo);

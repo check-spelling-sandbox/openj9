@@ -834,6 +834,14 @@ TR_J9ServerVM::isString(TR_OpaqueClassBlock * clazz)
    return std::get<0>(stream->read<bool>());
    }
 
+bool
+TR_J9ServerVM::isJavaLangObject(TR_OpaqueClassBlock *clazz)
+   {
+   JITServer::ServerStream *stream = _compInfoPT->getMethodBeingCompiled()->_stream;
+   auto *vmInfo = _compInfoPT->getClientData()->getOrCacheVMInfo(stream);
+   return clazz == vmInfo->_JavaLangObject;
+   }
+
 void *
 TR_J9ServerVM::getMethods(TR_OpaqueClassBlock * clazz)
    {
@@ -1087,7 +1095,7 @@ TR_J9ServerVM::canAllocateInlineClass(TR_OpaqueClassBlock *clazz)
 
    if (isClassInitialized)
       {
-      if (modifiers & (J9AccAbstract | J9AccInterface | J9AccValueType))
+      if (modifiers & (J9AccAbstract | J9AccInterface))
          {
          return false;
          }
@@ -2108,6 +2116,18 @@ TR_J9ServerVM::getHighTenureAddress()
    return _compInfoPT->getClientData()->getOrCacheVMInfo(stream)->_highTenureAddress;
    }
 
+TR_J9VMBase::MethodOfHandle TR_J9ServerVM::methodOfDirectOrVirtualHandle(
+   uintptr_t *mh, bool isVirtual)
+   {
+   auto stream = _compInfoPT->getMethodBeingCompiled()->_stream;
+   stream->write(JITServer::MessageType::VM_methodOfDirectOrVirtualHandle, mh, isVirtual);
+   auto recv = stream->read<TR_OpaqueMethodBlock*, int64_t>();
+   MethodOfHandle result = {};
+   result.j9method = std::get<0>(recv);
+   result.vmSlot = std::get<1>(recv);
+   return result;
+   }
+
 #if defined(J9VM_OPT_OPENJDK_METHODHANDLE)
 TR_OpaqueMethodBlock*
 TR_J9ServerVM::targetMethodFromMemberName(TR::Compilation* comp, TR::KnownObjectTable::Index objIndex)
@@ -2221,14 +2241,14 @@ TR_J9ServerVM::jniMethodIdFromMemberName(TR::Compilation* comp, TR::KnownObjectT
    return NULL;
    }
 
-int32_t
+uintptr_t
 TR_J9ServerVM::vTableOrITableIndexFromMemberName(uintptr_t memberName)
    {
    TR_ASSERT_FATAL(false, "vTableOrITableIndexFromMemberName must not be called on JITServer");
    return 0;
    }
 
-int32_t
+uintptr_t
 TR_J9ServerVM::vTableOrITableIndexFromMemberName(TR::Compilation* comp, TR::KnownObjectTable::Index objIndex)
    {
    auto knot = comp->getKnownObjectTable();
@@ -2238,9 +2258,50 @@ TR_J9ServerVM::vTableOrITableIndexFromMemberName(TR::Compilation* comp, TR::Know
       {
       JITServer::ServerStream *stream = _compInfoPT->getMethodBeingCompiled()->_stream;
       stream->write(JITServer::MessageType::VM_vTableOrITableIndexFromMemberName, objIndex);
-      return std::get<0>(stream->read<int32_t>());
+      return std::get<0>(stream->read<uintptr_t>());
       }
-   return -1;
+   return (uintptr_t)-1;
+   }
+
+TR::KnownObjectTable::Index
+TR_J9ServerVM::delegatingMethodHandleTargetHelper(TR::Compilation *comp, TR::KnownObjectTable::Index dmhIndex, TR_OpaqueClassBlock *cwClass)
+   {
+   TR::KnownObjectTable *knot = comp->getOrCreateKnownObjectTable();
+   if (!knot) return TR::KnownObjectTable::UNKNOWN;
+
+   JITServer::ServerStream *stream = _compInfoPT->getMethodBeingCompiled()->_stream;
+   stream->write(JITServer::MessageType::VM_delegatingMethodHandleTarget, dmhIndex, cwClass);
+   auto recv = stream->read<TR::KnownObjectTable::Index, uintptr_t *>();
+
+   TR::KnownObjectTable::Index idx = std::get<0>(recv);
+   knot->updateKnownObjectTableAtServer(idx, std::get<1>(recv));
+   return idx;
+   }
+
+UDATA
+TR_J9ServerVM::getVMTargetOffset()
+   {
+   JITServer::ServerStream *stream = _compInfoPT->getMethodBeingCompiled()->_stream;
+   auto *vmInfo = _compInfoPT->getClientData()->getOrCacheVMInfo(stream);
+   if (vmInfo->_vmtargetOffset)
+      return vmInfo->_vmtargetOffset;
+
+   stream->write(JITServer::MessageType::VM_getVMTargetOffset, JITServer::Void());
+   vmInfo->_vmtargetOffset = std::get<0>(stream->read<UDATA>());
+   return vmInfo->_vmtargetOffset;
+   }
+
+UDATA
+TR_J9ServerVM::getVMIndexOffset()
+   {
+   JITServer::ServerStream *stream = _compInfoPT->getMethodBeingCompiled()->_stream;
+   auto *vmInfo = _compInfoPT->getClientData()->getOrCacheVMInfo(stream);
+   if (vmInfo->_vmindexOffset)
+      return vmInfo->_vmindexOffset;
+
+   stream->write(JITServer::MessageType::VM_getVMIndexOffset, JITServer::Void());
+   vmInfo->_vmindexOffset = std::get<0>(stream->read<UDATA>());
+   return vmInfo->_vmindexOffset;
    }
 #endif /* defined(J9VM_OPT_OPENJDK_METHODHANDLE) */
 
@@ -2254,6 +2315,24 @@ TR_J9ServerVM::getMemberNameFieldKnotIndexFromMethodHandleKnotIndex(TR::Compilat
    TR::KnownObjectTable::Index mnIndex = std::get<0>(recv);
    comp->getKnownObjectTable()->updateKnownObjectTableAtServer(mnIndex, std::get<1>(recv));
    return mnIndex;
+   }
+
+bool
+TR_J9ServerVM::isMethodHandleExpectedType(
+   TR::Compilation *comp,
+   TR::KnownObjectTable::Index mhIndex,
+   TR::KnownObjectTable::Index expectedTypeIndex)
+   {
+   TR::KnownObjectTable *knot = comp->getKnownObjectTable();
+   if (!knot)
+      return false;
+   JITServer::ServerStream *stream = _compInfoPT->getMethodBeingCompiled()->_stream;
+   stream->write(JITServer::MessageType::VM_isMethodHandleExpectedType, mhIndex, expectedTypeIndex);
+   auto recv = stream->read<bool, uintptr_t *, uintptr_t *>();
+
+   knot->updateKnownObjectTableAtServer(mhIndex, std::get<1>(recv));
+   knot->updateKnownObjectTableAtServer(expectedTypeIndex, std::get<2>(recv));
+   return std::get<0>(recv);
    }
 
 bool
@@ -2276,6 +2355,12 @@ TR_J9ServerVM::isStable(J9Class *fieldClass, int cpIndex)
    JITServer::ServerStream *stream = _compInfoPT->getMethodBeingCompiled()->_stream;
    stream->write(JITServer::MessageType::VM_isStable, fieldClass, cpIndex);
    return std::get<0>(stream->read<bool>());
+   }
+
+bool
+TR_J9ServerVM::isForceInline(TR_ResolvedMethod *method)
+   {
+   return static_cast<TR_ResolvedJ9JITServerMethod *>(method)->isForceInline();
    }
 
 bool
@@ -2553,7 +2638,7 @@ TR_J9SharedCacheServerVM::stackWalkerMaySkipFrames(TR_OpaqueMethodBlock *method,
    bool skipFrames = false;
    TR::Compilation *comp = _compInfoPT->getCompilation();
    // For AOT with SVM do not optimize the messages by calling TR_J9ServerVM::stackWalkerMaySkipFrames
-   // because this will call isInstanceOf() and then isSuperClass() which will fail the 
+   // because this will call isInstanceOf() and then isSuperClass() which will fail the
    // the SVM validation check and result in an AOT compilation failure
    if (comp && comp->getOption(TR_UseSymbolValidationManager))
       {

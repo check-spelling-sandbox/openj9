@@ -97,7 +97,7 @@ typedef struct J9ClassLoaderWalkState {
 /* temporary define to allow JIT work to promote and be enabled at the same time as the vm side */
 #define NEW_FANIN_INFRA
 
-/* -------------- Add C-level global definitions below this point ------------------ */ 
+/* -------------- Add C-level global definitions below this point ------------------ */
 
 /*
  * Simultaneously check if the flags field has the sign bit set and the valueOffset is non-zero.
@@ -130,37 +130,52 @@ typedef struct J9ClassLoaderWalkState {
 
 #define IS_STRING_COMPRESSION_ENABLED_VM(javaVM) (FALSE != (javaVM)->strCompEnabled)
 
+#if JAVA_SPEC_VERSION >= 11
+
 #define IS_STRING_COMPRESSED(vmThread, object) \
 	(IS_STRING_COMPRESSION_ENABLED(vmThread) ? \
-		(J2SE_VERSION((vmThread)->javaVM) >= J2SE_V11 ? \
-			(((I_32) J9VMJAVALANGSTRING_CODER(vmThread, object)) == 0) : \
-			(((I_32) J9VMJAVALANGSTRING_COUNT(vmThread, object)) >= 0)) : \
+		(((I_32) J9VMJAVALANGSTRING_CODER(vmThread, object)) == 0) : \
 		FALSE)
 
 #define IS_STRING_COMPRESSED_VM(javaVM, object) \
 	(IS_STRING_COMPRESSION_ENABLED_VM(javaVM) ? \
-		(J2SE_VERSION(javaVM) >= J2SE_V11 ? \
-			(((I_32) J9VMJAVALANGSTRING_CODER_VM(javaVM, object)) == 0) : \
-			(((I_32) J9VMJAVALANGSTRING_COUNT_VM(javaVM, object)) >= 0)) : \
+		(((I_32) J9VMJAVALANGSTRING_CODER_VM(javaVM, object)) == 0) : \
 		FALSE)
 
 #define J9VMJAVALANGSTRING_LENGTH(vmThread, object) \
 	(IS_STRING_COMPRESSION_ENABLED(vmThread) ? \
-		(J2SE_VERSION((vmThread)->javaVM) >= J2SE_V11 ? \
-			(J9INDEXABLEOBJECT_SIZE(vmThread, J9VMJAVALANGSTRING_VALUE(vmThread, object)) >> ((I_32) J9VMJAVALANGSTRING_CODER(vmThread, object))) : \
-			(J9VMJAVALANGSTRING_COUNT(vmThread, object) & 0x7FFFFFFF)) : \
-		(J2SE_VERSION((vmThread)->javaVM) >= J2SE_V11 ? \
-			(J9INDEXABLEOBJECT_SIZE(vmThread, J9VMJAVALANGSTRING_VALUE(vmThread, object)) >> 1) : \
-			(J9VMJAVALANGSTRING_COUNT(vmThread, object))))
+		(J9INDEXABLEOBJECT_SIZE(vmThread, J9VMJAVALANGSTRING_VALUE(vmThread, object)) >> ((I_32) J9VMJAVALANGSTRING_CODER(vmThread, object))) : \
+		(J9INDEXABLEOBJECT_SIZE(vmThread, J9VMJAVALANGSTRING_VALUE(vmThread, object)) >> 1))
 
 #define J9VMJAVALANGSTRING_LENGTH_VM(javaVM, object) \
 	(IS_STRING_COMPRESSION_ENABLED_VM(javaVM) ? \
-		(J2SE_VERSION(javaVM) >= J2SE_V11 ? \
-			(J9INDEXABLEOBJECT_SIZE_VM(javaVM, J9VMJAVALANGSTRING_VALUE_VM(javaVM, object)) >> ((I_32) J9VMJAVALANGSTRING_CODER_VM(javaVM, object))) : \
-			(J9VMJAVALANGSTRING_COUNT_VM(javaVM, object) & 0x7FFFFFFF)) : \
-		(J2SE_VERSION(javaVM) >= J2SE_V11 ? \
-			(J9INDEXABLEOBJECT_SIZE_VM(javaVM, J9VMJAVALANGSTRING_VALUE_VM(javaVM, object)) >> 1) : \
-			(J9VMJAVALANGSTRING_COUNT_VM(javaVM, object))))
+		(J9INDEXABLEOBJECT_SIZE_VM(javaVM, J9VMJAVALANGSTRING_VALUE_VM(javaVM, object)) >> ((I_32) J9VMJAVALANGSTRING_CODER_VM(javaVM, object))) : \
+		(J9INDEXABLEOBJECT_SIZE_VM(javaVM, J9VMJAVALANGSTRING_VALUE_VM(javaVM, object)) >> 1))
+
+#else /* JAVA_SPEC_VERSION >= 11 */
+
+#define IS_STRING_COMPRESSED(vmThread, object) \
+	(IS_STRING_COMPRESSION_ENABLED(vmThread) ? \
+		(((I_32) J9VMJAVALANGSTRING_COUNT(vmThread, object)) >= 0) : \
+		FALSE)
+
+#define IS_STRING_COMPRESSED_VM(javaVM, object) \
+	(IS_STRING_COMPRESSION_ENABLED_VM(javaVM) ? \
+		(((I_32) J9VMJAVALANGSTRING_COUNT_VM(javaVM, object)) >= 0) : \
+		FALSE)
+
+#define J9VMJAVALANGSTRING_LENGTH(vmThread, object) \
+	(IS_STRING_COMPRESSION_ENABLED(vmThread) ? \
+		(J9VMJAVALANGSTRING_COUNT(vmThread, object) & 0x7FFFFFFF) : \
+		(J9VMJAVALANGSTRING_COUNT(vmThread, object)))
+
+#define J9VMJAVALANGSTRING_LENGTH_VM(javaVM, object) \
+	(IS_STRING_COMPRESSION_ENABLED_VM(javaVM) ? \
+		(J9VMJAVALANGSTRING_COUNT_VM(javaVM, object) & 0x7FFFFFFF) : \
+		(J9VMJAVALANGSTRING_COUNT_VM(javaVM, object)))
+
+#endif /* JAVA_SPEC_VERSION >= 11 */
+
 
 /* UTF8 access macros - all access to J9UTF8 fields should be done through these macros */
 
@@ -177,6 +192,9 @@ typedef struct J9ClassLoaderWalkState {
  * E.g.: LITERAL_STRLEN("lib") == 3
  */
 #define LITERAL_STRLEN(string_literal) ((IDATA)(sizeof(string_literal) - 1))
+
+#define ROUND_UP_TO(granularity, number) ((((number) % (granularity)) ? ((number) + (granularity) - ((number) % (granularity))) : (number)))
+#define ROUND_DOWN_TO(granularity, number) ((number) - ((number) % (granularity)))
 
 #define ROUND_UP_TO_POWEROF2(value, powerof2) (((value) + ((powerof2) - 1)) & (UDATA)~((powerof2) - 1))
 #undef ROUND_DOWN_TO_POWEROF2
@@ -331,6 +349,8 @@ static const struct { \
 #define IS_REF_OR_VAL_SIGNATURE(firstChar) ('L' == (firstChar))
 #define IS_QTYPE(firstChar) FALSE
 #endif /* J9VM_OPT_VALHALLA_VALUE_TYPES */
+
+#define J9_IS_STRING_DESCRIPTOR(str, strLen) (((strLen) > 2) && (IS_REF_OR_VAL_SIGNATURE(*(str))) && (';' == *((str) + (strLen) - 1)))
 
 #if defined(OPENJ9_BUILD)
 #define J9_SHARED_CACHE_DEFAULT_BOOT_SHARING(vm) TRUE

@@ -2460,8 +2460,8 @@ swapClassesForFastHCR(J9Class *originalClass, J9Class *obsoleteClass)
 	SWAP_MEMBER(romClass, J9ROMClass *, originalClass, obsoleteClass);
 	SWAP_MEMBER(ramMethods, J9Method *, originalClass, obsoleteClass);
 	SWAP_MEMBER(ramConstantPool, J9ConstantPool *, originalClass, obsoleteClass);
-	((J9ConstantPool *) originalClass->ramConstantPool)->ramClass = originalClass;
-	((J9ConstantPool *) obsoleteClass->ramConstantPool)->ramClass = obsoleteClass;
+	originalClass->ramConstantPool->ramClass = originalClass;
+	obsoleteClass->ramConstantPool->ramClass = obsoleteClass;
 	SWAP_MEMBER(replacedClass, J9Class *, originalClass, obsoleteClass);
 	SWAP_MEMBER(staticSplitMethodTable, J9Method **, originalClass, obsoleteClass);
 	SWAP_MEMBER(specialSplitMethodTable, J9Method **, originalClass, obsoleteClass);
@@ -4099,13 +4099,13 @@ hshelpUTRegister(J9JavaVM *vm)
  * jit to patch the compiled code to account for the redefined classes.
  */
 void
-jitClassRedefineEvent(J9VMThread * currentThread, J9JVMTIHCRJitEventData * jitEventData, UDATA extensionsEnabled)
+jitClassRedefineEvent(J9VMThread * currentThread, J9JVMTIHCRJitEventData * jitEventData, UDATA extensionsEnabled, UDATA extensionsUsed)
 {
 	J9JavaVM * vm = currentThread->javaVM;
 	J9JITConfig *jitConfig = vm->jitConfig;
 
 	if (NULL != jitConfig) {
-		jitConfig->jitClassesRedefined(currentThread, jitEventData->classCount, (J9JITRedefinedClass*)jitEventData->data);
+		jitConfig->jitClassesRedefined(currentThread, jitEventData->classCount, (J9JITRedefinedClass*)jitEventData->data, extensionsUsed);
 		if (extensionsEnabled) {
 			/* Toss the whole code cache */
 			jitConfig->jitHotswapOccurred(currentThread);

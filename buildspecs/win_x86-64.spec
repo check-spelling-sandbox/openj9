@@ -219,7 +219,6 @@ SPDX-License-Identifier: EPL-2.0 OR Apache-2.0 OR GPL-2.0 WITH Classpath-excepti
 		<flag id="module_shared_common" value="true"/>
 		<flag id="module_shared_test" value="true"/>
 		<flag id="module_shared_util" value="true"/>
-		<flag id="module_thrtrace" value="true"/>
 		<flag id="module_verbose" value="true"/>
 		<flag id="module_zip" value="true"/>
 		<flag id="module_zlib" value="true"/>
@@ -251,8 +250,6 @@ SPDX-License-Identifier: EPL-2.0 OR Apache-2.0 OR GPL-2.0 WITH Classpath-excepti
 		<flag id="port_omrsigSupport" value="true"/>
 		<flag id="port_signalSupport" value="true"/>
 		<flag id="prof_eventReporting" value="true"/>
-		<flag id="ras_dumpAgents" value="true"/>
-		<flag id="ras_eyecatchers" value="true"/>
 		<flag id="size_optimizeSendTargets" value="true"/>
 		<flag id="test_cunit" value="true"/>
 		<flag id="test_jvmti" value="true"/>

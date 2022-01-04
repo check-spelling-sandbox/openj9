@@ -1249,6 +1249,14 @@ readPool(J9CfrClassFile* classfile, U_8* data, U_8* dataEnd, U_8* segment, U_8* 
 				previousUTF8 = info;
 			}
 			classfile->lastUTF8CPIndex = i;
+#if defined(J9VM_OPT_VALHALLA_VALUE_TYPES)
+			/**
+			 * The following line should be put inside if (classfile->majorVersion > 61) according to the SPEC. However, the current
+			 * OpenJDK Valhalla implementation is not updated on this yet. There are cases that the new VT form is used in old classes
+			 * from OpenJDK Valhalla JCL.
+			 */
+			info->flags1 |= CFR_CLASS_FILE_VERSION_SUPPORT_VALUE_TYPE;
+#endif /* defined(J9VM_OPT_VALHALLA_VALUE_TYPES) */
 			i++;
 			break;
 
@@ -2168,6 +2176,22 @@ checkAttributes(J9PortLibrary* portLib, J9CfrClassFile* classfile, J9CfrAttribut
 					errorCode = J9NLS_CFR_ERR_OUTER_CLASS_NOT_CLASS__ID;
 					goto _errorFound;
 				}
+				if (0 != value) {
+					J9CfrConstantPoolInfo* outerClassInfoUtf8 = &cpBase[cpBase[value].slot1];
+					if (CFR_CONSTANT_Utf8 != outerClassInfoUtf8->tag) {
+						errorCode = J9NLS_CFR_ERR_OUTER_CLASS_NAME_NOT_UTF8__ID;
+						goto _errorFound;
+					}
+					if (0 == outerClassInfoUtf8->slot1) {
+						errorCode = J9NLS_CFR_ERR_OUTER_CLASS_UTF8_ZERO_LENGTH__ID;
+						goto _errorFound;
+					}
+					/* Capture the error if the outer_class_info_index points to an array class */
+					if ('[' == outerClassInfoUtf8->bytes[0]) {
+						errorCode = J9NLS_CFR_ERR_OUTER_CLASS_BAD_ARRAY_CLASS__ID;
+						goto _errorFound;
+					}
+				}
 				/* Check class name integrity? */
 
 				value = classes->classes[j].innerNameIndex;
@@ -2766,7 +2790,7 @@ j9bcutil_readClassFileBytes(J9PortLibrary *portLib,
 	ALLOC(classfile, J9CfrClassFile);
 
 	/* Verify the class version before any other checks. */
-	CHECK_EOF(8); /* magic, minor version, master version */
+	CHECK_EOF(8); /* magic, minor version, major version */
 	NEXT_U32(classfile->magic, index);
 	if (classfile->magic != (U_32) CFR_MAGIC) {
 		errorCode = J9NLS_CFR_ERR_MAGIC__ID;

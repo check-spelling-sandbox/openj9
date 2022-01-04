@@ -500,6 +500,16 @@ public:
    void setSupportsInlineStringHashCode() { _j9Flags.set(SupportsInlineStringHashCode); }
 
    /** \brief
+   *    Determines whether the code generator supports inlining of java/lang/StringLatin1.inflate
+   */
+   bool getSupportsInlineStringLatin1Inflate() { return _j9Flags.testAny(SupportsInlineStringLatin1Inflate); }
+
+   /** \brief
+   *    The code generator supports inlining of java/lang/StringLatin1.inflate
+   */
+   void setSupportsInlineStringLatin1Inflate() { _j9Flags.set(SupportsInlineStringLatin1Inflate); }
+
+   /** \brief
    *    Determines whether the code generator supports inlining of java_util_concurrent_ConcurrentLinkedQueue_tm*
    *    methods
    */
@@ -585,6 +595,16 @@ public:
     */
    uint32_t initializeLinkageInfo(void *linkageInfoPtr);
 
+   /**
+    * \brief Check if a profiled class is compatible with the call site
+    *
+    * \param[in] profiledClass : The J9Class obtained from profiling data
+    * \param[in] callSiteMethodClass : The J9Class from the J9Method of the call site target
+    *
+    * \return True if it can be determined that the profiled class is compatible, otherwise False
+    */
+   bool isProfiledClassAndCallSiteCompatible(TR_OpaqueClassBlock *profiledClass, TR_OpaqueClassBlock *callSiteMethodClass);
+
 private:
 
    enum // Flags
@@ -596,6 +616,7 @@ private:
       SupportsInlineStringHashCode                        = 0x00000010, /*! codegen inlining of Java string hash code */
       SupportsInlineConcurrentLinkedQueue                 = 0x00000020,
       SupportsBigDecimalLongLookasideVersioning           = 0x00000040,
+      SupportsInlineStringLatin1Inflate                   = 0x00000080, /*! codegen inlining of Java StringLatin1.inflate */
       };
 
    flags32_t _j9Flags;

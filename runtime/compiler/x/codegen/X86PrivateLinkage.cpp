@@ -1182,7 +1182,7 @@ TR::X86CallSite::X86CallSite(TR::Node *callNode, TR::Linkage *calleeLinkage)
       //
       TR::Method *interfaceMethod = getMethodSymbol()->getMethod();
       int32_t len = interfaceMethod->classNameLength();
-      char * s = classNameToSignature(interfaceMethod->classNameChars(), len, comp());
+      char * s = TR::Compiler->cls.classNameToSignature(interfaceMethod->classNameChars(), len, comp());
       _interfaceClassOfMethod = fej9->getClassFromSignature(s, len, getSymbolReference()->getOwningMethod(comp()));
       }
 
@@ -1344,12 +1344,11 @@ void TR::X86CallSite::computeProfiledTargets()
                {
                topValue = 0;
                }
-            // We can't do this guarded devirtualization if the profile data is not correct for this context. See defect 98813
             else
                {
                //printf("Checking is instanceof for top %p for %s\n", topValue, methodSymRef->getSymbol()->getResolvedMethodSymbol()->getResolvedMethod()->signature(comp()->trMemory())); fflush(stdout);
-               TR_OpaqueClassBlock *callSiteMethod = methodSymRef->getSymbol()->getResolvedMethodSymbol()->getResolvedMethod()->classOfMethod();
-               if (fej9->isInstanceOf((TR_OpaqueClassBlock *)topValue, callSiteMethod, true, true) != TR_yes)
+               TR_OpaqueClassBlock *callSiteMethodClass = methodSymRef->getSymbol()->getResolvedMethodSymbol()->getResolvedMethod()->classOfMethod();
+               if (!cg()->isProfiledClassAndCallSiteCompatible((TR_OpaqueClassBlock *)topValue, callSiteMethodClass))
                   {
                   topValue = 0;
                   }
@@ -1744,6 +1743,7 @@ TR::Register *J9::X86::PrivateLinkage::buildIndirectDispatch(TR::Node *callNode)
          switch (method->getMandatoryRecognizedMethod())
             {
             case TR::java_lang_invoke_ComputedCalls_dispatchVirtual:
+            case TR::com_ibm_jit_JITHelpers_dispatchVirtual:
                {
                // Need a j2i thunk for the method that will ultimately be dispatched by this handle call
                char *j2iSignature = fej9->getJ2IThunkSignatureForDispatchVirtual(methodSymbol->getMethod()->signatureChars(), methodSymbol->getMethod()->signatureLength(), comp());
@@ -2139,7 +2139,9 @@ TR::Instruction *J9::X86::PrivateLinkage::buildVFTCall(TR::X86CallSite &site, TR
       TR::Node *callNode = site.getCallNode();
       TR::ResolvedMethodSymbol *resolvedMethodSymbol = callNode->getSymbol()->getResolvedMethodSymbol();
       bool mayReachJ2IThunk = true;
-      if (resolvedMethodSymbol && resolvedMethodSymbol->getRecognizedMethod() == TR::java_lang_invoke_ComputedCalls_dispatchDirect)
+      if (resolvedMethodSymbol &&
+            (resolvedMethodSymbol->getRecognizedMethod() == TR::java_lang_invoke_ComputedCalls_dispatchDirect ||
+            resolvedMethodSymbol->getRecognizedMethod() == TR::com_ibm_jit_JITHelpers_dispatchComputedStaticCall))
          mayReachJ2IThunk = false;
       if (mayReachJ2IThunk && dispatchOp.isCallOp())
          {

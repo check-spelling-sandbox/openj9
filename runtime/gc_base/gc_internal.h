@@ -255,6 +255,7 @@ extern J9_CFUNC void j9gc_objaccess_jniReleaseStringCritical(J9VMThread* vmThrea
 extern J9_CFUNC UDATA j9gc_arraylet_getLeafSize(J9JavaVM* javaVM);
 extern J9_CFUNC UDATA j9gc_arraylet_getLeafLogSize(J9JavaVM* javaVM);
 extern J9_CFUNC void j9gc_get_CPU_times(J9JavaVM *javaVM, U_64* mainCpuMillis, U_64* workerCpuMillis, U_32* maxThreads, U_32* currentThreads);
+extern J9_CFUNC void j9gc_ensureLockedSynchronizersIntegrity(J9VMThread *vmThread);
 
 
 /* J9VMFinalizeSupport*/
@@ -275,6 +276,7 @@ void j9mm_get_guaranteed_nursery_range(J9JavaVM* javaVM, void** start, void** en
 
 /* StringTable.cpp */
 extern J9_CFUNC j9object_t j9gc_createJavaLangString(J9VMThread *vmThread, U_8 *data, UDATA length, UDATA stringFlags);
+extern J9_CFUNC j9object_t j9gc_createJavaLangStringWithUTFCache(J9VMThread *vmThread, J9UTF8 *utf);
 extern J9_CFUNC j9object_t j9gc_internString(J9VMThread *vmThread, j9object_t sourceString);
 extern UDATA j9gc_stringHashFn (void *key, void *userData);
 extern BOOLEAN j9gc_stringHashEqualFn (void *leftKey, void *rightKey, void *userData);

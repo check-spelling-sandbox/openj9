@@ -118,7 +118,7 @@ isNameOrSignatureQtype(J9UTF8 *utfWrapper)
 BOOLEAN
 isClassRefQtype(J9Class *cpContextClass, U_16 cpIndex)
 {
-	return VM_ValueTypeHelpers::isClassRefQtype((J9ConstantPool *) cpContextClass->ramConstantPool, cpIndex);
+	return VM_ValueTypeHelpers::isClassRefQtype(cpContextClass->ramConstantPool, cpIndex);
 }
 
 UDATA
@@ -175,9 +175,12 @@ getFlattenableFieldOffset(J9Class *fieldOwner, J9ROMFieldShape *field)
 BOOLEAN
 isFlattenableFieldFlattened(J9Class *fieldOwner, J9ROMFieldShape *field)
 {
-        Assert_VM_notNull(fieldOwner);
-        Assert_VM_notNull(field);
-        BOOLEAN fieldFlattened = J9_IS_FIELD_FLATTENED(getFlattenableFieldType(fieldOwner, field), field);
+        BOOLEAN fieldFlattened = FALSE;
+        if (NULL != fieldOwner->flattenedClassCache) {
+                Assert_VM_notNull(fieldOwner);
+                Assert_VM_notNull(field);
+                fieldFlattened = J9_IS_FIELD_FLATTENED(getFlattenableFieldType(fieldOwner, field), field);
+        }
 
         return fieldFlattened;
 }
@@ -242,6 +245,5 @@ areValueTypesEnabled(J9JavaVM *vm)
 {
 	return J9_ARE_ALL_BITS_SET(vm->extendedRuntimeFlags2, J9_EXTENDED_RUNTIME2_ENABLE_VALHALLA);
 }
-
 
 } /* extern "C" */

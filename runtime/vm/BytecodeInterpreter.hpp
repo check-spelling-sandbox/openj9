@@ -174,7 +174,6 @@ private:
 		VMStructHasBeenUpdated(REGISTER_ARGS);
 		return next;
 	}
-#endif /* defined(J9VM_OPT_METHOD_HANDLE) */
 
 	/**
 	 * Modify the MH.invocationCount so that invocations from the interpreter don't
@@ -195,6 +194,7 @@ private:
 		I_32 count = J9VMJAVALANGINVOKEMETHODHANDLE_INVOCATIONCOUNT(_currentThread, methodHandle);
 		J9VMJAVALANGINVOKEMETHODHANDLE_SET_INVOCATIONCOUNT(_currentThread, methodHandle, count - 1);
 	}
+#endif /* defined(J9VM_OPT_METHOD_HANDLE) */
 
 #if defined(DO_SINGLE_STEP)
 	void VMINLINE
@@ -3980,6 +3980,113 @@ done:
 		return rc;
 	}
 
+#if defined(J9VM_OPT_VALHALLA_VALUE_TYPES)
+	/* ToDo: unimplemented - https://github.com/eclipse-openj9/openj9/issues/13614 */
+	/* jdk.internal.misc.Unsafe: public native <V> V getValue(Object obj, long offset, Class<?> clz); */
+	VMINLINE VM_BytecodeAction
+	inlUnsafeGetValue(REGISTER_ARGS_LIST)
+	{
+		updateVMStruct(REGISTER_ARGS);
+		Assert_VM_unreachable();
+		return EXECUTE_BYTECODE;
+	}
+
+	/* ToDo: unimplemented - https://github.com/eclipse-openj9/openj9/issues/13614 */
+	/* jdk.internal.misc.Unsafe: public native <V> void putValue(Object obj, long offset, Class<?> clz, V value); */
+	VMINLINE VM_BytecodeAction
+	inlUnsafePutValue(REGISTER_ARGS_LIST)
+	{
+		updateVMStruct(REGISTER_ARGS);
+		Assert_VM_unreachable();
+		return EXECUTE_BYTECODE;
+	}
+
+	/* jdk.internal.misc.Unsafe: public native <V> V uninitializedDefaultValue(Class<?> clz); */
+	VMINLINE VM_BytecodeAction
+	inlUnsafeUninitializedDefaultValue(REGISTER_ARGS_LIST)
+	{
+		j9object_t cls = *(j9object_t*)_sp;
+		j9object_t result = NULL;
+
+		/* TODO (#14073): update this function to have the same behavior as OpenJDK when cls is null or not a vlauetype (currently OpenJDK segfaults in both those scenarios) */
+		if (NULL != cls) {
+			J9Class *j9clazz = J9VM_J9CLASS_FROM_HEAPCLASS(_currentThread, cls);
+			if (J9_IS_J9CLASS_VALUETYPE(j9clazz)) {
+				result = j9clazz->flattenedClassCache->defaultValue;
+			}
+		}
+
+		returnObjectFromINL(REGISTER_ARGS, result, 2);
+		return EXECUTE_BYTECODE;
+	}
+
+	/* jdk.internal.misc.Unsafe: public native <V> long valueHeaderSize(Class<V> clz); */
+	VMINLINE VM_BytecodeAction
+	inlUnsafeValueHeaderSize(REGISTER_ARGS_LIST)
+	{
+		j9object_t cls = *(j9object_t*)_sp;
+		I_64 result = (I_64)0;
+
+		/* TODO (#14073): update this function to have the same behavior as OpenJDK when cls is null or not a vlauetype (currently OpenJDK segfaults in both those scenarios) */
+		if (NULL != cls) {
+			J9Class *j9clazz = J9VM_J9CLASS_FROM_HEAPCLASS(_currentThread, cls);
+			if (J9_IS_J9CLASS_VALUETYPE(j9clazz)) {
+				result = (I_64)J9VMTHREAD_OBJECT_HEADER_SIZE(_currentThread) + J9CLASS_PREPADDING_SIZE(j9clazz);
+			}
+		}
+
+		returnDoubleFromINL(REGISTER_ARGS, result, 2);
+		return EXECUTE_BYTECODE;
+	}
+
+	/* jdk.internal.misc.Unsafe: public native boolean isFlattenedArray(Class<?> clz); */
+	VMINLINE VM_BytecodeAction
+	inlUnsafeIsFlattenedArray(REGISTER_ARGS_LIST)
+	{
+		j9object_t cls = *(j9object_t*)_sp;
+
+		updateVMStruct(REGISTER_ARGS);
+		buildInternalNativeStackFrame(REGISTER_ARGS);
+
+		I_32 result = (I_32)FALSE;
+		if (NULL != cls) {
+			J9Class *fieldClazz = J9VM_J9CLASS_FROM_HEAPCLASS(_currentThread, cls);
+			if (J9CLASS_IS_ARRAY(fieldClazz)) {
+				result = (I_32)J9_IS_J9CLASS_FLATTENED(fieldClazz);
+			}
+		}
+
+		restoreInternalNativeStackFrame(REGISTER_ARGS);
+		returnSingleFromINL(REGISTER_ARGS, result, 2);
+		return EXECUTE_BYTECODE;
+	}
+
+	VMINLINE VM_BytecodeAction
+	inlUnsafeIsFlattened(REGISTER_ARGS_LIST)
+	{
+		j9object_t field = *(j9object_t*)_sp;
+		VM_BytecodeAction rc = EXECUTE_BYTECODE;
+
+		updateVMStruct(REGISTER_ARGS);
+		buildInternalNativeStackFrame(REGISTER_ARGS);
+
+		if (NULL == field) {
+			rc = THROW_NPE;
+		} else {
+			J9JNIFieldID *fieldID = _vm->reflectFunctions.idFromFieldObject(_currentThread, NULL, field);
+			if (VM_VMHelpers::exceptionPending(_currentThread)) {
+				rc = GOTO_THROW_CURRENT_EXCEPTION;
+			} else {
+				I_32 result = (I_32)isFlattenableFieldFlattened(fieldID->declaringClass, fieldID->field);
+				restoreInternalNativeStackFrame(REGISTER_ARGS);
+				returnSingleFromINL(REGISTER_ARGS, result, 2);
+			}
+		}
+
+		return rc;
+	}
+#endif /* J9VM_OPT_VALHALLA_VALUE_TYPES */
+
 	/* java.lang.J9VMInternals: private native static void prepareClassImpl(Class clazz); */
 	VMINLINE VM_BytecodeAction
 	inlInternalsPrepareClassImpl(REGISTER_ARGS_LIST)
@@ -4302,13 +4409,14 @@ done:
 		I_32 type = CPE_TYPE_UNUSABLE;
 		/* This native is only called for the boot loader, so vmRef is guaranteed to be initialized */
 		J9ClassLoader *classLoader = J9VMJAVALANGCLASSLOADER_VMREF(_currentThread, classLoaderObject);
-		/* Bounds check the parameter */
 		if ((cpIndex >= 0) && (cpIndex < (I_32)classLoader->classPathEntryCount)) {
 			/* Check the flags of the translation data struct */
 			J9TranslationBufferSet *translationData = _vm->dynamicLoadBuffers;
 			if (NULL != translationData) {
+				omrthread_rwmutex_enter_read(classLoader->cpEntriesMutex);
 				/* Initialize the class path entry */
-				J9ClassPathEntry *cpEntry = classLoader->classPathEntries + cpIndex;
+				J9ClassPathEntry *cpEntry = classLoader->classPathEntries[cpIndex];
+				omrthread_rwmutex_exit_read(classLoader->cpEntriesMutex);
 				type = (I_32)initializeClassPathEntry(_vm, cpEntry);
 			}
 		}
@@ -4672,6 +4780,182 @@ done:
 		}
 		return rc;
 	}
+
+#if JAVA_SPEC_VERSION >= 16
+	/**
+	 * @brief Convert argument or return type from ffi_type to J9NativeTypeCode
+	 * @param type[in] The pointer to the J9Class of the type
+	 * @return The J9NativeTypeCode corresponding to the J9Class
+	 */
+	VMINLINE U_8
+	getJ9NativeTypeCodeFromFFIType(ffi_type *type)
+	{
+		U_8 typeCode = 0;
+		if (&ffi_type_void == type) {
+			typeCode = J9NtcVoid;
+		} else if (&ffi_type_uint8 == type) {
+			typeCode = J9NtcBoolean;
+		} else if (&ffi_type_sint8 == type) {
+			typeCode = J9NtcByte;
+		} else if (&ffi_type_sint16 == type) {
+			typeCode = J9NtcShort;
+		} else if (&ffi_type_sint32 == type) {
+			typeCode = J9NtcInt;
+		} else if (&ffi_type_sint64 == type) {
+			typeCode = J9NtcLong;
+		} else if (&ffi_type_float == type) {
+			typeCode = J9NtcFloat;
+		} else if (&ffi_type_double == type) {
+			typeCode = J9NtcDouble;
+		} else if (&ffi_type_pointer == type) {
+			typeCode = J9NtcPointer;
+		} else {
+			Assert_VM_unreachable();
+		}
+		return typeCode;
+	}
+
+	/* jdk.internal.foreign.abi.ProgrammableInvoker:
+	 * private native long invokeNative(long functionAddr, long calloutThunk, long[] argValues);
+	 */
+	VMINLINE VM_BytecodeAction
+	inlProgrammableInvokerInvokeNative(REGISTER_ARGS_LIST)
+	{
+		VM_BytecodeAction rc = EXECUTE_BYTECODE;
+#if !defined(J9VM_ENV_LITTLE_ENDIAN)
+		/* Move forward by 4 bytes to the starting address of the int numbers on the platforms
+		 * with big-endianness given UDATA (8 bytes) is used to hold all types of arguments.
+		 */
+		const U_8 extraBytesOfInt = 4;
+		const U_8 extraBytesOfShortAndChar = extraBytesOfInt + 2;
+		const U_8 extraBytesOfBoolAndByte = extraBytesOfInt + 3;
+#endif /* J9VM_ENV_LITTLE_ENDIAN */
+#if FFI_NATIVE_RAW_API
+		/* Make sure we can fit a double in each sValues_raw[] slot but assuring we end up
+		 * with an int that is a  multiple of sizeof(ffi_raw)
+		 */
+		const U_8 valRawWorstCaseMulFactor = ((sizeof(double) - 1U) / sizeof(ffi_raw)) + 1U;
+		ffi_raw sValues_raw[valRawWorstCaseMulFactor * 16];
+		ffi_raw *values_raw = NULL;
+#endif /* FFI_NATIVE_RAW_API */
+		void *sValues[16];
+		U_64 spValues[16];
+		void **values = NULL;
+		U_64 *pointerValues = NULL;
+		UDATA *returnStorage = &(_currentThread->returnValue);
+		U_64 *ffiArgs = _currentThread->ffiArgs;
+		U_64 sFfiArgs[16];
+
+		j9object_t argValues = *(j9object_t *)_sp; // argValues
+		ffi_cif *cif = (ffi_cif *)(UDATA)*(I_64 *)(_sp + 1); // calloutThunk
+		void *function = (void *)(UDATA)*(I_64 *)(_sp + 3); // functionAddr
+		U_8 returnType = getJ9NativeTypeCodeFromFFIType(cif->rtype);
+		U_32 ffiArgCount = J9INDEXABLEOBJECT_SIZE(currentThread, argValues);
+		const U_8 minimalCallout = 16;
+		bool isMinimal = (ffiArgCount <= minimalCallout);
+
+		PORT_ACCESS_FROM_JAVAVM(_vm);
+
+		if (isMinimal) {
+			values = sValues;
+			pointerValues = spValues;
+			ffiArgs = sFfiArgs;
+#if FFI_NATIVE_RAW_API
+			values_raw = sValues_raw;
+#endif /* FFI_NATIVE_RAW_API */
+		} else {
+			values = (void **)j9mem_allocate_memory(sizeof(void *) * ffiArgCount, OMRMEM_CATEGORY_VM);
+			if (NULL == values) {
+				goto ffi_OOM;
+			}
+
+			pointerValues = (U_64 *)j9mem_allocate_memory(sizeof(U_64) * ffiArgCount, OMRMEM_CATEGORY_VM);
+			if (NULL == pointerValues) {
+				goto ffi_OOM;
+			}
+
+			/* Only reallocate if the size of the existing native memory is less than the requested size */
+			if ((NULL != ffiArgs) && (ffiArgCount > _currentThread->ffiArgCount)) {
+				j9mem_free_memory(ffiArgs);
+				ffiArgs = NULL;
+			}
+			if (NULL == ffiArgs) {
+				ffiArgs = (U_64 *)j9mem_allocate_memory(sizeof(U_64) * ffiArgCount, OMRMEM_CATEGORY_VM);
+				if (NULL == ffiArgs) {
+					goto ffi_OOM;
+				}
+				_currentThread->ffiArgs = ffiArgs;
+				_currentThread->ffiArgCount = ffiArgCount;
+			}
+
+#if FFI_NATIVE_RAW_API
+			values_raw = (ffi_raw *)j9mem_allocate_memory((valRawWorstCaseMulFactor * sizeof(ffi_raw)) * ffiArgCount, OMRMEM_CATEGORY_VM);
+			if (NULL == values_raw) {
+				goto ffi_OOM;
+			}
+#endif /* FFI_NATIVE_RAW_API */
+		}
+
+		/* Convert the argument array object on the stack to a native memory for access */
+		ffiArgs = convertToNativeArgArray(_currentThread, argValues, ffiArgs);
+
+		for (U_8 i = 0; i < ffiArgCount; i++) {
+			U_8 argType = getJ9NativeTypeCodeFromFFIType(cif->arg_types[i]);
+
+			if (0 == ffiArgs[i]) {
+				values[i] = &(ffiArgs[i]);
+			} else if (J9NtcPointer == argType) {
+				/* ffi_call expects the address of the pointer is the address of the stackslot */
+				pointerValues[i] = (U_64)ffiArgs[i];
+				values[i] = &pointerValues[i];
+			} else {
+				values[i] = &(ffiArgs[i]);
+#if !defined(J9VM_ENV_LITTLE_ENDIAN)
+				/* Note: A float number is converted to int by Float.floatToIntBits() in ProgrammableInvoker */
+				if ((J9NtcInt == argType) || (J9NtcFloat == argType)) {
+					values[i] = (void *)((U_64)values[i] + extraBytesOfInt);
+				} else if ((J9NtcShort == argType) || (J9NtcChar == argType)) {
+					values[i] = (void *)((U_64)values[i] + extraBytesOfShortAndChar);
+				} else if ((J9NtcBoolean == argType) || (J9NtcByte == argType)) {
+					values[i] = (void *)((U_64)values[i] + extraBytesOfBoolAndByte);
+				}
+#endif /*J9VM_ENV_LITTLE_ENDIAN */
+			}
+		}
+
+		updateVMStruct(REGISTER_ARGS);
+		VM_VMAccess::inlineExitVMToJNI(_currentThread);
+#if FFI_NATIVE_RAW_API
+		ffi_ptrarray_to_raw(cif, values, values_raw);
+		ffi_raw_call(cif, FFI_FN(function), returnStorage, values_raw);
+#else /* FFI_NATIVE_RAW_API */
+		ffi_call(cif, FFI_FN(function), returnStorage, values);
+#endif /* FFI_NATIVE_RAW_API */
+		VM_VMAccess::inlineEnterVMFromJNI(_currentThread);
+		VMStructHasBeenUpdated(REGISTER_ARGS);
+
+		VM_VMHelpers::convertFFIReturnValue(_currentThread, returnType, returnStorage);
+		returnDoubleFromINL(REGISTER_ARGS, _currentThread->returnValue, 6);
+		goto done;
+
+ffi_OOM:
+		updateVMStruct(REGISTER_ARGS);
+		setNativeOutOfMemoryError(_currentThread, J9NLS_VM_NATIVE_OOM);
+		VMStructHasBeenUpdated(REGISTER_ARGS);
+		rc = GOTO_THROW_CURRENT_EXCEPTION;
+
+done:
+		if (!isMinimal) {
+			j9mem_free_memory(values);
+			j9mem_free_memory(pointerValues);
+#if FFI_NATIVE_RAW_API
+			j9mem_free_memory(values_raw);
+#endif /* FFI_NATIVE_RAW_API */
+		}
+
+		return rc;
+	}
+#endif /* JAVA_SPEC_VERSION >= 16 */
 
 	/* Redirect to out of line INL methods */
 	VMINLINE VM_BytecodeAction
@@ -5941,11 +6225,9 @@ done:
 				if ((NULL == value) && J9_IS_J9CLASS_FLATTENED(arrayrefClass)) {
 					/* We only get here due to an allocation failure */
 					buildGenericSpecialStackFrame(REGISTER_ARGS, 0);
-					pushObjectInSpecialFrame(REGISTER_ARGS, arrayref);
 					updateVMStruct(REGISTER_ARGS);
 					value = VM_ValueTypeHelpers::loadFlattenableArrayElement(_currentThread, _objectAccessBarrier, _objectAllocate, arrayref, index, false);
 					VMStructHasBeenUpdated(REGISTER_ARGS);
-					arrayref = popObjectInSpecialFrame(REGISTER_ARGS);
 					restoreGenericSpecialStackFrame(REGISTER_ARGS);
 					if (J9_UNEXPECTED(NULL == value)) {
 						rc = THROW_HEAP_OOM;
@@ -7510,6 +7792,7 @@ done:
 		U_8 arrayType = _pc[1];
 		I_32 size = *(I_32*)_sp;
 		if (J9_UNEXPECTED(size < 0)) {
+			_currentThread->tempSlot = size;
 			rc = THROW_NEGATIVE_ARRAY_SIZE;
 		} else {
 			J9Class *arrayClass = (&(_vm->booleanArrayClass))[arrayType - 4];
@@ -7542,6 +7825,7 @@ retry:
 		J9Class* volatile resolvedClass = ramCPEntry->value;
 		I_32 size = *(I_32*)_sp;
 		if (J9_UNEXPECTED(size < 0)) {
+			_currentThread->tempSlot = size;
 			rc = THROW_NEGATIVE_ARRAY_SIZE;
 			goto done;
 		}
@@ -8294,6 +8578,11 @@ done:
 	}
 
 #if defined(J9VM_OPT_OPENJDK_METHODHANDLE)
+	/* This INL only covers invokeBasic dispatched directly from bytecode, invokeBasic calls
+	 * dispatched from linkToVirtual is inlined to avoid need of flags and tempValues to
+	 * pass the correct argCount during VM transition since the ramCP index still points
+	 * to the invokeStatic bytecode for linkToVirtual.
+	 */
 	VMINLINE VM_BytecodeAction
 	invokeBasic(REGISTER_ARGS_LIST)
 	{
@@ -8366,9 +8655,34 @@ done:
 		if (fromJIT) {
 			/* Restore SP to before popping memberNameObject. */
 			_sp -= 1;
+			UDATA stackOffset = 1;
 
-			/* Shift arguments by 1 and place memberNameObject before the first argument. */
-			memmove(_sp, _sp + 1, methodArgCount * sizeof(UDATA));
+			/* The JIT stores the parameter slot count of the call in floatTemp1 for the unresolved case.
+			 * For the resolved case where the appendix object is known, the JIT stores -1 in floatTemp1.
+			 */
+			const IDATA jitResolvedCall = (IDATA)-1;
+
+			/* The JIT calls linkToStatic for unresolved invokedynamic and invokehandle sequences.
+			 * For invokedynamic and invokehandle, the appendix object should not be appended to the
+			 * stack if it is null. For the unresolved cases, the JIT does not know the value of the
+			 * appendix object prior to calling linkToStatic. For such JIT paths, the appendix object
+			 * should be removed from the stack if it is null.
+			 *
+			 * Stack shape should look like:
+			 *		_sp[0] = MemberName
+			 *		_sp[1] = Appendix (if not null)
+			 *		_sp[2] = Argument ...
+			 *
+			 * Or:
+			 *		_sp[0] = MemberName
+			 *		_sp[1] = Argument ...
+			 */
+			if ((jitResolvedCall != (IDATA)_currentThread->floatTemp1) && (NULL == ((j9object_t *)_sp)[1])) {
+				stackOffset = 2;
+			}
+
+			/* Shift arguments by stackOffset and place memberNameObject before the first argument. */
+			memmove(_sp, _sp + stackOffset, methodArgCount * sizeof(UDATA));
 			_sp[methodArgCount] = (UDATA)memberNameObject;
 
 			_currentThread->jitStackFrameFlags = 0;
@@ -8406,7 +8720,20 @@ throw_npe:
 
 		J9JNIMethodID *methodID = (J9JNIMethodID *)(UDATA)J9OBJECT_U64_LOAD(_currentThread, memberNameObject, _vm->vmindexOffset);
 		J9ROMMethod *romMethod = J9_ROM_METHOD_FROM_RAM_METHOD(methodID->method);
-		UDATA methodArgCount = romMethod->argCount;
+		UDATA methodArgCount = 0;
+		bool isInvokeBasic = (J9_BCLOOP_SEND_TARGET_METHODHANDLE_INVOKEBASIC == J9_BCLOOP_DECODE_SEND_TARGET(methodID->method->methodRunAddress));
+
+		/* In MethodHandle.loop API it may generate a invokeBasic NamedFunction (see LambdaForm$NamedFunction(MethodType basicInvokerType))
+		 * that is linked by linkToVirtual. As invokeBasic is signature polymorphic, the romMethod->argCount may not match the actual
+		 * parameter count on stack so VM have to retrieve the argCount from the target MemberName's methodType for these special cases.
+		 */
+		if (isInvokeBasic) {
+			j9object_t methodType = J9VMJAVALANGINVOKEMEMBERNAME_TYPE(_currentThread, memberNameObject);
+			/* +1 to account for the receiver */
+			methodArgCount = VM_VMHelpers::methodTypeParameterSlotCount(_currentThread, methodType) + 1;
+		} else {
+			methodArgCount = romMethod->argCount;
+		}
 
 		j9object_t receiverObject = ((j9object_t *)_sp)[methodArgCount - 1];
 		if (J9_UNEXPECTED(NULL == receiverObject)) {
@@ -8430,7 +8757,43 @@ throw_npe:
 			_sendMethod = (J9Method *)(UDATA)J9OBJECT_U64_LOAD(_currentThread, memberNameObject, _vm->vmtargetOffset);
 		} else {
 			J9Class *receiverClass = J9OBJECT_CLAZZ(_currentThread, receiverObject);
+
+			if (J9_ARE_ANY_BITS_SET(vTableOffset, J9_JNI_MID_INTERFACE)) {
+				/* Treat as iTable index for the method if J9_JNI_MID_INTERFACE is set. */
+				UDATA iTableIndex = vTableOffset & ~(UDATA)J9_JNI_MID_INTERFACE;
+				J9Class *interfaceClass = J9_CLASS_FROM_METHOD(methodID->method);
+				/* Get the latest version of the class for the iTable search. */
+				interfaceClass = VM_VMHelpers::currentClass(interfaceClass);
+				vTableOffset = 0;
+				J9ITable * iTable = receiverClass->lastITable;
+				if (interfaceClass == iTable->interfaceClass) {
+					goto foundITable;
+				}
+				iTable = (J9ITable*)receiverClass->iTable;
+				while (NULL != iTable) {
+					if (interfaceClass == iTable->interfaceClass) {
+						receiverClass->lastITable = iTable;
+foundITable:
+						vTableOffset = ((UDATA*)(iTable + 1))[iTableIndex];
+						break;
+					}
+					iTable = iTable->next;
+				}
+			}
 			_sendMethod = *(J9Method **)(((UDATA)receiverClass) + vTableOffset);
+		}
+
+		/* The invokeBasic INL uses the methodArgCount from ramCP to locate the receiver object,
+		 * so when dispatched using linkToVirtual, it will still access the ramCP of the linkToVirtual call
+		 * Hence if the argument count of linkToVirtual doesn't match invokeBasic's romMethod ArgCount, then
+		 * invokeBasic will be reading an incorrect receiver.
+		 * To avoid use of flags and tempValues to pass the correct argCount during VM transition, the
+		 * invokeBasic operation is inlined here to directly dispatch the actual target.
+		 */
+		if (isInvokeBasic) {
+			j9object_t lambdaForm = J9VMJAVALANGINVOKEMETHODHANDLE_FORM(_currentThread, receiverObject);
+			j9object_t memberName = J9VMJAVALANGINVOKELAMBDAFORM_VMENTRY(_currentThread, lambdaForm);
+			_sendMethod = (J9Method *)(UDATA)J9OBJECT_U64_LOAD(_currentThread, memberName, _vm->vmtargetOffset);
 		}
 
 		if (fromJIT) {
@@ -8454,6 +8817,13 @@ throw_npe:
 	{
 		VM_BytecodeAction rc = GOTO_RUN_METHOD;
 		bool fromJIT = J9_ARE_ANY_BITS_SET(_currentThread->jitStackFrameFlags, J9_SSF_JIT_NATIVE_TRANSITION_FRAME);
+		J9JNIMethodID *methodID = NULL;
+		J9ROMMethod *romMethod = NULL;
+		UDATA methodArgCount = 0;
+		j9object_t receiverObject = NULL;
+		J9Class *receiverClass = NULL;
+		J9Method *method = NULL;
+		UDATA vTableOffset = 0;
 
 		/* Pop memberNameObject from the stack. */
 		j9object_t memberNameObject = *(j9object_t *)_sp++;
@@ -8463,26 +8833,28 @@ throw_npe:
 				_sp -= 1;
 				buildJITResolveFrame(REGISTER_ARGS);
 			}
-			return THROW_NPE;
+			rc = THROW_NPE;
+			goto done;
 		}
 
-		J9JNIMethodID *methodID = (J9JNIMethodID *)(UDATA)J9OBJECT_U64_LOAD(_currentThread, memberNameObject, _vm->vmindexOffset);
-		J9ROMMethod *romMethod = J9_ROM_METHOD_FROM_RAM_METHOD(methodID->method);
-		UDATA methodArgCount = romMethod->argCount;
+		methodID = (J9JNIMethodID *)(UDATA)J9OBJECT_U64_LOAD(_currentThread, memberNameObject, _vm->vmindexOffset);
+		romMethod = J9_ROM_METHOD_FROM_RAM_METHOD(methodID->method);
+		methodArgCount = romMethod->argCount;
 
-		j9object_t receiverObject = ((j9object_t *)_sp)[methodArgCount - 1];
+		receiverObject = ((j9object_t *)_sp)[methodArgCount - 1];
 		if (J9_UNEXPECTED(NULL == receiverObject)) {
 			if (fromJIT) {
 				/* Restore SP to before popping memberNameObject. */
 				_sp -= 1;
 				buildJITResolveFrame(REGISTER_ARGS);
 			}
-			return THROW_NPE;
+			rc = THROW_NPE;
+			goto done;
 		}
 
-		J9Class *receiverClass = J9OBJECT_CLAZZ(_currentThread, receiverObject);
-		J9Method *method = (J9Method *)(UDATA)J9OBJECT_U64_LOAD(_currentThread, memberNameObject, _vm->vmtargetOffset);
-		UDATA vTableOffset = methodID->vTableIndex;
+		receiverClass = J9OBJECT_CLAZZ(_currentThread, receiverObject);
+		method = (J9Method *)(UDATA)J9OBJECT_U64_LOAD(_currentThread, memberNameObject, _vm->vmtargetOffset);
+		vTableOffset = methodID->vTableIndex;
 
 		/* vmindexOffset (J9JNIMethodID) is initialized using jnicsup.cpp::initializeMethodID.
 		 * initializeMethodID will set J9JNIMethodID->vTableIndex to 0 for private interface
@@ -8521,6 +8893,20 @@ foundITable:
 			_sendMethod = *(J9Method **)(((UDATA)receiverClass) + vTableOffset);
 		}
 
+		romMethod = J9_ROM_METHOD_FROM_RAM_METHOD(_sendMethod);
+		if (J9_ARE_NO_BITS_SET(romMethod->modifiers, J9AccPublic | J9AccPrivate)) {
+			if (fromJIT) {
+				_sp -= 1;
+				buildJITResolveFrame(REGISTER_ARGS);
+			}
+			updateVMStruct(REGISTER_ARGS);
+			prepareForExceptionThrow(_currentThread);
+			setIllegalAccessErrorNonPublicInvokeInterface(_currentThread, _sendMethod);
+			VMStructHasBeenUpdated(REGISTER_ARGS);
+			rc = GOTO_THROW_CURRENT_EXCEPTION;
+			goto done;
+		}
+
 		if (fromJIT) {
 			/* Restore SP to before popping memberNameObject. */
 			_sp -= 1;
@@ -8534,6 +8920,7 @@ foundITable:
 			rc = j2iTransition(REGISTER_ARGS);
 		}
 
+done:
 		return rc;
 	}
 
@@ -8597,7 +8984,7 @@ foundITable:
 	VMINLINE VM_BytecodeAction
 	invokevarhandle(REGISTER_ARGS_LIST)
 	{
-#if defined(J9VM_OPT_METHOD_HANDLE)
+#if defined(J9VM_OPT_METHOD_HANDLE) && (JAVA_SPEC_VERSION >= 11)
 		VM_BytecodeAction rc = GOTO_RUN_METHODHANDLE;
 
 		/* Determine stack shape */
@@ -8673,11 +9060,11 @@ foundITable:
 		}
 done:
 		return rc;
-#else /* defined(J9VM_OPT_METHOD_HANDLE) */
-	/* invokevarhandle is not used for OpenJDK VarHandles (J9VM_OPT_OPENJDK_METHODHANDLE). */
-	Assert_VM_unreachable();
-	return EXECUTE_BYTECODE;
-#endif /* defined(J9VM_OPT_METHOD_HANDLE) */
+#else /* defined(J9VM_OPT_METHOD_HANDLE) && (JAVA_SPEC_VERSION >= 11) */
+		/* invokevarhandle is not used for OpenJDK VarHandles (J9VM_OPT_OPENJDK_METHODHANDLE). */
+		Assert_VM_unreachable();
+		return EXECUTE_BYTECODE;
+#endif /* defined(J9VM_OPT_METHOD_HANDLE) && (JAVA_SPEC_VERSION >= 11) */
 	}
 
 	VMINLINE VM_BytecodeAction
@@ -9314,6 +9701,14 @@ public:
 		JUMP_TABLE_ENTRY(J9_BCLOOP_SEND_TARGET_INL_UNSAFE_COMPAREANDSWAPOBJECT),
 		JUMP_TABLE_ENTRY(J9_BCLOOP_SEND_TARGET_INL_UNSAFE_COMPAREANDSWAPLONG),
 		JUMP_TABLE_ENTRY(J9_BCLOOP_SEND_TARGET_INL_UNSAFE_COMPAREANDSWAPINT),
+#if defined(J9VM_OPT_VALHALLA_VALUE_TYPES)
+		JUMP_TABLE_ENTRY(J9_BCLOOP_SEND_TARGET_INL_UNSAFE_GETVALUE),
+		JUMP_TABLE_ENTRY(J9_BCLOOP_SEND_TARGET_INL_UNSAFE_PUTVALUE),
+		JUMP_TABLE_ENTRY(J9_BCLOOP_SEND_TARGET_INL_UNSAFE_UNINITIALIZEDDEFAULTVALUE),
+		JUMP_TABLE_ENTRY(J9_BCLOOP_SEND_TARGET_INL_UNSAFE_VALUEHEADERSIZE),
+		JUMP_TABLE_ENTRY(J9_BCLOOP_SEND_TARGET_INL_UNSAFE_ISFLATTENEDARRAY),
+		JUMP_TABLE_ENTRY(J9_BCLOOP_SEND_TARGET_INL_UNSAFE_ISFLATTENED),
+#endif /* J9VM_OPT_VALHALLA_VALUE_TYPES */
 		JUMP_TABLE_ENTRY(J9_BCLOOP_SEND_TARGET_INL_INTERNALS_GET_INTERFACES),
 		JUMP_TABLE_ENTRY(J9_BCLOOP_SEND_TARGET_INL_ARRAY_NEW_ARRAY_IMPL),
 		JUMP_TABLE_ENTRY(J9_BCLOOP_SEND_TARGET_INL_CLASSLOADER_FIND_LOADED_CLASS_IMPL),
@@ -9352,6 +9747,9 @@ public:
 		JUMP_TABLE_ENTRY(J9_BCLOOP_SEND_TARGET_METHODHANDLE_LINKTOINTERFACE),
 		JUMP_TABLE_ENTRY(J9_BCLOOP_SEND_TARGET_MEMBERNAME_DEFAULT_CONFLICT),
 #endif /* defined(J9VM_OPT_OPENJDK_METHODHANDLE) */
+#if JAVA_SPEC_VERSION >= 16
+		JUMP_TABLE_ENTRY(J9_BCLOOP_SEND_TARGET_INL_PROGRAMMABLEINVOKER_INVOKENATIVE),
+#endif /* JAVA_SPEC_VERSION >= 16 */
 	};
 #endif /* !defined(USE_COMPUTED_GOTO) */
 
@@ -9868,6 +10266,20 @@ runMethod: {
 		PERFORM_ACTION(inlUnsafeCompareAndSwapLong(REGISTER_ARGS));
 	JUMP_TARGET(J9_BCLOOP_SEND_TARGET_INL_UNSAFE_COMPAREANDSWAPINT):
 		PERFORM_ACTION(inlUnsafeCompareAndSwapInt(REGISTER_ARGS));
+#if defined(J9VM_OPT_VALHALLA_VALUE_TYPES)
+	JUMP_TARGET(J9_BCLOOP_SEND_TARGET_INL_UNSAFE_GETVALUE):
+		PERFORM_ACTION(inlUnsafeGetValue(REGISTER_ARGS));
+	JUMP_TARGET(J9_BCLOOP_SEND_TARGET_INL_UNSAFE_PUTVALUE):
+		PERFORM_ACTION(inlUnsafePutValue(REGISTER_ARGS));
+	JUMP_TARGET(J9_BCLOOP_SEND_TARGET_INL_UNSAFE_UNINITIALIZEDDEFAULTVALUE):
+		PERFORM_ACTION(inlUnsafeUninitializedDefaultValue(REGISTER_ARGS));
+	JUMP_TARGET(J9_BCLOOP_SEND_TARGET_INL_UNSAFE_VALUEHEADERSIZE):
+		PERFORM_ACTION(inlUnsafeValueHeaderSize(REGISTER_ARGS));
+	JUMP_TARGET(J9_BCLOOP_SEND_TARGET_INL_UNSAFE_ISFLATTENEDARRAY):
+		PERFORM_ACTION(inlUnsafeIsFlattenedArray(REGISTER_ARGS));
+	JUMP_TARGET(J9_BCLOOP_SEND_TARGET_INL_UNSAFE_ISFLATTENED):
+		PERFORM_ACTION(inlUnsafeIsFlattened(REGISTER_ARGS));
+#endif /* J9VM_OPT_VALHALLA_VALUE_TYPES */
 	JUMP_TARGET(J9_BCLOOP_SEND_TARGET_INL_INTERNALS_GET_INTERFACES):
 		PERFORM_ACTION(inlInternalsGetInterfaces(REGISTER_ARGS));
 	JUMP_TARGET(J9_BCLOOP_SEND_TARGET_INL_ARRAY_NEW_ARRAY_IMPL):
@@ -9942,6 +10354,10 @@ runMethod: {
 	JUMP_TARGET(J9_BCLOOP_SEND_TARGET_MEMBERNAME_DEFAULT_CONFLICT):
 		PERFORM_ACTION(throwDefaultConflictForMemberName(REGISTER_ARGS));
 #endif /* defined(J9VM_OPT_OPENJDK_METHODHANDLE) */
+#if JAVA_SPEC_VERSION >= 16
+	JUMP_TARGET(J9_BCLOOP_SEND_TARGET_INL_PROGRAMMABLEINVOKER_INVOKENATIVE):
+		PERFORM_ACTION(inlProgrammableInvokerInvokeNative(REGISTER_ARGS));
+#endif /* JAVA_SPEC_VERSION >= 16 */
 #if !defined(USE_COMPUTED_GOTO)
 	default:
 		Assert_VM_unreachable();
@@ -10083,7 +10499,7 @@ incompatibleClassChange:
 negativeArraySize:
 	updateVMStruct(REGISTER_ARGS);
 	prepareForExceptionThrow(_currentThread);
-	setCurrentExceptionUTF(_currentThread, J9VMCONSTANTPOOL_JAVALANGNEGATIVEARRAYSIZEEXCEPTION, NULL);
+	setNegativeArraySizeException(_currentThread, (I_32) _currentThread->tempSlot);
 	VMStructHasBeenUpdated(REGISTER_ARGS);
 	goto throwCurrentException;
 

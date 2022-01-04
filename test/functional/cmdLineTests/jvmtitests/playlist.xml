@@ -324,8 +324,8 @@
 	-explainExcludes \
 	-xids all,$(PLATFORM),$(JCL_VERSION) -xlist $(Q)$(TEST_RESROOT)$(D)jvmtitests_excludes_$(JDK_VERSION).xml$(Q) -nonZeroExitWhenError; \
 	${TEST_STATUS}</command>
-		<!-- Option -XX:+JitInlineWatches is currently unsupported on arm and aarch64 -->
-		<platformRequirements>^arch.arm,^arch.aarch64</platformRequirements>
+		<!-- Option -XX:+JitInlineWatches is currently unsupported on arm -->
+		<platformRequirements>^arch.arm</platformRequirements>
 		<levels>
 			<level>extended</level>
 		</levels>
@@ -464,6 +464,12 @@
 	</test>
 	<test>
 		<testCaseName>cmdLineTester_jvmtitests_hcr_OSRG_nongold</testCaseName>
+		<disables>
+			<disable>
+				<comment>https://github.com/eclipse-openj9/openj9/issues/14014</comment>
+				<version>17+</version>
+			</disable>
+		</disables>
 		<variations>
 			<variation>Mode107-OSRG</variation>
 			<variation>Mode110-OSRG</variation>
@@ -622,7 +628,7 @@
 		</impls>
 	</test>
 	<test>
-		<testCaseName>cmdLineTester_jvmtitests_soae</testCaseName>
+		<testCaseName>cmdLineTester_jvmtitests_Java11andUp</testCaseName>
 		<variations>
 			<variation>Mode110</variation>
 			<variation>Mode148</variation>
@@ -636,7 +642,7 @@
 	-DEXE=$(SQ)$(JAVA_COMMAND) $(JVM_OPTIONS) -Xdump $(SQ) \
 	-DMODE_HINTS=$(Q)$(MODE_HINTS)$(Q) \
 	-jar $(CMDLINETESTER_JAR) \
-	-config $(Q)$(TEST_RESROOT)$(D)jvmtitests_soae.xml$(Q) \
+	-config $(Q)$(TEST_RESROOT)$(D)jvmtitests_Java11andUp.xml$(Q) \
 	-explainExcludes \
 	-xids all,$(PLATFORM),$(JCL_VERSION) -xlist $(Q)$(TEST_RESROOT)$(D)jvmtitests_excludes_$(JDK_VERSION).xml$(Q) -nonZeroExitWhenError; \
 	${TEST_STATUS}</command>

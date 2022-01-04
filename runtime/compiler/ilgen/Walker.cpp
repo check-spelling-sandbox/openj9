@@ -580,7 +580,7 @@ TR::Block * TR_J9ByteCodeIlGenerator::walker(TR::Block * prevBlock)
             fej9()->unknownByteCode(comp(), opcode);
             break;
          default:
-         	break;
+            break;
          }
 
       if (comp()->getOption(TR_TraceILGen))
@@ -1825,7 +1825,7 @@ TR_J9ByteCodeIlGenerator::loadConstantValueIfPossible(TR::Node *topNode, uintptr
          classNameOfFieldOrStatic = symRef->getOwningMethod(comp())->classNameOfFieldOrStatic(symRef->getCPIndex(), len);
          if (classNameOfFieldOrStatic)
             {
-            classNameOfFieldOrStatic=classNameToSignature(classNameOfFieldOrStatic, len, comp());
+            classNameOfFieldOrStatic = TR::Compiler->cls.classNameToSignature(classNameOfFieldOrStatic, len, comp());
             TR_OpaqueClassBlock * curClass = fej9->getClassFromSignature(classNameOfFieldOrStatic, len, symRef->getOwningMethod(comp()));
             TR_OpaqueClassBlock * owningClass = comp()->getJittedMethodSymbol()->getResolvedMethod()->containingClass();
             if (owningClass == curClass)
@@ -2732,7 +2732,7 @@ TR_J9ByteCodeIlGenerator::genIfAcmpEqNe(TR::ILOpCodes ifacmpOp)
    TR::Node *lhs = pop();
 
    TR::SymbolReference *comparisonNonHelper =
-      comp()->getSymRefTab()->findOrCreateObjectEqualityComparisonSymbolRef();
+      comp()->getSymRefTab()->findOrCreateObjectInequalityComparisonSymbolRef();
 
    TR::Node *substitutabilityTest =
       TR::Node::createWithSymRef(TR::icall, 2, 2, lhs, rhs, comparisonNonHelper);
@@ -2746,7 +2746,7 @@ TR_J9ByteCodeIlGenerator::genIfAcmpEqNe(TR::ILOpCodes ifacmpOp)
 
    push(substitutabilityTest);
    push(TR::Node::iconst(0));
-   return genIfImpl(ifacmpOp == TR::ifacmpeq ? TR::ificmpne : TR::ificmpeq);
+   return genIfImpl(ifacmpOp == TR::ifacmpeq ? TR::ificmpeq : TR::ificmpne);
    }
 
 //----------------------------------------------
@@ -3475,7 +3475,7 @@ TR_J9ByteCodeIlGenerator::loadInvokeCacheArrayElements(TR::SymbolReference *tabl
    {
    loadSymbol(TR::aload, tableEntrySymRef);
    loadConstant(TR::iconst, JSR292_invokeCacheArrayAppendixIndex);
-   loadArrayElement(TR::Address, comp()->il.opCodeForIndirectArrayLoad(TR::Address), false);
+   loadArrayElement(TR::Address, comp()->il.opCodeForIndirectArrayLoad(TR::Address), false, false);
    if (isUnresolved)
       {
       // When the callSite table entry (for invokedynamic) or methodType table entry (for invokehandle)
@@ -3484,7 +3484,7 @@ TR_J9ByteCodeIlGenerator::loadInvokeCacheArrayElements(TR::SymbolReference *tabl
       // obtain the actual target method and construct the call frame for it
       loadSymbol(TR::aload, tableEntrySymRef);
       loadConstant(TR::iconst, JSR292_invokeCacheArrayMemberNameIndex);
-      loadArrayElement(TR::Address, comp()->il.opCodeForIndirectArrayLoad(TR::Address), false);
+      loadArrayElement(TR::Address, comp()->il.opCodeForIndirectArrayLoad(TR::Address), false, false);
       }
    else
       {
@@ -3493,7 +3493,7 @@ TR_J9ByteCodeIlGenerator::loadInvokeCacheArrayElements(TR::SymbolReference *tabl
       // the object reference of the appendix object from the invokeCacheArray entry
       TR_ResolvedJ9Method* owningMethod = static_cast<TR_ResolvedJ9Method *>(_methodSymbol->getResolvedMethod());
       TR::Node * appendixNode = _stack->top();
-      TR::SymbolReference * appendixSymRef = 
+      TR::SymbolReference * appendixSymRef =
          fej9()->refineInvokeCacheElementSymRefWithKnownObjectIndex(
                   comp(),
                   appendixNode->getSymbolReference(),
@@ -3693,7 +3693,7 @@ TR_J9ByteCodeIlGenerator::genInvoke(TR::SymbolReference * symRef, TR::Node *indi
             opcode = TR::ihbit;
             break;
          case TR::java_lang_Integer_lowestOneBit:
-            if(comp()->target().cpu.isX86())
+            if(comp()->target().cpu.isX86() || comp()->target().cpu.isARM64())
                opcode = TR::ilbit;
             else
                opcode = TR::BadILOp;
@@ -3714,7 +3714,7 @@ TR_J9ByteCodeIlGenerator::genInvoke(TR::SymbolReference * symRef, TR::Node *indi
             opcode = TR::lhbit;
             break;
          case TR::java_lang_Long_lowestOneBit:
-            if(comp()->target().cpu.isX86())
+            if(comp()->target().cpu.isX86() || comp()->target().cpu.isARM64())
                opcode = TR::llbit;
             else
                opcode = TR::BadILOp;
@@ -3732,7 +3732,7 @@ TR_J9ByteCodeIlGenerator::genInvoke(TR::SymbolReference * symRef, TR::Node *indi
                opcode = TR::BadILOp;
             break;
          default:
-         	break;
+            break;
          }
       }
 
@@ -3881,7 +3881,7 @@ TR_J9ByteCodeIlGenerator::genInvoke(TR::SymbolReference * symRef, TR::Node *indi
             break;
             }
          default:
-         	break;
+            break;
          }
       }
 #endif
@@ -4153,10 +4153,24 @@ break
       return NULL;
       }
 
+   /**
+    * java/lang/invoke/MethodHandleImpl.profileBoolean() performs some internal profiling
+    * on the boolean parameter value before returning it.  Since the OpenJ9 JIT does not
+    * consume that profiling information the profiling overhead is not necessary.  Eliminate
+    * the call and simply replace it with a reference to the boolean parameter.
+    */
+   if (symbol->getRecognizedMethod() == TR::java_lang_invoke_MethodHandleImpl_profileBoolean)
+      {
+      pop();
+      TR::Node *resultNode = _stack->top();
+      genTreeTop(resultNode);
+      return resultNode;
+      }
+
     // Can't use recognized methods since it's not enabled on AOT
     //if (symbol->getRecognizedMethod() == TR::com_ibm_rmi_io_FastPathForCollocated_isVMDeepCopySupported)
     int32_t len = calledMethod->classNameLength();
-    char * s = classNameToSignature(calledMethod->classNameChars(), len, comp());
+    char * s = TR::Compiler->cls.classNameToSignature(calledMethod->classNameChars(), len, comp());
 
     if (strstr(s, "com/ibm/rmi/io/FastPathForCollocated") &&
         !strncmp(calledMethod->nameChars(), "isVMDeepCopySupported", calledMethod->nameLength()))
@@ -4214,7 +4228,7 @@ break
          performClassLookahead(_classInfo);
 
       int32_t len = calledMethod->classNameLength();
-      char * s = classNameToSignature(calledMethod->classNameChars(), len, comp());
+      char * s = TR::Compiler->cls.classNameToSignature(calledMethod->classNameChars(), len, comp());
 
       TR::Node * thisObject = invokedynamicReceiver ? invokedynamicReceiver : _stack->element(_stack->topIndex() - (numArgs-1));
       TR_PersistentFieldInfo * fieldInfo = _classInfo->getFieldInfo() ? _classInfo->getFieldInfo()->findFieldInfo(comp(), thisObject, false) : NULL;
@@ -4994,6 +5008,7 @@ TR_J9ByteCodeIlGenerator::runMacro(TR::SymbolReference * symRef)
                   break;
                case 'L':
                case '[':
+               case 'Q':
                   arrayElementDataType = TR::Address;
                   break;
                default:
@@ -5348,16 +5363,6 @@ TR_J9ByteCodeIlGenerator::loadStatic(int32_t cpIndex)
             loadConstant(TR::iconst, (int32_t)fej9->getOffsetOfJ9ObjectJ9Class());
             return;
             }
-         case TR::Symbol::Com_ibm_jit_JITHelpers_OBJECT_HEADER_HAS_BEEN_MOVED_IN_CLASS:
-            {
-            loadConstant(TR::iconst, (int32_t)fej9->getObjectHeaderHasBeenMovedInClass());
-            return;
-            }
-         case TR::Symbol::Com_ibm_jit_JITHelpers_OBJECT_HEADER_HAS_BEEN_HASHED_IN_CLASS:
-            {
-            loadConstant(TR::iconst, (int32_t)fej9->getObjectHeaderHasBeenHashedInClass());
-            return;
-            }
          case TR::Symbol::Com_ibm_jit_JITHelpers_J9OBJECT_FLAGS_MASK32:
             {
             loadConstant(TR::iconst, (int32_t)fej9->getJ9ObjectFlagsMask32());
@@ -5495,7 +5500,7 @@ TR_J9ByteCodeIlGenerator::loadStatic(int32_t cpIndex)
             return;
             }
          default:
-         	break;
+            break;
          }
       }
 
@@ -5509,7 +5514,7 @@ TR_J9ByteCodeIlGenerator::loadStatic(int32_t cpIndex)
       classNameOfFieldOrStatic = symRef->getOwningMethod(comp())->classNameOfFieldOrStatic(symRef->getCPIndex(), len);
       if (classNameOfFieldOrStatic)
          {
-         classNameOfFieldOrStatic=classNameToSignature(classNameOfFieldOrStatic, len, comp());
+         classNameOfFieldOrStatic = TR::Compiler->cls.classNameToSignature(classNameOfFieldOrStatic, len, comp());
          TR_OpaqueClassBlock * curClass = fej9->getClassFromSignature(classNameOfFieldOrStatic, len, symRef->getOwningMethod(comp()));
          TR_OpaqueClassBlock * owningClass = comp()->getJittedMethodSymbol()->getResolvedMethod()->containingClass();
          if (owningClass == curClass)
@@ -5991,10 +5996,7 @@ TR_J9ByteCodeIlGenerator::loadFromCP(TR::DataType type, int32_t cpIndex)
             }
          else if (method()->isClassConstant(cpIndex))
             {
-            if (TR::Compiler->cls.classesOnHeap())
-               loadClassObjectAndIndirect(cpIndex);
-            else
-               loadClassObject(cpIndex);
+            loadClassObjectAndIndirect(cpIndex);
             }
          else if (method()->isStringConstant(cpIndex))
             {
@@ -6042,14 +6044,14 @@ TR_J9ByteCodeIlGenerator::loadFromCallSiteTable(int32_t callSiteIndex)
    }
 
 void
-TR_J9ByteCodeIlGenerator::loadArrayElement(TR::DataType dataType, TR::ILOpCodes nodeop, bool checks)
+TR_J9ByteCodeIlGenerator::loadArrayElement(TR::DataType dataType, TR::ILOpCodes nodeop, bool checks, bool mayBeValueType)
    {
    // Value types prototype for flattened array elements does not yet support
    // GC policies that allow arraylets.  If arraylets are required, assume
    // we won't have flattening, so no call to flattenable array element access
    // helper is needed.
    //
-   if (TR::Compiler->om.areValueTypesEnabled() && !TR::Compiler->om.canGenerateArraylets() && dataType == TR::Address)
+   if (mayBeValueType && TR::Compiler->om.areValueTypesEnabled() && !TR::Compiler->om.canGenerateArraylets() && dataType == TR::Address)
       {
       TR::Node* elementIndex = pop();
       TR::Node* arrayBaseAddress = pop();
@@ -6176,7 +6178,7 @@ TR_J9ByteCodeIlGenerator::genMonitorEnter()
 
    bool isStatic = (node->getOpCodeValue() == TR::loadaddr && node->getSymbol()->isClassObject());
 
-   if (isStatic && TR::Compiler->cls.classesOnHeap())
+   if (isStatic)
       node = TR::Node::createWithSymRef(TR::aloadi, 1, 1, node, symRefTab()->findOrCreateJavaLangClassFromClassSymbolRef());
 
    TR::Node *loadNode = node;
@@ -6225,7 +6227,7 @@ TR_J9ByteCodeIlGenerator::genMonitorExit(bool isReturn)
    bool isStatic = (node->getOpCodeValue() == TR::loadaddr && node->getSymbol()->isClassObject());
    ///bool isStatic = _methodSymbol->isStatic();
 
-   if (isStatic && TR::Compiler->cls.classesOnHeap())
+   if (isStatic)
       node = TR::Node::createWithSymRef(TR::aloadi, 1, 1, node, symRefTab()->findOrCreateJavaLangClassFromClassSymbolRef());
 
    if (!comp()->getOption(TR_DisableLiveMonitorMetadata))
@@ -7325,12 +7327,9 @@ TR_J9ByteCodeIlGenerator::storeStatic(int32_t cpIndex)
       void * staticClass = method()->classOfStatic(cpIndex);
       loadSymbol(TR::loadaddr, symRefTab()->findOrCreateClassSymbol(_methodSymbol, cpIndex, staticClass, true /* cpIndexOfStatic */));
 
-      if (TR::Compiler->cls.classesOnHeap())
-         {
-         node = pop();
-         node = TR::Node::createWithSymRef(TR::aloadi, 1, 1, node, symRefTab()->findOrCreateJavaLangClassFromClassSymbolRef());
-         push(node);
-         }
+      node = pop();
+      node = TR::Node::createWithSymRef(TR::aloadi, 1, 1, node, symRefTab()->findOrCreateJavaLangClassFromClassSymbolRef());
+      push(node);
 
       node = TR::Node::createWithSymRef(comp()->il.opCodeForDirectWriteBarrier(type), 2, 2, value, pop(), symRef);
       }

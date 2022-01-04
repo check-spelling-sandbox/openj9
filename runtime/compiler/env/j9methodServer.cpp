@@ -1145,6 +1145,7 @@ TR_ResolvedJ9JITServerMethod::callSiteTableEntryAddress(int32_t callSiteIndex)
    return std::get<0>(_stream->read<void*>());
    }
 
+#if defined(J9VM_OPT_METHOD_HANDLE)
 bool
 TR_ResolvedJ9JITServerMethod::isUnresolvedVarHandleMethodTypeTableEntry(int32_t cpIndex)
    {
@@ -1158,6 +1159,7 @@ TR_ResolvedJ9JITServerMethod::varHandleMethodTypeTableEntryAddress(int32_t cpInd
    _stream->write(JITServer::MessageType::ResolvedMethod_varHandleMethodTypeTableEntryAddress, _remoteMirror, cpIndex);
    return std::get<0>(_stream->read<void*>());
    }
+#endif /* defined(J9VM_OPT_METHOD_HANDLE) */
 
 TR_ResolvedMethod *
 TR_ResolvedJ9JITServerMethod::getResolvedDynamicMethod(TR::Compilation * comp, I_32 callSiteIndex, bool * unresolvedInCP)
@@ -1488,6 +1490,7 @@ TR_ResolvedJ9JITServerMethod::packMethodInfo(TR_ResolvedJ9JITServerMethodInfo &m
    methodInfoStruct.addressContainingIsOverriddenBit = resolvedMethod->addressContainingIsOverriddenBit();
    methodInfoStruct.classLoader = resolvedMethod->getClassLoader();
    methodInfoStruct.isLambdaFormGeneratedMethod = static_cast<TR_J9VMBase *>(fe)->isLambdaFormGeneratedMethod(resolvedMethod);
+   methodInfoStruct.isForceInline = static_cast<TR_J9VMBase *>(fe)->isForceInline(resolvedMethod);
 
    TR_PersistentJittedBodyInfo *bodyInfo = NULL;
    // Method may not have been compiled
@@ -1522,7 +1525,7 @@ TR_ResolvedJ9JITServerMethod::unpackMethodInfo(TR_OpaqueMethodBlock * aMethod, T
    _literals = methodInfoStruct.literals;
    _ramClass = methodInfoStruct.ramClass;
 
-   _romClass = threadCompInfo->getAndCacheRemoteROMClass(_ramClass, trMemory);
+   _romClass = threadCompInfo->getAndCacheRemoteROMClass(_ramClass);
    _romMethod = romMethodAtClassIndex(_romClass, methodInfoStruct.methodIndex);
    _romLiterals = (J9ROMConstantPoolItem *) ((UDATA) _romClass + sizeof(J9ROMClass));
 
@@ -1544,6 +1547,7 @@ TR_ResolvedJ9JITServerMethod::unpackMethodInfo(TR_OpaqueMethodBlock * aMethod, T
    _addressContainingIsOverriddenBit = methodInfoStruct.addressContainingIsOverriddenBit;
    _classLoader = methodInfoStruct.classLoader;
    _isLambdaFormGeneratedMethod = methodInfoStruct.isLambdaFormGeneratedMethod;
+   _isForceInline = methodInfoStruct.isForceInline;
 
    auto &bodyInfoStr = std::get<1>(methodInfo);
    auto &methodInfoStr = std::get<2>(methodInfo);
@@ -2064,7 +2068,8 @@ TR_ResolvedRelocatableJ9JITServerMethod::storeValidationRecordIfNecessary(TR::Co
       }
 
    // all kinds of validations may need to rely on the entire class chain, so make sure we can build one first
-   void *classChain = fej9->sharedCache()->rememberClass(definingClass);
+   const AOTCacheClassChainRecord *classChainRecord = NULL;
+   void *classChain = fej9->sharedCache()->rememberClass(definingClass, &classChainRecord);
    if (!classChain)
       return false;
 
@@ -2109,7 +2114,10 @@ TR_ResolvedRelocatableJ9JITServerMethod::storeValidationRecordIfNecessary(TR::Co
       return true;
       }
 
-   TR::AOTClassInfo *classInfo = new (comp->trHeapMemory()) TR::AOTClassInfo(fej9, (TR_OpaqueClassBlock *)definingClass, (void *) classChain, (TR_OpaqueMethodBlock *)ramMethod, cpIndex, reloKind);
+   TR::AOTClassInfo *classInfo = new (comp->trHeapMemory()) TR::AOTClassInfo(
+      fej9, (TR_OpaqueClassBlock *)definingClass, (void *)classChain,
+      (TR_OpaqueMethodBlock *)ramMethod, cpIndex, reloKind, classChainRecord
+   );
    if (classInfo)
       {
       traceMsg(comp, "\tCreated new AOT class info %p\n", classInfo);

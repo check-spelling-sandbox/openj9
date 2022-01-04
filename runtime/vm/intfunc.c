@@ -146,9 +146,7 @@ J9InternalVMFunctions J9InternalFunctions = {
 	initializeMethodRunAddress,
 	growJavaStack,
 	freeStacks,
-#if defined(J9VM_INTERP_SIG_QUIT_THREAD) || defined(J9VM_RAS_DUMP_AGENTS)
 	printThreadInfo,
-#endif /* J9VM_INTERP_SIG_QUIT_THREAD || J9VM_RAS_DUMP_AGENTS */
 	initializeAttachedThread,
 	initializeMethodRunAddressNoHook,
 	sidecarInvokeReflectMethod,
@@ -235,6 +233,7 @@ J9InternalVMFunctions J9InternalFunctions = {
 	fullTraversalFieldOffsetsStartDo,
 	fullTraversalFieldOffsetsNextDo,
 	setClassCastException,
+	setNegativeArraySizeException,
 	compareStrings,
 	compareStringToUTF8,
 	prepareForExceptionThrow,
@@ -302,7 +301,9 @@ J9InternalVMFunctions J9InternalFunctions = {
 	resolveConstantDynamic,
 	resolveInvokeDynamic,
 	sendResolveOpenJDKInvokeHandle,
+#if JAVA_SPEC_VERSION >= 11
 	sendResolveConstantDynamic,
+#endif /* JAVA_SPEC_VERSION >= 11 */
 	sendResolveInvokeDynamic,
 	resolveMethodHandleRef,
 	resolveNativeAddress,
@@ -327,7 +328,9 @@ J9InternalVMFunctions J9InternalFunctions = {
 	getMonitorForWait,
 	jvmPhaseChange,
 	prepareClass,
+#if defined(J9VM_OPT_METHOD_HANDLE)
 	buildMethodTypeFrame,
+#endif /* defined(J9VM_OPT_METHOD_HANDLE) */
 	fatalRecursiveStackOverflow,
 	setIllegalAccessErrorNonPublicInvokeInterface,
 	createThreadWithCategory,
@@ -358,9 +361,7 @@ J9InternalVMFunctions J9InternalFunctions = {
 	getVMRuntimeState,
 	updateVMRuntimeState,
 	getVMMinIdleWaitTime,
-#if defined(J9VM_RAS_EYECATCHERS)
 	j9rasSetServiceLevel,
-#endif /* J9VM_RAS_EYECATCHERS */
 #if defined(J9VM_INTERP_ATOMIC_FREE_JNI_USES_FLUSH)
 	flushProcessWriteBuffers,
 #endif /* J9VM_INTERP_ATOMIC_FREE_JNI_USES_FLUSH */
@@ -406,4 +407,5 @@ J9InternalVMFunctions J9InternalFunctions = {
 	isCRIUSupportEnabled,
 	isCheckpointAllowed,
 #endif /* defined(J9VM_OPT_CRIU_SUPPORT) */
+	getClassNameString,
 };

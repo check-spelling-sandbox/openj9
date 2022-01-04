@@ -189,12 +189,6 @@ printStackTraceEntry(J9VMThread * vmThread, void * voidUserData, UDATA bytecodeO
 				moduleNameUTF, moduleVersionUTF,
 				sourceFileNameLen, sourceFileName,
 				lineNumber); /* line number will be ignored in if it's not used in the format string */
-			if (TRUE == freeModuleVersion) {
-				j9mem_free_memory(moduleVersionUTF);
-			}
-			if (TRUE == freeModuleName) {
-				j9mem_free_memory(moduleNameUTF);
-			}
 		} else {
 			if (0 != lineNumber) {
 				format = j9nls_lookup_message(
@@ -212,6 +206,12 @@ printStackTraceEntry(J9VMThread * vmThread, void * voidUserData, UDATA bytecodeO
 				(UDATA)J9UTF8_LENGTH(methodName), J9UTF8_DATA(methodName),
 				sourceFileNameLen, sourceFileName,
 				lineNumber); /* line number will be ignored in if it's not used in the format string */
+		}
+		if (freeModuleVersion) {
+			j9mem_free_memory(moduleVersionUTF);
+		}
+		if (freeModuleName) {
+			j9mem_free_memory(moduleNameUTF);
 		}
 	}
 
@@ -279,7 +279,7 @@ iterateStackTrace(J9VMThread * vmThread, j9object_t* exception, callback_func_t 
 			if (jitConfig) {
 				metaData = jitConfig->jitGetExceptionTableFromPC(vmThread, methodPC);
 				if (metaData) {
-					inlineMap = jitConfig->jitGetInlinerMapFromPC(vm, metaData, methodPC);
+					inlineMap = jitConfig->jitGetInlinerMapFromPC(vmThread, metaData, methodPC);
 					if (inlineMap) {
 						inlinedCallSite = jitConfig->getFirstInlinedCallSite(metaData, inlineMap);
 						if (inlinedCallSite) {
@@ -358,7 +358,8 @@ inlinedEntry:
 						while (NULL != ramClass) {
 							U_32 i = 0;
 							J9Method *methods = ramClass->ramMethods;
-							for (i = 0; i < romClass->romMethodCount; ++i) {
+							UDATA romMethodCount = ramClass->romClass->romMethodCount;
+							for (i = 0; i < romMethodCount; ++i) {
 								J9ROMMethod *possibleMethod = J9_ROM_METHOD_FROM_RAM_METHOD(&methods[i]);
 
 								/* Note that we cannot use `J9_BYTECODE_START_FROM_ROM_METHOD` here because native method PCs
@@ -367,6 +368,7 @@ inlinedEntry:
 								if ((methodPC >= (UDATA)possibleMethod) && (methodPC < (UDATA)J9_BYTECODE_END_FROM_ROM_METHOD(possibleMethod))) {
 									romMethod = possibleMethod;
 									methodPC -= (UDATA)J9_BYTECODE_START_FROM_ROM_METHOD(romMethod);
+									romClass = ramClass->romClass;
 									goto foundROMMethod;
 								}
 							}

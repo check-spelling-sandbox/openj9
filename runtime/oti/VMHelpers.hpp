@@ -149,6 +149,14 @@ typedef enum {
 	J9_BCLOOP_SEND_TARGET_INL_UNSAFE_COMPAREANDSWAPOBJECT,
 	J9_BCLOOP_SEND_TARGET_INL_UNSAFE_COMPAREANDSWAPLONG,
 	J9_BCLOOP_SEND_TARGET_INL_UNSAFE_COMPAREANDSWAPINT,
+#if defined(J9VM_OPT_VALHALLA_VALUE_TYPES)
+	J9_BCLOOP_SEND_TARGET_INL_UNSAFE_GETVALUE,
+	J9_BCLOOP_SEND_TARGET_INL_UNSAFE_PUTVALUE,
+	J9_BCLOOP_SEND_TARGET_INL_UNSAFE_UNINITIALIZEDDEFAULTVALUE,
+	J9_BCLOOP_SEND_TARGET_INL_UNSAFE_VALUEHEADERSIZE,
+	J9_BCLOOP_SEND_TARGET_INL_UNSAFE_ISFLATTENEDARRAY,
+	J9_BCLOOP_SEND_TARGET_INL_UNSAFE_ISFLATTENED,
+#endif /* J9VM_OPT_VALHALLA_VALUE_TYPES */
 	J9_BCLOOP_SEND_TARGET_INL_INTERNALS_GET_INTERFACES,
 	J9_BCLOOP_SEND_TARGET_INL_ARRAY_NEW_ARRAY_IMPL,
 	J9_BCLOOP_SEND_TARGET_INL_CLASSLOADER_FIND_LOADED_CLASS_IMPL,
@@ -187,6 +195,9 @@ typedef enum {
 	J9_BCLOOP_SEND_TARGET_METHODHANDLE_LINKTOINTERFACE,
 	J9_BCLOOP_SEND_TARGET_MEMBERNAME_DEFAULT_CONFLICT,
 #endif /* defined(J9VM_OPT_OPENJDK_METHODHANDLE) */
+#if JAVA_SPEC_VERSION >= 16
+	J9_BCLOOP_SEND_TARGET_INL_PROGRAMMABLEINVOKER_INVOKENATIVE,
+#endif /* JAVA_SPEC_VERSION >= 16 */
 } VM_SendTarget;
 
 typedef enum {
@@ -332,11 +343,13 @@ public:
 	methodHandleCompiledEntryPoint(J9JavaVM *vm, J9VMThread *currentThread, j9object_t methodHandle)
 	{
 		void *compiledEntryPoint = NULL;
+#if defined(J9VM_OPT_METHOD_HANDLE)
 		if (J9_EXTENDED_RUNTIME_I2J_MH_TRANSITION_ENABLED == (vm->extendedRuntimeFlags & J9_EXTENDED_RUNTIME_I2J_MH_TRANSITION_ENABLED)) {
 			j9object_t thunks = J9VMJAVALANGINVOKEMETHODHANDLE_THUNKS(currentThread, methodHandle);
 			I_64 i2jEntry = J9VMJAVALANGINVOKETHUNKTUPLE_I2JINVOKEEXACTTHUNK(currentThread, thunks);
 			compiledEntryPoint = (void *)(UDATA)i2jEntry;
 		}
+#endif /* defined(J9VM_OPT_METHOD_HANDLE) */
 		return compiledEntryPoint;
 	}
 
@@ -1392,6 +1405,7 @@ done:
 		return (jobject)ref;
 	}
 
+#if defined(J9VM_OPT_METHOD_HANDLE)
 	static VMINLINE U_32
 	lookupVarHandleMethodTypeCacheIndex(J9ROMClass *romClass, UDATA cpIndex)
 	{
@@ -1411,6 +1425,7 @@ done:
 
 		return index;
 	}
+#endif /* defined(J9VM_OPT_METHOD_HANDLE) */
 
 	/**
 
@@ -1463,6 +1478,9 @@ exit:
 		J9Class* currentClass = J9_CLASS_FROM_METHOD(method);
 		J9JavaVM* vm = currentThread->javaVM;
 		return ((method == vm->jlrMethodInvoke)
+#if JAVA_SPEC_VERSION >= 18
+				|| (method == vm->jlrMethodInvokeMH)
+#endif /* JAVA_SPEC_VERSION >= 18 */
 				|| (method == vm->jliMethodHandleInvokeWithArgs)
 				|| (method == vm->jliMethodHandleInvokeWithArgsList)
 				|| (vm->srMethodAccessor
@@ -1551,6 +1569,43 @@ exit:
 		case J9NtcDouble:
 			/* Fall through is intentional */
 		case J9NtcClass:
+			break;
+		}
+	}
+
+	/**
+	 * @brief Converts the type of the return value to the return type intended for JEP389/419 FFI downcall/upcall
+	 * @param currentThread[in] The pointer to the current J9VMThread
+	 * @param returnType[in] The type of the return value
+	 * @param returnStorage[in] The pointer to the return value
+	 */
+	static VMINLINE void
+	convertFFIReturnValue(J9VMThread* currentThread, U_8 returnType, UDATA* returnStorage)
+	{
+		switch (returnType) {
+		case J9NtcVoid:
+			currentThread->returnValue = (UDATA)0;
+			break;
+		case J9NtcBoolean:
+			currentThread->returnValue = (UDATA)(U_8)*returnStorage;
+			break;
+		case J9NtcByte:
+			currentThread->returnValue = (UDATA)(IDATA)(I_8)*returnStorage;
+			break;
+		case J9NtcShort:
+			currentThread->returnValue = (UDATA)(IDATA)(I_16)*returnStorage;
+			break;
+		case J9NtcInt:
+			currentThread->returnValue = (UDATA)(IDATA)(I_32)*returnStorage;
+			break;
+		case J9NtcFloat:
+			currentThread->returnValue = (UDATA)*(U_32*)returnStorage;
+			break;
+		case J9NtcLong:
+			/* Fall through is intentional */
+		case J9NtcDouble:
+			/* Fall through is intentional */
+		case J9NtcPointer:
 			break;
 		}
 	}
@@ -1791,7 +1846,7 @@ exit:
 	/**
 	 * Determine if the method is from a LambdaForm generated class.
 	 *
-	 * A LamddaForm generated method/class will have LambdaFrom.class as its hostclass
+	 * A LambdaForm generated method/class will have LambdaForm.class as its hostclass
 	 * and is either a hidden class or anonymous class.
 	 *
 	 * @param currentThread the VM thread
@@ -1802,6 +1857,7 @@ exit:
 	isLambdaFormGeneratedMethod(J9VMThread const *currentThread, J9Method *method)
 	{
 		bool result = false;
+#if defined(J9VM_OPT_OPENJDK_METHODHANDLE)
 		J9Class *methodClass = J9_CLASS_FROM_METHOD(method);
 		if (J9_ARE_ANY_BITS_SET(methodClass->classFlags, J9ClassIsAnonymous) || J9ROMCLASS_IS_HIDDEN(methodClass->romClass)) {
 			J9Class *lambdaFormClass = J9VMJAVALANGINVOKELAMBDAFORM_OR_NULL(currentThread->javaVM);
@@ -1809,6 +1865,7 @@ exit:
 				result = true;
 			}
 		}
+#endif /* defined(J9VM_OPT_OPENJDK_METHODHANDLE) */
 		return result;
 	}
 
@@ -1855,6 +1912,42 @@ exit:
 		currentThread->literals = NULL;
 		currentThread->jitStackFrameFlags = 0;
 		return oldPC;
+	}
+
+#if defined(J9VM_OPT_OPENJDK_METHODHANDLE)
+	static VMINLINE UDATA
+	methodTypeParameterSlotCount(J9VMThread *currentThread, j9object_t methodType)
+	{
+		j9object_t methodTypeForm = (j9object_t)J9VMJAVALANGINVOKEMETHODTYPE_FORM(currentThread, methodType);
+#if JAVA_SPEC_VERSION >= 14
+		return (UDATA)J9VMJAVALANGINVOKEMETHODTYPEFORM_PARAMETERSLOTCOUNT(currentThread, methodTypeForm);
+#else /* JAVA_SPEC_VERSION >= 14 */
+		U_64 argCounts = (U_64)J9VMJAVALANGINVOKEMETHODTYPEFORM_ARGCOUNTS(currentThread, methodTypeForm);
+		return (UDATA)((argCounts >> 16) & 0xFFFF);
+#endif /* JAVA_SPEC_VERSION >= 14 */
+	}
+#endif /* defined(J9VM_OPT_OPENJDK_METHODHANDLE) */
+
+	/**
+	 * Get the String representing the name of a Class. If the String has not been created
+	 * yet, create it and optionally intern and assign it to the Class.
+	 *
+	 * Current thread must have VM access and have a special frame on top of stack
+	 * with the J9VMThread roots up-to-date.
+	 *
+	 * @param[in] currentThread the current J9VMThread
+	 * @param[in] classObject the java/lang/Class being queried
+	 * @param[in] internAndAssign if true, intern the String and assign it to the Class object
+	 * @return the Class name String, or NULL on out of memory (exception will be pending)
+	 */
+	static VMINLINE j9object_t
+	getClassNameString(J9VMThread *currentThread, j9object_t classObject, bool internAndAssign)
+	{
+		j9object_t classNameObject = J9VMJAVALANGCLASS_CLASSNAMESTRING(currentThread, classObject);
+		if (NULL == classNameObject) {
+			classNameObject = J9_VM_FUNCTION(currentThread, getClassNameString)(currentThread, classObject, internAndAssign);
+		}
+		return classNameObject;
 	}
 
 };

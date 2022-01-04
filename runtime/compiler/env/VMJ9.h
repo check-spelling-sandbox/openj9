@@ -162,7 +162,7 @@ extern "C" {
 
    J9VMThread * getJ9VMThreadFromTR_VM(void * vm);
    J9JITConfig * getJ9JitConfigFromFE(void *vm);
-   TR::FILE *j9jit_fopen(char *fileName, const char *mode, bool useJ9IO, bool encrypt);
+   TR::FILE *j9jit_fopen(char *fileName, const char *mode, bool useJ9IO);
    void j9jit_fclose(TR::FILE *pFile);
    void j9jit_seek(void *voidConfig, TR::FILE *pFile, IDATA offset, I_32 whence);
    IDATA j9jit_read(void *voidConfig, TR::FILE *pFile, void *buf, IDATA nbytes);
@@ -480,8 +480,6 @@ public:
    virtual uintptr_t         getOffsetOfClassInitializeStatus();
 
    virtual uintptr_t         getOffsetOfJ9ObjectJ9Class();
-   virtual uintptr_t         getObjectHeaderHasBeenMovedInClass();
-   virtual uintptr_t         getObjectHeaderHasBeenHashedInClass();
    virtual uintptr_t         getJ9ObjectFlagsMask32();
    virtual uintptr_t         getJ9ObjectFlagsMask64();
    uintptr_t                 getOffsetOfJ9ThreadJ9VM();
@@ -708,7 +706,7 @@ public:
    virtual bool               startAsyncCompile(TR_OpaqueMethodBlock *methodInfo, void *oldStartPC, bool *queued, TR_OptimizationPlan *optimizationPlan  = NULL);
    virtual bool               isBeingCompiled(TR_OpaqueMethodBlock *methodInfo, void *startPC);
    virtual uint32_t           virtualCallOffsetToVTableSlot(uint32_t offset);
-   virtual uint32_t           vTableSlotToVirtualCallOffset(uint32_t vTableSlot);
+   virtual int32_t            vTableSlotToVirtualCallOffset(uint32_t vTableSlot);
    virtual void *             addressOfFirstClassStatic(TR_OpaqueClassBlock *);
 
    virtual TR_ResolvedMethod * getDefaultConstructor(TR_Memory *, TR_OpaqueClassBlock *);
@@ -764,6 +762,14 @@ public:
    virtual uintptr_t mutableCallSiteCookie(uintptr_t mutableCallSite, uintptr_t potentialCookie=0);
    TR::KnownObjectTable::Index mutableCallSiteEpoch(TR::Compilation *comp, uintptr_t mutableCallSite);
 
+   struct MethodOfHandle
+      {
+      TR_OpaqueMethodBlock *j9method;
+      int64_t vmSlot;
+      };
+
+   virtual MethodOfHandle methodOfDirectOrVirtualHandle(uintptr_t *mh, bool isVirtual);
+
    bool hasMethodTypesSideTable();
 
    // Openjdk implementation
@@ -811,13 +817,13 @@ public:
     *    Return vtable or itable index of a method represented by MemberName
     *    Caller must acquire VM access
     */
-   virtual int32_t vTableOrITableIndexFromMemberName(uintptr_t memberName);
+   virtual uintptr_t vTableOrITableIndexFromMemberName(uintptr_t memberName);
    /*
     * \brief
     *    Return vtable or itable index of a method represented by MemberName
     *    VM access is not required
     */
-   virtual int32_t vTableOrITableIndexFromMemberName(TR::Compilation* comp, TR::KnownObjectTable::Index objIndex);
+   virtual uintptr_t vTableOrITableIndexFromMemberName(TR::Compilation* comp, TR::KnownObjectTable::Index objIndex);
    /*
     * \brief
     *    Create and return a resolved method from member name index of an invoke cache array.
@@ -879,6 +885,26 @@ public:
     * \return char * the signature for linkToStatic
     */
    char * getSignatureForLinkToStaticForInvokeDynamic(TR::Compilation* comp, J9UTF8* romMethodSignature, int32_t &signatureLength);
+
+   /**
+    * \brief
+    *    Get the target of a DelegatingMethodHandle
+    *
+    * If the target cannot be determined (including any cases where dmhIndex
+    * does not indicate an instance of DelegatingMethodHandle), the result is
+    * TR::KnownObjectTable::UNKNOWN.
+    *
+    * \param comp the compilation object
+    * \param dmhIndex the known object index of the (purported) DelegatingMethodHandle
+    * \param trace whether to enable trace messages
+    * \return the known object index of the target, or TR::KnownObjectTable::UNKNOWN
+    */
+   TR::KnownObjectTable::Index delegatingMethodHandleTarget(
+      TR::Compilation *comp, TR::KnownObjectTable::Index dmhIndex, bool trace);
+   virtual TR::KnownObjectTable::Index delegatingMethodHandleTargetHelper(
+      TR::Compilation *comp, TR::KnownObjectTable::Index dmhIndex, TR_OpaqueClassBlock *cwClass);
+   virtual UDATA getVMTargetOffset();
+   virtual UDATA getVMIndexOffset();
 #endif
 
    // JSR292 }}}
@@ -892,6 +918,16 @@ public:
     * \param fieldName the name of the field for which we return the known object index
     */
    virtual TR::KnownObjectTable::Index getMemberNameFieldKnotIndexFromMethodHandleKnotIndex(TR::Compilation *comp, TR::KnownObjectTable::Index mhIndex, char *fieldName);
+
+   /**
+    * \brief
+    *   Tell whether a method handle type at a given known object table index matches the expected type.
+    *
+    * \param comp the compilation object
+    * \param mhIndex known object index of the java/lang/invoke/MethodHandle object
+    * \param expectedTypeIndex known object index of  java/lang/invoke/MethodType object
+    */
+   virtual bool isMethodHandleExpectedType(TR::Compilation *comp, TR::KnownObjectTable::Index mhIndex, TR::KnownObjectTable::Index expectedTypeIndex);
 
    virtual uintptr_t getFieldOffset( TR::Compilation * comp, TR::SymbolReference* classRef, TR::SymbolReference* fieldRef);
    /*
@@ -916,6 +952,16 @@ public:
     */
    virtual bool isStable(int cpIndex, TR_ResolvedMethod *owningMethod, TR::Compilation *comp);
    virtual bool isStable(J9Class *fieldClass, int cpIndex);
+
+   /*
+    * \brief
+    *    tell whether a method was annotated as @ForceInline.
+    *
+    * \param method
+    *    method
+    *
+    */
+   virtual bool isForceInline(TR_ResolvedMethod *method);
 
    /*
     * \brief
@@ -1328,6 +1374,7 @@ public:
    virtual bool               needsContiguousCodeAndDataCacheAllocation()     { return true; }
    virtual bool               needRelocatableTarget()                          { return true; }
    virtual bool               isStable(int cpIndex, TR_ResolvedMethod *owningMethod, TR::Compilation *comp) { return false; }
+
    virtual bool               shouldDelayAotLoad();
 
    virtual bool               isClassLibraryMethod(TR_OpaqueMethodBlock *method, bool vettedForAOT = false);

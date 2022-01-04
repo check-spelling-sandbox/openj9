@@ -78,8 +78,6 @@
 
       {r(TR::Symbol::Com_ibm_jit_JITHelpers_IS_32_BIT, "com/ibm/jit/JITHelpers", "IS_32_BIT", "Z")}, //22
       {r(TR::Symbol::Com_ibm_jit_JITHelpers_J9OBJECT_J9CLASS_OFFSET, "com/ibm/jit/JITHelpers", "J9OBJECT_J9CLASS_OFFSET", "I")}, //22
-      {r(TR::Symbol::Com_ibm_jit_JITHelpers_OBJECT_HEADER_HAS_BEEN_MOVED_IN_CLASS, "com/ibm/jit/JITHelpers", "OBJECT_HEADER_HAS_BEEN_MOVED_IN_CLASS", "I")}, //22
-      {r(TR::Symbol::Com_ibm_jit_JITHelpers_OBJECT_HEADER_HAS_BEEN_HASHED_IN_CLASS, "com/ibm/jit/JITHelpers", "OBJECT_HEADER_HAS_BEEN_HASHED_IN_CLASS", "I")}, //22
       {r(TR::Symbol::Com_ibm_jit_JITHelpers_J9OBJECT_FLAGS_MASK32, "com/ibm/jit/JITHelpers", "J9OBJECT_FLAGS_MASK32", "I")}, //22
       {r(TR::Symbol::Com_ibm_jit_JITHelpers_J9OBJECT_FLAGS_MASK64, "com/ibm/jit/JITHelpers", "J9OBJECT_FLAGS_MASK64", "I")}, //22
       {r(TR::Symbol::Com_ibm_jit_JITHelpers_JLTHREAD_J9THREAD_OFFSET, "com/ibm/jit/JITHelpers", "JLTHREAD_J9THREAD_OFFSET", "I")}, //22
@@ -139,8 +137,12 @@
        {r(TR::Symbol::Java_lang_invoke_BruteArgumentMoverHandle_extra,"java/lang/invoke/BruteArgumentMoverHandle", "extra", "[Ljava/lang/Object;")},
        {r(TR::Symbol::Java_lang_invoke_DynamicInvokerHandle_site,     "java/lang/invoke/DynamicInvokerHandle", "site", "Ljava/lang/invoke/CallSite;")},
        {r(TR::Symbol::Java_lang_invoke_CallSite_target,               "java/lang/invoke/CallSite", "target", "Ljava/lang/invoke/MethodHandle;")},
+       {r(TR::Symbol::Java_lang_invoke_LambdaForm_vmentry,            "java/lang/invoke/LambdaForm", "vmentry", "Ljava/lang/invoke/MemberName;")},
        {r(TR::Symbol::Java_lang_invoke_MutableCallSite_target,        "java/lang/invoke/MutableCallSite", "target", "Ljava/lang/invoke/MethodHandle;")},
        {r(TR::Symbol::Java_lang_invoke_MutableCallSiteDynamicInvokerHandle_mutableSite,"java/lang/invoke/MutableCallSiteDynamicInvokerHandle", "mutableSite", "Ljava/lang/invoke/MutableCallSite;")},
+       {r(TR::Symbol::Java_lang_invoke_MemberName_vmtarget,           "java/lang/invoke/MemberName", "vmtarget", "J")},
+       {r(TR::Symbol::Java_lang_invoke_MemberName_vmindex,            "java/lang/invoke/MemberName", "vmindex", "J")},
+       {r(TR::Symbol::Java_lang_invoke_MethodHandle_form,             "java/lang/invoke/MethodHandle", "form", "Ljava/lang/invoke/LambdaForm;")},
        {r(TR::Symbol::Java_lang_invoke_MethodHandle_thunks,           "java/lang/invoke/MethodHandle", "thunks", "Ljava/lang/invoke/ThunkTuple;")},
        {r(TR::Symbol::Java_lang_invoke_MethodHandle_type,             "java/lang/invoke/MethodHandle", "type", "Ljava/lang/invoke/MethodType;")},
        {r(TR::Symbol::Java_lang_invoke_MethodType_ptypes,             "java/lang/invoke/MethodType", "ptypes", "[Ljava/lang/Class;")},

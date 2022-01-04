@@ -102,8 +102,16 @@ UDATA  walkStackFrames(J9VMThread *currentThread, J9StackWalkState *walkState)
 	void  (*savedOSlotIterator) (struct J9VMThread * vmThread, struct J9StackWalkState * walkState, j9object_t * objectSlot, const void * stackLocation) =
 		walkState->objectSlotWalkFunction;
 
-	Trc_VRB_WalkStackFrames_Entry(currentThread, walkState->walkThread, walkState->flags);
-#endif
+	Trc_VRB_WalkStackFrames_Entry(currentThread, walkState->walkThread, walkState->flags,
+			walkState->walkThread->sp, walkState->walkThread->arg0EA,
+			walkState->walkThread->pc, walkState->walkThread->literals,
+			walkState->walkThread->entryLocalStorage, walkState->walkThread->j2iFrame);
+#else /* J9VM_INTERP_STACKWALK_TRACING */
+	Trc_VM_WalkStackFrames_Entry(currentThread, walkState->walkThread, walkState->flags,
+			walkState->walkThread->sp, walkState->walkThread->arg0EA,
+			walkState->walkThread->pc, walkState->walkThread->literals,
+			walkState->walkThread->entryLocalStorage, walkState->walkThread->j2iFrame);
+#endif /* J9VM_INTERP_STACKWALK_TRACING */
 
 	if (J9_ARE_ANY_BITS_SET(walkState->flags, J9_STACKWALK_RESUME)) {
 		if (NULL != walkState->jitInfo) {
@@ -383,7 +391,9 @@ terminationPoint:
 #if defined(J9VM_INTERP_STACKWALK_TRACING) 
 	walkState->objectSlotWalkFunction = savedOSlotIterator;
 	Trc_VRB_WalkStackFrames_Exit(currentThread, walkState->walkThread, rc);
-#endif
+#else /* J9VM_INTERP_STACKWALK_TRACING */
+	Trc_VM_WalkStackFrames_Exit(currentThread, walkState->walkThread, rc);
+#endif /* J9VM_INTERP_STACKWALK_TRACING */
 
 	if (currentThread != NULL) {
 		currentThread->activeWalkState = oldState;
@@ -503,16 +513,25 @@ walkIt:
 static UDATA allocateCache(J9StackWalkState * walkState)
 {
 	PORT_ACCESS_FROM_WALKSTATE(walkState);
-	UDATA * endOfStack;
-	UDATA framesPresent;
-	UDATA cacheElementSize;
-	UDATA cacheSize;
-	UDATA * stackStart;
+	UDATA * endOfStack = walkState->walkThread->stackObject->end;
+	UDATA framesPresent = 0;
+	UDATA cacheElementSize = 0;
+	UDATA cacheSize = 0;
+	UDATA * stackStart = J9_LOWEST_STACK_SLOT(walkState->walkThread);
+	UDATA * sp = walkState->walkThread->sp;
 
-	endOfStack = walkState->walkThread->stackObject->end;
-	framesPresent = (endOfStack - walkState->walkThread->sp) / J9_STACKWALK_MIN_FRAME_SLOTS;
+	if (J9_ARE_NO_BITS_SET(walkState->flags, J9_STACKWALK_NO_ERROR_REPORT)) {
+#if defined(J9VM_INTERP_STACKWALK_TRACING)
+		Assert_VRB_true(sp >= stackStart);
+		Assert_VRB_true(sp <= endOfStack);
+#else /* J9VM_INTERP_STACKWALK_TRACING */
+		Assert_VM_true(sp >= stackStart);
+		Assert_VM_true(sp <= endOfStack);
+#endif /* J9VM_INTERP_STACKWALK_TRACING */
+	}
 
-	cacheElementSize = 0;
+	framesPresent = (endOfStack - sp) / J9_STACKWALK_MIN_FRAME_SLOTS;
+
 	if (walkState->flags & J9_STACKWALK_CACHE_PCS) ++cacheElementSize;
 	if (walkState->flags & J9_STACKWALK_CACHE_CPS) ++cacheElementSize;
 	if (walkState->flags & J9_STACKWALK_CACHE_METHODS) ++cacheElementSize;
@@ -527,8 +546,7 @@ static UDATA allocateCache(J9StackWalkState * walkState)
 	}
 #endif
 
-	stackStart = J9_LOWEST_STACK_SLOT(walkState->walkThread);
-	if ((walkState != walkState->walkThread->stackWalkState) || ((UDATA) (walkState->walkThread->sp - stackStart) < cacheSize)
+	if ((walkState != walkState->walkThread->stackWalkState) || ((UDATA) (sp - stackStart) < cacheSize)
 #if defined (J9VM_INTERP_VERBOSE) || defined (J9VM_PROF_EVENT_REPORTING)
 		|| (walkState->walkThread->javaVM->runtimeFlags & J9_RUNTIME_PAINT_STACK)
 #endif
@@ -1480,9 +1498,9 @@ getLocalsMap(J9StackWalkState * walkState, J9ROMClass * romClass, J9ROMMethod * 
 			j9nls_printf(PORTLIB, J9NLS_ERROR, J9NLS_VM_STACK_MAP_FAILED, errorCode);
 #if defined(J9VM_INTERP_STACKWALK_TRACING)
 			Assert_VRB_stackMapFailed();
-#else
+#else /* J9VM_INTERP_STACKWALK_TRACING */
 			Assert_VM_stackMapFailed();
-#endif
+#endif /* J9VM_INTERP_STACKWALK_TRACING */
 		}
 	}
 
@@ -1503,9 +1521,9 @@ getStackMap(J9StackWalkState * walkState, J9ROMClass * romClass, J9ROMMethod * r
 			j9nls_printf(PORTLIB, J9NLS_ERROR, J9NLS_VM_STACK_MAP_FAILED, errorCode);
 #if defined(J9VM_INTERP_STACKWALK_TRACING)
 			Assert_VRB_stackMapFailed();
-#else
+#else /* J9VM_INTERP_STACKWALK_TRACING */
 			Assert_VM_stackMapFailed();
-#endif
+#endif /* J9VM_INTERP_STACKWALK_TRACING */
 		}
 	}
 	return;

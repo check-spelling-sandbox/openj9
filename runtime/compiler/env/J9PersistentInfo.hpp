@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2000, 2021 IBM Corp. and others
+ * Copyright (c) 2000, 2022 IBM Corp. and others
  *
  * This program and the accompanying materials are made available under
  * the terms of the Eclipse Public License 2.0 which accompanies this
@@ -45,12 +45,46 @@ class TR_PersistentClassLoaderTable;
 class TR_J2IThunkTable;
 namespace J9 { class Options; }
 
+/**
+ * @brief The JitStates enum is used to represent the various states
+ *        the JIT can enter. The heuristics and behaviour of the JIT
+ *        is directly affected by the state it is in.
+ */
 enum JitStates {
+
+   /** Uninitialized */
    UNDEFINED_STATE = 0,
+
+   /** The JVM isn't doing any work. This is when the application threads
+    *  are doing no orminimal work.
+    */
    IDLE_STATE,
+
+   /** The application is starting up; this includes the classloading phase.
+    *  The heuristics in this state target ensuring the application starts
+    *  up as quickly as possible.
+    */
    STARTUP_STATE,
+
+   /** The application is ramping up. This means that the application has
+    *  started up and is running normally; however it has not yet
+    *  reached peak throughput. As such, there can be a lot of compilation
+    *  occurring during this phase to achieve peak throughput.
+    */
    RAMPUP_STATE,
+
+   /** The application is in steady state. This means that the application
+    *  is doing work, but there aren't many new compilations the JIT has
+    *  to perform. This state is generally when the application runs are
+    *  peak throughput performance.
+    */
    STEADY_STATE,
+
+   /** Like STEADY_STATE, but used to represent the circumstances when
+    *  there is extremely little work the JIT has to do. This state is
+    *  generally used to ensure the JIT does not take away CPU resources
+    *  from application threads.
+    */
    DEEPSTEADY_STATE,
 };
 
@@ -165,6 +199,8 @@ class PersistentInfo : public OMR::PersistentInfoConnector
          _clientUID(0),
          _JITServerUseAOTCache(false),
          _requireJITServer(false),
+         _localSyncCompiles(false),
+         _JITServerAOTCacheName(),
 #endif /* defined(J9VM_OPT_JITSERVER) */
       OMR::PersistentInfoConnector(pm)
       {}
@@ -331,7 +367,7 @@ class PersistentInfo : public OMR::PersistentInfoConnector
 
    static JITServer::RemoteCompilationModes getRemoteCompilationMode() { return _remoteCompilationMode; }
    const std::string &getJITServerAddress() const { return _JITServerAddress; }
-   void setJITServerAddress(char *addr) { _JITServerAddress = addr; }
+   void setJITServerAddress(const char *addr) { _JITServerAddress = addr; }
    uint32_t getSocketTimeout() const { return _socketTimeoutMs; }
    void setSocketTimeout(uint32_t t) { _socketTimeoutMs = t; }
    uint32_t getJITServerPort() const { return _JITServerPort; }
@@ -340,10 +376,14 @@ class PersistentInfo : public OMR::PersistentInfoConnector
    void setClientUID(uint64_t val) { _clientUID = val; }
    uint64_t getServerUID() const { return _serverUID; }
    void setServerUID(uint64_t val) { _serverUID = val; }
-   bool getJITServerUseAOTCache() const { return _JITServerUseAOTCache; }
-   void setJITServerUseAOTCache(bool use) { _JITServerUseAOTCache = use; }
    bool getRequireJITServer() const { return _requireJITServer; }
    void setRequireJITServer(bool requireJITServer) { _requireJITServer = requireJITServer; }
+   bool isLocalSyncCompiles() const { return _localSyncCompiles; }
+   void setLocalSyncCompiles(bool localSyncCompiles) { _localSyncCompiles = localSyncCompiles; }
+   bool getJITServerUseAOTCache() const { return _JITServerUseAOTCache; }
+   void setJITServerUseAOTCache(bool use) { _JITServerUseAOTCache = use; }
+   const std::string &getJITServerAOTCacheName() const { return _JITServerAOTCacheName; }
+   void setJITServerAOTCacheName(const char *name) { _JITServerAOTCacheName = name; }
 #endif /* defined(J9VM_OPT_JITSERVER) */
 
    private:
@@ -413,7 +453,6 @@ class PersistentInfo : public OMR::PersistentInfoConnector
 
    TR_J2IThunkTable *_invokeExactJ2IThunkTable;
 
-
    TR::Monitor *_gpuInitMonitor;
 
    bool _runtimeInstrumentationEnabled;
@@ -422,20 +461,21 @@ class PersistentInfo : public OMR::PersistentInfoConnector
    bool _classLoadingPhase;            ///< true, if we detect a large number of classes loaded per second
    bool _inlinerTemporarilyRestricted; ///< do not inline when true; used to restrict cold inliner during startup
 
-
    volatile uint64_t _elapsedTime; ///< elapsed time as computed by the sampling thread (ms)
                                    ///< May need adjustment if sampling thread goes to sleep
 
-
    int32_t _numLoadedClasses; ///< always increasing
+
 #if defined(J9VM_OPT_JITSERVER)
    std::string _JITServerAddress;
    uint32_t    _JITServerPort;
    uint32_t    _socketTimeoutMs; // timeout for communication sockets used in out-of-process JIT compilation
    uint64_t    _clientUID;
    uint64_t    _serverUID; // At the client, this represents the UID of the server the client is connected to
-   bool        _JITServerUseAOTCache;
    bool        _requireJITServer;
+   bool        _localSyncCompiles;
+   bool        _JITServerUseAOTCache;
+   std::string _JITServerAOTCacheName; // Name of the server AOT cache that this client is using
 #endif /* defined(J9VM_OPT_JITSERVER) */
    };
 

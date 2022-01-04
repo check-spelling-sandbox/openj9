@@ -584,6 +584,8 @@ JIT_HELPER(_interpreterUnresolvedInstanceDataGlue);
 JIT_HELPER(_interpreterUnresolvedInstanceDataStoreGlue);
 JIT_HELPER(_virtualUnresolvedHelper);
 JIT_HELPER(_interfaceCallHelper);
+JIT_HELPER(_interfaceCompleteSlot2);
+JIT_HELPER(_interfaceSlotsUnavailable);
 JIT_HELPER(icallVMprJavaSendVirtual0);
 JIT_HELPER(icallVMprJavaSendVirtual1);
 JIT_HELPER(icallVMprJavaSendVirtualJ);
@@ -600,10 +602,18 @@ JIT_HELPER(_interpreterSyncFloatStaticGlue);
 JIT_HELPER(_interpreterDoubleStaticGlue);
 JIT_HELPER(_interpreterSyncDoubleStaticGlue);
 JIT_HELPER(_nativeStaticHelper);
-JIT_HELPER(_interfaceDispatch);
 JIT_HELPER(__arrayCopy);
 JIT_HELPER(__forwardArrayCopy);
 JIT_HELPER(__backwardArrayCopy);
+JIT_HELPER(__fwHalfWordArrayCopy);
+JIT_HELPER(__fwWordArrayCopy);
+JIT_HELPER(__fwDoubleWordArrayCopy);
+JIT_HELPER(__fwQuadWordArrayCopy);
+JIT_HELPER(__bwHalfWordArrayCopy);
+JIT_HELPER(__bwWordArrayCopy);
+JIT_HELPER(__bwDoubleWordArrayCopy);
+JIT_HELPER(__bwQuadWordArrayCopy);
+JIT_HELPER(_patchGCRHelper);
 
 #elif defined(TR_HOST_S390)
 JIT_HELPER(__double2Long);
@@ -644,6 +654,8 @@ JIT_HELPER(_jitResolveConstantDynamic);
 JIT_HELPER(_nativeStaticHelper);
 JIT_HELPER(_interpreterStaticSpecialCallGlue);
 JIT_HELPER(jitLookupInterfaceMethod);
+JIT_HELPER(jitLookupDynamicInterfaceMethod);
+JIT_HELPER(jitLookupDynamicPublicInterfaceMethod);
 JIT_HELPER(jitMethodIsNative);
 JIT_HELPER(jitMethodIsSync);
 JIT_HELPER(jitPreJNICallOffloadCheck);
@@ -1059,9 +1071,13 @@ void initializeCodeRuntimeHelperTable(J9JITConfig *jitConfig, char isSMP)
    SET(TR_ldFlattenableArrayElement,        (void *)jitLoadFlattenableArrayElement, TR_Helper);
    SET(TR_strFlattenableArrayElement,        (void *)jitStoreFlattenableArrayElement, TR_Helper);
 
-   SET(TR_acmpHelper,                  (void *)jitAcmpHelper, TR_Helper);
+   SET(TR_acmpeqHelper,               (void *)jitAcmpeqHelper, TR_Helper);
+   SET(TR_acmpneHelper,               (void *)jitAcmpneHelper, TR_Helper);
    SET(TR_multiANewArray,             (void *)jitAMultiNewArray, TR_Helper);
    SET(TR_aThrow,                     (void *)jitThrowException, TR_Helper);
+
+   SET(TR_jitLookupDynamicInterfaceMethod, (void *)jitLookupDynamicInterfaceMethod, TR_Helper);
+   SET(TR_jitLookupDynamicPublicInterfaceMethod, (void *)jitLookupDynamicPublicInterfaceMethod, TR_Helper);
 
    SET(TR_nullCheck,                  (void *)jitThrowNullPointerException,          TR_Helper);
    SET(TR_methodTypeCheck,            (void *)jitThrowWrongMethodTypeException,      TR_Helper);
@@ -1579,13 +1595,23 @@ void initializeCodeRuntimeHelperTable(J9JITConfig *jitConfig, char isSMP)
    SET(TR_ARM64interpreterDoubleStaticGlue,       (void *) _interpreterDoubleStaticGlue,     TR_Helper);
    SET(TR_ARM64interpreterSyncDoubleStaticGlue,   (void *) _interpreterSyncDoubleStaticGlue, TR_Helper);
    SET(TR_ARM64nativeStaticHelper,                (void *) _nativeStaticHelper,              TR_Helper);
-   SET(TR_ARM64interfaceDispatch,                 (void *) _interfaceDispatch,               TR_Helper);
+   SET(TR_ARM64interfaceCompleteSlot2,            (void *) _interfaceCompleteSlot2,           TR_Helper);
+   SET(TR_ARM64interfaceSlotsUnavailable,         (void *) _interfaceSlotsUnavailable,       TR_Helper);
    SET(TR_ARM64floatRemainder,                    (void *) helperCFloatRemainderFloat,       TR_Helper);
    SET(TR_ARM64doubleRemainder,                   (void *) helperCDoubleRemainderDouble,     TR_Helper);
    SET(TR_ARM64jitCollapseJNIReferenceFrame,      (void *) jitCollapseJNIReferenceFrame,     TR_Helper);
    SET(TR_ARM64arrayCopy,                         (void *) __arrayCopy,                      TR_Helper);
    SET(TR_ARM64forwardArrayCopy,                  (void *) __forwardArrayCopy,               TR_Helper);
    SET(TR_ARM64backwardArrayCopy,                 (void *) __backwardArrayCopy,              TR_Helper);
+   SET(TR_ARM64forwardQuadWordArrayCopy,          (void *) __fwQuadWordArrayCopy,            TR_Helper);
+   SET(TR_ARM64forwardDoubleWordArrayCopy,        (void *) __fwDoubleWordArrayCopy,          TR_Helper);
+   SET(TR_ARM64forwardWordArrayCopy,              (void *) __fwWordArrayCopy,                TR_Helper);
+   SET(TR_ARM64forwardHalfWordArrayCopy,          (void *) __fwHalfWordArrayCopy,            TR_Helper);
+   SET(TR_ARM64backwardQuadWordArrayCopy,         (void *) __bwQuadWordArrayCopy,             TR_Helper);
+   SET(TR_ARM64backwardDoubleWordArrayCopy,       (void *) __bwDoubleWordArrayCopy,          TR_Helper);
+   SET(TR_ARM64backwardWordArrayCopy,             (void *) __bwWordArrayCopy,                TR_Helper);
+   SET(TR_ARM64backwardHalfWordArrayCopy,         (void *) __bwHalfWordArrayCopy,            TR_Helper);
+   SET(TR_ARM64PatchGCRHelper,                    (void *) _patchGCRHelper,                  TR_Helper);
 
 #elif defined(TR_HOST_S390)
    SET(TR_S390double2Long,                                (void *) 0,                                              TR_Helper);

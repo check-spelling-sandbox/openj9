@@ -70,14 +70,22 @@ typedef struct GetStackTraceElementUserData {
 static UDATA
 getStackTraceElementIterator(J9VMThread *vmThread, void *voidUserData, UDATA bytecodeOffset, J9ROMClass *romClass, J9ROMMethod *romMethod, J9UTF8 *fileName, UDATA lineNumber, J9ClassLoader *classLoader, J9Class* ramClass)
 {
-	GetStackTraceElementUserData *userData = voidUserData;
+	UDATA result = J9_STACKWALK_STOP_ITERATING;
 
-	/* We are done, only first stack frame is needed. */
-	userData->romClass = romClass;
-	userData->romMethod = romMethod;
-	userData->bytecodeOffset = bytecodeOffset;
+	if ((NULL != romMethod)
+		&& J9_ARE_ALL_BITS_SET(romMethod->modifiers, J9AccMethodFrameIteratorSkip)
+	) {
+		/* Skip methods with java.lang.invoke.FrameIteratorSkip / jdk.internal.vm.annotation.Hidden / java.lang.invoke.LambdaForm$Hidden annotation */
+		result = J9_STACKWALK_KEEP_ITERATING;
+	} else {
+		GetStackTraceElementUserData *userData = voidUserData;
 
-	return FALSE;
+		/* We are done, first non-hidden stack frame is found. */
+		userData->romClass = romClass;
+		userData->romMethod = romMethod;
+		userData->bytecodeOffset = bytecodeOffset;
+	}
+	return result;
 }
 
 #if defined(DEBUG_BCV)
@@ -166,3 +174,22 @@ JVM_DumpDynamicArchive(JNIEnv *env, jstring str)
 	assert(!"JVM_DumpDynamicArchive unimplemented");
 }
 #endif /* JAVA_SPEC_VERSION >= 17 */
+
+#if JAVA_SPEC_VERSION >= 18
+JNIEXPORT jboolean JNICALL
+JVM_IsFinalizationEnabled(JNIEnv *env)
+{
+	jboolean isFinalizationEnabled = JNI_TRUE;
+	J9VMThread *currentThread = (J9VMThread*)env;
+	if (J9_ARE_ANY_BITS_SET(currentThread->javaVM->extendedRuntimeFlags, J9_EXTENDED_RUNTIME_DISABLE_FINALIZATION)) {
+		isFinalizationEnabled = JNI_FALSE;
+	}
+	return isFinalizationEnabled;
+}
+
+JNIEXPORT void JNICALL
+JVM_ReportFinalizationComplete(JNIEnv *env, jobject obj)
+{
+	assert(!"JVM_ReportFinalizationComplete unimplemented");
+}
+#endif /* JAVA_SPEC_VERSION >= 18 */

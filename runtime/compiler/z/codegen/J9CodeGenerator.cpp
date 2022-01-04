@@ -99,6 +99,11 @@ J9::Z::CodeGenerator::initialize()
       cg->setSupportsInlineStringHashCode();
       }
 
+   if (cg->getSupportsVectorRegisters() && comp->target().cpu.isAtLeast(OMR_PROCESSOR_S390_Z14))
+      {
+      cg->setSupportsInlineStringLatin1Inflate();
+      }
+
    // See comment in `handleHardwareReadBarrier` implementation as to why we cannot support CTX under CS
    if (cg->getSupportsTM() && TR::Compiler->om.readBarrierType() == gc_modron_readbar_none)
       {
@@ -3903,6 +3908,13 @@ J9::Z::CodeGenerator::inlineDirectCall(
             }
         break;
 
+      case TR::java_lang_StringLatin1_inflate:
+         if (cg->getSupportsInlineStringLatin1Inflate())
+            {
+            resultReg = TR::TreeEvaluator::inlineStringLatin1Inflate(node, cg);
+            return resultReg != NULL;
+            }
+      break;
       case TR::com_ibm_jit_JITHelpers_transformedEncodeUTF16Big:
          return resultReg = comp->getOption(TR_DisableUTF16BEEncoder) ? TR::TreeEvaluator::inlineUTF16BEEncodeSIMD(node, cg)
                                                                       : TR::TreeEvaluator::inlineUTF16BEEncode    (node, cg);
@@ -3978,11 +3990,11 @@ J9::Z::CodeGenerator::inlineDirectCall(
          case TR::java_lang_StringLatin1_indexOf:
          case TR::com_ibm_jit_JITHelpers_intrinsicIndexOfStringLatin1:
                resultReg = TR::TreeEvaluator::inlineVectorizedStringIndexOf(node, cg, false);
-               return true;
+               return resultReg != NULL;
          case TR::java_lang_StringUTF16_indexOf:
          case TR::com_ibm_jit_JITHelpers_intrinsicIndexOfStringUTF16:
                resultReg = TR::TreeEvaluator::inlineVectorizedStringIndexOf(node, cg, true);
-               return true;
+               return resultReg != NULL;
          default:
             break;
          }

@@ -73,7 +73,11 @@ add_custom_command(
 			-cmakeCache "${CMAKE_CURRENT_BINARY_DIR}/parsed_cache.txt"
 			-version ${JAVA_SPEC_VERSION}
 	VERBATIM
-	DEPENDS "${CMAKE_CURRENT_BINARY_DIR}/parsed_cache.txt" j9vmcp objectmodel
+	DEPENDS
+		${j9vm_SOURCE_DIR}/oti/vmconstantpool.xml
+		"${CMAKE_CURRENT_BINARY_DIR}/parsed_cache.txt"
+		j9vmcp
+		objectmodel
 )
 add_custom_target(run_cptool
 	DEPENDS ${gen_constpool_files}
@@ -124,7 +128,7 @@ target_sources(jclse
 		${CMAKE_CURRENT_SOURCE_DIR}/common/java_lang_ref_Reference.cpp
 		${CMAKE_CURRENT_SOURCE_DIR}/common/jclcinit.c
 		${CMAKE_CURRENT_SOURCE_DIR}/common/jcldefine.c
-		${CMAKE_CURRENT_SOURCE_DIR}/common/jclexception.c
+		${CMAKE_CURRENT_SOURCE_DIR}/common/jclexception.cpp
 		${CMAKE_CURRENT_SOURCE_DIR}/common/jclglob.c
 		${CMAKE_CURRENT_SOURCE_DIR}/common/jclreflect.c
 		${CMAKE_CURRENT_SOURCE_DIR}/common/jcltrace.c

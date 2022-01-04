@@ -131,6 +131,7 @@ private:
 	void writeFields(Cursor *cursor, bool markAndCountOnly);
 	void writeInterfaces(Cursor *cursor, bool markAndCountOnly);
 	void writeInnerClasses(Cursor *cursor, bool markAndCountOnly);
+	void writeEnclosedInnerClasses(Cursor *cursor, bool markAndCountOnly);
 	void writeNestMembers(Cursor *cursor, bool markAndCountOnly);
 	void writeNameAndSignatureBlock(Cursor *cursor);
 	void writeMethods(Cursor *cursor, Cursor *lineNumberCursor, Cursor *variableInfoCursor, bool markAndCountOnly);
@@ -142,7 +143,9 @@ private:
 	void writeStackMaps(Cursor *cursor);
 	void writeOptionalInfo(Cursor *cursor);
 	void writeCallSiteData(Cursor *cursor, bool markAndCountOnly);
+#if defined(J9VM_OPT_METHOD_HANDLE)
 	void writeVarHandleMethodTypeLookupTable(Cursor *cursor, bool markAndCountOnly);
+#endif /* defined(J9VM_OPT_METHOD_HANDLE) */
 	void writeStaticSplitTable(Cursor *cursor, bool markAndCountOnly);
 	void writeSpecialSplitTable(Cursor *cursor, bool markAndCountOnly);
 	void writeByteCodes(Cursor *cursor, ClassFileOracle::MethodIterator *methodIterator);
@@ -169,6 +172,7 @@ private:
 	UDATA _fieldsSRPKey;
 	UDATA _cpDescriptionShapeSRPKey;
 	UDATA _innerClassesSRPKey;
+	UDATA _enclosedInnerClassesSRPKey;
 #if JAVA_SPEC_VERSION >= 11
 	UDATA _nestMembersSRPKey;
 #endif /* JAVA_SPEC_VERSION >= 11 */
@@ -180,7 +184,9 @@ private:
 	UDATA _annotationInfoClassSRPKey;
 	UDATA _typeAnnotationInfoSRPKey;
 	UDATA _callSiteDataSRPKey;	
+#if defined(J9VM_OPT_METHOD_HANDLE)
 	UDATA _varHandleMethodTypeLookupTableSRPKey;
+#endif /* defined(J9VM_OPT_METHOD_HANDLE) */
 	UDATA _staticSplitTableSRPKey;
 	UDATA _specialSplitTableSRPKey;
 	UDATA _recordInfoSRPKey;

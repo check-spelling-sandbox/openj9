@@ -1174,8 +1174,6 @@ jvmtiDumpSet(jvmtiEnv* jvmti_env, ...)
 	ENSURE_PHASE_NOT_DEAD(jvmti_env);
 	ENSURE_NON_NULL(option_ptr);
 
-#ifdef J9VM_RAS_DUMP_AGENTS
-
 	/* Pass option to the dump facade */
 	result = vm->j9rasDumpFunctions->setDumpOption(vm, option_ptr);
 
@@ -1195,8 +1193,6 @@ jvmtiDumpSet(jvmtiEnv* jvmti_env, ...)
 		break;
 	}
 
-#endif /* J9VM_RAS_DUMP_AGENTS */
-
 done:
 	TRACE_JVMTI_RETURN(jvmtiDumpSet);
 }
@@ -1212,7 +1208,6 @@ jvmtiResetVmDump(jvmtiEnv* jvmti_env, ...)
 
 	ENSURE_PHASE_NOT_DEAD(jvmti_env);
 
-#ifdef J9VM_RAS_DUMP_AGENTS
 	/* request dump reset from dump module */
 	result = vm->j9rasDumpFunctions->resetDumpOptions(vm);
 
@@ -1231,8 +1226,6 @@ jvmtiResetVmDump(jvmtiEnv* jvmti_env, ...)
 		rc = JVMTI_ERROR_INTERNAL;
 		break;
 	}
-
-#endif /* J9VM_RAS_DUMP_AGENTS */	
 
 done:
 	TRACE_JVMTI_RETURN(jvmtiResetVmDump);
@@ -1267,7 +1260,6 @@ jvmtiQueryVmDump(jvmtiEnv* jvmti_env, jint buffer_size, void* options_buffer, ji
 
 	ENSURE_PHASE_NOT_DEAD(jvmti_env);
 
-#ifdef J9VM_RAS_DUMP_AGENTS
 	/* request dump reset from dump module */
 	
 	result = vm->j9rasDumpFunctions->queryVmDump(vm, buffer_size, options_buffer, data_size_ptr);
@@ -1290,8 +1282,6 @@ jvmtiQueryVmDump(jvmtiEnv* jvmti_env, jint buffer_size, void* options_buffer, ji
 		rc = JVMTI_ERROR_INTERNAL;
 		break;
 	}
-
-#endif /* J9VM_RAS_DUMP_AGENTS */	
 
 done:
 	TRACE_JVMTI_RETURN(jvmtiQueryVmDump);
@@ -1392,7 +1382,6 @@ done:
 static jvmtiError JNICALL
 jvmtiTriggerVmDump(jvmtiEnv* jvmti_env, ...)
 {
-#ifdef J9VM_RAS_DUMP_AGENTS
 	omr_error_t result = OMR_ERROR_NONE;
 	jvmtiError rc;
 	J9JVMTIEnv * j9env = (J9JVMTIEnv *) jvmti_env;
@@ -1425,9 +1414,6 @@ jvmtiTriggerVmDump(jvmtiEnv* jvmti_env, ...)
 	}
 done:
 	TRACE_JVMTI_RETURN(jvmtiTriggerVmDump);
-#else
-	return JNI_ERR;
-#endif /* J9VM_RAS_DUMP_AGENTS */
 }
 
 static jvmtiError JNICALL
@@ -1748,7 +1734,7 @@ jvmtiInternalGetStackTraceIteratorExtended(J9VMThread * currentThread, J9StackWa
 
 	/* In extra info mode when method enter is enabled, exclude natives which have not had method enter reported for them */
 
-	type = (J9JVMTIStackTraceType) walkState->userData2;
+	type = (J9JVMTIStackTraceType) (UDATA) walkState->userData2;
 	if (type & J9JVMTI_STACK_TRACE_PRUNE_UNREPORTED_METHODS) {
 		if ((UDATA)walkState->pc == J9SF_FRAME_TYPE_NATIVE_METHOD) {
 			/* INL natives never have enter/exit reported */

@@ -382,6 +382,14 @@ setCurrentExceptionFromJIT(J9VMThread *currentThread, UDATA exceptionNumber, j9o
 }
 
 static VMINLINE void*
+setNegativeArraySizeExceptionFromJIT(J9VMThread *currentThread, I_32 size)
+{
+	TIDY_BEFORE_THROW();
+	currentThread->javaVM->internalVMFunctions->setNegativeArraySizeException(currentThread, size);
+	return J9_JITHELPER_ACTION_THROW;
+}
+
+static VMINLINE void*
 setCurrentExceptionNLSFromJIT(J9VMThread *currentThread, UDATA exceptionNumber, U_32 moduleName, U_32 messageNumber)
 {
 	TIDY_BEFORE_THROW();
@@ -1112,7 +1120,7 @@ slow_jitANewArrayImpl(J9VMThread *currentThread, bool nonZeroTLH)
 	}
 	if (size < 0) {
 		buildJITResolveFrameForRuntimeHelper(currentThread, parmCount);
-		addr = setCurrentExceptionFromJIT(currentThread, J9VMCONSTANTPOOL_JAVALANGNEGATIVEARRAYSIZEEXCEPTION, NULL);
+		addr = setNegativeArraySizeExceptionFromJIT(currentThread, size);
 		goto done;
 	}
 	if (NULL == arrayClass) {
@@ -1218,7 +1226,7 @@ slow_jitNewArrayImpl(J9VMThread *currentThread, bool nonZeroTLH)
 	}
 	if (size < 0) {
 		buildJITResolveFrameForRuntimeHelper(currentThread, parmCount);
-		addr = setCurrentExceptionFromJIT(currentThread, J9VMCONSTANTPOOL_JAVALANGNEGATIVEARRAYSIZEEXCEPTION, NULL);
+		addr = setNegativeArraySizeExceptionFromJIT(currentThread, size);
 		goto done;
 	}
 	buildJITResolveFrameWithPC(currentThread, J9_STACK_FLAGS_JIT_ALLOCATION_RESOLVE | J9_SSF_JIT_RESOLVE, parmCount, true, 0, oldPC);
@@ -1606,6 +1614,52 @@ old_fast_jitLookupInterfaceMethod(J9VMThread *currentThread)
 }
 
 void J9FASTCALL
+old_fast_jitLookupDynamicInterfaceMethod(J9VMThread *currentThread)
+{
+	OLD_JIT_HELPER_PROLOGUE(3);
+	DECLARE_JIT_CLASS_PARM(receiverClass, 1);
+	DECLARE_JIT_CLASS_PARM(interfaceClass, 2);
+	DECLARE_JIT_PARM(UDATA, iTableIndex, 3);
+	UDATA iTableOffset = sizeof(struct J9ITable) + (iTableIndex * sizeof(UDATA));
+	UDATA vTableOffset = convertITableOffsetToVTableOffset(currentThread, receiverClass, interfaceClass, iTableOffset);
+	Assert_CodertVM_false(0 == vTableOffset);
+	JIT_RETURN_UDATA(vTableOffset);
+}
+
+void* J9FASTCALL
+old_slow_jitLookupDynamicPublicInterfaceMethod(J9VMThread *currentThread)
+{
+	SLOW_JIT_HELPER_PROLOGUE();
+	J9Method *method = (J9Method*)currentThread->floatTemp1;
+	buildJITResolveFrameForRuntimeHelper(currentThread, parmCount);
+	TIDY_BEFORE_THROW();
+	currentThread->javaVM->internalVMFunctions->setIllegalAccessErrorNonPublicInvokeInterface(currentThread, method);
+	return J9_JITHELPER_ACTION_THROW;
+}
+
+void* J9FASTCALL
+old_fast_jitLookupDynamicPublicInterfaceMethod(J9VMThread *currentThread)
+{
+	void *slowPath = (void*)old_slow_jitLookupDynamicPublicInterfaceMethod;
+	OLD_JIT_HELPER_PROLOGUE(3);
+	DECLARE_JIT_CLASS_PARM(receiverClass, 1);
+	DECLARE_JIT_CLASS_PARM(interfaceClass, 2);
+	DECLARE_JIT_PARM(UDATA, iTableIndex, 3);
+	UDATA iTableOffset = sizeof(struct J9ITable) + (iTableIndex * sizeof(UDATA));
+	UDATA vTableOffset = convertITableOffsetToVTableOffset(currentThread, receiverClass, interfaceClass, iTableOffset);
+	Assert_CodertVM_false(0 == vTableOffset);
+	/* The receiver's implementation is required to be public */
+	J9Method *method = *(J9Method**)((UDATA)receiverClass + vTableOffset);
+	if (J9_ARE_ANY_BITS_SET(J9_ROM_METHOD_FROM_RAM_METHOD(method)->modifiers, J9AccPublic)) {
+		slowPath = NULL;
+		JIT_RETURN_UDATA(vTableOffset);
+	} else {
+		currentThread->floatTemp1 = (void*)method;
+	}
+	return slowPath;
+}
+
+void J9FASTCALL
 old_fast_jitMethodIsNative(J9VMThread *currentThread)
 {
 	OLD_JIT_HELPER_PROLOGUE(1);
@@ -1660,7 +1714,7 @@ slow_jitMonitorEnterImpl(J9VMThread *currentThread, bool forMethod)
 			J9JavaVM *vm = currentThread->javaVM;
 			J9JITExceptionTable *metaData = vm->jitConfig->jitGetExceptionTableFromPC(currentThread, (UDATA)oldPC);
 			Assert_CodertVM_false(NULL == metaData);
-			jitGetMapsFromPC(vm, metaData, (UDATA)oldPC, &stackMap, &inlineMap);
+			jitGetMapsFromPC(currentThread, metaData, (UDATA)oldPC, &stackMap, &inlineMap);
 			Assert_CodertVM_false(NULL == inlineMap);
 			if ((NULL == getJitInlinedCallInfo(metaData)) || (NULL == getFirstInlinedCallSite(metaData, inlineMap))) {
 				J9SFJITResolveFrame *resolveFrame = (J9SFJITResolveFrame*)currentThread->sp;
@@ -2797,13 +2851,23 @@ old_fast_jitTypeCheckArrayStoreWithNullCheck(J9VMThread *currentThread)
 }
 
 void J9FASTCALL
-old_fast_jitAcmpHelper(J9VMThread *currentThread)
+old_fast_jitAcmpeqHelper(J9VMThread *currentThread)
 {
 	OLD_JIT_HELPER_PROLOGUE(2);
 	DECLARE_JIT_PARM(j9object_t, lhs, 1);
 	DECLARE_JIT_PARM(j9object_t, rhs, 2);
 
 	JIT_RETURN_UDATA(currentThread->javaVM->internalVMFunctions->valueTypeCapableAcmp(currentThread, lhs, rhs));
+}
+
+void J9FASTCALL
+old_fast_jitAcmpneHelper(J9VMThread *currentThread)
+{
+	OLD_JIT_HELPER_PROLOGUE(2);
+	DECLARE_JIT_PARM(j9object_t, lhs, 1);
+	DECLARE_JIT_PARM(j9object_t, rhs, 2);
+
+	JIT_RETURN_UDATA(!currentThread->javaVM->internalVMFunctions->valueTypeCapableAcmp(currentThread, lhs, rhs));
 }
 
 void* J9FASTCALL
@@ -3667,14 +3731,27 @@ fast_jitTypeCheckArrayStoreWithNullCheck(J9VMThread *currentThread, j9object_t d
 BOOLEAN J9FASTCALL
 #if defined(J9VM_ARCH_X86) || defined(J9VM_ARCH_S390)
 /* TODO Will be cleaned once all platforms adopt the correct parameter order */
-fast_jitAcmpHelper(J9VMThread *currentThread, j9object_t lhs, j9object_t rhs)
+fast_jitAcmpeqHelper(J9VMThread *currentThread, j9object_t lhs, j9object_t rhs)
 #else /* J9VM_ARCH_X86 || J9VM_ARCH_S390*/
-fast_jitAcmpHelper(J9VMThread *currentThread, j9object_t rhs, j9object_t lhs)
+fast_jitAcmpeqHelper(J9VMThread *currentThread, j9object_t rhs, j9object_t lhs)
 #endif /* J9VM_ARCH_X86 || J9VM_ARCH_S390*/
 {
 	JIT_HELPER_PROLOGUE();
 
 	return currentThread->javaVM->internalVMFunctions->valueTypeCapableAcmp(currentThread, lhs, rhs);
+}
+
+BOOLEAN J9FASTCALL
+#if defined(J9VM_ARCH_X86) || defined(J9VM_ARCH_S390)
+/* TODO Will be cleaned once all platforms adopt the correct parameter order */
+fast_jitAcmpneHelper(J9VMThread *currentThread, j9object_t lhs, j9object_t rhs)
+#else /* J9VM_ARCH_X86 || J9VM_ARCH_S390*/
+fast_jitAcmpneHelper(J9VMThread *currentThread, j9object_t rhs, j9object_t lhs)
+#endif /* J9VM_ARCH_X86 || J9VM_ARCH_S390*/
+{
+	JIT_HELPER_PROLOGUE();
+
+	return !currentThread->javaVM->internalVMFunctions->valueTypeCapableAcmp(currentThread, lhs, rhs);
 }
 
 void* J9FASTCALL
@@ -3858,6 +3935,9 @@ initPureCFunctionTable(J9JavaVM *vm)
 	jitConfig->old_fast_jitInstanceOf = (void*)old_fast_jitInstanceOf;
 	jitConfig->old_fast_jitLookupInterfaceMethod = (void*)old_fast_jitLookupInterfaceMethod;
 	jitConfig->old_slow_jitLookupInterfaceMethod = (void*)old_slow_jitLookupInterfaceMethod;
+	jitConfig->old_fast_jitLookupDynamicInterfaceMethod = (void*)old_fast_jitLookupDynamicInterfaceMethod;
+	jitConfig->old_fast_jitLookupDynamicPublicInterfaceMethod = (void*)old_fast_jitLookupDynamicPublicInterfaceMethod;
+	jitConfig->old_slow_jitLookupDynamicPublicInterfaceMethod = (void*)old_slow_jitLookupDynamicPublicInterfaceMethod;
 	jitConfig->old_fast_jitMethodIsNative = (void*)old_fast_jitMethodIsNative;
 	jitConfig->old_fast_jitMethodIsSync = (void*)old_fast_jitMethodIsSync;
 	jitConfig->old_fast_jitMethodMonitorEntry = (void*)old_fast_jitMethodMonitorEntry;
@@ -3942,7 +4022,8 @@ initPureCFunctionTable(J9JavaVM *vm)
 	jitConfig->old_fast_jitPutFlattenableStaticField = (void*) old_fast_jitPutFlattenableStaticField;
 	jitConfig->old_fast_jitLoadFlattenableArrayElement = (void*) old_fast_jitLoadFlattenableArrayElement;
 	jitConfig->old_fast_jitStoreFlattenableArrayElement = (void*) old_fast_jitStoreFlattenableArrayElement;
-	jitConfig->old_fast_jitAcmpHelper = (void*)old_fast_jitAcmpHelper;
+	jitConfig->old_fast_jitAcmpeqHelper = (void*)old_fast_jitAcmpeqHelper;
+	jitConfig->old_fast_jitAcmpneHelper = (void*)old_fast_jitAcmpneHelper;
 	jitConfig->fast_jitNewValue = (void*)fast_jitNewValue;
 	jitConfig->fast_jitNewValueNoZeroInit = (void*)fast_jitNewValueNoZeroInit;
 	jitConfig->fast_jitNewObject = (void*)fast_jitNewObject;

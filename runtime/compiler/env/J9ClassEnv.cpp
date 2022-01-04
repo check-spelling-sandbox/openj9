@@ -557,7 +557,6 @@ static void addEntryForFieldImpl(TR_VMField *field, TR::TypeLayoutBuilder &tlb, 
             dataType = TR::Double;
             break;
             }
-         // VALHALLA_TODO:  Might require different TR::DataType for value types (Q)
          case 'L':
          case 'Q':
          case '[':
@@ -572,9 +571,15 @@ static void addEntryForFieldImpl(TR_VMField *field, TR::TypeLayoutBuilder &tlb, 
       bool isVolatile = (field->modifiers & J9AccVolatile) ? true : false;
       bool isPrivate = (field->modifiers & J9AccPrivate) ? true : false;
       bool isFinal = (field->modifiers & J9AccFinal) ? true : false;
+
+      int sigLen = strlen(signature);
+      char *fieldSignature = new (region) char[sigLen+1];
+      memcpy(fieldSignature, signature, sigLen);
+      fieldSignature[sigLen] = '\0';
+
       if (trace)
-         traceMsg(comp, "type layout definingClass %p field: %s, field offset: %d offsetBase %d\n", definingClass, fieldName, field->offset, offsetBase);
-      tlb.add(TR::TypeLayoutEntry(dataType, offset, fieldName, isVolatile, isPrivate, isFinal, signature));
+         traceMsg(comp, "type layout definingClass %p field: %s signature: %s field offset: %d offsetBase %d\n", definingClass, fieldName, fieldSignature, field->offset, offsetBase);
+      tlb.add(TR::TypeLayoutEntry(dataType, offset, fieldName, isVolatile, isPrivate, isFinal, fieldSignature));
       }
    }
 
@@ -944,5 +949,48 @@ J9::ClassEnv::isClassRefValueType(TR::Compilation *comp, TR_OpaqueClassBlock *cp
       J9Class * j9class = reinterpret_cast<J9Class *>(cpContextClass);
       J9JavaVM *vm = comp->fej9()->getJ9JITConfig()->javaVM;
       return vm->internalVMFunctions->isClassRefQtype(j9class, cpIndex);
+      }
+   }
+
+char *
+J9::ClassEnv::classNameToSignature(const char *name, int32_t &len, TR::Compilation *comp, TR_AllocationKind allocKind, TR_OpaqueClassBlock *clazz)
+   {
+   char *sig;
+
+   if (name[0] == '[')
+      {
+      sig = (char *)comp->trMemory()->allocateMemory(len+1, allocKind);
+      memcpy(sig,name,len);
+      }
+   else
+      {
+      len += 2;
+      sig = (char *)comp->trMemory()->allocateMemory(len+1, allocKind);
+      if (clazz && TR::Compiler->om.areValueTypesEnabled() && self()->isValueTypeClass(clazz))
+         sig[0] = 'Q';
+      else
+         sig[0] = 'L';
+      memcpy(sig+1,name,len-2);
+      sig[len-1]=';';
+      }
+
+   sig[len] = '\0';
+   return sig;
+   }
+
+int32_t
+J9::ClassEnv::flattenedArrayElementSize(TR::Compilation *comp, TR_OpaqueClassBlock *arrayClass)
+   {
+#if defined(J9VM_OPT_JITSERVER)
+   if (auto stream = TR::CompilationInfo::getStream())
+      {
+      stream->write(JITServer::MessageType::ClassEnv_flattenedArrayElementSize, arrayClass);
+      return std::get<0>(stream->read<int32_t>());
+      }
+   else
+#endif /* defined(J9VM_OPT_JITSERVER) */
+      {
+      J9JavaVM *vm = comp->fej9()->getJ9JITConfig()->javaVM;
+      return vm->internalVMFunctions->arrayElementSize((J9ArrayClass*)self()->convertClassOffsetToClassPtr(arrayClass));
       }
    }

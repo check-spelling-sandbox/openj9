@@ -959,6 +959,7 @@ int32_t J9::ARM64::PrivateLinkage::buildPrivateLinkageArgs(TR::Node *callNode,
          numFloatArgRegs = 0;
          break;
       case TR::java_lang_invoke_ComputedCalls_dispatchVirtual:
+      case TR::com_ibm_jit_JITHelpers_dispatchVirtual:
          specialArgReg = getProperties().getVTableIndexArgumentRegister();
          break;
       }
@@ -1387,10 +1388,10 @@ static bool getProfiledCallSiteInfo(TR::CodeGenerator *cg, TR::Node *callNode, u
    info->getSortedList(comp, &allValues);
 
    TR_ResolvedMethod   *owningMethod = methodSymRef->getOwningMethod(comp);
-   TR_OpaqueClassBlock *callSiteMethod;
+   TR_OpaqueClassBlock *callSiteMethodClass;
 
    if (methodSymbol->isVirtual())
-       callSiteMethod = methodSymRef->getSymbol()->getResolvedMethodSymbol()->getResolvedMethod()->classOfMethod();
+       callSiteMethodClass = methodSymRef->getSymbol()->getResolvedMethodSymbol()->getResolvedMethod()->classOfMethod();
 
    ListIterator<TR_ExtraAddressInfo> valuesIt(&allValues);
 
@@ -1410,8 +1411,8 @@ static bool getProfiledCallSiteInfo(TR::CodeGenerator *cg, TR::Node *callNode, u
 
       if (methodSymbol->isVirtual())
          {
-         TR_ASSERT_FATAL(callSiteMethod, "Expecting valid callSiteMethod for virtual call");
-         if (fej9->isInstanceOf(clazz, callSiteMethod, true, true) != TR_yes)
+         TR_ASSERT_FATAL(callSiteMethodClass, "Expecting valid callSiteMethodClass for virtual call");
+         if (!cg->isProfiledClassAndCallSiteCompatible(clazz, callSiteMethodClass))
             continue;
 
          method = owningMethod->getResolvedVirtualMethod(comp, clazz, methodSymRef->getOffset());
@@ -1520,16 +1521,51 @@ static void buildVirtualCall(TR::CodeGenerator *cg, TR::Node *callNode, TR::Regi
  *
  * @param[in] cg:          code generator
  * @param[in] callNode:    node for the interface call
- * @param[in] ifcSnippet:  interfall call snippet
+ * @param[in] vftReg:      vft register
+ * @param[in] tmpReg:      temporary register
+ * @param[in] ifcSnippet:  interface call snippet
  * @param[in] regMapForGC: register map for GC
  */
-static void buildInterfaceCall(TR::CodeGenerator *cg, TR::Node *callNode, TR::ARM64InterfaceCallSnippet *ifcSnippet, uint32_t regMapForGC)
+static void buildInterfaceCall(TR::CodeGenerator *cg, TR::Node *callNode, TR::Register *vftReg, TR::Register *tmpReg, TR::ARM64InterfaceCallSnippet *ifcSnippet, uint32_t regMapForGC)
    {
-   // ToDo: Inline interface dispatch
+   /*
+    *  Generating following instruction sequence.
+    *
+    *  ldrx tmpReg, L_firstClassCacheSlot
+    *  cmpx vftReg, tmpReg
+    *  ldrx tmpReg, L_firstBranchAddressCacheSlot
+    *  beq  hitLabel
+    *  ldrx tmpReg, L_secondClassCacheSlot
+    *  cmpx vftReg, tmpReg
+    *  bne  snippetLabel
+    *  ldrx tmpReg, L_secondBranchAddressCacheSlot
+    * hitLabel:
+    *  blr  tmpReg
+    * doneLabel:
+    */
 
    TR::LabelSymbol *ifcSnippetLabel = ifcSnippet->getSnippetLabel();
+   TR::LabelSymbol *firstClassCacheSlotLabel = ifcSnippet->getFirstClassCacheSlotLabel();
+   generateTrg1ImmSymInstruction(cg, TR::InstOpCode::ldrx, callNode, tmpReg, 0, firstClassCacheSlotLabel);
 
-   TR::Instruction *gcPoint = generateLabelInstruction(cg, TR::InstOpCode::b, callNode, ifcSnippetLabel);
+   TR::LabelSymbol *hitLabel = generateLabelSymbol(cg);
+   generateCompareInstruction(cg, callNode, vftReg, tmpReg, true);
+   TR::LabelSymbol *firstBranchAddressCacheSlotLabel = ifcSnippet->getFirstBranchAddressCacheSlotLabel();
+
+   generateTrg1ImmSymInstruction(cg, TR::InstOpCode::ldrx, callNode, tmpReg, 0, firstBranchAddressCacheSlotLabel);
+   generateConditionalBranchInstruction(cg, TR::InstOpCode::b_cond, callNode, hitLabel, TR::CC_EQ);
+
+   TR::LabelSymbol *secondClassCacheSlotLabel = ifcSnippet->getSecondClassCacheSlotLabel();
+
+   generateTrg1ImmSymInstruction(cg, TR::InstOpCode::ldrx, callNode, tmpReg, 0, secondClassCacheSlotLabel);
+   generateCompareInstruction(cg, callNode, vftReg, tmpReg, true);
+   TR::Instruction *gcPoint = generateConditionalBranchInstruction(cg, TR::InstOpCode::b_cond, callNode, ifcSnippetLabel, TR::CC_NE);
+   gcPoint->ARM64NeedsGCMap(cg, regMapForGC);
+   TR::LabelSymbol *secondBranchAddressCacheSlotLabel = ifcSnippet->getSecondBranchAddressCacheSlotLabel();
+
+   generateTrg1ImmSymInstruction(cg, TR::InstOpCode::ldrx, callNode, tmpReg, 0, secondBranchAddressCacheSlotLabel);
+   generateLabelInstruction(cg, TR::InstOpCode::label, callNode, hitLabel);
+   gcPoint = generateRegBranchInstruction(cg, TR::InstOpCode::blr, callNode, tmpReg);
    gcPoint->ARM64NeedsGCMap(cg, regMapForGC);
    }
 
@@ -1573,6 +1609,7 @@ void J9::ARM64::PrivateLinkage::buildVirtualDispatch(TR::Node *callNode,
       switch (methodSymbol->getMandatoryRecognizedMethod())
          {
          case TR::java_lang_invoke_ComputedCalls_dispatchVirtual:
+         case TR::com_ibm_jit_JITHelpers_dispatchVirtual:
             {
             // Need a j2i thunk for the method that will ultimately be dispatched by this handle call
             char *j2iSignature = fej9->getJ2IThunkSignatureForDispatchVirtual(methodSymbol->getMethod()->signatureChars(), methodSymbol->getMethod()->signatureLength(), comp());
@@ -1821,9 +1858,15 @@ void J9::ARM64::PrivateLinkage::buildVirtualDispatch(TR::Node *callNode,
             if (methodSymbol->isInterface())
                {
                TR::LabelSymbol               *ifcSnippetLabel = generateLabelSymbol(cg());
-               TR::ARM64InterfaceCallSnippet *ifcSnippet = new (trHeapMemory()) TR::ARM64InterfaceCallSnippet(cg(), callNode, ifcSnippetLabel, argSize, doneOOLLabel, static_cast<uint8_t *>(thunk));
+               TR::LabelSymbol               *firstClassCacheSlotLabel = generateLabelSymbol(cg());
+               TR::LabelSymbol               *firstBranchAddressCacheSlotLabel = generateLabelSymbol(cg());
+               TR::LabelSymbol               *secondClassCacheSlotLabel = generateLabelSymbol(cg());
+               TR::LabelSymbol               *secondBranchAddressCacheSlotLabel = generateLabelSymbol(cg());
+               TR::ARM64InterfaceCallSnippet *ifcSnippet = new (trHeapMemory()) TR::ARM64InterfaceCallSnippet(cg(), callNode, ifcSnippetLabel,
+                                                                                                              argSize, doneOOLLabel, firstClassCacheSlotLabel, secondClassCacheSlotLabel,
+                                                                                                              firstBranchAddressCacheSlotLabel, secondBranchAddressCacheSlotLabel, static_cast<uint8_t *>(thunk));
                cg()->addSnippet(ifcSnippet);
-               buildInterfaceCall(cg(), callNode, ifcSnippet, regMapForGC);
+               buildInterfaceCall(cg(), callNode, vftReg, x9, ifcSnippet, regMapForGC);
                }
             else
                {
@@ -1867,12 +1910,16 @@ void J9::ARM64::PrivateLinkage::buildVirtualDispatch(TR::Node *callNode,
       // ToDo: Inline interface dispatch
 
       TR::LabelSymbol *ifcSnippetLabel = generateLabelSymbol(cg());
+      TR::LabelSymbol *firstClassCacheSlotLabel = generateLabelSymbol(cg());
+      TR::LabelSymbol *firstBranchAddressCacheSlotLabel = generateLabelSymbol(cg());
+      TR::LabelSymbol *secondClassCacheSlotLabel = generateLabelSymbol(cg());
+      TR::LabelSymbol *secondBranchAddressCacheSlotLabel = generateLabelSymbol(cg());
       TR::ARM64InterfaceCallSnippet *ifcSnippet =
          new (trHeapMemory())
-         TR::ARM64InterfaceCallSnippet(cg(), callNode, ifcSnippetLabel, argSize, doneLabel, static_cast<uint8_t *>(thunk));
+         TR::ARM64InterfaceCallSnippet(cg(), callNode, ifcSnippetLabel, argSize, doneLabel, firstClassCacheSlotLabel, firstBranchAddressCacheSlotLabel, secondClassCacheSlotLabel, secondBranchAddressCacheSlotLabel, static_cast<uint8_t *>(thunk));
       cg()->addSnippet(ifcSnippet);
 
-      buildInterfaceCall(cg(), callNode, ifcSnippet, regMapForGC);
+      buildInterfaceCall(cg(), callNode, vftReg, x9, ifcSnippet, regMapForGC);
       }
    else
       {

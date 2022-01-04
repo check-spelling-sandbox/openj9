@@ -460,6 +460,15 @@ GC_CheckEngine::checkJ9Object(J9JavaVM *javaVM, J9Object* objectPtr, J9MM_Iterat
 		}
 	}
 
+#if defined(J9VM_ENV_DATA64)
+	if (OMR_ARE_ANY_BITS_SET(_cycle->getMiscFlags(), J9MODRON_GCCHK_VALID_INDEXABLE_DATA_ADDRESS) && extensions->objectModel.isIndexable(objectPtr)) {
+		/* Check that the indexable object has the correct data address pointer */
+		if (!extensions->indexableObjectModel.isCorrectDataAddr((J9IndexableObject*)objectPtr)) {
+			return J9MODRON_GCCHK_RC_INVALID_INDEXABLE_DATA_ADDRESS;
+		}
+	}
+#endif /* (J9VM_ENV_DATA64) */
+
 	if (checkFlags & J9MODRON_GCCHK_VERIFY_RANGE) {
 		UDATA regionEnd = ((UDATA)regionDesc->regionStart) + regionDesc->regionSize;
 		UDATA delta = regionEnd - (UDATA)objectPtr;
@@ -868,7 +877,9 @@ GC_CheckEngine::checkClassStatics(J9JavaVM* vm, J9Class* clazz)
 				J9UTF8* sigUTF = J9ROMFIELDSHAPE_SIGNATURE(romFieldCursor);
 
 				/* interested in objects and all kinds of arrays */
-				if (('L' == J9UTF8_DATA(sigUTF)[0]) || ('[' == J9UTF8_DATA(sigUTF)[0])) {
+				if ((IS_REF_OR_VAL_SIGNATURE(J9UTF8_DATA(sigUTF)[0]))
+					|| ('[' == J9UTF8_DATA(sigUTF)[0])
+				) {
 					numberOfReferences += 1;
 
 					/* get address of next field */

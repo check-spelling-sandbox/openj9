@@ -59,8 +59,7 @@ _X(JVM_GC,JNICALL,true,void,void)
 _X(JVM_GCNoCompact,JNICALL,true,void,void)
 _X(JVM_GetAllThreads,JNICALL,true,jobjectArray,JNIEnv *env, jclass aClass)
 _IF([JAVA_SPEC_VERSION < 11],
-	[_X(JVM_GetCallerClass,JNICALL,true,jobject,JNIEnv *env, jint depth)])
-_IF([JAVA_SPEC_VERSION >= 11],
+	[_X(JVM_GetCallerClass,JNICALL,true,jobject,JNIEnv *env, jint depth)],
 	[_X(JVM_GetCallerClass,JNICALL,true,jobject,JNIEnv *env)])
 _X(JVM_GetClassAccessFlags,JNICALL,true,jint,JNIEnv *env, jclass clazzRef)
 _X(JVM_GetClassAnnotations,JNICALL,true,jbyteArray,JNIEnv *env, jclass target)
@@ -68,8 +67,7 @@ _X(JVM_GetClassConstantPool,JNICALL,true,jobject,JNIEnv *env, jclass target)
 _X(JVM_GetClassContext,JNICALL,true,jobject,JNIEnv *env)
 _X(JVM_GetClassLoader,JNICALL,true,jobject,JNIEnv *env, jobject obj)
 _IF([JAVA_SPEC_VERSION < 11],
-	[_X(JVM_GetClassName,JNICALL,true,jstring, JNIEnv *env, jclass theClass)])
-_IF([JAVA_SPEC_VERSION >= 11],
+	[_X(JVM_GetClassName,JNICALL,true,jstring, JNIEnv *env, jclass theClass)],
 	[_X(JVM_InitClassName,JNICALL,true,jstring, JNIEnv *env, jclass theClass)])
 _X(JVM_GetClassSignature,JNICALL,true,jstring,JNIEnv *env, jclass target)
 _X(JVM_GetEnclosingMethodInfo,JNICALL,true,jobjectArray,JNIEnv *env, jclass theClass)
@@ -87,7 +85,9 @@ _X(JVM_InvokeMethod,JNICALL,true,jobject,JNIEnv *env, jobject method, jobject ob
 _X(JVM_IsNaN,JNICALL,true,jboolean,jdouble dbl)
 _X(JVM_LatestUserDefinedLoader,JNICALL,true,jobject,JNIEnv *env)
 _X(JVM_Listen,JNICALL,true,jint,jint descriptor, jint count)
-_X(JVM_LoadLibrary,JNICALL,true,void *,const char *libName)
+_IF([JAVA_SPEC_VERSION < 18],
+	_X(JVM_LoadLibrary,JNICALL,true,void *,const char *libName),
+	_X(JVM_LoadLibrary,JNICALL,true,void *,const char *libName, jboolean throwOnFailure))
 _X(JVM_Lseek,JNICALL,true,jlong,jint descriptor, jlong bytesToSeek, jint origin)
 _X(JVM_MaxMemory,JNICALL,true,jlong,void)
 _X(JVM_MaxObjectInspectionAge,JNICALL,true,jlong,void)
@@ -193,8 +193,7 @@ _X(JVM_StartThread,JNICALL,true,void,JNIEnv *env, jobject newThread)
 _X(JVM_StopThread,JNICALL,true,jobject,jint arg0, jint arg1, jint arg2)
 _X(JVM_SuspendThread,JNICALL,true,jobject,jint arg0, jint arg1)
 _IF([JAVA_SPEC_VERSION < 15],
-	[_X(JVM_UnloadLibrary, JNICALL, true, jobject, jint arg0)])
-_IF([JAVA_SPEC_VERSION >= 15],
+	[_X(JVM_UnloadLibrary, JNICALL, true, jobject, jint arg0)],
 	[_X(JVM_UnloadLibrary, JNICALL, true, void, void *handle)])
 _X(JVM_Yield,JNICALL,true,jobject,jint arg0, jint arg1)
 _X(JVM_SetSockOpt,JNICALL,true,jint,jint fd, int level, int optname, const char *optval, int optlen)
@@ -355,3 +354,7 @@ _IF([JAVA_SPEC_VERSION >= 17],
 	[_X(JVM_DumpClassListToFile, JNICALL, false, void, JNIEnv *env, jstring str)])
 _IF([JAVA_SPEC_VERSION >= 17],
 	[_X(JVM_DumpDynamicArchive, JNICALL, false, void, JNIEnv *env, jstring str)])
+_IF([JAVA_SPEC_VERSION >= 18],
+	[_X(JVM_IsFinalizationEnabled, JNICALL, false, jboolean, JNIEnv *env)])
+_IF([JAVA_SPEC_VERSION >= 18],
+	[_X(JVM_ReportFinalizationComplete, JNICALL, false, void, JNIEnv *env, jobject obj)])

@@ -1460,6 +1460,7 @@ int32_t J9::Power::PrivateLinkage::buildPrivateLinkageArgs(TR::Node             
          numFloatArgRegs = 0;
          break;
       case TR::java_lang_invoke_ComputedCalls_dispatchVirtual:
+      case TR::com_ibm_jit_JITHelpers_dispatchVirtual:
          specialArgReg = getProperties().getVTableIndexArgumentRegister();
          break;
       }
@@ -2019,10 +2020,10 @@ static bool getProfiledCallSiteInfo(TR::CodeGenerator *cg, TR::Node *callNode, u
    info->getSortedList(comp, &allValues);
 
    TR_ResolvedMethod   *owningMethod = methodSymRef->getOwningMethod(comp);
-   TR_OpaqueClassBlock *callSiteMethod;
+   TR_OpaqueClassBlock *callSiteMethodClass;
 
    if (methodSymbol->isVirtual())
-       callSiteMethod = methodSymRef->getSymbol()->getResolvedMethodSymbol()->getResolvedMethod()->classOfMethod();
+       callSiteMethodClass = methodSymRef->getSymbol()->getResolvedMethodSymbol()->getResolvedMethod()->classOfMethod();
 
    ListIterator<TR_ExtraAddressInfo> valuesIt(&allValues);
 
@@ -2042,8 +2043,8 @@ static bool getProfiledCallSiteInfo(TR::CodeGenerator *cg, TR::Node *callNode, u
 
       if (methodSymbol->isVirtual())
          {
-         TR_ASSERT(callSiteMethod, "Expecting valid callSiteMethod for virtual call");
-         if (fej9->isInstanceOf(clazz, callSiteMethod, true, true) != TR_yes)
+         TR_ASSERT(callSiteMethodClass, "Expecting valid callSiteMethodClass for virtual call");
+         if (!cg->isProfiledClassAndCallSiteCompatible(clazz, callSiteMethodClass))
             continue;
 
          method = owningMethod->getResolvedVirtualMethod(comp, clazz, methodSymRef->getOffset());
@@ -2271,6 +2272,7 @@ void J9::Power::PrivateLinkage::buildVirtualDispatch(TR::Node                   
       switch (methodSymbol->getMandatoryRecognizedMethod())
          {
          case TR::java_lang_invoke_ComputedCalls_dispatchVirtual:
+         case TR::com_ibm_jit_JITHelpers_dispatchVirtual:
             {
             // Need a j2i thunk for the method that will ultimately be dispatched by this handle call
             char    *j2iSignature = fej9->getJ2IThunkSignatureForDispatchVirtual(methodSymbol->getMethod()->signatureChars(), methodSymbol->getMethod()->signatureLength(), comp());

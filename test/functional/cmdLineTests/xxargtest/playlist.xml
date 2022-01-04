@@ -36,4 +36,37 @@
 			<group>functional</group>
 		</groups>
 	</test>
+	<test>
+		<testCaseName>testXXArgumentTesting_j9</testCaseName>
+		<variations>
+			<variation>NoOptions</variation>
+			<variation>Mode101</variation>
+			<variation>Mode601</variation>
+			<variation>Mode150</variation>
+			<variation>Mode650</variation>
+		</variations>
+		<command>$(JAVA_COMMAND) -DEXE=$(SQ)$(JAVA_COMMAND) $(JVM_OPTIONS)$(SQ) -jar $(CMDLINETESTER_JAR) \
+	-config $(Q)$(TEST_RESROOT)$(D)XXArgumentTesting_j9.xml$(Q) \
+	-nonZeroExitWhenError; \
+	$(TEST_STATUS)</command>
+		<platformRequirements>bits.64</platformRequirements>
+		<disables>
+			<disable>
+				<comment>github_ibm/runtimes/infrastructure/issues/6123</comment>
+				<version>8</version>
+				<impl>ibm</impl>
+				<variation>Mode650</variation>
+			</disable>
+		</disables>
+		<levels>
+			<level>sanity</level>
+		</levels>
+		<groups>
+			<group>functional</group>
+		</groups>
+		<impls>
+			<impl>openj9</impl>
+			<impl>ibm</impl>
+		</impls>
+	</test>
 </playlist>

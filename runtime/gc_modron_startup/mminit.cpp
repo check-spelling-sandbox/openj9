@@ -1089,7 +1089,7 @@ gcInitializeXmxXmdxVerification(J9JavaVM *javaVM, IDATA* memoryParameters, bool 
 				/* Fail to initialize if assertions are off */
 				return JNI_ERR;
 			}
-	
+
 			/* Adjust heap ceiling value if it is necessary */
 			if (extensions->heapCeiling > maxHeapForCR) {
 				extensions->heapCeiling = maxHeapForCR;
@@ -2259,20 +2259,29 @@ combinationMemoryParameterVerification(J9JavaVM *javaVM, IDATA* memoryParameters
 			subSpaceTooLargeOption = "-Xmns";
 			goto _subSpaceTooLarge;
 		}
+		if (!isLessThanEqualOrUnspecifiedAgainstFixed(&extensions->userSpecifiedParameters._Xmns, ms)) {
+			if (!opt_XmsSet) {
+				ms = extensions->userSpecifiedParameters._Xmns._valueSpecified;
+				extensions->initialMemorySize = ms;
+				extensions->oldSpaceSize = extensions->initialMemorySize;
+			} else {
+				memoryOption = "-Xmn";
+				subSpaceTooLargeOption = displayXmsOrInitialRAMPercentage(memoryParameters);
+				goto _subSpaceTooLarge;
+			}
+		}
 		/* now interpret the values */
 		UDATA idealEdenMin = 0;
 		UDATA idealEdenMax = 0;
-		/* this implementation is meant to follow this design from JAZZ 39694
+		/*----------------------------------------------------------------
+		Arguments specified	|	initial Eden		|	maxEden
 		----------------------------------------------------------------
-		Arguments specified	|	minEden				|	maxEden
-		----------------------------------------------------------------
-		XmnA				|	OMR_MIN(A,Y)		|	A
+		XmnA				|	OMR_MIN(A,ms)		|	A
 		XmnsB				|	B					|	B
-		XmnxC				|	OMR_MIN(C,Y)		|	C
+		XmnxC				|	OMR_MIN(C,ms)		|	C
 		XmnsB XmnxC			|	B					|	C
-		(none)				|	OMR_MIN(X/4,Y)		|	X/4
-		----------------------------------------------------------------
-		 */
+		(none)				|	OMR_MIN(mx/4,ms)	|	mx*3/4
+		----------------------------------------------------------------*/
 		if (extensions->userSpecifiedParameters._Xmn._wasSpecified) {
 			/* earlier error checking would have ensured that we didn't specify -Xmns or -Xmnx with -Xmn */
 			UDATA mn = extensions->userSpecifiedParameters._Xmn._valueSpecified;
@@ -2294,8 +2303,10 @@ combinationMemoryParameterVerification(J9JavaVM *javaVM, IDATA* memoryParameters
 			idealEdenMax = mnx;
 		} else {
 			UDATA quarterMax = mx/4;
+			UDATA threeQuarterMax = quarterMax * 3;
+
 			idealEdenMin = OMR_MIN(quarterMax, ms);
-			idealEdenMax = quarterMax;
+			idealEdenMax = threeQuarterMax;
 		}
 
 		/* eden size has to be aligned with region size */
@@ -2907,11 +2918,11 @@ gcInitializeDefaults(J9JavaVM* vm)
 
 				if (hwSupported) {
 					/* Software Barrier request overwrites HW usage on supported HW */
-					extensions->concurrentScavengerHWSupport = hwSupported 
-						&& !extensions->softwareRangeCheckReadBarrier 
+					extensions->concurrentScavengerHWSupport = hwSupported
+						&& !extensions->softwareRangeCheckReadBarrier
 #if defined(J9VM_OPT_CRIU_SUPPORT)
 						&& !vm->internalVMFunctions->isCRIUSupportEnabled(vm->internalVMFunctions->currentVMThread(vm))
-#endif
+#endif /* defined(J9VM_OPT_CRIU_SUPPORT) */
 						&& !J9_ARE_ANY_BITS_SET(vm->extendedRuntimeFlags2, J9_EXTENDED_RUNTIME2_ENABLE_PORTABLE_SHARED_CACHE);
 					extensions->concurrentScavenger = hwSupported || extensions->softwareRangeCheckReadBarrier;
 				} else {

@@ -150,8 +150,8 @@ class ValuePropagation : public OMR::ValuePropagation
          RequiresStoreCheck = 0x04,
          IsRefCompare       = 0x08,
          InsertDebugCounter = 0x10,
-         Unused3            = 0x20,
-         Unused2            = 0x40,
+         RequiresBoundCheck = 0x20,
+         RequiresStoreAndNullCheck = 0x40,
          Unused1            = 0x80,
          };
    };

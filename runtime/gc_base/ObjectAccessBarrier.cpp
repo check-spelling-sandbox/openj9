@@ -49,7 +49,12 @@ MM_ObjectAccessBarrier::initialize(MM_EnvironmentBase *env)
 	_heap = _extensions->heap;
 	J9JavaVM *vm = (J9JavaVM*)env->getOmrVM()->_language_vm;
 	OMR_VM *omrVM = env->getOmrVM();
-	
+	char *refSignature = (char*) "I";
+
+	if (sizeof(U_64) == J9JAVAVM_REFERENCE_SIZE(vm)) {
+		refSignature = (char *) "J";
+	}
+
 #if defined(OMR_GC_COMPRESSED_POINTERS)
 	if (env->compressObjectReferences()) {
 
@@ -80,11 +85,11 @@ MM_ObjectAccessBarrier::initialize(MM_EnvironmentBase *env)
 	vm->objectAlignmentShift = omrVM->_objectAlignmentShift;
 
 	/* request an extra slot in java/lang/ref/Reference which we will use to maintain linked lists of reference objects */
-	if (0 != vm->internalVMFunctions->addHiddenInstanceField(vm, "java/lang/ref/Reference", "gcLink", "Ljava/lang/ref/Reference;", &_referenceLinkOffset)) {
+	if (0 != vm->internalVMFunctions->addHiddenInstanceField(vm, "java/lang/ref/Reference", "gcLink", refSignature, &_referenceLinkOffset)) {
 		return false;
 	}
 	/* request an extra slot in java/util/concurrent/locks/AbstractOwnableSynchronizer which we will use to maintain linked lists of ownable synchronizer objects */
-	if (0 != vm->internalVMFunctions->addHiddenInstanceField(vm, "java/util/concurrent/locks/AbstractOwnableSynchronizer", "ownableSynchronizerLink", "Ljava/util/concurrent/locks/AbstractOwnableSynchronizer;", &_ownableSynchronizerLinkOffset)) {
+	if (0 != vm->internalVMFunctions->addHiddenInstanceField(vm, "java/util/concurrent/locks/AbstractOwnableSynchronizer", "ownableSynchronizerLink", refSignature, &_ownableSynchronizerLinkOffset)) {
 		return false;
 	}
 	
@@ -2047,7 +2052,7 @@ MM_ObjectAccessBarrier::postObjectStore(J9VMThread *vmThread, J9Object **destAdd
  * TODO: This should probably be postBatchObjectStore, not pre-.
  */
 bool
-MM_ObjectAccessBarrier::preBatchObjectStore(J9VMThread *vmThread, J9Object *destObject, bool isVolatile)
+MM_ObjectAccessBarrier::postBatchObjectStore(J9VMThread *vmThread, J9Object *destObject, bool isVolatile)
 {
 #if defined(J9VM_GC_COMBINATION_SPEC)
 	/* (assert here to verify that we aren't defaulting to this implementation through some unknown path - delete once combination is stable) */
@@ -2057,7 +2062,7 @@ MM_ObjectAccessBarrier::preBatchObjectStore(J9VMThread *vmThread, J9Object *dest
 }
 
 bool
-MM_ObjectAccessBarrier::preBatchObjectStore(J9VMThread *vmThread, J9Class *destClass, bool isVolatile)
+MM_ObjectAccessBarrier::postBatchObjectStore(J9VMThread *vmThread, J9Class *destClass, bool isVolatile)
 {
 #if defined(J9VM_GC_COMBINATION_SPEC)
 	/* (assert here to verify that we aren't defaulting to this implementation through some unknown path - delete once combination is stable) */

@@ -431,6 +431,18 @@ convertByteArrayToCString(J9VMThread *currentThread, j9object_t byteArray);
 j9object_t
 convertCStringToByteArray(J9VMThread *currentThread, const char *byteArray);
 
+/**
+ * Allocate native memory and copy the argument array to it.
+ *
+ * @param currentThread[in] the current J9VMThread
+ * @param argArray[in] the specified argument array (must not be NULL)
+ * @param javaArgs[in] the specified native memory to store the arguments (must not be NULL)
+ *
+ * @returns the newly-allocated memory, or NULL on failure (no exception is set pending)
+ */
+U_64 *
+convertToNativeArgArray(J9VMThread *currentThread, j9object_t argArray, U_64 *javaArgs);
+
 /* ------------------- romclasses.c ----------------- */
 
 /**
@@ -443,6 +455,7 @@ initializeROMClasses(J9JavaVM *vm);
 
 /* ------------------- visible.c ----------------- */
 
+#if JAVA_SPEC_VERSION >= 11
 /**
  * Check module access from srcModule to destModule.
  *
@@ -475,6 +488,7 @@ initializeROMClasses(J9JavaVM *vm);
 
 IDATA
 checkModuleAccess(J9VMThread *currentThread, J9JavaVM* vm, J9ROMClass* srcRomClass, J9Module* srcModule, J9ROMClass* destRomClass, J9Module* destModule, UDATA destPackageID, UDATA lookupOptions);
+#endif /* JAVA_SPEC_VERSION >= 11 */
 
 /* ------------------- guardedstorage.c ----------------- */
 

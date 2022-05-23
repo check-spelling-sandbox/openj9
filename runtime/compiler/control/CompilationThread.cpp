@@ -8729,7 +8729,7 @@ TR::CompilationInfoPerThreadBase::wrappedCompile(J9PortLibrary *portLib, void * 
             TR_ASSERT(TR::comp() == NULL, "there seems to be a current TLS TR::Compilation object %p for this thread. At this point there should be no current TR::Compilation object", TR::comp());
 
             // Under -Xtune:throughput we allow huge methods for compilations above warm
-            if (TR::Options::getAggressivityLevel() ==  TR::Options::TR_AggresivenessLevel::AGGRESSIVE_THROUGHPUT &&
+            if (TR::Options::getAggressivityLevel() ==  TR::Options::TR_AggressivenessLevel::AGGRESSIVE_THROUGHPUT &&
                 options->getOptLevel() > warm &&
                 !options->getOption(TR_ProcessHugeMethods))
                {
@@ -8903,7 +8903,7 @@ TR::CompilationInfoPerThreadBase::wrappedCompile(J9PortLibrary *portLib, void * 
 #endif
                }
             // Under -Xtune:throughput, increase the scratch space limit for hot/scorching compilations
-            else if (TR::Options::getAggressivityLevel() ==  TR::Options::TR_AggresivenessLevel::AGGRESSIVE_THROUGHPUT &&
+            else if (TR::Options::getAggressivityLevel() ==  TR::Options::TR_AggressivenessLevel::AGGRESSIVE_THROUGHPUT &&
                      compiler->getOptions()->getOptLevel() > warm &&
                      TR::Options::getScratchSpaceLimitForHotCompilations() > proposedScratchMemoryLimit) // Make sure we don't decrease the value proposed so far
                {

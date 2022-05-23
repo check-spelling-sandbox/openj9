@@ -1329,21 +1329,21 @@ void J9::Options::preProcessMode(J9JavaVM *vm, J9JITConfig *jitConfig)
    if (_aggressivenessLevel == -1) // not yet set
       {
       // Start with a default level and override as needed
-      _aggressivenessLevel = TR::Options::TR_AggresivenessLevel::DEFAULT;
+      _aggressivenessLevel = TR::Options::TR_AggressivenessLevel::DEFAULT;
 
       // -Xquickstart/-Xtune:quickstart, -Xtune:virtualized and -Xtune:throughput are mutually exclusive
       // This is ensured by VM option processing
       if (J9_ARE_ANY_BITS_SET(jitConfig->runtimeFlags, J9JIT_QUICKSTART))
          {
-         _aggressivenessLevel = TR::Options::TR_AggresivenessLevel::QUICKSTART;
+         _aggressivenessLevel = TR::Options::TR_AggressivenessLevel::QUICKSTART;
          }
       else if (J9_ARE_ANY_BITS_SET(vm->extendedRuntimeFlags2, J9_EXTENDED_RUNTIME2_TUNE_THROUGHPUT))
          {
-         _aggressivenessLevel = TR::Options::TR_AggresivenessLevel::AGGRESSIVE_THROUGHPUT;
+         _aggressivenessLevel = TR::Options::TR_AggressivenessLevel::AGGRESSIVE_THROUGHPUT;
          }
       else if (J9_ARE_ANY_BITS_SET(vm->runtimeFlags, J9_RUNTIME_TUNE_VIRTUALIZED))
          {
-         _aggressivenessLevel = TR::Options::TR_AggresivenessLevel::AGGRESSIVE_AOT;
+         _aggressivenessLevel = TR::Options::TR_AggressivenessLevel::AGGRESSIVE_AOT;
          _scratchSpaceFactorWhenJSR292Workload = 1;
          }
       else

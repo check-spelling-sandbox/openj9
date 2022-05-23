@@ -1006,7 +1006,7 @@ J9::ValuePropagation::constrainRecognizedMethod(TR::Node *node)
                // Determine whether the value is being copied from the same array that is the target
                // of the array element store.  If so, there's no need for an ArrayStoreCHK or a call
                // to the <nonNullableArrayNullStoreCheck> non-helper.
-               // The value might be loaded using inline array access IL or the <jitLoadFlatttenableArrayElement>
+               // The value might be loaded using inline array access IL or the <jitLoadFlattenableArrayElement>
                // helper, so we need to take care of both cases.
                //
                if (storeValueNode->getOpCode().isLoadVar()

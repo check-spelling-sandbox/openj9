@@ -358,7 +358,7 @@ J9::Z::TreeEvaluator::inlineStringLatin1Inflate(TR::Node *node, TR::CodeGenerato
    // Do a vector load to batch process the characters.
    generateVRXInstruction(cg, TR::InstOpCode::VL, node, registerV1, sourceArrayMemRef);
    TR::Register* registerV2 = cg->allocateRegister(TR_VRF);
-   // Unpack the 1st and 2nd halves of the input vector. This will efectively inflate each character from 1 byte to 2 bytes.
+   // Unpack the 1st and 2nd halves of the input vector. This will effectively inflate each character from 1 byte to 2 bytes.
    generateVRRaInstruction(cg, TR::InstOpCode::VUPLH, node, registerV2, registerV1);
    generateVRRaInstruction(cg, TR::InstOpCode::VUPLL, node, registerV1, registerV1);
 

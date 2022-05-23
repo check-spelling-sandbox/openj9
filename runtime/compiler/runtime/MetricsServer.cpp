@@ -559,7 +559,7 @@ MetricsServer::serveMetricsRequests()
       return;
       }
 
-   _pfd[0].fd = sockfd; // Add the socket descriptor for incomming connection requests
+   _pfd[0].fd = sockfd; // Add the socket descriptor for incoming connection requests
    reArmSocketForReading(0);
    _numActiveSockets = 1;
 

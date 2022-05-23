@@ -425,7 +425,7 @@ public class Test_Array {
 			Assert.fail("NegativeArraySizeException should be thrown when a specified array length is negative");
 		} catch (NegativeArraySizeException e) {
 			if (!e.getMessage().contains("-1")) {
-				Assert.fail("NegativeArraySizeException should specify supplied nagative size");
+				Assert.fail("NegativeArraySizeException should specify supplied negative size");
 			}
 		}
 
@@ -434,7 +434,7 @@ public class Test_Array {
 			Assert.fail("NegativeArraySizeException should be thrown when a specified array length is negative");
 		} catch (NegativeArraySizeException e) {
 			if (!e.getMessage().contains(Integer.toString(Integer.MIN_VALUE))) {
-				Assert.fail("NegativeArraySizeException should specify supplied nagative size");
+				Assert.fail("NegativeArraySizeException should specify supplied negative size");
 			}
 		}
 	}

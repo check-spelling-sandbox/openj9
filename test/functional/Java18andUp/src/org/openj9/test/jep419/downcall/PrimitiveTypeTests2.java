@@ -108,7 +108,7 @@ public class PrimitiveTypeTests2 {
 	}
 
 	@Test
-	public void test_addTwoNegtiveBytes_2() throws Throwable {
+	public void test_addTwoNegativeBytes_2() throws Throwable {
 		FunctionDescriptor fd = FunctionDescriptor.of(JAVA_BYTE, JAVA_BYTE, JAVA_BYTE);
 		NativeSymbol functionSymbol = nativeLibLookup.lookup("add2Bytes").get();
 		MethodHandle mh = clinker.downcallHandle(fd);
@@ -137,7 +137,7 @@ public class PrimitiveTypeTests2 {
 	}
 
 	@Test
-	public void test_addTwoNegtiveShorts_2() throws Throwable {
+	public void test_addTwoNegativeShorts_2() throws Throwable {
 		FunctionDescriptor fd = FunctionDescriptor.of(JAVA_SHORT, JAVA_SHORT, JAVA_SHORT);
 		NativeSymbol functionSymbol = nativeLibLookup.lookup("add2Shorts").get();
 		MethodHandle mh = clinker.downcallHandle(fd);
@@ -166,7 +166,7 @@ public class PrimitiveTypeTests2 {
 	}
 
 	@Test
-	public void test_addTwoNegtiveInts_2() throws Throwable {
+	public void test_addTwoNegativeInts_2() throws Throwable {
 		FunctionDescriptor fd = FunctionDescriptor.of(JAVA_INT, JAVA_INT, JAVA_INT);
 		NativeSymbol functionSymbol = nativeLibLookup.lookup("add2Ints").get();
 		MethodHandle mh = clinker.downcallHandle(fd);

@@ -141,7 +141,7 @@ public class PrimitiveTypeTests3 {
 	}
 
 	@Test
-	public void test_addTwoNegtiveBytes_3() throws Throwable {
+	public void test_addTwoNegativeBytes_3() throws Throwable {
 		MethodType mt = MethodType.methodType(byte.class, byte.class, byte.class);
 		FunctionDescriptor fd = FunctionDescriptor.of(C_CHAR, C_CHAR, C_CHAR);
 		Addressable functionSymbol = nativeLibLookup.lookup("add2Bytes").get();
@@ -184,7 +184,7 @@ public class PrimitiveTypeTests3 {
 	}
 
 	@Test
-	public void test_addTwoNegtiveShorts_3() throws Throwable {
+	public void test_addTwoNegativeShorts_3() throws Throwable {
 		MethodType mt = MethodType.methodType(short.class, short.class, short.class);
 		FunctionDescriptor fd = FunctionDescriptor.of(C_SHORT, C_SHORT, C_SHORT);
 		Addressable functionSymbol = nativeLibLookup.lookup("add2Shorts").get();
@@ -227,7 +227,7 @@ public class PrimitiveTypeTests3 {
 	}
 
 	@Test
-	public void test_addTwoNegtiveInts_3() throws Throwable {
+	public void test_addTwoNegativeInts_3() throws Throwable {
 		MethodType mt = MethodType.methodType(int.class, int.class, int.class);
 		FunctionDescriptor fd = FunctionDescriptor.of(C_INT, C_INT, C_INT);
 		Addressable functionSymbol = nativeLibLookup.lookup("add2Ints").get();

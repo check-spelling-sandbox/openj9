@@ -1535,7 +1535,7 @@ MM_SchedulingDelegate::mapPgcPauseOverheadToPgcCPUOverhead(MM_EnvironmentVLHGC *
 
 	if (heapFullyExpanded) {
 		/*
-		 * Eden size is being driven by heuristic which is trying to MINIMIZE hybrid overead, while trying to stay within tarokTargetMaxPauseTime,
+		 * Eden size is being driven by heuristic which is trying to MINIMIZE hybrid overhead, while trying to stay within tarokTargetMaxPauseTime,
 		 * The overhead logic here will map a low avg pgc time (ie, under targetPauseTimeMs), to a low overhead value (aka, a "better"/more desirable value)
 		 * Ex. Suppose tarokTargetMaxPauseTime == 100ms. 20ms -> 5% (good/desirable), 100ms -> 5% (still good), 110ms -> 6% (should possibly shrink) 500ms -> 80% (bad/undesirable/eden should probably shrink)
 		 */

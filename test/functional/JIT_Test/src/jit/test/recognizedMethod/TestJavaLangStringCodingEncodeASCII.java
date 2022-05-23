@@ -166,7 +166,7 @@ public class TestJavaLangStringCodingEncodeASCII {
 				};
 		inputString = new String(inputCharArray);
                 actualOutput = inputString.getBytes(encoding);
-                AssertJUnit.assertArrayEquals("Incorrect result for tesing 64 valid characters", expectedOutput, actualOutput);
+                AssertJUnit.assertArrayEquals("Incorrect result for testing 64 valid characters", expectedOutput, actualOutput);
 
 		// Test 24 valid characters
 		// i.e. output in string representation: @ABCDEFGHIJKLMNOHIJKLMNO

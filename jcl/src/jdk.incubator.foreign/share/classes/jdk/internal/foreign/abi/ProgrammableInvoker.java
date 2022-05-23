@@ -377,7 +377,7 @@ public class ProgrammableInvoker {
 			 * e.g. (b32[abi/kind=INT],b32[abi/kind=INT])b32[abi/kind=INT] are replaced by ([8%b32, 8%b32])8%b32.
 			 * So we have to unify the code in Java 17 & 18 to parse the layout with different solutions:
 			 * 1) generate the layout string with CLinker.TypeKind in Java 17.
-			 * 2) generate the layout string with MemoryLayout.carrier() (the type idenfied by the layout) in Java 18.
+			 * 2) generate the layout string with MemoryLayout.carrier() (the type identified by the layout) in Java 18.
 			 */
 			String argRetLayoutStrsLine = argLayoutStrsLine.toString() + retLayoutStr;
 			Integer argRetLayoutStrLineHash = Integer.valueOf(argRetLayoutStrsLine.hashCode());

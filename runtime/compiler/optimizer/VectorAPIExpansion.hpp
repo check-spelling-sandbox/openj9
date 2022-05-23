@@ -246,7 +246,7 @@ class TR_VectorAPIExpansion : public TR::Optimization
    *     Vector length in bits
    *
    *  \return
-   *     \c corresponding TR::VectorLength enum if plaform supports \c vectorLength
+   *     \c corresponding TR::VectorLength enum if platform supports \c vectorLength
    *     \c TR::NoVectorLength otherwise
    */
    static TR::VectorLength supportedOnPlatform(TR::Compilation *comp, vec_sz_t vectorLength)

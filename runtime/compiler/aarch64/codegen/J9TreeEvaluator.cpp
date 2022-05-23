@@ -1527,7 +1527,7 @@ J9::ARM64::TreeEvaluator::monexitEvaluator(TR::Node *node, TR::CodeGenerator *cg
 
    TR::Register *addrReg = srm->findOrCreateScratchRegister();
 
-   // If we do not know the lockword offset at compile time, obtrain it from the class pointer of the object being locked
+   // If we do not know the lockword offset at compile time, obtain it from the class pointer of the object being locked
    if (staticLwOffset <= 0)
       {
       generateLockwordAddressLookup(cg, node, objReg, addrReg, metaReg, srm, OOLLabel);
@@ -3582,7 +3582,7 @@ J9::ARM64::TreeEvaluator::monentEvaluator(TR::Node *node, TR::CodeGenerator *cg)
 
    TR::Register *addrReg = srm->findOrCreateScratchRegister();
 
-   // If we do not know the lockword offset at compile time, obtrain it from the class pointer of the object being locked
+   // If we do not know the lockword offset at compile time, obtain it from the class pointer of the object being locked
    if (staticLwOffset <= 0)
       {
       generateLockwordAddressLookup(cg, node, objReg, addrReg, metaReg, srm, OOLLabel);

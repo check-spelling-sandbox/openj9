@@ -1025,7 +1025,7 @@ MM_SchedulingDelegate::updateHeapSizingData(MM_EnvironmentVLHGC *env)
 	uintptr_t totalHeapSize = regionSize * _numberOfHeapRegions;
 	/* Determine how much space needs to be reserved for eden + survivor space */
 	uintptr_t survivorSize = (uintptr_t)(regionSize * _averageSurvivorSetRegionCount);
-	/* In certain edge cases, eden + survivor might be calculated as larger than the heap size (which is not possible), and that causes innacuracies down the line */
+	/* In certain edge cases, eden + survivor might be calculated as larger than the heap size (which is not possible), and that causes inaccuracies down the line */
 	uintptr_t reservedFreeMemory =  OMR_MIN((getCurrentEdenSizeInBytes(env) + survivorSize), totalHeapSize);
 
 	/* If a GMP has not yet occured, make a rough guess as to how expensive GMP will be */
@@ -1375,7 +1375,7 @@ MM_SchedulingDelegate::calculateEdenSize(MM_EnvironmentVLHGC *env)
 			edenChangeWithSurvivorHeadroom = desiredEdenChangeSize + (intptr_t)ceil(((double)desiredEdenChangeSize * _edenSurvivalRateCopyForward));
 		} else if ((0 > desiredEdenChangeSize) && !edenIsVerySmall) {
 			/* If eden is shrinking, only factor adjusting in survivor regions for total heap resizing when eden is not very small.
-			 * Factoring in survivor regions when eden is tiny can lead to some innacuracies, and reduce free non-eden regions, which may impact performance
+			 * Factoring in survivor regions when eden is tiny can lead to some inaccuracies, and reduce free non-eden regions, which may impact performance
 			 */
 			edenChangeWithSurvivorHeadroom = desiredEdenChangeSize + (intptr_t)floor(((double)desiredEdenChangeSize * _edenSurvivalRateCopyForward));
 		}

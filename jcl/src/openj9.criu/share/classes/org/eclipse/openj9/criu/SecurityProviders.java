@@ -32,7 +32,7 @@ import openj9.internal.criu.security.CRIUConfigurator;
  * from the system properties (which are read from security.java) and CRIUSEC is
  * added to the system properties. The pre-checkpoint hook clears the digests,
  * to ensure that no state is saved during checkpoint that would be restored
- * during the restore phase. During the resore phase, CRIUSEC is removed from
+ * during the restore phase. During the restore phase, CRIUSEC is removed from
  * the provider list and the other security providers are added back to the
  * system properties. A new provider list is created from the system properties.
  */

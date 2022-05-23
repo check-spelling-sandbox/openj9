@@ -68,7 +68,7 @@ public:
    void invalidateClass(J9VMThread *vmThread, J9Class *ramClass);
 
    // Invalidates all cached serialization records. Must be called when the client
-   // connects to a new server instance (e.g. upon receving a VM_getVMInfo message),
+   // connects to a new server instance (e.g. upon receiving a VM_getVMInfo message),
    // before attempting to deserialize any method received from the new server instance.
    void reset();
 

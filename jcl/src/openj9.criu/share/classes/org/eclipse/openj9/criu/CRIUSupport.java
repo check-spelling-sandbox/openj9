@@ -190,7 +190,7 @@ public final class CRIUSupport {
 		return s;
 	}
 
-	/* Higher priority hooks are run last in pre-checkoint hooks, and are run
+	/* Higher priority hooks are run last in pre-checkpoint hooks, and are run
 	 * first in post restore hooks.
 	 */
 	private static final int RESTORE_ENVIRONMENT_VARIABLES_PRIORITY = 100;

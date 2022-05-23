@@ -1615,7 +1615,7 @@ exit:
 		{
 #if defined(J9VM_ARCH_AARCH64)
 			/* Restore the preset padding bytes (0xDD J9MEMTAG_PADDING_BYTE) of the allocated memory
-			 * for the returned struct on arrch64 as ffi_call intentionally sets zero to the rest of
+			 * for the returned struct on aarch64 as ffi_call intentionally sets zero to the rest of
 			 * byte slots except the return value of the allocated memory for the purposed of alignment,
 			 * which undoubtedly undermines the integrity check when releasing the returned memory
 			 * segment via Unsafe.

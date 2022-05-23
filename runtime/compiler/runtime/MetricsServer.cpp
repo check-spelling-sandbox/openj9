@@ -308,7 +308,7 @@ MetricsServer::startMetricsThread(J9JavaVM *javaVM)
          _metricsMonitor->exit();
          if (!getMetricsThread())
             {
-            j9tty_printf(PORTLIB, "Error: JITServer Matrics Thread attach failed.\n");
+            j9tty_printf(PORTLIB, "Error: JITServer Metrics Thread attach failed.\n");
             }
          }
       }

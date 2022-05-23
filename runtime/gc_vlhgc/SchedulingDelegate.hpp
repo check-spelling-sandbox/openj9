@@ -87,7 +87,7 @@ private:
 	uint64_t _historicalPartialGCTime;  /**< Weighted historical average of Partial GC times, measured in ms */
 	uint64_t _recentPartialGCTime; /**< Most recent PGC time, measured in ms */
 
-	uint64_t _globalMarkIncrementsTotalTime; /**< Agregate of time spent doing GMP increments for current phase */
+	uint64_t _globalMarkIncrementsTotalTime; /**< Aggregate of time spent doing GMP increments for current phase */
 	uint64_t _globalMarkIntervalStartTime; /**< Time interval between start of sucessive GMP increments */
 	double _globalMarkOverhead; /**< Used to keep track of relative Global Mark overhead. Is calculated by dividing total time spent in Global Mark increments, Concurrent GMP work, and global sweep, by the time interval since the completion of the last global mark  */
 	uint64_t _globalSweepTimeUs; /**< Used to keep track of time spent doing global sweep, corresponding to previous GMP cycle */

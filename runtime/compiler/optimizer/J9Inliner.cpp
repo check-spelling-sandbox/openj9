@@ -545,7 +545,7 @@ TR_OpaqueClassBlock* TR_J9VirtualCallSite::getClassFromMethod ()
    return _initialCalleeMethod->classOfMethod();
    }
 
-// Ensure the call site is a basic invokevirtual; the bytecode is an 'invokevirtaul' and the
+// Ensure the call site is a basic invokevirtual; the bytecode is an 'invokevirtual' and the
 // cpIndex is the same as the call site _cpIndex. This will insure that the call site is not
 // some type of transformed call site that may not be a valid case for allowing an isInstanceOf()
 // call during AOT compiles

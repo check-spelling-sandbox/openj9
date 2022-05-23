@@ -185,7 +185,7 @@ public final class TargetDirectory {
 	/**
 	 * Remove this VM's target directory and the files within it. The target vmId is
 	 * supplied for the case that AttachHandler.vmId hasn't been set properly at
-	 * early bootstapping stage.
+	 * early bootstrapping stage.
 	 *
 	 * @param directoryEmpty set to true if the directory is supposedly empty
 	 * @vmId target VM ID

@@ -252,7 +252,7 @@ public class ValueTypeArrayTests {
 	 * @param arr Array to which <code>sourceVal</code> will be assigned
 	 * @param sourceVal Value that will be assigned to an element of <code>arr</code>
 	 * @param staticArrayKind A value indicating the static type of array that is to be tested
-	 * @param staticSourceKind A value indicating the static type that is to be tested for the source of the assignmentt
+	 * @param staticSourceKind A value indicating the static type that is to be tested for the source of the assignment
 	 */
 	static void runTest(Object[] arr, Object sourceVal, int staticArrayKind, int staticSourceKind) throws Throwable {
 		boolean caughtThrowable = false;

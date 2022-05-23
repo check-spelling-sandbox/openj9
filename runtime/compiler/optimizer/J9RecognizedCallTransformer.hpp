@@ -48,7 +48,7 @@ class RecognizedCallTransformer : public OMR::RecognizedCallTransformer
 #if defined(J9VM_OPT_OPENJDK_METHODHANDLE)
    /** \brief
     *     Helper function that constructs the alternate faster path for bypassing VM INL calls, used by linkToStatic, linkToSpecial,
-    *     and invokeBasic call tranformers
+    *     and invokeBasic call transformers
     *
     *  \param treetop
     *     the TreeTop anchoring the call node

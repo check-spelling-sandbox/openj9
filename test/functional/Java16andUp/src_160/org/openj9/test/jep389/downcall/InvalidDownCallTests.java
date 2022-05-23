@@ -41,7 +41,7 @@ import static jdk.incubator.foreign.LibraryLookup.Symbol;
 /**
  * Test cases for JEP 389: Foreign Linker API (Incubator) DownCall for primitive types,
  * which verifies the majority of illegal cases including the mismatch between the type
- * and the corresponding layout, the inconsisitency of the arity, etc.
+ * and the corresponding layout, the inconsistency of the arity, etc.
  */
 @Test(groups = { "level.sanity" })
 public class InvalidDownCallTests {

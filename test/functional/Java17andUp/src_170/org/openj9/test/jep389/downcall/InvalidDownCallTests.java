@@ -42,7 +42,7 @@ import jdk.incubator.foreign.ValueLayout;
 /**
  * Test cases for JEP 389: Foreign Linker API (Incubator) in downcall, which verifies
  * the majority of illegal cases including the mismatch between the type and the
- * corresponding layout, the inconsisitency of the arity, etc.
+ * corresponding layout, the inconsistency of the arity, etc.
  */
 @Test(groups = { "level.sanity" })
 public class InvalidDownCallTests {

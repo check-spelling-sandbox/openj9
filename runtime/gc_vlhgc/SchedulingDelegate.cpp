@@ -1759,7 +1759,7 @@ MM_SchedulingDelegate::updatePgcTimePrediction(MM_EnvironmentVLHGC *env)
 {
 	/*
 	 * Create a model that passes through (minimumEdenRegions,minimumPgcTime) and (current eden size in regions, pgcTime)
-	 * By remembering historic values of _pgcTimeIncreasePerEdenFactor, it is possible to reasonably accuratly predict how long PGC will take, if eden were to change size.
+	 * By remembering historic values of _pgcTimeIncreasePerEdenFactor, it is possible to reasonably accurately predict how long PGC will take, if eden were to change size.
 	 *
 	 * Note: The formula derived for predicting pgc times, require that x1 and x2 are in GB.
 	 */

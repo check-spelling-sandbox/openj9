@@ -1094,7 +1094,7 @@ double MM_MemorySubSpaceTarok::mapMemoryPercentageToGcOverhead(MM_EnvironmentBas
 
 	if (tenureSize < freeTenure) {
 		/*
-		 * In certain edge cases (usually in startup), "tenure" is measured slightly innacuratly (due to dynamics of survivor space), resulting in free tenure memory being inaccurate.
+		 * In certain edge cases (usually in startup), "tenure" is measured slightly inaccurately (due to dynamics of survivor space), resulting in free tenure memory being inaccurate.
 		 * Counter-intuitively, free tenure memory here is very small, so suggest expansion
 		 */
 		memoryScore = (double)(2.0 * _extensions->heapExpansionGCRatioThreshold._valueSpecified);

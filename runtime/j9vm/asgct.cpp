@@ -147,11 +147,11 @@ protectedASGCT(J9PortLibrary *portLib, void *arg)
 	parms->jitArtifactSearchCache = currentThread->jitArtifactSearchCache;
 	parms->privateFlags2 = currentThread->privateFlags2;
 	/* Disable the JIT metadata cache. The cache may be in an inconsistent state, and may
-	 * need to allocate memory (which is undesireable in a signal handler).
+	 * need to allocate memory (which is undesirable in a signal handler).
 	 */
 	currentThread->jitArtifactSearchCache = (void*)((UDATA)currentThread->jitArtifactSearchCache | J9_STACKWALK_NO_JIT_CACHE);
 	/* Disable trace and assertions. The current thread may be in the process of updating the trace
-	 * buffers when it was interrupted. Assertions during ASGCT are also undesireable, better to let
+	 * buffers when it was interrupted. Assertions during ASGCT are also undesirable, better to let
 	 * the thread continue on to crash, which is handled.
 	 */
 	currentThread->privateFlags2 |= J9_PRIVATE_FLAGS2_ASYNC_GET_CALL_TRACE;

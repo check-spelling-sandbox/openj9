@@ -3511,7 +3511,7 @@ void TR::CompilationInfo::stopCompilationThreads()
 
 #if defined(J9VM_OPT_CRIU_SUPPORT)
    // Set the checkpoint status to interrupted regardless
-   // of whether currently there is a checkpoint in progess.
+   // of whether currently there is a checkpoint in progress.
    // If a checkpoint is in progress then the thread waiting
    // on the CR monitor will abort and return from the hook;
    // otherwise, the thread could (or is en route to) be

@@ -71,7 +71,7 @@ ifdef({WIN32},{
 	})
 
 	dnl $1 = register number
-	dnl $2 = stack displacment
+	dnl $2 = stack displacement
 	define({SAVE_MASK_16},    {INSTRUCTION({VEX2}, 090h, {$1}, {$2})})
 	define({RESTORE_MASK_16}, {INSTRUCTION({VEX2}, 091h, {$1}, {$2})})
 	define({SAVE_MASK_64},    {INSTRUCTION({VEX3}, 090h, {$1}, {$2})})
@@ -81,7 +81,7 @@ ifdef({WIN32},{
 
 },{ dnl WIN32
 	dnl $1 = register number
-	dnl $2 = stack displacment
+	dnl $2 = stack displacement
 	define({SAVE_MASK_16},    {kmovw word ptr $2[_rsp],k{}$1})
 	define({RESTORE_MASK_16}, {kmovw k{}$1,word ptr $2[_rsp]})
 	define({SAVE_MASK_64},    {kmovq qword ptr $2[_rsp],k{}$1})

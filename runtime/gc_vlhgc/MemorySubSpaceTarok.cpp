@@ -1475,7 +1475,7 @@ MM_MemorySubSpaceTarok::getHeapSizeWithinBounds(MM_EnvironmentBase *env)
 		} else {
 			/*
 			 * Leave headroom for free tenure (ie. do not contract by more than 25% of current free tenure space)
-			 * This is both to remain symetric with max expansion of 25%, and to prevent overly aggressive contraction
+			 * This is both to remain symmetric with max expansion of 25%, and to prevent overly aggressive contraction
 			 */
 			if ((suggestedChange * -1) >= (intptr_t)maxHeapContraction) {
 				break;

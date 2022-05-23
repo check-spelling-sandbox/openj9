@@ -378,7 +378,7 @@ class TR_VectorAPIExpansion : public TR::Optimization
    *     Reference id
    *
    *  \param classLength
-   *     Number of lanes in theclass
+   *     Number of lanes in the class
    *
    *  \param classType
    *     Element type of the class

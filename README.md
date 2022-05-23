@@ -20,6 +20,7 @@ OpenJDK Assembly Exception [2].
 SPDX-License-Identifier: EPL-2.0 OR Apache-2.0 OR GPL-2.0 WITH Classpath-exception-2.0 OR LicenseRef-GPL-2.0 WITH Assembly-exception
 -->
 
+
 <p align="center">
 <img src="https://github.com/eclipse-openj9/openj9/blob/master/artwork/OpenJ9.svg" alt="OpenJ9 logo" align="middle" width="50%" height="50%" />
 <p>

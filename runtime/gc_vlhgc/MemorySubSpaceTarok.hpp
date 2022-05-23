@@ -133,7 +133,7 @@ private:
 
 	/**
 	 * Attempts to calculate what size of heap will give a hybrid heap score within the acceptable bounds (between heapExpansionGCTimeThreshold and heapContractionGCTimeThreshold).
-	 * @return size of heap that acheives a hybrid heap score within acceptable range. 0 is returned if it is not possible to get heap to a range with an acceptable heap score
+	 * @return size of heap that achieved a hybrid heap score within acceptable range. 0 is returned if it is not possible to get heap to a range with an acceptable heap score
 	 */
 	uintptr_t getHeapSizeWithinBounds(MM_EnvironmentBase *env);
 

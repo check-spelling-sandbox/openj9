@@ -1038,8 +1038,8 @@ MM_MemorySubSpaceTarok::calculateHeapSizeChange(MM_EnvironmentBase *env, MM_Allo
 
 	/*
 	 * Heap sizing is driven by "hybrid Heap overhead". This is a blended value, which combines free memory in "tenure" along with observed GC overhead.
-	 * If the hybrid score is too high (can be acheived by low free memory %, high gc %, or a hybrid of the 2), then the heap calculates an expansion value.
-	 * If the hybrid score is too low (can be acheived with high free memory %, low gc %, or hybrid of the 2), then the heap calculates a contraction value.
+	 * If the hybrid score is too high (can be achieved by low free memory %, high gc %, or a hybrid of the 2), then the heap calculates an expansion value.
+	 * If the hybrid score is too low (can be achieved with high free memory %, low gc %, or hybrid of the 2), then the heap calculates a contraction value.
 	 *
 	 * Notes: - If gc % is very low (suggesting contraction), and memory % is also very low (suggesting expansion), the hybrid heap score will likely suggest expansion to avoid OOM error
 	 *        - If the hybrid value falls within the acceptable thresholds, the heap will not resize

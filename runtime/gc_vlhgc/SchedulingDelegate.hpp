@@ -296,7 +296,7 @@ private:
 	double calculatePercentOfHeapExpanded(MM_EnvironmentVLHGC *env);
 
 	/**
-	 * Following a PGC, check how PGC overhead and PGC times are behaving, and modyfing _edenSizeFactor to increase/decrease eden size if needed
+	 * Following a PGC, check how PGC overhead and PGC times are behaving, and modifying _edenSizeFactor to increase/decrease eden size if needed
 	 * @param env[in] the main GC thread
 	 * @param globalSweepHappened true if a global sweep was performed during the PGC that just completed
 	 */

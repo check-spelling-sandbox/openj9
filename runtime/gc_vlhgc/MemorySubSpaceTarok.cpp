@@ -1498,7 +1498,7 @@ MM_MemorySubSpaceTarok::getHeapSizeWithinBounds(MM_EnvironmentBase *env)
 
 	/*
 	 * If looking at the overhead curve did not work, base the expansion/contraction off of how high/low the hybrid overhead is.
-	 * For each % above heapExpansionGCRatioThreshold, expand more aggresively.
+	 * For each % above heapExpansionGCRatioThreshold, expand more aggressively.
 	 * Ie, if heapExpansionGCRatioThreshold = 13, and measured hybrid overhead is 20, we want to expand by a larger amount than if measured hybrid overhead is 14.
 	 */
 	if (!foundAcceptableHeapSizeChange) {

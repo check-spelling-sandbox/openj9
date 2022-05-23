@@ -282,7 +282,7 @@ private:
 	 * @param edenChangeSpeed How quickly eden should jump from current eden size to the ideal eden size. edenChangeSpeed must be between 0 and 1.
 	 * @return by how many regions eden should change. Positive values mean eden should expand, while negative values means eden should shrink
 	 * 0.1 indicates that current eden size should move a little bit towards ideal eden size
-	 * 0.9 indicates that current eden size should move very aggresively towards ideal eden size
+	 * 0.9 indicates that current eden size should move very aggressively towards ideal eden size
 	 * 0.5 indicates that current eden size should move halfway towards ideal eden size
 	 */
 	intptr_t moveTowardRecommendedEdenForExpandedHeap(MM_EnvironmentVLHGC *env, double edenChangeSpeed);

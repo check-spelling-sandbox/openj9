@@ -230,7 +230,7 @@ public class ValueTypeUnsafeTests {
 
 	@Test
 	static public void testUninitializedDefaultValueOfValueType() throws Throwable {
-		// create a new ValueTypePoint2D to ensure that the class has been initialized befoere myUnsafe.uninitializedDefaultValue is called
+		// create a new ValueTypePoint2D to ensure that the class has been initialized before myUnsafe.uninitializedDefaultValue is called
 		ValueTypePoint2D newPoint = new ValueTypePoint2D(new ValueTypeInt(1), new ValueTypeInt(1));
 		ValueTypePoint2D p = myUnsafe.uninitializedDefaultValue(newPoint.getClass());
 		assertEquals(p.x.i, 0);

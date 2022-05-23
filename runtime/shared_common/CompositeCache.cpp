@@ -2301,7 +2301,7 @@ SH_CompositeCacheImpl::enterReadMutex(J9VMThread* currentThread, const char* cal
 
 	Trc_SHR_CC_enterReadMutex_Enter(currentThread, caller);
 
-	/* updateRuntimeFullFlags() could acuqire write mutex. We cannot aquire write mutex after read mutex,
+	/* updateRuntimeFullFlags() could acquire write mutex. We cannot acquire write mutex after read mutex,
 	 * so for readers, update the runtime full flags before the read mutex.
 	 * For writers, the runtime full flags are updated in SH_CacheMap::refreshHashtables()
 	 */

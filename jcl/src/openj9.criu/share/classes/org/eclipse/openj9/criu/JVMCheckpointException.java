@@ -43,7 +43,7 @@ public final class JVMCheckpointException extends JVMCRIUException {
 	 *
 	 * @param message   the message
 	 * @param errorCode the error code
-	 * @param causedBy  throwable that cuased the exception
+	 * @param causedBy  throwable that caused the exception
 	 */
 	public JVMCheckpointException(String message, int errorCode, Throwable causedBy) {
 		super(message, errorCode, causedBy);

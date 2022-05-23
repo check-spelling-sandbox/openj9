@@ -419,7 +419,7 @@ public final class CRIUSupport {
 	 * Append new environment variables to the set returned by ProcessEnvironment.getenv(...) upon
 	 * restore. All pre-existing (environment variables from checkpoint run) env
 	 * vars are retained. All environment variables specified in the envFile are
-	 * added as long as they do not modifiy pre-existeing environment variables.
+	 * added as long as they do not modifiy pre-existing environment variables.
 	 *
 	 * Format for envFile is the following: ENV_VAR_NAME1=ENV_VAR_VALUE1 ...
 	 * ENV_VAR_NAMEN=ENV_VAR_VALUEN

@@ -36,7 +36,7 @@ public class QueryTests extends LinearDumpTestCase {
 	public void testQueryForRomSize() throws Exception {
 		for (Class<?> clazz : classesToTest) {
 			Process cfdump = Utils.invokeCfdumpOnClass(clazz, "-drq:/romHeader/romSize");
-			List<Field> fields = parseLinearRomClassDumperOuput(cfdump);
+			List<Field> fields = parseLinearRomClassDumperOutput(cfdump);
 			assertEquals(1, fields.size());
 			Field field = fields.get(0);
 			assertEquals("romSize", field.getName());
@@ -47,7 +47,7 @@ public class QueryTests extends LinearDumpTestCase {
 	public void testMultipleQueries() throws Exception {
 		for (Class<?> clazz : classesToTest) {
 			Process cfdump = Utils.invokeCfdumpOnClass(clazz, "-drq:/romHeader/romSize,/romHeader/className");
-			List<Field> fields = parseLinearRomClassDumperOuput(cfdump);
+			List<Field> fields = parseLinearRomClassDumperOutput(cfdump);
 			assertEquals(2, fields.size());
 			Field field = fields.get(0);
 			assertEquals("romSize", field.getName());
@@ -61,7 +61,7 @@ public class QueryTests extends LinearDumpTestCase {
 	public void testQueryArrayNotation() throws Exception {
 		for (Class<?> clazz : classesToTest) {
 			Process cfdump = Utils.invokeCfdumpOnClass(clazz, "-drq:/methods/method[0]/name,/methods/method[1]/name");
-			List<Field> fields = parseLinearRomClassDumperOuput(cfdump);
+			List<Field> fields = parseLinearRomClassDumperOutput(cfdump);
 			assertEquals(2, fields.size());
 			assertEquals("name", fields.get(0).getName());
 			assertEquals("name", fields.get(1).getName());

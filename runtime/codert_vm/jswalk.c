@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 1991, 2021 IBM Corp. and others
+ * Copyright (c) 1991, 2022 IBM Corp. and others
  *
  * This program and the accompanying materials are made available under
  * the terms of the Eclipse Public License 2.0 which accompanies this
@@ -186,7 +186,7 @@ UDATA  jitWalkStackFrames(J9StackWalkState *walkState)
 		walkState->outgoingArgCount = walkState->argCount;
 
 		if ((!(walkState->flags & J9_STACKWALK_SKIP_INLINES)) && getJitInlinedCallInfo(walkState->jitInfo)) {
-			jitGetMapsFromPC(walkState->walkThread->javaVM, walkState->jitInfo, (UDATA) walkState->pc, &(walkState->stackMap), &(walkState->inlineMap));
+			jitGetMapsFromPC(walkState->currentThread, walkState->javaVM, walkState->jitInfo, (UDATA) walkState->pc, &(walkState->stackMap), &(walkState->inlineMap));
 			if (NULL != walkState->inlineMap) {
 				walkState->inlinedCallSite = getFirstInlinedCallSite(walkState->jitInfo, walkState->inlineMap);
 
@@ -217,7 +217,7 @@ resumeWalkInline:
 				}
 			}
 		} else if (walkState->flags & J9_STACKWALK_RECORD_BYTECODE_PC_OFFSET) {
-			jitGetMapsFromPC(walkState->walkThread->javaVM, walkState->jitInfo, (UDATA) walkState->pc, &(walkState->stackMap), &(walkState->inlineMap));
+			jitGetMapsFromPC(walkState->currentThread, walkState->javaVM, walkState->jitInfo, (UDATA) walkState->pc, &(walkState->stackMap), &(walkState->inlineMap));
 		}
 
 		SET_A0_CP_METHOD(walkState);
@@ -517,7 +517,7 @@ static void jitWalkFrame(J9StackWalkState *walkState, UDATA walkLocals, void *st
 	WALK_METHOD_CLASS(walkState);
 
 	if (stackMap == NULL) {
-		stackMap = getStackMapFromJitPC(walkState->walkThread->javaVM, walkState->jitInfo, (UDATA) walkState->pc);
+		stackMap = getStackMapFromJitPC(walkState->currentThread, walkState->javaVM, walkState->jitInfo, (UDATA) walkState->pc);
 		if (stackMap == NULL) {
 			if (J9_ARE_ANY_BITS_SET(walkState->flags, J9_STACKWALK_NO_ERROR_REPORT)) {
 				return;
@@ -554,7 +554,7 @@ static void jitWalkFrame(J9StackWalkState *walkState, UDATA walkLocals, void *st
 	variableInternalPtrSize = 0;
 	registerMap = getJitRegisterMap(walkState->jitInfo, stackMap);
 	jitDescriptionCursor = getJitStackSlots(walkState->jitInfo, stackMap);
-	stackAllocMapCursor = getStackAllocMapFromJitPC(walkState->walkThread->javaVM, walkState->jitInfo, (UDATA) walkState->pc, stackMap);
+	stackAllocMapCursor = getStackAllocMapFromJitPC(walkState->currentThread, walkState->jitInfo, (UDATA) walkState->pc, stackMap);
 
 	walkState->slotType = J9_STACKWALK_SLOT_TYPE_METHOD_LOCAL;
 	walkState->slotIndex = 0;
@@ -674,7 +674,7 @@ static void walkJITFrameSlots(J9StackWalkState * walkState, U_8 * jitDescription
 						swPrintf(walkState, 3, "Possible Class Address: 0x%x at search PC 0x%x \n",*((j9object_t *)(*scanCursor)), walkState->pc );
 					}
 					if ((walkState->userData1 == (void*)1) || (walkState->userData1 == (void*)8) ) {
-						swPrintf(walkState, 3, "Uncollected ref SLOT 0x%x pointing at object ref 0x%x for stackmap at seachPC 0x%x: \n",  scanCursor, *scanCursor, walkState->pc);
+						swPrintf(walkState, 3, "Uncollected ref SLOT 0x%x pointing at object ref 0x%x for stackmap at searchPC 0x%x: \n",  scanCursor, *scanCursor, walkState->pc);
 					}
 #endif
 					if (walkState->userData2 == (void*)4) {
@@ -1061,7 +1061,7 @@ static void jitWalkResolveMethodFrame(J9StackWalkState *walkState)
 			}
 			return;
 		}
-		jitGetMapsFromPC(walkState->walkThread->javaVM, metaData, (UDATA)walkState->pc, &stackMap, &inlineMap);
+		jitGetMapsFromPC(walkState->currentThread, walkState->javaVM, metaData, (UDATA)walkState->pc, &stackMap, &inlineMap);
 
 		/* If there are no inlines, use the outer method.  Otherwise, use the innermost inline at the current PC */
 
@@ -1674,13 +1674,16 @@ jitGetOwnedObjectMonitors(J9StackWalkState *walkState)
 	void *inlineMap;
 	U_8 *liveMonitorMap;
 	U_16 numberOfMapBits;
+	UDATA rc = J9_STACKWALK_KEEP_ITERATING;
+	/* If -XX:+ShowHiddenFrames option has not been set, skip hidden method frames */
+	UDATA skipHiddenFrames = J9_ARE_NO_BITS_SET(walkState->javaVM->runtimeFlags, J9_RUNTIME_SHOW_HIDDEN_FRAMES);
 
 	if (NULL == walkState->userData1) {
 		return countOwnedObjectMonitors(walkState);
 	}
 
 	/* get the stackmap and inline map for the given pc (this is a single walk of jit metadata) */
-	jitGetMapsFromPC(walkState->walkThread->javaVM, walkState->jitInfo, (UDATA)walkState->pc, &stackMap, &inlineMap);
+	jitGetMapsFromPC(walkState->currentThread, walkState->javaVM, walkState->jitInfo, (UDATA)walkState->pc, &stackMap, &inlineMap);
 
 	/* get a slot map of all live monitors on the JIT frame.  May include slots from inlined methods */
 	liveMonitorMap = getJitLiveMonitors(walkState->jitInfo, stackMap);
@@ -1700,23 +1703,36 @@ jitGetOwnedObjectMonitors(J9StackWalkState *walkState)
 			inlinedCallSite = getNextInlinedCallSite(walkState->jitInfo, inlinedCallSite)
 			) {
 
-			if (liveMonitorMap) {
-				U_8 *inlineMonitorMask = getMonitorMask(gcStackAtlas, inlinedCallSite);
-				if (NULL != inlineMonitorMask) {
-					walkLiveMonitorSlots(walkState, gcStackAtlas, liveMonitorMap, inlineMonitorMask, numberOfMapBits);
+			J9Method *ramMethod = getInlinedMethod(inlinedCallSite);
+			/* if skipHiddenFrames flag set, skip checking monitors from hidden method frames */
+			if (!(skipHiddenFrames && J9_IS_HIDDEN_METHOD(ramMethod))) {
+				if (liveMonitorMap) {
+					U_8 *inlineMonitorMask = getMonitorMask(gcStackAtlas, inlinedCallSite);
+					if (NULL != inlineMonitorMask) {
+						rc = walkLiveMonitorSlots(walkState, gcStackAtlas, liveMonitorMap, inlineMonitorMask, numberOfMapBits);
+						if (J9_STACKWALK_STOP_ITERATING == rc) {
+							return rc;
+						}
+					}
 				}
+				/* increment stack depth */
+				walkState->userData4 = (void *)(((UDATA)walkState->userData4) + 1);
 			}
-			/* increment stack depth */
-			walkState->userData4 = (void *)(((UDATA)walkState->userData4) + 1);
 		}
 	}
 
-	/* Get the live monitors for the outer frame */
-	if (liveMonitorMap) {
-		walkLiveMonitorSlots(walkState, gcStackAtlas, liveMonitorMap, getMonitorMask(gcStackAtlas, NULL), numberOfMapBits);
+	/* Check if outer frame should be skipped */
+	if (skipHiddenFrames && J9_IS_HIDDEN_METHOD(walkState->method)) {
+		/* Decrease the stack depth when skipping hidden frame */
+		walkState->userData4 = (void *)(((UDATA)walkState->userData4) - 1);
+	} else {
+		/* Get the live monitors for the outer frame */
+		if (liveMonitorMap) {
+			rc = walkLiveMonitorSlots(walkState, gcStackAtlas, liveMonitorMap, getMonitorMask(gcStackAtlas, NULL), numberOfMapBits);
+		}
 	}
 
-	return J9_STACKWALK_KEEP_ITERATING;
+	return rc;
 }
 
 /*
@@ -1730,9 +1746,11 @@ countOwnedObjectMonitors(J9StackWalkState *walkState)
 	void *inlineMap;
 	U_8 *liveMonitorMap;
 	U_16 numberOfMapBits;
+	/* If -XX:+ShowHiddenFrames option has not been set, skip hidden method frames */
+	UDATA skipHiddenFrames = J9_ARE_NO_BITS_SET(walkState->javaVM->runtimeFlags, J9_RUNTIME_SHOW_HIDDEN_FRAMES);
 
 	/* get the stackmap and inline map for the given pc (this is a single walk of jit metadata) */
-	jitGetMapsFromPC(walkState->walkThread->javaVM, walkState->jitInfo, (UDATA)walkState->pc, &stackMap, &inlineMap);
+	jitGetMapsFromPC(walkState->currentThread, walkState->javaVM, walkState->jitInfo, (UDATA)walkState->pc, &stackMap, &inlineMap);
 
 	/* get a slot map of all live monitors on the JIT frame.  May include slots from inlined methods */
 	liveMonitorMap = getJitLiveMonitors(walkState->jitInfo, stackMap);
@@ -1752,18 +1770,25 @@ countOwnedObjectMonitors(J9StackWalkState *walkState)
 			inlinedCallSite = getNextInlinedCallSite(walkState->jitInfo, inlinedCallSite)
 			) {
 
-			if (liveMonitorMap) {
-				U_8 *inlineMonitorMask = getMonitorMask(gcStackAtlas, inlinedCallSite);
-				if (NULL != inlineMonitorMask) {
-					countLiveMonitorSlots(walkState, gcStackAtlas, liveMonitorMap, inlineMonitorMask, numberOfMapBits);
+			J9Method *ramMethod = getInlinedMethod(inlinedCallSite);
+			/* if skipHiddenFrames flag set, skip checking monitors from hidden method frames */
+			if (!(skipHiddenFrames && J9_IS_HIDDEN_METHOD(ramMethod))) {
+				if (liveMonitorMap) {
+					U_8 *inlineMonitorMask = getMonitorMask(gcStackAtlas, inlinedCallSite);
+					if (NULL != inlineMonitorMask) {
+						countLiveMonitorSlots(walkState, gcStackAtlas, liveMonitorMap, inlineMonitorMask, numberOfMapBits);
+					}
 				}
 			}
 		}
 	}
 
-	/* Get the live monitors for the outer frame */
-	if (liveMonitorMap) {
-		countLiveMonitorSlots(walkState, gcStackAtlas, liveMonitorMap, getMonitorMask(gcStackAtlas, 0), numberOfMapBits);
+	/* Check if outer frame should be skipped */
+	if (!(skipHiddenFrames && J9_IS_HIDDEN_METHOD(walkState->method))) {
+		/* Get the live monitors for the outer frame */
+		if (liveMonitorMap) {
+			countLiveMonitorSlots(walkState, gcStackAtlas, liveMonitorMap, getMonitorMask(gcStackAtlas, 0), numberOfMapBits);
+		}
 	}
 	return J9_STACKWALK_KEEP_ITERATING;
 }
@@ -1779,7 +1804,7 @@ walkLiveMonitorSlots(J9StackWalkState *walkState, J9JITStackAtlas *gcStackAtlas,
 	U_8 bit;
 	J9VMThread *currentThread = walkState->currentThread;
 	J9VMThread *targetThread = walkState->walkThread;
-	J9InternalVMFunctions const * const vmFuncs = currentThread->javaVM->internalVMFunctions;
+	J9InternalVMFunctions const * const vmFuncs = walkState->javaVM->internalVMFunctions;
 
 	for (i = 0; i < numberOfMapBits; ++i) {
 		bit = liveMonitorMap[i >> 3] & monitorMask[i >> 3] & (1 << (i & 7));
@@ -1819,7 +1844,7 @@ countLiveMonitorSlots(J9StackWalkState *walkState, J9JITStackAtlas *gcStackAtlas
 	U_8 bit;
 	J9VMThread *currentThread = walkState->currentThread;
 	J9VMThread *targetThread = walkState->walkThread;
-	J9InternalVMFunctions const * const vmFuncs = currentThread->javaVM->internalVMFunctions;
+	J9InternalVMFunctions const * const vmFuncs = walkState->javaVM->internalVMFunctions;
 
 	for (i = 0; i < numberOfMapBits; ++i) {
 		bit = liveMonitorMap[i >> 3] & monitorMask[i >> 3];

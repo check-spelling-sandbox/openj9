@@ -90,7 +90,7 @@ public class SetHeapdumpCommand extends BaseJdmpviewCommand
 			}
 			
 			if(args.length > 2) {
-				out.println("\"set heapdump multiplefiles\" requires one parameter: on or off. You suppled " + (args.length - 1) + " parameters\n");
+				out.println("\"set heapdump multiplefiles\" requires one parameter: on or off. You supplied " + (args.length - 1) + " parameters\n");
 				return;
 			}
 			

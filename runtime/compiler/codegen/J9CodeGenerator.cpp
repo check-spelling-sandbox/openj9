@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2000, 2021 IBM Corp. and others
+ * Copyright (c) 2000, 2022 IBM Corp. and others
  *
  * This program and the accompanying materials are made available under
  * the terms of the Eclipse Public License 2.0 which accompanies this
@@ -106,7 +106,7 @@ static TR::Node *lowerCASValues(
       int32_t childNum,
       TR::Node *address,
       TR::Compilation *comp,
-      TR::Node *shftOffset,
+      TR::Node *shiftOffset,
       bool isLowMem,
       TR::Node *heapBase)
    {
@@ -144,9 +144,9 @@ static TR::Node *lowerCASValues(
             addNode->setIsNonZero(true);
          }
 
-      if (shftOffset)
+      if (shiftOffset)
          {
-         addNode = TR::Node::create(TR::lushr, 2, addNode, shftOffset);
+         addNode = TR::Node::create(TR::lushr, 2, addNode, shiftOffset);
          addNode->setContainsCompressionSequence(true);
          }
 
@@ -233,14 +233,14 @@ J9::CodeGenerator::lowerCompressedRefs(
          TR::Node *valueChild = node->getChild(nextChild);
          if (valueChild->getOpCode().is8Byte())
             {
-            TR::Node *shftOffset = NULL;
+            TR::Node *shiftOffset = NULL;
             if (TR::Compiler->om.compressedReferenceShiftOffset() > 0)
                {
-               shftOffset = TR::Node::create(node, TR::iconst, 0, TR::Compiler->om.compressedReferenceShiftOffset());
+               shiftOffset = TR::Node::create(node, TR::iconst, 0, TR::Compiler->om.compressedReferenceShiftOffset());
                }
 
             TR::Node *heapBase = TR::Node::create(node, TR::lconst, 0, 0);
-            lowerCASValues(node, nextChild, valueChild, self()->comp(), shftOffset, true, heapBase);
+            lowerCASValues(node, nextChild, valueChild, self()->comp(), shiftOffset, true, heapBase);
             }
          }
 
@@ -263,7 +263,7 @@ J9::CodeGenerator::lowerCompressedRefs(
                         i2l
                           iiload f
                             aload O
-                        iconst shftKonst
+                        iconst shiftKonst
                       lconst HB
 
     -or- if the field is known to be null
@@ -281,7 +281,7 @@ J9::CodeGenerator::lowerCompressedRefs(
                           a2l
                             aload O
                           lconst HB
-                        iconst shftKonst
+                        iconst shiftKonst
 
     -or- if the field is known to be null
     iistore f
@@ -390,9 +390,9 @@ J9::CodeGenerator::lowerCompressedRefs(
    // in future if shifted offsets are used, this value will be
    // a positive non-zero constant
    //
-   TR::Node *shftOffset = NULL;
+   TR::Node *shiftOffset = NULL;
    if (TR::Compiler->om.compressedReferenceShiftOffset() > 0)
-      shftOffset = TR::Node::create(loadOrStoreNode, TR::iconst, 0, TR::Compiler->om.compressedReferenceShiftOffset());
+      shiftOffset = TR::Node::create(loadOrStoreNode, TR::iconst, 0, TR::Compiler->om.compressedReferenceShiftOffset());
 
    if (isLoad)
       {
@@ -418,9 +418,9 @@ J9::CodeGenerator::lowerCompressedRefs(
       // if the load is known to be null or if using lowMemHeap, do not
       // generate a compression sequence
       addNode = iu2lNode;
-      if (shftOffset)
+      if (shiftOffset)
          {
-         addNode = TR::Node::create(TR::lshl, 2, iu2lNode, shftOffset);
+         addNode = TR::Node::create(TR::lshl, 2, iu2lNode, shiftOffset);
          addNode->setContainsCompressionSequence(true);
          }
 
@@ -453,9 +453,9 @@ J9::CodeGenerator::lowerCompressedRefs(
       TR::Node *addNode = NULL;
       addNode = a2lNode;
 
-      if (shftOffset)
+      if (shiftOffset)
          {
-         addNode = TR::Node::create(TR::lushr, 2, addNode, shftOffset);
+         addNode = TR::Node::create(TR::lushr, 2, addNode, shiftOffset);
          addNode->setContainsCompressionSequence(true);
          }
 
@@ -839,17 +839,48 @@ J9::CodeGenerator::lowerTreeIfNeeded(
          }
       }
 
-   // J9
-   //
-   // if we found this iterator method inlined in a scorching method
-   // we should attempt to prefetch where it's used for performance
-   // structure is needed to determine the loop size to use proper prefetch stride
-   if (!self()->shouldBuildStructure() &&
-      (self()->comp()->getMethodHotness() >= scorching) &&
-      !tt->getEnclosingBlock()->isCold() &&
-      strstr(fej9->sampleSignature(node->getOwningMethod(), 0, 0, self()->trMemory()),"java/util/TreeMap$UnboundedValueIterator.next()"))
+   if (node->getOpCode().isCall() &&
+         node->getSymbol()->getMethodSymbol()->isNative() &&
+         self()->comp()->canTransformUnsafeCopyToArrayCopy())
       {
-      self()->setShouldBuildStructure();
+      TR::RecognizedMethod rm = node->getSymbol()->castToMethodSymbol()->getRecognizedMethod();
+
+      if ((rm == TR::sun_misc_Unsafe_copyMemory || rm == TR::jdk_internal_misc_Unsafe_copyMemory0) &&
+            performTransformation(self()->comp(), "O^O Call arraycopy instead of Unsafe.copyMemory: %s\n", self()->getDebug()->getName(node)))
+         {
+         TR::Node *src = node->getChild(1);
+         TR::Node *srcOffset = node->getChild(2);
+         TR::Node *dest = node->getChild(3);
+         TR::Node *destOffset = node->getChild(4);
+         TR::Node *len = node->getChild(5);
+
+         if (self()->comp()->target().is32Bit())
+            {
+            srcOffset = TR::Node::create(TR::l2i, 1, srcOffset);
+            destOffset = TR::Node::create(TR::l2i, 1, destOffset);
+            len = TR::Node::create(TR::l2i, 1, len);
+            src = TR::Node::create(TR::aiadd, 2, src, srcOffset);
+            dest = TR::Node::create(TR::aiadd, 2, dest, destOffset);
+            }
+         else
+            {
+            src = TR::Node::create(TR::aladd, 2, src, srcOffset);
+            dest = TR::Node::create(TR::aladd, 2, dest, destOffset);
+            }
+
+         TR::Node *arraycopyNode = TR::Node::createArraycopy(src, dest, len);
+         TR::TreeTop *arrayCopyTT = TR::TreeTop::create(self()->comp(), arraycopyNode, tt->getNextTreeTop(), tt->getPrevTreeTop());
+
+         tt->getPrevTreeTop()->setNextTreeTop(arrayCopyTT);
+         tt->getNextTreeTop()->setPrevTreeTop(arrayCopyTT);
+
+         for (int i = 0; i <= 5; i++)
+            {
+            node->getChild(i)->decReferenceCount();
+            }
+
+         return;
+         }
       }
 
    // J9
@@ -2694,7 +2725,7 @@ static TR_ExternalRelocationTargetKind getReloKindFromGuardSite(TR::CodeGenerato
    return type;
    }
 
-static void processAOTGuardSites(TR::CodeGenerator *cg, uint32_t inlinedCallSize, TR_InlinedSiteHastTableEntry *orderedInlinedSiteListTable)
+static void processAOTGuardSites(TR::CodeGenerator *cg, uint32_t inlinedCallSize, TR_InlinedSiteHashTableEntry *orderedInlinedSiteListTable)
    {
    TR::list<TR_AOTGuardSite*> *aotGuardSites = cg->comp()->getAOTGuardPatchSites();
    for(auto it = aotGuardSites->begin(); it != aotGuardSites->end(); ++it)
@@ -2787,7 +2818,7 @@ static void addInlinedSiteRelocation(TR::CodeGenerator *cg,
                    __FILE__,__LINE__, NULL);
    }
 
-static void addInliningTableRelocations(TR::CodeGenerator *cg, uint32_t inlinedCallSize, TR_InlinedSiteHastTableEntry *orderedInlinedSiteListTable)
+static void addInliningTableRelocations(TR::CodeGenerator *cg, uint32_t inlinedCallSize, TR_InlinedSiteHashTableEntry *orderedInlinedSiteListTable)
    {
    // If have inlined calls, now add the relocation records in descending order
    // of inlined site index (at relocation time, the order is reverse)
@@ -2833,11 +2864,11 @@ J9::CodeGenerator::processRelocations()
       uint32_t inlinedCallSize = self()->comp()->getNumInlinedCallSites();
 
       // Create temporary hashtable for ordering AOT guard relocations
-      TR_InlinedSiteHastTableEntry *orderedInlinedSiteListTable = NULL;
+      TR_InlinedSiteHashTableEntry *orderedInlinedSiteListTable = NULL;
       if (inlinedCallSize > 0)
          {
-         orderedInlinedSiteListTable= (TR_InlinedSiteHastTableEntry*)self()->comp()->trMemory()->allocateMemory(sizeof(TR_InlinedSiteHastTableEntry) * inlinedCallSize, heapAlloc);
-         memset(orderedInlinedSiteListTable, 0, sizeof(TR_InlinedSiteHastTableEntry)*inlinedCallSize);
+         orderedInlinedSiteListTable= (TR_InlinedSiteHashTableEntry*)self()->comp()->trMemory()->allocateMemory(sizeof(TR_InlinedSiteHashTableEntry) * inlinedCallSize, heapAlloc);
+         memset(orderedInlinedSiteListTable, 0, sizeof(TR_InlinedSiteHashTableEntry)*inlinedCallSize);
          }
 
       // Traverse list of AOT-specific guards and create relocation records
@@ -3991,7 +4022,7 @@ J9::CodeGenerator::willGenerateNOPForVirtualGuard(TR::Node *node)
     *       For virtual dispatch sequence, we know that this is the safe check but in case of interface call, classes implementing
     *       that interface would have different size of VTable. This makes executing above check unsafe when VTable of the class of
     *       the receiver object is smaller, effectively making reference in n3n to pointing to a garbage location which might lead
-    *       to a segmentation fault if the reference in not memory mapped or if bychance it contains J9Method  pointer of same inlined
+    *       to a segmentation fault if the reference in not memory mapped or if by chance it contains J9Method  pointer of same inlined
     *       method then it will execute a code which should not be executed.
     *       For this kind of Virtual guards which are not nop'd we need to add a range check to make sure the address we are going to
     *       access is pointing to a valid location in VTable. There are mainly two ways we can add this range check test. First one is
@@ -5103,4 +5134,36 @@ J9::CodeGenerator::isMonitorValueBasedOrValueType(TR::Node* monNode)
          return TR_yes;
       }
    return TR_no;
+   }
+
+bool
+J9::CodeGenerator::isProfiledClassAndCallSiteCompatible(TR_OpaqueClassBlock *profiledClass, TR_OpaqueClassBlock *callSiteMethodClass)
+   {
+   /* Check if the profiled class should be allowed to be used for a guarded devirtualization of a particular call site.
+      A call site can end up with an incompatible profiled class in two ways.
+        1) The inlining context of this compile might allow for type refinement of a callSite class. If this the profiledClass
+           is from a call chain that differs to the current compile inlining, then it's possible that the profiledClass is
+           incompatible with the refined type at the callSite in this compile. Historically the JIT would go as far as
+           converting an invokeInterface to an invokeVirtual based on this type refinement, which would result in a crash if the
+           profiledClass was incompatible. Due to correctness issues, interface->virtual conversions was removed, but we can
+           still refine the class type for an invokevirtual resulting in the same profiledClass incompatibility which can result
+           in an ineffectual guarded devirtualization but not a crash.
+        2) With shared classes, a J9ROMClass can be shared among classes of different class-loaders. Since profiling data is keyed
+           by the bytecode address, the profiled data from all classes sharing the same J9ROMClass will be merged. Because of this,
+           a profiled class can be derived from the profiling of a method in a class that is incompatible with the call site.
+      So how to do we ensure compatibility?
+        In most cases an isInstanceOf() check is enough to ensure that the profiled class is compatible, but this can fail when the
+        callSiteMethodClass is an Interface. This happens when the call site is calling a method of an Abstract class which is
+        not implemented by the class but is required by an Interface that the Abstract class implements. In such a case the Abstract
+        class's VFT entries for all unimplemented methods will point at the Interface methods. By default the JIT uses the class of
+        the VFT entry method to populate the callSiteMethodClass. When the Interface is defined in a parent class-loader, it's
+        possible for an incompatible profiled class to implement the same parent class-loader Interface and as a result pass the
+        isInstanceOf() test. Therefore we can only use the isInstanceOf() check when the callSiteMethodClass is not an Interface.
+
+   */
+   if (!fej9()->isInterfaceClass(callSiteMethodClass) && fej9()->isInstanceOf(profiledClass, callSiteMethodClass, true, true) == TR_yes)
+      {
+      return true;
+      }
+   return false;
    }

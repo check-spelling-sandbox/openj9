@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 1991, 2021 IBM Corp. and others
+ * Copyright (c) 1991, 2022 IBM Corp. and others
  *
  * This program and the accompanying materials are made available under
  * the terms of the Eclipse Public License 2.0 which accompanies this
@@ -75,6 +75,7 @@ typedef enum {
 	J9_BCLOOP_SEND_TARGET_INL_CLASS_IS_PRIMITIVE,
 #if defined(J9VM_OPT_VALHALLA_VALUE_TYPES)
 	J9_BCLOOP_SEND_TARGET_INL_CLASS_IS_PRIMITIVE_CLASS,
+	J9_BCLOOP_SEND_TARGET_INL_CLASS_IS_VALUE,
 #endif /* J9VM_OPT_VALHALLA_VALUE_TYPES */
 	J9_BCLOOP_SEND_TARGET_INL_CLASS_GET_MODIFIERS_IMPL,
 	J9_BCLOOP_SEND_TARGET_INL_CLASS_GET_COMPONENT_TYPE,
@@ -149,6 +150,16 @@ typedef enum {
 	J9_BCLOOP_SEND_TARGET_INL_UNSAFE_COMPAREANDSWAPOBJECT,
 	J9_BCLOOP_SEND_TARGET_INL_UNSAFE_COMPAREANDSWAPLONG,
 	J9_BCLOOP_SEND_TARGET_INL_UNSAFE_COMPAREANDSWAPINT,
+#if defined(J9VM_OPT_VALHALLA_VALUE_TYPES)
+	J9_BCLOOP_SEND_TARGET_INL_UNSAFE_GETVALUE,
+	J9_BCLOOP_SEND_TARGET_INL_UNSAFE_PUTVALUE,
+	J9_BCLOOP_SEND_TARGET_INL_UNSAFE_UNINITIALIZEDDEFAULTVALUE,
+	J9_BCLOOP_SEND_TARGET_INL_UNSAFE_VALUEHEADERSIZE,
+	J9_BCLOOP_SEND_TARGET_INL_UNSAFE_ISFLATTENEDARRAY,
+	J9_BCLOOP_SEND_TARGET_INL_UNSAFE_ISFLATTENED,
+	J9_BCLOOP_SEND_TARGET_INL_UNSAFE_GETOBJECTSIZE,
+	J9_BCLOOP_SEND_TARGET_INL_UNSAFE_ISFIELDATOFFSETFLATTENED,
+#endif /* J9VM_OPT_VALHALLA_VALUE_TYPES */
 	J9_BCLOOP_SEND_TARGET_INL_INTERNALS_GET_INTERFACES,
 	J9_BCLOOP_SEND_TARGET_INL_ARRAY_NEW_ARRAY_IMPL,
 	J9_BCLOOP_SEND_TARGET_INL_CLASSLOADER_FIND_LOADED_CLASS_IMPL,
@@ -187,6 +198,9 @@ typedef enum {
 	J9_BCLOOP_SEND_TARGET_METHODHANDLE_LINKTOINTERFACE,
 	J9_BCLOOP_SEND_TARGET_MEMBERNAME_DEFAULT_CONFLICT,
 #endif /* defined(J9VM_OPT_OPENJDK_METHODHANDLE) */
+#if JAVA_SPEC_VERSION >= 16
+	J9_BCLOOP_SEND_TARGET_INL_PROGRAMMABLEINVOKER_INVOKENATIVE,
+#endif /* JAVA_SPEC_VERSION >= 16 */
 } VM_SendTarget;
 
 typedef enum {
@@ -234,6 +248,13 @@ typedef enum {
 #define J9_BCLOOP_ENCODE_SEND_TARGET(num) ((void *)(num))
 #define J9_VH_ENCODE_ACCESS_MODE(num) ((void *)((num << 1) + 1))
 #define J9_VH_DECODE_ACCESS_MODE(mra) ((UDATA)(mra) >> 1)
+
+#if JAVA_SPEC_VERSION >= 16
+#if defined(J9VM_ARCH_AARCH64)
+#define ROUNDING_GRANULARITY	8
+#define ROUNDED_FOOTER_OFFSET(number)	(((number) + (ROUNDING_GRANULARITY - 1) + sizeof(J9MemTag)) & ~(uintptr_t)(ROUNDING_GRANULARITY - 1))
+#endif /* J9VM_ARCH_AARCH64 */
+#endif /* JAVA_SPEC_VERSION >= 16 */
 
 class VM_VMHelpers
 {
@@ -332,11 +353,13 @@ public:
 	methodHandleCompiledEntryPoint(J9JavaVM *vm, J9VMThread *currentThread, j9object_t methodHandle)
 	{
 		void *compiledEntryPoint = NULL;
+#if defined(J9VM_OPT_METHOD_HANDLE)
 		if (J9_EXTENDED_RUNTIME_I2J_MH_TRANSITION_ENABLED == (vm->extendedRuntimeFlags & J9_EXTENDED_RUNTIME_I2J_MH_TRANSITION_ENABLED)) {
 			j9object_t thunks = J9VMJAVALANGINVOKEMETHODHANDLE_THUNKS(currentThread, methodHandle);
 			I_64 i2jEntry = J9VMJAVALANGINVOKETHUNKTUPLE_I2JINVOKEEXACTTHUNK(currentThread, thunks);
 			compiledEntryPoint = (void *)(UDATA)i2jEntry;
 		}
+#endif /* defined(J9VM_OPT_METHOD_HANDLE) */
 		return compiledEntryPoint;
 	}
 
@@ -1299,13 +1322,19 @@ done:
 			J9SFJNINativeMethodFrame *nativeMethodFrame = (J9SFJNINativeMethodFrame*)((UDATA)currentThread->sp + (UDATA)currentThread->literals);
 			J9Method *method = nativeMethodFrame->method;
 			if (J9_ARE_ANY_BITS_SET((UDATA)method->constantPool, J9_STARTPC_NATIVE_REQUIRES_SWITCHING)) {
-				/* zero the state and switch java offload mode OFF */
-				currentThread->javaOffloadState = 0;
-				/* check if the class requires lazy switching (for JDBC) or normal switching */
+				/* check if the class requires lazy switching (for JDBC), allow subtasks, or normal switching */
 				J9Class *methodClass = J9_CLASS_FROM_METHOD(method);
 				if (J9_ARE_ANY_BITS_SET(J9CLASS_FLAGS(methodClass), J9AccClassHasJDBCNatives)) {
+					/* zero the state and switch java offload mode OFF */
+					currentThread->javaOffloadState = 0;
 					vm->javaOffloadSwitchJDBCWithMethodFunc(currentThread, method);
+				} else if (J9_ARE_ANY_BITS_SET(J9CLASS_EXTENDED_FLAGS(methodClass), J9ClassHasOffloadAllowSubtasksNatives)) {
+					currentThread->javaOffloadState |= J9_JNI_OFFLOAD_WITH_SUBTASKS_FLAG;
+					/* allow created subtasks to offload */
+					vm->javaOffloadSwitchOnAllowSubtasksWithMethodFunc(currentThread, method);
 				} else {
+					/* zero the state and switch java offload mode OFF */
+					currentThread->javaOffloadState = 0;
 					vm->javaOffloadSwitchOffWithMethodFunc(currentThread, method);
 				}
 			}
@@ -1328,15 +1357,16 @@ done:
 		J9VMEntryLocalStorage *els = currentThread->entryLocalStorage;
 		/* check if java offload mode is enabled */
 		if (NULL != vm->javaOffloadSwitchOnWithMethodFunc) {
-			/* check if we need to change state */
-			if (0 == currentThread->javaOffloadState) {
-				if (0 != els->savedJavaOffloadState) {
-					/* if yes, call the offload switch ON and restore our state from ELS */
-					J9SFJNINativeMethodFrame *nativeMethodFrame = (J9SFJNINativeMethodFrame*)((UDATA)currentThread->sp + (UDATA)currentThread->literals);
-					J9Method *method = nativeMethodFrame->method;
-					vm->javaOffloadSwitchOnWithMethodFunc(currentThread, method);
-					currentThread->javaOffloadState = els->savedJavaOffloadState;
-				}
+			/* check if we need to switch on */
+			bool switchOn = (0 == currentThread->javaOffloadState) && (0 != els->savedJavaOffloadState);
+			bool allowingSubtasks = J9_ARE_ANY_BITS_SET(currentThread->javaOffloadState, J9_JNI_OFFLOAD_WITH_SUBTASKS_FLAG);
+			bool oldStateAllowsSubtasks = J9_ARE_ANY_BITS_SET(els->savedJavaOffloadState, J9_JNI_OFFLOAD_WITH_SUBTASKS_FLAG);
+			bool disableAllowSubtasks = allowingSubtasks && !oldStateAllowsSubtasks;
+			if (switchOn || disableAllowSubtasks) {
+				J9SFJNINativeMethodFrame *nativeMethodFrame = (J9SFJNINativeMethodFrame *)((UDATA)currentThread->sp + (UDATA)currentThread->literals);
+				/* enable offload, or keep offload enabled but turn off allowing created subtasks to offload */
+				vm->javaOffloadSwitchOnWithMethodFunc(currentThread, nativeMethodFrame->method, disableAllowSubtasks ? TRUE : FALSE);
+				currentThread->javaOffloadState = els->savedJavaOffloadState;
 			}
 		}
 #endif /* J9VM_OPT_JAVA_OFFLOAD_SUPPORT */
@@ -1392,6 +1422,7 @@ done:
 		return (jobject)ref;
 	}
 
+#if defined(J9VM_OPT_METHOD_HANDLE)
 	static VMINLINE U_32
 	lookupVarHandleMethodTypeCacheIndex(J9ROMClass *romClass, UDATA cpIndex)
 	{
@@ -1411,6 +1442,7 @@ done:
 
 		return index;
 	}
+#endif /* defined(J9VM_OPT_METHOD_HANDLE) */
 
 	/**
 
@@ -1463,6 +1495,9 @@ exit:
 		J9Class* currentClass = J9_CLASS_FROM_METHOD(method);
 		J9JavaVM* vm = currentThread->javaVM;
 		return ((method == vm->jlrMethodInvoke)
+#if JAVA_SPEC_VERSION >= 18
+				|| (method == vm->jlrMethodInvokeMH)
+#endif /* JAVA_SPEC_VERSION >= 18 */
 				|| (method == vm->jliMethodHandleInvokeWithArgs)
 				|| (method == vm->jliMethodHandleInvokeWithArgsList)
 				|| (vm->srMethodAccessor
@@ -1519,15 +1554,7 @@ exit:
 			}
 			break;
 		case J9NtcBoolean:
-		{
-			U_32 returnValue = (U_32)*returnStorage;
-			U_8 * returnAddress = (U_8 *)&returnValue;
-#ifdef J9VM_ENV_LITTLE_ENDIAN
-			*returnStorage = (UDATA)(0 != returnAddress[0]);
-#else
-			*returnStorage = (UDATA)(0 != returnAddress[3]);
-#endif /*J9VM_ENV_LITTLE_ENDIAN */
-		}
+			*returnStorage = ((UDATA)(U_8)(0 != *returnStorage));
 			break;
 		case J9NtcByte:
 			*returnStorage = (UDATA)(IDATA)(I_8)*returnStorage;
@@ -1554,6 +1581,65 @@ exit:
 			break;
 		}
 	}
+
+#if JAVA_SPEC_VERSION >= 16
+	/**
+	 * @brief Converts the type of the return value to the return type intended for JEP389/419 FFI downcall/upcall
+	 * @param currentThread[in] The pointer to the current J9VMThread
+	 * @param returnType[in] The type of the return value
+	 * @param returnStorage[in] The pointer to the return value
+	 */
+	static VMINLINE void
+	convertFFIReturnValue(J9VMThread* currentThread, U_8 returnType, UDATA returnTypeSize, UDATA* returnStorage)
+	{
+		switch (returnType) {
+		case J9NtcVoid:
+			currentThread->returnValue = (UDATA)0;
+			break;
+		case J9NtcBoolean:
+			currentThread->returnValue = (UDATA)(U_8)*returnStorage;
+			break;
+		case J9NtcByte:
+			currentThread->returnValue = (UDATA)(IDATA)(I_8)*returnStorage;
+			break;
+		case J9NtcShort:
+			currentThread->returnValue = (UDATA)(IDATA)(I_16)*returnStorage;
+			break;
+		case J9NtcInt:
+			currentThread->returnValue = (UDATA)(IDATA)(I_32)*returnStorage;
+			break;
+		case J9NtcFloat:
+			currentThread->returnValue = (UDATA)*(U_32*)returnStorage;
+			break;
+		case J9NtcStruct:
+		{
+#if defined(J9VM_ARCH_AARCH64)
+			/* Restore the preset padding bytes (0xDD J9MEMTAG_PADDING_BYTE) of the allocated memory
+			 * for the returned struct on aarch64 as ffi_call intentionally sets zero to the rest of
+			 * byte slots except the return value of the allocated memory for the purposed of alignment,
+			 * which undoubtedly undermines the integrity check when releasing the returned memory
+			 * segment via Unsafe.
+			 */
+			U_8 *padding = (U_8 *)returnStorage + returnTypeSize;
+			UDATA paddingSize = ROUNDED_FOOTER_OFFSET(returnTypeSize) - sizeof(J9MemTag) - returnTypeSize;
+			for (UDATA byteIndex = 0; byteIndex < paddingSize; byteIndex++) {
+				padding[byteIndex] = J9MEMTAG_PADDING_BYTE;
+			}
+#endif /* J9VM_ARCH_AARCH64 */
+			/* returnStorage is not the address of _currentThread->returnValue any more
+			 * given it stores the address of allocated struct memory.
+			 */
+			currentThread->returnValue = (UDATA)returnStorage;
+		}
+		case J9NtcLong:
+			/* Fall through is intentional */
+		case J9NtcDouble:
+			/* Fall through is intentional */
+		case J9NtcPointer:
+			break;
+		}
+	}
+#endif /* JAVA_SPEC_VERSION >= 16 */
 
 	/**
 	 * @brief Notify JIT upon the first modification of a final field, a stack frame should be build before calling this method to make the stack walkable
@@ -1791,7 +1877,7 @@ exit:
 	/**
 	 * Determine if the method is from a LambdaForm generated class.
 	 *
-	 * A LamddaForm generated method/class will have LambdaFrom.class as its hostclass
+	 * A LambdaForm generated method/class will have LambdaForm.class as its hostclass
 	 * and is either a hidden class or anonymous class.
 	 *
 	 * @param currentThread the VM thread
@@ -1802,6 +1888,7 @@ exit:
 	isLambdaFormGeneratedMethod(J9VMThread const *currentThread, J9Method *method)
 	{
 		bool result = false;
+#if defined(J9VM_OPT_OPENJDK_METHODHANDLE)
 		J9Class *methodClass = J9_CLASS_FROM_METHOD(method);
 		if (J9_ARE_ANY_BITS_SET(methodClass->classFlags, J9ClassIsAnonymous) || J9ROMCLASS_IS_HIDDEN(methodClass->romClass)) {
 			J9Class *lambdaFormClass = J9VMJAVALANGINVOKELAMBDAFORM_OR_NULL(currentThread->javaVM);
@@ -1809,6 +1896,7 @@ exit:
 				result = true;
 			}
 		}
+#endif /* defined(J9VM_OPT_OPENJDK_METHODHANDLE) */
 		return result;
 	}
 
@@ -1855,6 +1943,64 @@ exit:
 		currentThread->literals = NULL;
 		currentThread->jitStackFrameFlags = 0;
 		return oldPC;
+	}
+
+#if defined(J9VM_OPT_OPENJDK_METHODHANDLE)
+	static VMINLINE UDATA
+	methodTypeParameterSlotCount(J9VMThread *currentThread, j9object_t methodType)
+	{
+		j9object_t methodTypeForm = (j9object_t)J9VMJAVALANGINVOKEMETHODTYPE_FORM(currentThread, methodType);
+#if JAVA_SPEC_VERSION >= 14
+		return (UDATA)J9VMJAVALANGINVOKEMETHODTYPEFORM_PARAMETERSLOTCOUNT(currentThread, methodTypeForm);
+#else /* JAVA_SPEC_VERSION >= 14 */
+		U_64 argCounts = (U_64)J9VMJAVALANGINVOKEMETHODTYPEFORM_ARGCOUNTS(currentThread, methodTypeForm);
+		return (UDATA)((argCounts >> 16) & 0xFFFF);
+#endif /* JAVA_SPEC_VERSION >= 14 */
+	}
+#endif /* defined(J9VM_OPT_OPENJDK_METHODHANDLE) */
+
+	/**
+	 * Get the String representing the name of a Class. If the String has not been created
+	 * yet, create it and optionally intern and assign it to the Class.
+	 *
+	 * Current thread must have VM access and have a special frame on top of stack
+	 * with the J9VMThread roots up-to-date.
+	 *
+	 * @param[in] currentThread the current J9VMThread
+	 * @param[in] classObject the java/lang/Class being queried
+	 * @param[in] internAndAssign if true, intern the String and assign it to the Class object
+	 * @return the Class name String, or NULL on out of memory (exception will be pending)
+	 */
+	static VMINLINE j9object_t
+	getClassNameString(J9VMThread *currentThread, j9object_t classObject, bool internAndAssign)
+	{
+		j9object_t classNameObject = J9VMJAVALANGCLASS_CLASSNAMESTRING(currentThread, classObject);
+		if (NULL == classNameObject) {
+			classNameObject = J9_VM_FUNCTION(currentThread, getClassNameString)(currentThread, classObject, internAndAssign);
+		}
+		return classNameObject;
+	}
+
+	/**
+	 * Determine if thread is capable of running java code.
+	 *
+	 * @param[in] vmThread the J9VMThread to query
+	 * @return true if the thread can run java code, false if not
+	 */
+	static VMINLINE bool
+	threadCanRunJavaCode(J9VMThread *vmThread)
+	{
+		/*
+		 * Can't use J9THREAD_CATEGORY_APPLICATION_THREAD | J9THREAD_CATEGORY_RESOURCE_MONITOR_THREAD
+		 * to find all threads that can run java code because some system threads like the common
+		 * cleaner thread and attach API thread are not tagged with these categories, they are only tagged
+		 * as system threads.
+		 *
+		 * To get around this a negative test is used. The approach is to find all j9vmthreads that can't run java code
+		 * (ie. GC and JIT threads) and exclude those.
+		 */
+		UDATA const nonJavaThreads = (J9THREAD_CATEGORY_SYSTEM_GC_THREAD | J9THREAD_CATEGORY_SYSTEM_JIT_THREAD) & ~J9THREAD_CATEGORY_SYSTEM_THREAD;
+		return J9_ARE_NO_BITS_SET(omrthread_get_category(vmThread->osThread), nonJavaThreads);
 	}
 
 };

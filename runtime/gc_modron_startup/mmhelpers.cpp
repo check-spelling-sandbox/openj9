@@ -151,7 +151,7 @@ j9gc_software_read_barrier_enabled(J9JavaVM *javaVM)
 }
 
 /**
- * Query if hot reference field is reqired for scavenger dynamicBreadthFirstScanOrdering
+ * Query if hot reference field is required for scavenger dynamicBreadthFirstScanOrdering
  *  @return true if scavenger dynamicBreadthFirstScanOrdering is enabled, 0 otherwise 
  */
 BOOLEAN

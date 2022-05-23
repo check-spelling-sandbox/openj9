@@ -279,7 +279,7 @@ J9NLS_VM_CHECK_JAVA_HOME.user_response=Check that JAVA_HOME environment variable
 # This message will be followed by the exception's class name and
 # (if non-null) the exception's detail message
 # e.g. Exception in thread "main" java/lang/StackOverflowError: An overflow occurred
-J9NLS_VM_STACK_TRACE_EXCEPTION_IN=Exception in thread \"%.*s\"\
+J9NLS_VM_STACK_TRACE_EXCEPTION_IN=Exception in thread \"%.*s\"\u0020
 # START NON-TRANSLATABLE
 J9NLS_VM_STACK_TRACE_EXCEPTION_IN.sample_input_1=57
 J9NLS_VM_STACK_TRACE_EXCEPTION_IN.sample_input_2=\"main\" java/lang/StackOverflowError: An overflow occurred
@@ -1840,7 +1840,7 @@ J9NLS_VM_ONLY_BOOTCLASSLOADER_LOAD_MODULE_JAVABASE.user_response=Don't define mo
 # No arguments
 J9NLS_VM_ONLY_BOOT_PLATFORM_CLASSLOADER_DEFINE_PKG_JAVA=Only bootstrap or platform classloader can define package java or java.*.
 # START NON-TRANSLATABLE
-J9NLS_VM_ONLY_BOOT_PLATFORM_CLASSLOADER_DEFINE_PKG_JAVA.explanation=A classloader other than boostrap or platform classloader can't define package java or java.*.
+J9NLS_VM_ONLY_BOOT_PLATFORM_CLASSLOADER_DEFINE_PKG_JAVA.explanation=A classloader other than bootstrap or platform classloader can't define package java or java.*.
 J9NLS_VM_ONLY_BOOT_PLATFORM_CLASSLOADER_DEFINE_PKG_JAVA.system_action=The JVM will throw a java/lang/LayerInstantiationException.
 J9NLS_VM_ONLY_BOOT_PLATFORM_CLASSLOADER_DEFINE_PKG_JAVA.user_response=Don't define package java or java.*.
 # END NON-TRANSLATABLE
@@ -1915,7 +1915,7 @@ J9NLS_VM_CLASS_LOADING_ERROR_EXTEND_FINAL_SUPERCLASS=Final superclass %2$.*1$s c
 # START NON-TRANSLATABLE
 J9NLS_VM_CLASS_LOADING_ERROR_EXTEND_FINAL_SUPERCLASS.sample_input_1=9
 J9NLS_VM_CLASS_LOADING_ERROR_EXTEND_FINAL_SUPERCLASS.sample_input_2=ClassName
-J9NLS_VM_CLASS_LOADING_ERROR_EXTEND_FINAL_SUPERCLASS.explanation=A final superclass can't be exteneded
+J9NLS_VM_CLASS_LOADING_ERROR_EXTEND_FINAL_SUPERCLASS.explanation=A final superclass can't be extended
 J9NLS_VM_CLASS_LOADING_ERROR_EXTEND_FINAL_SUPERCLASS.system_action=The JVM will throw a VerifyError.
 J9NLS_VM_CLASS_LOADING_ERROR_EXTEND_FINAL_SUPERCLASS.user_response=Contact the provider of the classfile for a corrected version.
 # END NON-TRANSLATABLE
@@ -2080,4 +2080,20 @@ J9NLS_VM_VALUETYPE_HAS_WRONG_SUPERCLASS.sample_input_4=Var
 J9NLS_VM_VALUETYPE_HAS_WRONG_SUPERCLASS.explanation=The specified class cannot be a super class of a value type.
 J9NLS_VM_VALUETYPE_HAS_WRONG_SUPERCLASS.system_action=The JVM will throw IncompatibleClassChangeError.
 J9NLS_VM_VALUETYPE_HAS_WRONG_SUPERCLASS.user_response=Contact the provider of the classfile for a corrected version.
+# END NON-TRANSLATABLE
+
+# Messages related to parsing the ensureHashed configuration
+J9NLS_VM_INVALID_EMPTY_OPTION=Empty string passed to option \"%s\" is not allowed
+# START NON-TRANSLATABLE
+J9NLS_VM_INVALID_EMPTY_OPTION.sample_input_1=-XX:+EnsureHashed:
+J9NLS_VM_INVALID_EMPTY_OPTION.explanation=The options cannot be empty.
+J9NLS_VM_INVALID_EMPTY_OPTION.system_action=The JVM prints this message and terminates.
+J9NLS_VM_INVALID_EMPTY_OPTION.user_response=Provide non-empty options.
+# END NON-TRANSLATABLE
+
+J9NLS_ENSUREHASHED_CONFIG_OUT_OF_MEM=Could not allocate memory for the hashed classes table.
+# START NON-TRANSLATABLE
+J9NLS_ENSUREHASHED_CONFIG_OUT_OF_MEM.explanation=There was a failure to allocate native memory to store the hashed classes options.
+J9NLS_ENSUREHASHED_CONFIG_OUT_OF_MEM.system_action=The JVM prints this message and terminates.
+J9NLS_ENSUREHASHED_CONFIG_OUT_OF_MEM.user_response=Check the system memory configuration.
 # END NON-TRANSLATABLE

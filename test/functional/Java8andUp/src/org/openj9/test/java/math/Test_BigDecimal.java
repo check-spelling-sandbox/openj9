@@ -265,7 +265,7 @@ public class Test_BigDecimal {
 		AssertJUnit.assertTrue("the double representation of bigDecimal is not correct",
 				bigDB.doubleValue() == 1.79E308 && bigDB.scale() == 0);
 		bigDB = new BigDecimal(-2.33E102);
-		AssertJUnit.assertTrue("the double representation of bigDecmal -2.33E102 is not correct",
+		AssertJUnit.assertTrue("the double representation of bigDecimal -2.33E102 is not correct",
 				bigDB.doubleValue() == -2.33E102 && bigDB.scale() == 0);
 		bigDB = new BigDecimal(Double.MAX_VALUE);
 		bigDB = bigDB.add(bigDB);
@@ -539,7 +539,7 @@ public class Test_BigDecimal {
 		setScale1 = new BigDecimal(2.323E102);
 		setScale2 = setScale1.setScale(4);
 		AssertJUnit.assertTrue("the number 2.323E102 after setting scale is wrong", setScale2.scale() == 4);
-		AssertJUnit.assertTrue("the resentation of the number 2.323E102 is wrong",
+		AssertJUnit.assertTrue("the representation of the number 2.323E102 is wrong",
 				setScale2.doubleValue() == 2.323E102);
 
 		// testing rounding Mode ROUND_CEILING

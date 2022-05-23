@@ -40,7 +40,7 @@ public class Loader {
 		
 		if(args.length != 2){
 			System.out.println("\n Incorrect usage");
-			System.out.println("\n Please specifiy -testfile <filename>");
+			System.out.println("\n Please specify -testfile <filename>");
 		}
 		
 		Loader test = new Loader();

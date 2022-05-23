@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2014, 2019 IBM Corp. and others
+ * Copyright (c) 2014, 2021 IBM Corp. and others
  *
  * This program and the accompanying materials are made available under
  * the terms of the Eclipse Public License 2.0 which accompanies this
@@ -245,7 +245,7 @@ public class UnwindTable {
 	 * apply to and others save/restore state to a stack.
 	 * See: DWARF Debugging Information Format, Version 3 section 6.4.2
 	 * (Also extra instructions defined for Exception handling in:
-	 * http://refspecs.linux-foundation.org/LSB_4.0.0/LSB-Core-generic/LSB-Core-generic/dwarfext.html
+	 * http://refspecs.linuxfoundation.org/LSB_4.0.0/LSB-Core-generic/LSB-Core-generic/dwarfext.html
 	 * )
 	 */
 	public static void dumpInstructions(PrintStream out, byte[] instructions, CIE cie) throws IOException {
@@ -376,7 +376,7 @@ public class UnwindTable {
 				// One operand, register
 				long registerId = readUnsignedLEB128(instructionStream);
 				// This rule needs the offset from the last rule
-				// that affeted the CFA so we need to walk the list and find the
+				// that affected the CFA so we need to walk the list and find the
 				// last instance of CFARule.
 				out.printf("def_cfa_register: r%d", registerId);
 				break;
@@ -444,7 +444,7 @@ public class UnwindTable {
 	 * apply to and others save/restore state to a stack.
 	 * See: DWARF Debugging Information Format, Version 3 section 6.4.2
 	 * (Also extra instructions defined for Exception handling in:
-	 * http://refspecs.linux-foundation.org/LSB_4.0.0/LSB-Core-generic/LSB-Core-generic/dwarfext.html
+	 * http://refspecs.linuxfoundation.org/LSB_4.0.0/LSB-Core-generic/LSB-Core-generic/dwarfext.html
 	 * )
 	 */
 	private long processInstruction(/*PrintStream out,*/ ImageInputStream instructionStream, CIE cie, RuleState currentState, long currentAddress) throws IOException {
@@ -586,7 +586,7 @@ public class UnwindTable {
 				// One operand, register
 				long registerId = readUnsignedLEB128(instructionStream);
 				// This rule needs the offset from the last rule
-				// that affeted the CFA so we need to walk the list and find the
+				// that affected the CFA so we need to walk the list and find the
 				// last instance of CFARule.
 				CFARule lastRule = (CFARule)currentState.cfaRule;
 				currentState.cfaRule = new RegisterOffsetCFARule(CFA_RULE_ID, (int)registerId, lastRule.getOffset());
@@ -599,7 +599,7 @@ public class UnwindTable {
 //				out.printf("def_cfa_offset: offset: %d", offset);
 
 				// This rule needs the register number from the last rule
-				// that affeted the CFA so we need to walk the list and find the
+				// that affected the CFA so we need to walk the list and find the
 				// last instance of CFARule.
 				CFARule lastRule = (CFARule)currentState.cfaRule;
 				currentState.cfaRule = new RegisterOffsetCFARule(CFA_RULE_ID, lastRule.getBaseRegister(), offset);

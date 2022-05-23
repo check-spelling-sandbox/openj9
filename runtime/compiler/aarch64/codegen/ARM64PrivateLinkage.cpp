@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2019, 2021 IBM Corp. and others
+ * Copyright (c) 2019, 2022 IBM Corp. and others
  *
  * This program and the accompanying materials are made available under
  * the terms of the Eclipse Public License 2.0 which accompanies this
@@ -241,8 +241,54 @@ J9::ARM64::PrivateLinkage::entryPointFromInterpretedMethod()
    return reinterpret_cast<intptr_t>(getInterpretedMethodEntryPoint()->getBinaryEncoding());
    }
 
+void J9::ARM64::PrivateLinkage::alignLocalReferences(uint32_t &stackIndex)
+   {
+   TR::Compilation *comp = self()->comp();
+   TR::GCStackAtlas *atlas = self()->cg()->getStackAtlas();
+   const int32_t localObjectAlignment = TR::Compiler->om.getObjectAlignmentInBytes();
+   const uint8_t pointerSize = TR::Compiler->om.sizeofReferenceAddress();
+
+   if (comp->useCompressedPointers())
+      {
+      if (comp->getOption(TR_TraceCG))
+         {
+         traceMsg(comp,"\nLOCAL OBJECT ALIGNMENT: stack offset before alignment: %d,", stackIndex);
+         }
+
+      // stackIndex in mapCompactedStack is calculated using only local reference sizes and does not include the padding
+      stackIndex -= pointerSize * atlas->getNumberOfPaddingSlots();
+
+      if (comp->getOption(TR_TraceCG))
+         {
+         traceMsg(comp," with padding: %d,", stackIndex);
+         }
+      // If there are any local objects we have to make sure they are aligned properly
+      // when compressed pointers are used.  Otherwise, pointer compression may clobber
+      // part of the pointer.
+      //
+      // Each auto's GC index will have already been aligned, so just the starting stack
+      // offset needs to be aligned.
+      //
+      uint32_t unalignedStackIndex = stackIndex;
+      stackIndex &= ~(localObjectAlignment - 1);
+      uint32_t paddingBytes = unalignedStackIndex - stackIndex;
+      if (paddingBytes > 0)
+         {
+         TR_ASSERT_FATAL((paddingBytes & (pointerSize - 1)) == 0, "Padding bytes should be a multiple of the slot/pointer size");
+         uint32_t paddingSlots = paddingBytes / pointerSize;
+         atlas->setNumberOfSlotsMapped(atlas->getNumberOfSlotsMapped() + paddingSlots);
+         }
+      }
+   }
+
 void J9::ARM64::PrivateLinkage::mapStack(TR::ResolvedMethodSymbol *method)
    {
+   if (self()->cg()->getLocalsIG() && self()->cg()->getSupportsCompactedLocals())
+      {
+      mapCompactedStack(method);
+      return;
+      }
+
    const TR::ARM64LinkageProperties& linkageProperties = getProperties();
    int32_t firstLocalOffset = linkageProperties.getOffsetToFirstLocal();
    uint32_t stackIndex = firstLocalOffset;
@@ -268,7 +314,7 @@ void J9::ARM64::PrivateLinkage::mapStack(TR::ResolvedMethodSymbol *method)
       // offset needs to be aligned.
       //
       uint32_t unalignedStackIndex = stackIndex;
-      stackIndex &= ~(TR::Compiler->om.objectAlignmentInBytes() - 1);
+      stackIndex &= ~(TR::Compiler->om.getObjectAlignmentInBytes() - 1);
       uint32_t paddingBytes = unalignedStackIndex - stackIndex;
       if (paddingBytes > 0)
          {
@@ -332,38 +378,30 @@ void J9::ARM64::PrivateLinkage::mapStack(TR::ResolvedMethodSymbol *method)
 
    method->setLocalMappingCursor(stackIndex);
 
-   // Map the parameters
-   //
-   ListIterator<TR::ParameterSymbol> parameterIterator(&method->getParameterList());
-   TR::ParameterSymbol *parmCursor = parameterIterator.getFirst();
-
-   int32_t offsetToFirstParm = getOffsetToFirstParm();
-   uint32_t sizeOfParameterArea = method->getNumParameterSlots() * TR::Compiler->om.sizeofReferenceAddress();
-
-   while (parmCursor != NULL)
-      {
-      uint32_t parmSize = (parmCursor->getDataType() != TR::Address) ? parmCursor->getSize()*2 : parmCursor->getSize();
-
-      parmCursor->setParameterOffset(sizeOfParameterArea -
-                                     parmCursor->getParameterOffset() -
-                                     parmSize +
-                                     offsetToFirstParm);
-
-      parmCursor = parameterIterator.getNext();
-      }
+   mapIncomingParms(method);
 
    atlas->setLocalBaseOffset(lowGCOffset - firstLocalOffset);
-   atlas->setParmBaseOffset(atlas->getParmBaseOffset() + offsetToFirstParm - firstLocalOffset);
+   atlas->setParmBaseOffset(atlas->getParmBaseOffset() + getOffsetToFirstParm() - firstLocalOffset);
    }
 
 void J9::ARM64::PrivateLinkage::mapSingleAutomatic(TR::AutomaticSymbol *p, uint32_t &stackIndex)
    {
-   int32_t roundup = (comp()->useCompressedPointers() && p->isLocalObject() ? TR::Compiler->om.objectAlignmentInBytes() : TR::Compiler->om.sizeofReferenceAddress()) - 1;
-   int32_t roundedSize = (p->getSize() + roundup) & (~roundup);
-   if (roundedSize == 0)
-      roundedSize = 4;
+   mapSingleAutomatic(p, p->getRoundedSize(), stackIndex);
+   }
 
-   p->setOffset(stackIndex -= roundedSize);
+void J9::ARM64::PrivateLinkage::mapSingleAutomatic(TR::AutomaticSymbol *p, uint32_t size, uint32_t &stackIndex)
+   {
+   /*
+    * Align stack-allocated objects that don't have GC map index > 0.
+    */
+   if (comp()->useCompressedPointers() && p->isLocalObject() && (p->getGCMapIndex() == -1))
+      {
+      int32_t roundup = TR::Compiler->om.getObjectAlignmentInBytes() - 1;
+
+      size = (size  + roundup) & (~roundup);
+      }
+
+   p->setOffset(stackIndex -= size);
    }
 
 static void lockRegister(TR::RealRegister *regToAssign)
@@ -537,14 +575,14 @@ static TR::Instruction* initializeLocals(TR::Instruction *cursor, uint32_t numSl
             cursor = generateTrg1Src1ImmInstruction(cg, TR::InstOpCode::addimmx, NULL, baseReg, baseReg, offset, cursor);
             offset = 0;
             }
-         TR::MemoryReference *localMR = new (cg->trHeapMemory()) TR::MemoryReference(baseReg, offset, cg);
+         TR::MemoryReference *localMR = TR::MemoryReference::createWithDisplacement(cg, baseReg, offset);
          cursor = generateMemSrc2Instruction(cg, TR::InstOpCode::stpoffx, NULL, localMR, zeroReg, zeroReg, cursor);
          offset += (TR::Compiler->om.sizeofReferenceAddress() * 2);
          }
       if (numSlotsToBeInitialized % 2)
          {
          // clear residue
-         TR::MemoryReference *localMR = new (cg->trHeapMemory()) TR::MemoryReference(baseReg, offset, cg);
+         TR::MemoryReference *localMR = TR::MemoryReference::createWithDisplacement(cg, baseReg, offset);
          cursor = generateMemSrc1Instruction(cg, TR::InstOpCode::strimmx, NULL, localMR, zeroReg, cursor);
          }
       }
@@ -552,13 +590,13 @@ static TR::Instruction* initializeLocals(TR::Instruction *cursor, uint32_t numSl
       {
       for (int32_t i = 0; i < loopCount; i++, offset += (TR::Compiler->om.sizeofReferenceAddress() * 2))
          {
-         TR::MemoryReference *localMR = new (cg->trHeapMemory()) TR::MemoryReference(javaSP, offset, cg);
+         TR::MemoryReference *localMR = TR::MemoryReference::createWithDisplacement(cg, javaSP, offset);
          cursor = generateMemSrc2Instruction(cg, TR::InstOpCode::stpoffx, NULL, localMR, zeroReg, zeroReg, cursor);
          }
       if (numSlotsToBeInitialized % 2)
          {
          // clear residue
-         TR::MemoryReference *localMR = new (cg->trHeapMemory()) TR::MemoryReference(javaSP, offset, cg);
+         TR::MemoryReference *localMR = TR::MemoryReference::createWithDisplacement(cg, javaSP, offset);
          cursor = generateMemSrc1Instruction(cg, TR::InstOpCode::strimmx, NULL, localMR, zeroReg, cursor);
          }
       }
@@ -663,7 +701,7 @@ void J9::ARM64::PrivateLinkage::createPrologue(TR::Instruction *cursor)
    // --------------------------------------------------------------------------
    // Store return address (RA)
    //
-   TR::MemoryReference *returnAddressMR = new (cg()->trHeapMemory()) TR::MemoryReference(javaSP, firstLocalOffset, cg());
+   TR::MemoryReference *returnAddressMR = TR::MemoryReference::createWithDisplacement(cg(), javaSP, firstLocalOffset);
    cursor = generateMemSrc1Instruction(cg(), TR::InstOpCode::sturx, NULL, returnAddressMR, machine->getRealRegister(TR::RealRegister::lr), cursor);
 
    // --------------------------------------------------------------------------
@@ -701,7 +739,7 @@ void J9::ARM64::PrivateLinkage::createPrologue(TR::Instruction *cursor)
       //
       // stackOverflowRestartLabel:
       //
-      TR::MemoryReference *somMR = new (cg()->trHeapMemory()) TR::MemoryReference(vmThread, cg()->getStackLimitOffset(), cg());
+      TR::MemoryReference *somMR = TR::MemoryReference::createWithDisplacement(cg(), vmThread, cg()->getStackLimitOffset());
       TR::RealRegister *somReg = machine->getRealRegister(TR::RealRegister::RegNum::x10);
       cursor = generateTrg1MemInstruction(cg(), TR::InstOpCode::ldrimmx, NULL, somReg, somMR, cursor);
 
@@ -750,7 +788,7 @@ void J9::ARM64::PrivateLinkage::createPrologue(TR::Instruction *cursor)
          TR::RealRegister *preservedRealReg = machine->getRealRegister(regIndex);
          if (preservedRealReg->getHasBeenAssignedInMethod())
             {
-            TR::MemoryReference *preservedRegMR = new (cg()->trHeapMemory()) TR::MemoryReference(javaSP, preservedRegisterOffsetFromJavaSP, cg());
+            TR::MemoryReference *preservedRegMR = TR::MemoryReference::createWithDisplacement(cg(), javaSP, preservedRegisterOffsetFromJavaSP);
             cursor = generateMemSrc1Instruction(cg(), TR::InstOpCode::strimmx, NULL, preservedRegMR, preservedRealReg, cursor);
             preservedRegisterOffsetFromJavaSP += 8;
             numGPRsSaved--;
@@ -848,7 +886,7 @@ void J9::ARM64::PrivateLinkage::createEpilogue(TR::Instruction *cursor)
       TR::RealRegister *rr = machine->getRealRegister(r);
       if (rr->getHasBeenAssignedInMethod())
          {
-         TR::MemoryReference *preservedRegMR = new (trHeapMemory()) TR::MemoryReference(javaSP, preservedRegisterOffsetFromJavaSP, cg());
+         TR::MemoryReference *preservedRegMR = TR::MemoryReference::createWithDisplacement(cg(), javaSP, preservedRegisterOffsetFromJavaSP);
          cursor = generateTrg1MemInstruction(cg(), TR::InstOpCode::ldrimmx, lastNode, rr, preservedRegMR, cursor);
          preservedRegisterOffsetFromJavaSP += 8;
          }
@@ -873,7 +911,7 @@ void J9::ARM64::PrivateLinkage::createEpilogue(TR::Instruction *cursor)
    TR::RealRegister *lr = machine->getRealRegister(TR::RealRegister::lr);
    if (machine->getLinkRegisterKilled())
       {
-      TR::MemoryReference *returnAddressMR = new (cg()->trHeapMemory()) TR::MemoryReference(javaSP, firstLocalOffset, cg());
+      TR::MemoryReference *returnAddressMR = TR::MemoryReference::createWithDisplacement(cg(), javaSP, firstLocalOffset);
       cursor = generateTrg1MemInstruction(cg(), TR::InstOpCode::ldurx, lastNode, lr, returnAddressMR, cursor);
       }
 
@@ -886,7 +924,7 @@ void J9::ARM64::PrivateLinkage::pushOutgoingMemArgument(TR::Register *argReg, in
    const TR::ARM64LinkageProperties& properties = self()->getProperties();
    TR::RealRegister *javaSP = cg()->machine()->getRealRegister(properties.getStackPointerRegister()); // x20
 
-   TR::MemoryReference *result = new (self()->trHeapMemory()) TR::MemoryReference(javaSP, offset, cg());
+   TR::MemoryReference *result = TR::MemoryReference::createWithDisplacement(cg(), javaSP, offset);
    memArg.argRegister = argReg;
    memArg.argMemory = result;
    memArg.opCode = opCode;
@@ -959,6 +997,7 @@ int32_t J9::ARM64::PrivateLinkage::buildPrivateLinkageArgs(TR::Node *callNode,
          numFloatArgRegs = 0;
          break;
       case TR::java_lang_invoke_ComputedCalls_dispatchVirtual:
+      case TR::com_ibm_jit_JITHelpers_dispatchVirtual:
          specialArgReg = getProperties().getVTableIndexArgumentRegister();
          break;
       }
@@ -1208,15 +1247,27 @@ int32_t J9::ARM64::PrivateLinkage::buildPrivateLinkageArgs(TR::Node *callNode,
       TR::addDependency(dependencies, NULL, (TR::RealRegister::RegNum)getProperties().getFloatReturnRegister(), TR_FPR, cg());
       }
 
-   for (int32_t i = TR::RealRegister::FirstFPR; i <= TR::RealRegister::LastFPR; ++i)
+   // Helper linkage preserves all registers that are not argument registers, so we don't need to spill them.
+   if (linkage != TR_Helper)
       {
-      TR::RealRegister::RegNum realReg = (TR::RealRegister::RegNum)i;
-      if (properties.getPreserved(realReg))
-         continue;
-      if (!dependencies->searchPreConditionRegister(realReg))
+      for (int32_t i = TR::RealRegister::FirstFPR; i <= TR::RealRegister::LastFPR; ++i)
          {
-         TR::addDependency(dependencies, NULL, realReg, TR_FPR, cg());
+         TR::RealRegister::RegNum realReg = (TR::RealRegister::RegNum)i;
+         if (properties.getPreserved(realReg))
+            continue;
+         if (!dependencies->searchPreConditionRegister(realReg))
+            {
+            TR::addDependency(dependencies, NULL, realReg, TR_FPR, cg());
+            }
          }
+      }
+
+   /* Spills all vector registers */
+   if ((linkage != TR_Helper) && killsVectorRegisters())
+      {
+      TR::Register *tmpReg = cg()->allocateRegister();
+      dependencies->addPostCondition(tmpReg, TR::RealRegister::KillVectorRegs);
+      cg()->stopUsingRegister(tmpReg);
       }
 
    if (numMemArgs > 0)
@@ -1246,7 +1297,7 @@ void J9::ARM64::PrivateLinkage::buildDirectCall(TR::Node *callNode,
    if (callSymRef->getReferenceNumber() >= TR_ARM64numRuntimeHelpers)
       fej9->reserveTrampolineIfNecessary(comp(), callSymRef, false);
 
-   bool forceUnresolvedDispatch = fej9->forceUnresolvedDispatch();
+   bool forceUnresolvedDispatch = !fej9->isResolvedDirectDispatchGuaranteed(comp());
 
    if (callSymbol->isJITInternalNative() ||
        (!callSymRef->isUnresolved() && !callSymbol->isInterpreted() &&
@@ -1294,10 +1345,12 @@ TR::Register *J9::ARM64::PrivateLinkage::buildDirectDispatch(TR::Node *callNode)
    {
    TR::SymbolReference *callSymRef = callNode->getSymbolReference();
    const TR::ARM64LinkageProperties &pp = getProperties();
+   // Extra post dependency for killing vector registers (see KillVectorRegs)
+   const int extraPostReg = killsVectorRegisters() ? 1 : 0;
    TR::RegisterDependencyConditions *dependencies =
       new (trHeapMemory()) TR::RegisterDependencyConditions(
          pp.getNumberOfDependencyGPRegisters(),
-         pp.getNumberOfDependencyGPRegisters(), trMemory());
+         pp.getNumberOfDependencyGPRegisters() + extraPostReg, trMemory());
 
    int32_t argSize = buildArgs(callNode, dependencies);
 
@@ -1387,10 +1440,10 @@ static bool getProfiledCallSiteInfo(TR::CodeGenerator *cg, TR::Node *callNode, u
    info->getSortedList(comp, &allValues);
 
    TR_ResolvedMethod   *owningMethod = methodSymRef->getOwningMethod(comp);
-   TR_OpaqueClassBlock *callSiteMethod;
+   TR_OpaqueClassBlock *callSiteMethodClass;
 
    if (methodSymbol->isVirtual())
-       callSiteMethod = methodSymRef->getSymbol()->getResolvedMethodSymbol()->getResolvedMethod()->classOfMethod();
+       callSiteMethodClass = methodSymRef->getSymbol()->getResolvedMethodSymbol()->getResolvedMethod()->classOfMethod();
 
    ListIterator<TR_ExtraAddressInfo> valuesIt(&allValues);
 
@@ -1410,8 +1463,8 @@ static bool getProfiledCallSiteInfo(TR::CodeGenerator *cg, TR::Node *callNode, u
 
       if (methodSymbol->isVirtual())
          {
-         TR_ASSERT_FATAL(callSiteMethod, "Expecting valid callSiteMethod for virtual call");
-         if (fej9->isInstanceOf(clazz, callSiteMethod, true, true) != TR_yes)
+         TR_ASSERT_FATAL(callSiteMethodClass, "Expecting valid callSiteMethodClass for virtual call");
+         if (!cg->isProfiledClassAndCallSiteCompatible(clazz, callSiteMethodClass))
             continue;
 
          method = owningMethod->getResolvedVirtualMethod(comp, clazz, methodSymRef->getOffset());
@@ -1509,7 +1562,7 @@ static void buildVirtualCall(TR::CodeGenerator *cg, TR::Node *callNode, TR::Regi
                                  (((offset >> 16) & 0xFFFF) | TR::MOV_LSL16));
       generateTrg1Src1ImmInstruction(cg, TR::InstOpCode::sbfmx, callNode, x9, x9, 0x1F); // sxtw x9, w9
       }
-   TR::MemoryReference *tempMR = new (cg->trHeapMemory()) TR::MemoryReference(vftReg, x9, cg);
+   TR::MemoryReference *tempMR = TR::MemoryReference::createWithIndexReg(cg, vftReg, x9);
    generateTrg1MemInstruction(cg, TR::InstOpCode::ldroffx, callNode, x9, tempMR);
    TR::Instruction *gcPoint = generateRegBranchInstruction(cg, TR::InstOpCode::blr, callNode, x9);
    gcPoint->ARM64NeedsGCMap(cg, regMapForGC);
@@ -1520,16 +1573,51 @@ static void buildVirtualCall(TR::CodeGenerator *cg, TR::Node *callNode, TR::Regi
  *
  * @param[in] cg:          code generator
  * @param[in] callNode:    node for the interface call
- * @param[in] ifcSnippet:  interfall call snippet
+ * @param[in] vftReg:      vft register
+ * @param[in] tmpReg:      temporary register
+ * @param[in] ifcSnippet:  interface call snippet
  * @param[in] regMapForGC: register map for GC
  */
-static void buildInterfaceCall(TR::CodeGenerator *cg, TR::Node *callNode, TR::ARM64InterfaceCallSnippet *ifcSnippet, uint32_t regMapForGC)
+static void buildInterfaceCall(TR::CodeGenerator *cg, TR::Node *callNode, TR::Register *vftReg, TR::Register *tmpReg, TR::ARM64InterfaceCallSnippet *ifcSnippet, uint32_t regMapForGC)
    {
-   // ToDo: Inline interface dispatch
+   /*
+    *  Generating following instruction sequence.
+    *
+    *  ldrx tmpReg, L_firstClassCacheSlot
+    *  cmpx vftReg, tmpReg
+    *  ldrx tmpReg, L_firstBranchAddressCacheSlot
+    *  beq  hitLabel
+    *  ldrx tmpReg, L_secondClassCacheSlot
+    *  cmpx vftReg, tmpReg
+    *  bne  snippetLabel
+    *  ldrx tmpReg, L_secondBranchAddressCacheSlot
+    * hitLabel:
+    *  blr  tmpReg
+    * doneLabel:
+    */
 
    TR::LabelSymbol *ifcSnippetLabel = ifcSnippet->getSnippetLabel();
+   TR::LabelSymbol *firstClassCacheSlotLabel = ifcSnippet->getFirstClassCacheSlotLabel();
+   generateTrg1ImmSymInstruction(cg, TR::InstOpCode::ldrx, callNode, tmpReg, 0, firstClassCacheSlotLabel);
 
-   TR::Instruction *gcPoint = generateLabelInstruction(cg, TR::InstOpCode::b, callNode, ifcSnippetLabel);
+   TR::LabelSymbol *hitLabel = generateLabelSymbol(cg);
+   generateCompareInstruction(cg, callNode, vftReg, tmpReg, true);
+   TR::LabelSymbol *firstBranchAddressCacheSlotLabel = ifcSnippet->getFirstBranchAddressCacheSlotLabel();
+
+   generateTrg1ImmSymInstruction(cg, TR::InstOpCode::ldrx, callNode, tmpReg, 0, firstBranchAddressCacheSlotLabel);
+   generateConditionalBranchInstruction(cg, TR::InstOpCode::b_cond, callNode, hitLabel, TR::CC_EQ);
+
+   TR::LabelSymbol *secondClassCacheSlotLabel = ifcSnippet->getSecondClassCacheSlotLabel();
+
+   generateTrg1ImmSymInstruction(cg, TR::InstOpCode::ldrx, callNode, tmpReg, 0, secondClassCacheSlotLabel);
+   generateCompareInstruction(cg, callNode, vftReg, tmpReg, true);
+   TR::Instruction *gcPoint = generateConditionalBranchInstruction(cg, TR::InstOpCode::b_cond, callNode, ifcSnippetLabel, TR::CC_NE);
+   gcPoint->ARM64NeedsGCMap(cg, regMapForGC);
+   TR::LabelSymbol *secondBranchAddressCacheSlotLabel = ifcSnippet->getSecondBranchAddressCacheSlotLabel();
+
+   generateTrg1ImmSymInstruction(cg, TR::InstOpCode::ldrx, callNode, tmpReg, 0, secondBranchAddressCacheSlotLabel);
+   generateLabelInstruction(cg, TR::InstOpCode::label, callNode, hitLabel);
+   gcPoint = generateRegBranchInstruction(cg, TR::InstOpCode::blr, callNode, tmpReg);
    gcPoint->ARM64NeedsGCMap(cg, regMapForGC);
    }
 
@@ -1573,6 +1661,7 @@ void J9::ARM64::PrivateLinkage::buildVirtualDispatch(TR::Node *callNode,
       switch (methodSymbol->getMandatoryRecognizedMethod())
          {
          case TR::java_lang_invoke_ComputedCalls_dispatchVirtual:
+         case TR::com_ibm_jit_JITHelpers_dispatchVirtual:
             {
             // Need a j2i thunk for the method that will ultimately be dispatched by this handle call
             char *j2iSignature = fej9->getJ2IThunkSignatureForDispatchVirtual(methodSymbol->getMethod()->signatureChars(), methodSymbol->getMethod()->signatureLength(), comp());
@@ -1632,7 +1721,7 @@ void J9::ARM64::PrivateLinkage::buildVirtualDispatch(TR::Node *callNode,
          generateLabelInstruction(cg(), TR::InstOpCode::b, callNode, vcSnippetLabel);
          generateTrg1ImmInstruction(cg(), TR::InstOpCode::movkx, callNode, x9, TR::MOV_LSL16);
          generateTrg1Src1ImmInstruction(cg(), TR::InstOpCode::sbfmx, callNode, x9, x9, 0x1F); // sxtw x9, w9
-         tempMR = new (trHeapMemory()) TR::MemoryReference(vftReg, x9, cg());
+         tempMR = TR::MemoryReference::createWithIndexReg(cg(), vftReg, x9);
          generateTrg1MemInstruction(cg(), TR::InstOpCode::ldroffx, callNode, x9, tempMR);
          gcPoint = generateRegBranchInstruction(cg(), TR::InstOpCode::blr, callNode, x9);
          gcPoint->ARM64NeedsGCMap(cg(), regMapForGC);
@@ -1821,9 +1910,15 @@ void J9::ARM64::PrivateLinkage::buildVirtualDispatch(TR::Node *callNode,
             if (methodSymbol->isInterface())
                {
                TR::LabelSymbol               *ifcSnippetLabel = generateLabelSymbol(cg());
-               TR::ARM64InterfaceCallSnippet *ifcSnippet = new (trHeapMemory()) TR::ARM64InterfaceCallSnippet(cg(), callNode, ifcSnippetLabel, argSize, doneOOLLabel, static_cast<uint8_t *>(thunk));
+               TR::LabelSymbol               *firstClassCacheSlotLabel = generateLabelSymbol(cg());
+               TR::LabelSymbol               *firstBranchAddressCacheSlotLabel = generateLabelSymbol(cg());
+               TR::LabelSymbol               *secondClassCacheSlotLabel = generateLabelSymbol(cg());
+               TR::LabelSymbol               *secondBranchAddressCacheSlotLabel = generateLabelSymbol(cg());
+               TR::ARM64InterfaceCallSnippet *ifcSnippet = new (trHeapMemory()) TR::ARM64InterfaceCallSnippet(cg(), callNode, ifcSnippetLabel,
+                                                                                                              argSize, doneOOLLabel, firstClassCacheSlotLabel, secondClassCacheSlotLabel,
+                                                                                                              firstBranchAddressCacheSlotLabel, secondBranchAddressCacheSlotLabel, static_cast<uint8_t *>(thunk));
                cg()->addSnippet(ifcSnippet);
-               buildInterfaceCall(cg(), callNode, ifcSnippet, regMapForGC);
+               buildInterfaceCall(cg(), callNode, vftReg, x9, ifcSnippet, regMapForGC);
                }
             else
                {
@@ -1867,12 +1962,16 @@ void J9::ARM64::PrivateLinkage::buildVirtualDispatch(TR::Node *callNode,
       // ToDo: Inline interface dispatch
 
       TR::LabelSymbol *ifcSnippetLabel = generateLabelSymbol(cg());
+      TR::LabelSymbol *firstClassCacheSlotLabel = generateLabelSymbol(cg());
+      TR::LabelSymbol *firstBranchAddressCacheSlotLabel = generateLabelSymbol(cg());
+      TR::LabelSymbol *secondClassCacheSlotLabel = generateLabelSymbol(cg());
+      TR::LabelSymbol *secondBranchAddressCacheSlotLabel = generateLabelSymbol(cg());
       TR::ARM64InterfaceCallSnippet *ifcSnippet =
          new (trHeapMemory())
-         TR::ARM64InterfaceCallSnippet(cg(), callNode, ifcSnippetLabel, argSize, doneLabel, static_cast<uint8_t *>(thunk));
+         TR::ARM64InterfaceCallSnippet(cg(), callNode, ifcSnippetLabel, argSize, doneLabel, firstClassCacheSlotLabel, firstBranchAddressCacheSlotLabel, secondClassCacheSlotLabel, secondBranchAddressCacheSlotLabel, static_cast<uint8_t *>(thunk));
       cg()->addSnippet(ifcSnippet);
 
-      buildInterfaceCall(cg(), callNode, ifcSnippet, regMapForGC);
+      buildInterfaceCall(cg(), callNode, vftReg, x9, ifcSnippet, regMapForGC);
       }
    else
       {
@@ -1886,10 +1985,12 @@ TR::Register *J9::ARM64::PrivateLinkage::buildIndirectDispatch(TR::Node *callNod
    const TR::ARM64LinkageProperties &pp = getProperties();
    TR::RealRegister *sp = cg()->machine()->getRealRegister(pp.getStackPointerRegister());
 
+   // Extra post dependency for killing vector registers (see KillVectorRegs)
+   const int extraPostReg = killsVectorRegisters() ? 1 : 0;
    TR::RegisterDependencyConditions *dependencies =
       new (trHeapMemory()) TR::RegisterDependencyConditions(
          pp.getNumberOfDependencyGPRegisters(),
-         pp.getNumberOfDependencyGPRegisters(), trMemory());
+         pp.getNumberOfDependencyGPRegisters() + extraPostReg, trMemory());
 
    int32_t argSize = buildArgs(callNode, dependencies);
 
@@ -1962,7 +2063,7 @@ J9::ARM64::PrivateLinkage::loadStackParametersToLinkageRegisters(TR::Instruction
             op = (dataType == TR::Int64 || dataType == TR::Address) ? TR::InstOpCode::ldrimmx : TR::InstOpCode::ldrimmw;
             }
 
-         TR::MemoryReference *stackMR = new (cg()->trHeapMemory()) TR::MemoryReference(javaSP, parmCursor->getParameterOffset(), cg());
+         TR::MemoryReference *stackMR = TR::MemoryReference::createWithDisplacement(cg(), javaSP, parmCursor->getParameterOffset());
          cursor = generateTrg1MemInstruction(cg(), op, NULL, linkageReg, stackMR, cursor);
          }
       }
@@ -2004,7 +2105,7 @@ J9::ARM64::PrivateLinkage::saveParametersToStack(TR::Instruction *cursor)
             op = TR::InstOpCode::strimmx;
             }
 
-         TR::MemoryReference *stackMR = new (cg()->trHeapMemory()) TR::MemoryReference(javaSP, parmCursor->getParameterOffset(), cg());
+         TR::MemoryReference *stackMR = TR::MemoryReference::createWithDisplacement(cg(), javaSP, parmCursor->getParameterOffset());
          cursor = generateMemSrc1Instruction(cg(), op, NULL, stackMR, linkageReg, cursor);
          }
       }

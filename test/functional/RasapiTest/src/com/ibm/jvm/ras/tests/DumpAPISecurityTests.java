@@ -495,7 +495,7 @@ public class DumpAPISecurityTests extends TestCase {
 	 */
 	public void testSystemDumpNoArgs() {
 		if( isZOS() ) {
-			System.err.printf("Skipping %s, z/OS system dumps currently inaccessable in Java 8, see CMVC 193090\n", this.getName());
+			System.err.printf("Skipping %s, z/OS system dumps currently inaccessible in Java 8, see CMVC 193090\n", this.getName());
 			return;
 		}
 		System.setProperty("com.ibm.jvm.enableLegacyDumpSecurity", FALSE.toString());
@@ -519,7 +519,7 @@ public class DumpAPISecurityTests extends TestCase {
 	
 	public void testSystemDumpNoArgsBlocked() {
 		if( isZOS() ) {
-			System.err.printf("Skipping %s, z/OS system dumps currently inaccessable in Java 8, see CMVC 193090\n", this.getName());
+			System.err.printf("Skipping %s, z/OS system dumps currently inaccessible in Java 8, see CMVC 193090\n", this.getName());
 			return;
 		}
 		
@@ -560,7 +560,7 @@ public class DumpAPISecurityTests extends TestCase {
 	
 	public void testSystemDumpWithFile() {
 		if( isZOS() ) {
-			System.err.printf("Skipping %s, z/OS system dumps currently inaccessable in Java 8, see CMVC 193090\n", this.getName());
+			System.err.printf("Skipping %s, z/OS system dumps currently inaccessible in Java 8, see CMVC 193090\n", this.getName());
 			return;
 		}
 		
@@ -589,7 +589,7 @@ public class DumpAPISecurityTests extends TestCase {
 	 */
 	public void testSystemDumpNullFile() {
 		if( isZOS() ) {
-			System.err.printf("Skipping %s, z/OS system dumps currently inaccessable in Java 8, see CMVC 193090\n", this.getName());
+			System.err.printf("Skipping %s, z/OS system dumps currently inaccessible in Java 8, see CMVC 193090\n", this.getName());
 			return;
 		}
 		

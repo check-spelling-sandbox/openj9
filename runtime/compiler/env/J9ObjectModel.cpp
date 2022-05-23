@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2000, 2021 IBM Corp. and others
+ * Copyright (c) 2000, 2022 IBM Corp. and others
  *
  * This program and the accompanying materials are made available under
  * the terms of the Eclipse Public License 2.0 which accompanies this
@@ -99,6 +99,8 @@ J9::ObjectModel::initialize()
       // JIT treats satb_and_oldcheck same as satb
       _writeBarrierType = gc_modron_wrtbar_satb;
       }
+
+   _objectAlignmentInBytes = objectAlignmentInBytes();
    }
 
 
@@ -108,8 +110,11 @@ J9::ObjectModel::areValueTypesEnabled()
 #if defined(J9VM_OPT_JITSERVER)
    if (auto stream = TR::CompilationInfo::getStream())
       {
-      auto *vmInfo = TR::compInfoPT->getClientData()->getOrCacheVMInfo(stream);
-      return J9_ARE_ALL_BITS_SET(vmInfo->_extendedRuntimeFlags2, J9_EXTENDED_RUNTIME2_ENABLE_VALHALLA);
+#if defined(J9VM_OPT_VALHALLA_VALUE_TYPES)
+      return true;
+#else /* defined(J9VM_OPT_VALHALLA_VALUE_TYPES) */
+      return false;
+#endif /* defined(J9VM_OPT_VALHALLA_VALUE_TYPES) */
       }
 #endif /* defined(J9VM_OPT_JITSERVER) */
 
@@ -548,7 +553,7 @@ J9::ObjectModel::offsetOfIndexableSizeField()
 bool
 J9::ObjectModel::isDiscontiguousArray(TR::Compilation* comp, uintptr_t objectPointer)
    {
-   TR_ASSERT(TR::Compiler->vm.hasAccess(comp), "isDicontiguousArray requires VM access");
+   TR_ASSERT(TR::Compiler->vm.hasAccess(comp), "isDiscontiguousArray requires VM access");
    TR_ASSERT(TR::Compiler->cls.isClassArray(comp, TR::Compiler->cls.objectClass(comp, (objectPointer))), "Object is not an array");
 
    int32_t length = *(int32_t*)(objectPointer + TR::Compiler->om.offsetOfContiguousArraySizeField());
@@ -726,3 +731,16 @@ J9::ObjectModel::compressObjectReferences()
 #endif /* defined(J9VM_OPT_JITSERVER) */
    return _compressObjectReferences;
    }
+
+int32_t
+J9::ObjectModel::getObjectAlignmentInBytes()
+{
+#if defined(J9VM_OPT_JITSERVER)
+   if (auto stream = TR::CompilationInfo::getStream())
+      {
+      auto *vmInfo = TR::compInfoPT->getClientData()->getOrCacheVMInfo(stream);
+      return vmInfo->_objectAlignmentInBytes;
+      }
+#endif /* defined(J9VM_OPT_JITSERVER) */
+   return _objectAlignmentInBytes;
+}

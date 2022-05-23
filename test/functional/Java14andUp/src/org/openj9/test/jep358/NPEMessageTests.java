@@ -245,20 +245,20 @@ public class NPEMessageTests {
 
 	public void test_baload_byte() {
 		try {
-			byte[] byteArrray = null;
-			byte temp = byteArrray[0];
+			byte[] byteArray = null;
+			byte temp = byteArray[0];
 		} catch (NullPointerException npe) {
-			checkMessage(npe.getMessage(), "Cannot load from byte/boolean array because \"byteArrray\" is null",
+			checkMessage(npe.getMessage(), "Cannot load from byte/boolean array because \"byteArray\" is null",
 					"Cannot load from byte/boolean array because \"<local1>\" is null");
 		}
 	}
 
 	public void test_bastore_byte() {
 		try {
-			byte[] byteArrray = null;
-			byteArrray[0] = 0;
+			byte[] byteArray = null;
+			byteArray[0] = 0;
 		} catch (NullPointerException npe) {
-			checkMessage(npe.getMessage(), "Cannot store to byte/boolean array because \"byteArrray\" is null",
+			checkMessage(npe.getMessage(), "Cannot store to byte/boolean array because \"byteArray\" is null",
 					"Cannot store to byte/boolean array because \"<local1>\" is null");
 		}
 	}
@@ -1017,7 +1017,7 @@ public class NPEMessageTests {
 				"new NullPointerException().getMessage() is not null!");
 		Assert.assertNull(new NullPointerException(null).getMessage(),
 				"new NullPointerException(null).getMessage() is not null!");
-		String npeMsg = new String("NPE creation messsage");
+		String npeMsg = new String("NPE creation message");
 		Assert.assertEquals(new NullPointerException(npeMsg).getMessage(), npeMsg);
 		Exception exception = NullPointerException.class.getDeclaredConstructor().newInstance();
 		Assert.assertNull(exception.getMessage());
@@ -1056,7 +1056,7 @@ public class NPEMessageTests {
 		Exception ex1 = (Exception) ois1.readObject();
 		Assert.assertNull(ex1.getMessage());
 
-		String msg2 = "NPE serialization messsage";
+		String msg2 = "NPE serialization message";
 		Object obj2 = new NullPointerException(msg2);
 		ByteArrayOutputStream baos2 = new ByteArrayOutputStream();
 		ObjectOutputStream oos2 = new ObjectOutputStream(baos2);

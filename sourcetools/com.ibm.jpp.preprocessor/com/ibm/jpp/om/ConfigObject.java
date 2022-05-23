@@ -480,7 +480,7 @@ public class ConfigObject {
 		}
 	}
 
-	/* [PR 118829] Desing 894: Core.JCL : Support for compiler options in preprocessor plugin */
+	/* [PR 118829] Design 894: Core.JCL : Support for compiler options in preprocessor plugin */
 	/**
 	 * Adds compiler options to this ConfigObject.  These options will apply to
 	 * config projects' compiler options

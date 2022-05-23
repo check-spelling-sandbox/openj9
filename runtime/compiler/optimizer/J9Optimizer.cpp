@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2000, 2021 IBM Corp. and others
+ * Copyright (c) 2000, 2022 IBM Corp. and others
  *
  * This program and the accompanying materials are made available under
  * the terms of the Eclipse Public License 2.0 which accompanies this
@@ -84,6 +84,7 @@
 #include "optimizer/StaticFinalFieldFolding.hpp"
 #include "optimizer/HandleRecompilationOps.hpp"
 #include "optimizer/MethodHandleTransformer.hpp"
+#include "optimizer/VectorAPIExpansion.hpp"
 
 
 static const OptimizationStrategy J9EarlyGlobalOpts[] =
@@ -266,6 +267,9 @@ static const OptimizationStrategy coldStrategyOpts[] =
    { OMR::recompilationModifier,                     OMR::IfEnabled                  },
    { OMR::samplingJProfiling                                                    },
    { OMR::treeSimplification                                                    }, // cleanup before basicBlockExtension
+#if defined(J9VM_OPT_OPENJDK_METHODHANDLE)
+   { OMR::recognizedCallTransformer,                 OMR::MarkLastRun           },
+#endif
    { OMR::basicBlockExtension                                                   },
    { OMR::localValuePropagationGroup                                            },
    { OMR::deadTreesElimination                                                  },
@@ -321,6 +325,7 @@ static const OptimizationStrategy warmStrategyOpts[] =
    { OMR::treeSimplification                                                    },
    { OMR::sequentialLoadAndStoreWarmGroup,           OMR::IfEnabled                  }, // disabled by default, enabled by -Xjit:enableSequentialLoadStoreWarm
    { OMR::cheapGlobalValuePropagationGroup                                      },
+   { OMR::localCSE,                                    OMR::IfVectorAPI },
    { OMR::dataAccessAccelerator                                                 }, // globalValuePropagation and inlining might expose opportunities for dataAccessAccelerator
    { OMR::globalCopyPropagation,                       OMR::IfVoluntaryOSR          },
    { OMR::lastLoopVersionerGroup,                      OMR::IfLoops                  },
@@ -338,6 +343,9 @@ static const OptimizationStrategy warmStrategyOpts[] =
    { OMR::inductionVariableAnalysis,          OMR::IfLoopsAndNotProfiling            },
    { OMR::generalLoopUnroller,                OMR::IfLoopsAndNotProfiling            },
    { OMR::virtualGuardHeadMerger                                                },
+#if defined(J9VM_OPT_OPENJDK_METHODHANDLE)
+   { OMR::recognizedCallTransformer,               OMR::MarkLastRun             },
+#endif
    { OMR::basicBlockExtension,                     OMR::MarkLastRun                  }, // extend blocks; move trees around if reqd
    { OMR::treeSimplification                                                    }, // revisit; not really required ?
    { OMR::localValuePropagationGroup                                            },
@@ -371,6 +379,9 @@ static const OptimizationStrategy warmStrategyOpts[] =
    { OMR::arraysetStoreElimination                                              },
    { OMR::checkcastAndProfiledGuardCoalescer                                    },
    { OMR::jProfilingRecompLoopTest,                  OMR::IfLoops                    },
+   { OMR::globalDeadStoreElimination,                OMR::IfVectorAPI                }, // global dead store removal
+   { OMR::deadTreesElimination,                      OMR::IfVectorAPI                }, // cleanup after dead store removal
+   { OMR::vectorAPIExpansion,                        OMR::IfVectorAPI                },
    { OMR::cheapTacticalGlobalRegisterAllocatorGroup, OMR::IfEnabled                  },
    { OMR::jProfilingValue,                           OMR::MustBeDone                 },
    { OMR::treeLowering,                              OMR::MustBeDone                 },
@@ -403,12 +414,18 @@ static const OptimizationStrategy reducedWarmStrategyOpts[] =
    { OMR::treeSimplification                                                    },
    { OMR::deadTreesElimination                                                  },
    { OMR::treeSimplification                                                    },
+#if defined(J9VM_OPT_OPENJDK_METHODHANDLE)
+   { OMR::recognizedCallTransformer,                 OMR::MarkLastRun           },
+#endif
    { OMR::basicBlockExtension                                                   }, // extend blocks; move trees around if reqd
    { OMR::treeSimplification                                                    }, // revisit; not really required ?
    { OMR::localCSE                                                              },
    { OMR::treeSimplification,                        OMR::MarkLastRun                 },
    { OMR::deadTreesElimination,                      OMR::IfEnabled                  }, // cleanup at the end
    { OMR::jProfilingRecompLoopTest,                  OMR::IfLoops                    },
+   { OMR::globalDeadStoreElimination,                OMR::IfVectorAPI           }, // global dead store removal
+   { OMR::deadTreesElimination,                      OMR::IfVectorAPI           }, // cleanup after dead store removal
+   { OMR::vectorAPIExpansion,                        OMR::IfVectorAPI},
    { OMR::cheapTacticalGlobalRegisterAllocatorGroup, OMR::IfEnabled                  },
    { OMR::treeLowering,                              OMR::MustBeDone                 },
    { OMR::jProfilingValue,                           OMR::MustBeDone                 },
@@ -433,6 +450,12 @@ const OptimizationStrategy hotStrategyOpts[] =
    { OMR::loopReplicator,                        OMR::IfLoops                  }, // tail-duplication in loops
    { OMR::blockSplitter,                         OMR::IfNews                   }, // treeSimplification + blockSplitter + VP => opportunity for EA
    { OMR::expensiveGlobalValuePropagationGroup                            },
+   { OMR::localCSE,                              OMR::IfVectorAPI },
+   { OMR::loopCanonicalization,                  OMR::IfVectorAPI },
+   { OMR::partialRedundancyEliminationGroup,     OMR::IfVectorAPI },
+   { OMR::globalDeadStoreElimination,            OMR::IfVectorAPI }, // global dead store removal
+   { OMR::deadTreesElimination,                  OMR::IfVectorAPI }, // cleanup after dead store removal
+   { OMR::vectorAPIExpansion,                    OMR::IfVectorAPI },
    { OMR::dataAccessAccelerator                                           },
    { OMR::osrGuardRemoval,                       OMR::IfEnabled           }, // run after calls/monents/asyncchecks have been removed
    { OMR::globalDeadStoreGroup,                                           },
@@ -449,6 +472,9 @@ const OptimizationStrategy hotStrategyOpts[] =
    { OMR::loopSpecializerGroup,                  OMR::IfLoopsAndNotProfiling   },
    { OMR::inductionVariableAnalysis,             OMR::IfLoopsAndNotProfiling   },
    { OMR::generalLoopUnroller,                   OMR::IfLoopsAndNotProfiling   }, // unroll Loops
+#if defined(J9VM_OPT_OPENJDK_METHODHANDLE)
+   { OMR::recognizedCallTransformer,             OMR::MarkLastRun              },
+#endif
    { OMR::blockManipulationGroup                                          },
    { OMR::lateLocalGroup                                                  },
    { OMR::sequentialStoreSimplificationGroup,                             }, // reduce sequential stores into an arrayset
@@ -522,6 +548,12 @@ const OptimizationStrategy scorchingStrategyOpts[] =
    { OMR::globalDeadStoreGroup,                              },
    { OMR::idiomRecognition,                      OMR::IfLoopsAndNotProfiling   }, // Early pass of idiomRecognition - Loop Canonicalizer transformations break certain idioms (i.e. arrayTranslateAndTest)
    { OMR::globalCopyPropagation,                 OMR::IfNoLoops       },
+   { OMR::localCSE,                              OMR::IfVectorAPI },
+   { OMR::loopCanonicalization,                  OMR::IfVectorAPI },
+   { OMR::partialRedundancyEliminationGroup,     OMR::IfVectorAPI },
+   { OMR::globalDeadStoreElimination,            OMR::IfVectorAPI }, // global dead store removal
+   { OMR::deadTreesElimination,                  OMR::IfVectorAPI }, // cleanup after dead store removal
+   { OMR::vectorAPIExpansion,                    OMR::IfVectorAPI },
    { OMR::loopCanonicalizationGroup,             OMR::IfLoops     }, // canonicalize loops (improve fall throughs)
    { OMR::inductionVariableAnalysis,             OMR::IfLoops     },
    { OMR::redundantInductionVarElimination,      OMR::IfLoops     },
@@ -535,6 +567,9 @@ const OptimizationStrategy scorchingStrategyOpts[] =
    { OMR::inductionVariableAnalysis,             OMR::IfLoops     },
    { OMR::generalLoopUnroller,                   OMR::IfLoops     }, // unroll Loops
    { OMR::blockSplitter,                         OMR::MarkLastRun },
+#if defined(J9VM_OPT_OPENJDK_METHODHANDLE)
+   { OMR::recognizedCallTransformer,             OMR::MarkLastRun },
+#endif
    { OMR::blockManipulationGroup                             },
    { OMR::lateLocalGroup                                     },
    { OMR::sequentialStoreSimplificationGroup                 }, // reduce sequential stores into an arrayset
@@ -607,6 +642,12 @@ static const OptimizationStrategy AOTStrategyOpts[] =
    { OMR::stripMiningGroup,                      OMR::IfLoops   }, // strip mining in loops
    { OMR::loopReplicator,                        OMR::IfLoops   }, // tail-duplication in loops
    { OMR::expensiveGlobalValuePropagationGroup             },
+   { OMR::localCSE,                              OMR::IfVectorAPI },
+   { OMR::loopCanonicalization,                  OMR::IfVectorAPI },
+   { OMR::partialRedundancyEliminationGroup,     OMR::IfVectorAPI },
+   { OMR::globalDeadStoreElimination,            OMR::IfVectorAPI }, // global dead store removal
+   { OMR::deadTreesElimination,                  OMR::IfVectorAPI }, // cleanup after dead store removal
+   { OMR::vectorAPIExpansion,                    OMR::IfVectorAPI },
    { OMR::globalDeadStoreGroup,                            },
    { OMR::globalCopyPropagation,                 OMR::IfNoLoops },
    { OMR::loopCanonicalizationGroup,             OMR::IfLoops   }, // canonicalize loops (improve fall throughs) and versioning
@@ -671,6 +712,7 @@ static const OptimizationStrategy cheapWarmStrategyOpts[] =
    { OMR::sequentialLoadAndStoreWarmGroup,           OMR::IfEnabled                  },
 #endif
    { OMR::cheapGlobalValuePropagationGroup                                      },
+   { OMR::localCSE,                                  OMR::IfVectorAPI },
    { OMR::dataAccessAccelerator                                                 },
 #ifdef TR_HOST_S390
    { OMR::globalCopyPropagation,                     OMR::IfVoluntaryOSR            },
@@ -691,6 +733,9 @@ static const OptimizationStrategy cheapWarmStrategyOpts[] =
    { OMR::blockSplitter                                                         },
    { OMR::treeSimplification                                                    }, // revisit; not really required ?
    { OMR::virtualGuardHeadMerger                                                },
+#if defined(J9VM_OPT_OPENJDK_METHODHANDLE)
+   { OMR::recognizedCallTransformer,                 OMR::MarkLastRun           },
+#endif
    { OMR::basicBlockExtension,                       OMR::MarkLastRun                }, // extend blocks; move trees around if reqd
    { OMR::localValuePropagationGroup                                            },
    { OMR::explicitNewInitialization,                 OMR::IfNews                },
@@ -722,6 +767,9 @@ static const OptimizationStrategy cheapWarmStrategyOpts[] =
    { OMR::treeSimplification,                        OMR::IfEnabledMarkLastRun       }, // Simplify non-normalized address computations introduced by prefetch insertion
    { OMR::trivialDeadTreeRemoval,                    OMR::IfEnabled                  }, // final cleanup before opcode expansion
    { OMR::jProfilingRecompLoopTest,                  OMR::IfLoops                    },
+   { OMR::globalDeadStoreElimination,                OMR::IfVectorAPI                }, // global dead store removal
+   { OMR::deadTreesElimination,                      OMR::IfVectorAPI                }, // cleanup after dead store removal
+   { OMR::vectorAPIExpansion,                        OMR::IfVectorAPI                },
    { OMR::cheapTacticalGlobalRegisterAllocatorGroup, OMR::IfEnabled                  },
    { OMR::jProfilingValue,                           OMR::MustBeDone                 },
    { OMR::treeLowering,                              OMR::MustBeDone                 },
@@ -841,6 +889,8 @@ J9::Optimizer::Optimizer(TR::Compilation *comp, TR::ResolvedMethodSymbol *method
       new (comp->allocator()) TR::OptimizationManager(self(), TR_HandleRecompilationOps::create, OMR::handleRecompilationOps);
    _opts[OMR::hotFieldMarking] =
       new (comp->allocator()) TR::OptimizationManager(self(), TR_HotFieldMarking::create, OMR::hotFieldMarking);
+   _opts[OMR::vectorAPIExpansion] =
+      new (comp->allocator()) TR::OptimizationManager(self(), TR_VectorAPIExpansion::create, OMR::vectorAPIExpansion);
    // NOTE: Please add new J9 optimizations here!
 
    // initialize additional J9 optimization groups

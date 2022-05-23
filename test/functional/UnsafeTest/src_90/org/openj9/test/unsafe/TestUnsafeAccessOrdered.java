@@ -144,7 +144,7 @@ public class TestUnsafeAccessOrdered extends UnsafeTestBase {
 		testFloat(FloatData.class, ORDERED);
 	}
 
-	public void testStaticPutOrderdDouble() throws Exception {
+	public void testStaticPutOrderedDouble() throws Exception {
 		testDouble(DoubleData.class, ORDERED);
 	}
 

@@ -48,9 +48,9 @@ public class rc020_testIndyAsmGenerator {
 	public static String testMethodName2 = "testCall2";
 
 	/* string constants for invokedynamic methods */
-	private static String slashSeperatedPackage = "com/ibm/jvmti/tests/redefineClasses/";
-	private static String bootstrapFullClassName = slashSeperatedPackage + rc020_testIndyBSMs.class.getSimpleName();
-	private static String testFullClassName = slashSeperatedPackage + testClassName;
+	private static String slashSeparatedPackage = "com/ibm/jvmti/tests/redefineClasses/";
+	private static String bootstrapFullClassName = slashSeparatedPackage + rc020_testIndyBSMs.class.getSimpleName();
+	private static String testFullClassName = slashSeparatedPackage + testClassName;
 
 	private static String voidSignature = "()V";
 	private static String initMethodName = "<init>";

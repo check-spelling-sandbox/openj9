@@ -227,7 +227,7 @@ public class TestOperatingSystemMXBean {
 					connector.close();
 					stopRemoteServer();
 				} catch (Exception e) {
-					Assert.fail("Failed to stop remote server or close connetor" + e.getMessage(), e);
+					Assert.fail("Failed to stop remote server or close connector" + e.getMessage(), e);
 				}
 			}
 			logger.info("Tests finished at: " + System.currentTimeMillis() + " ms.");
@@ -751,7 +751,7 @@ public class TestOperatingSystemMXBean {
 		try {
 			Thread.sleep(1000);
 		} catch (InterruptedException e) {
-			logger.error("Unexoected exception: InterruptedException", e);
+			logger.error("Unexpected exception: InterruptedException", e);
 		}
 	}
 

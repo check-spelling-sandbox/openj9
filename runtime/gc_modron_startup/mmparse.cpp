@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 1991, 2021 IBM Corp. and others
+ * Copyright (c) 1991, 2022 IBM Corp. and others
  *
  * This program and the accompanying materials are made available under
  * the terms of the Eclipse Public License 2.0 which accompanies this
@@ -362,12 +362,12 @@ xlpSubOptionsParser(J9JavaVM *vm, IDATA xlpIndex, XlpError *xlpError, UDATA *req
 
 	/* start parsing with option */
 	parsingStates parsingState = PARSING_FIRST_OPTION;
-	UDATA optionNumber = 1;
 	char *previousOption = NULL;
 	char *errorString = NULL;
 
 	UDATA pageSizeHowMany = 0;
-#if	defined(J9ZOS390)
+#if defined(J9ZOS390)
+	UDATA optionNumber = 1;
 	UDATA pageableHowMany = 0;
 	UDATA pageableOptionNumber = 0;
 	UDATA nonPageableHowMany = 0;
@@ -411,8 +411,10 @@ xlpSubOptionsParser(J9JavaVM *vm, IDATA xlpIndex, XlpError *xlpError, UDATA *req
 			case PARSING_COMMA:
 				/* expecting for comma here, next should be an option*/
 				parsingState = PARSING_OPTION;
+#if defined(J9ZOS390)
 				/* next option number */
 				optionNumber += 1;
+#endif /* defined(J9ZOS390) */
 				break;
 			case PARSING_ERROR:
 			default:
@@ -482,13 +484,13 @@ xlpSubOptionsParser(J9JavaVM *vm, IDATA xlpIndex, XlpError *xlpError, UDATA *req
 
 			parsingState = PARSING_COMMA;
 		} else if (try_scan(&optionsString, "pageable")) {
-#if	defined(J9ZOS390)
+#if defined(J9ZOS390)
 			pageableHowMany += 1;
 			pageableOptionNumber = optionNumber;
 #endif /* defined(J9ZOS390) */
 			parsingState = PARSING_COMMA;
 		} else if (try_scan(&optionsString, "nonpageable")) {
-#if	defined(J9ZOS390)
+#if defined(J9ZOS390)
 			nonPageableHowMany += 1;
 			nonPageableOptionNumber = optionNumber;
 #endif /* defined(J9ZOS390) */
@@ -919,7 +921,9 @@ gcParseSovereignArguments(J9JavaVM *vm)
 		goto _error;
 	}
 
-	result =  option_set_to_opt_percent(vm, "-Xmaxt", &index, EXACT_MEMORY_MATCH, &extensions->heapExpansionGCTimeThreshold);
+
+
+	result =  option_set_to_opt_percent(vm, "-Xmaxt", &index, EXACT_MEMORY_MATCH, &extensions->heapExpansionGCRatioThreshold._valueSpecified);
 	if (OPTION_OK != result) {
 		if (OPTION_MALFORMED == result) {
 			j9nls_printf(PORTLIB, J9NLS_ERROR, J9NLS_GC_OPTIONS_MUST_BE_NUMBER, "-Xmaxt");
@@ -927,9 +931,13 @@ gcParseSovereignArguments(J9JavaVM *vm)
 			j9nls_printf(PORTLIB, J9NLS_ERROR, J9NLS_GC_OPTIONS_PERCENT_OUT_OF_RANGE, "-Xmaxt", 0.0, 1.0);
 		}
 		goto _error;
+	} else if (-1 != index)  {
+		extensions->heapExpansionGCRatioThreshold._wasSpecified = true;
 	}
 
-	result =  option_set_to_opt_percent(vm, "-Xmint", &index, EXACT_MEMORY_MATCH, &extensions->heapContractionGCTimeThreshold);
+
+
+	result =  option_set_to_opt_percent(vm, "-Xmint", &index, EXACT_MEMORY_MATCH, &extensions->heapContractionGCRatioThreshold._valueSpecified);
 	if (OPTION_OK != result) {
 		if (OPTION_MALFORMED == result) {
 			j9nls_printf(PORTLIB, J9NLS_ERROR, J9NLS_GC_OPTIONS_MUST_BE_NUMBER, "-Xmint");
@@ -937,7 +945,10 @@ gcParseSovereignArguments(J9JavaVM *vm)
 			j9nls_printf(PORTLIB, J9NLS_ERROR, J9NLS_GC_OPTIONS_PERCENT_OUT_OF_RANGE, "-Xmint", 0.0, 1.0);
 		}
 		goto _error;
+	} else if (-1 != index) {
+		extensions->heapContractionGCRatioThreshold._wasSpecified = true;
 	}
+
 
 	if(-1 != FIND_ARG_IN_VMARGS(EXACT_MEMORY_MATCH, VMOPT_XGCTHREADS, NULL)) {
 		result = option_set_to_opt_integer(vm, VMOPT_XGCTHREADS, &index, EXACT_MEMORY_MATCH, &extensions->gcThreadCount);
@@ -1172,7 +1183,7 @@ gcParseSovereignArguments(J9JavaVM *vm)
 	 * -XloratioN 
 	 * -XloincrN  
 	 * -XlorsrvN 
-	 * All these options (except -Xparoot) take a float value between 0 and 1.0.  
+	 * All these options (except -Xparroot) take a float value between 0 and 1.0.  
 	 * 
 	 */
 	option_set(vm, "-Xparroot", EXACT_MATCH); 
@@ -1707,7 +1718,7 @@ gcParseCommandLineAndInitializeWithValues(J9JavaVM *vm, IDATA *memoryParameters)
 		return JNI_EINVAL;
 	}
 
-	/* parse -XX: option that logicially belong to GC */
+	/* parse -XX: option that logically belong to GC */
 	if (0 == gcParseXXArguments(vm)) {
 		return JNI_EINVAL;
 	}

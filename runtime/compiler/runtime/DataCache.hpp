@@ -150,7 +150,7 @@ protected:
          Iterator(ListElement *startElement) :
             _currentElement(startElement)
             {
-            TR_ASSERT(startElement, "Creating an interator with a null start element.");
+            TR_ASSERT(startElement, "Creating an iterator with a null start element.");
             }
          Iterator &operator++()
             {

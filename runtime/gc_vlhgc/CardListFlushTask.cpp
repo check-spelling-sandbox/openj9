@@ -146,7 +146,7 @@ MM_CardListFlushTask::run(MM_EnvironmentBase *envBase)
 					while (NULL != (cardBufferControlBlockCurrent = rsclBufferIterator.nextBuffer(env, &lastCardInCurrentBuffer))) {
 						/* find a region owning current Buffer being iterated */
 						MM_HeapRegionDescriptorVLHGC *bufferOwningRegion = interRegionRememberedSet->getBufferOwningRegion(cardBufferControlBlockCurrent);
-						/* owned by a decommited region, which hasn't released its buffer pool yet? */
+						/* owned by a decommitted region, which hasn't released its buffer pool yet? */
 						if (!bufferOwningRegion->isCommitted()) {
 							Assert_MM_true(NULL != bufferOwningRegion->getRsclBufferPool());
 							rsclBufferIterator.unlinkCurrentBuffer(env);

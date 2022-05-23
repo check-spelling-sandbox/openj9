@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2001, 2019 IBM Corp. and others
+ * Copyright (c) 2001, 2022 IBM Corp. and others
  *
  * This program and the accompanying materials are made available under
  * the terms of the Eclipse Public License 2.0 which accompanies this
@@ -209,7 +209,7 @@ public class BootstrapMethods {
 		return new ConstantCallSite(MethodHandles.constant(long.class, value));
 	}
 	
-	public static CallSite boostrap_return_constant_MethodType(Lookup l, String name, MethodType type, MethodType result) {
+	public static CallSite bootstrap_return_constant_MethodType(Lookup l, String name, MethodType type, MethodType result) {
 		return new MutableCallSite(MethodHandles.constant(MethodType.class, result));
 	}
 	public static CallSite gwtBootstrap(Lookup ignored, String name, MethodType type) throws Throwable {
@@ -247,7 +247,7 @@ public class BootstrapMethods {
 	}
 
 	static String dup(Object o) {
-		return "DoesNotUnderStand: " + o.getClass() + " message: double";
+		return "DoesNotUnderstand: " + o.getClass() + " message: double";
 	}
 
 	// (int, int, String)   --> (String, int, int)  --> (String)

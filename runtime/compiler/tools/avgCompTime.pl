@@ -289,7 +289,7 @@ sub processVlog {
    print "numCGR   recompilations = $numGCR\n";
    print "numgcr   recompilations = $numGCRNoServer\n";
    print "pushy    recompilations = $numPushy\n";
-   print "coldupgr recompilations = $numColdUpgrade (AOT=$numAOTUpgrade, JIT=$numNonAOTUpgrade\n";
+   print "coldUpgrade recompilations = $numColdUpgrade (AOT=$numAOTUpgrade, JIT=$numNonAOTUpgrade\n";
    print "forcedAOTupgrades       = $numForcedAOTUpgrade\n";
    print "numAOTLoadsNotRecompiled= $numAOTLoadsNotRecompiled\n";
    print "inv      recompilations = $numInvalidate\n";

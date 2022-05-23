@@ -280,18 +280,28 @@ ROMClassBuilder::handleAnonClassName(J9CfrClassFile *classfile, bool *isLambda, 
 	PORT_ACCESS_FROM_PORT(_portLibrary);
 
 #if defined(J9VM_OPT_OPENJDK_METHODHANDLE)
-	/* InjectedInvoker is a hidden class without the nestmate and strong
-	 * attributes set. It is created by MethodHandleImpl.makeInjectedInvoker on
-	 * the JCL side. ROM class name for InjectedInvoker is set using the hidden
-	 * class name, which contains the correct host class name. The below filter
-	 * is used to reduce the number of memcmps when identifying if a hidden
-	 * class is named InjectedInvoker. Class name for InjectedInvoker:
+	/* InjectedInvoker is a hidden class without the strong attribute set. It
+	 * is created by MethodHandleImpl.makeInjectedInvoker on the OpenJDK side.
+	 * So, OpenJ9 does not have control over the implementation of InjectedInvoker.
+	 * ROM class name for InjectedInvoker is set using the hidden class name, which
+	 * contains the correct host class name. The below filter is used to reduce
+	 * the number of memcmps when identifying if a hidden class is named
+	 * InjectedInvoker. Class name for InjectedInvoker:
 	 *    - in class file bytecodes: "InjectedInvoker"; and
 	 *    - during hidden class creation: "<HOST_CLASS>$$InjectedInvoker".
 	 */
 	if (context->isClassHidden()
 	&& !context->isHiddenClassOptStrongSet()
+	/* In JDK17, InjectedInvoker does not have the nestmate attribute. In JDK18,
+	 * InjectedInvoker has the nestmate attribute due to change in implementation.
+	 * This filter checks for the nestmate attribute based upon the Java version
+	 * in order to identify a InjectedInvoker class.
+	 */
+#if JAVA_SPEC_VERSION <= 17
 	&& !context->isHiddenClassOptNestmateSet()
+#else /* JAVA_SPEC_VERSION <= 17 */
+	&& context->isHiddenClassOptNestmateSet()
+#endif /* JAVA_SPEC_VERSION <= 17 */
 	) {
 #define J9_INJECTED_INVOKER_CLASSNAME "$$InjectedInvoker"
 		U_8 *nameData = context->className();
@@ -377,7 +387,16 @@ ROMClassBuilder::handleAnonClassName(J9CfrClassFile *classfile, bool *isLambda, 
 	if (newCPEntry) {
 		anonClassName->slot2 = 0;
 		anonClassName->tag = CFR_CONSTANT_Utf8;
+#if defined(J9VM_OPT_VALHALLA_VALUE_TYPES)
+		/**
+		 * The following line should be put inside if (classfile->majorVersion > 61) according to the SPEC. However, the current
+		 * OpenJDK Valhalla implementation is not updated on this yet. There are cases that the new VT form is used in old classes
+		 * from OpenJDK Valhalla JCL.
+		 */
+		anonClassName->flags1 |= CFR_CLASS_FILE_VERSION_SUPPORT_VALUE_TYPE;
+#else /* defined(J9VM_OPT_VALHALLA_VALUE_TYPES) */
 		anonClassName->flags1 = 0;
+#endif /* defined(J9VM_OPT_VALHALLA_VALUE_TYPES) */
 		anonClassName->nextCPIndex = 0;
 		anonClassName->romAddress = 0;
 	}
@@ -470,7 +489,10 @@ ROMClassBuilder::getSizeInfo(ROMClassCreationContext *context, ROMClassWriter *r
 				ROMClassWriter::MARK_AND_COUNT_ONLY);
 	}
 	/* NOTE: the size of the VarHandle MethodType lookup table is already included in
-	 * rcWithOutUTF8sSize; see ROMClassWriter::writeVarHandleMethodTypeLookupTable() */
+	 * rcWithOutUTF8sSize; see ROMClassWriter::writeVarHandleMethodTypeLookupTable().
+	 * VarHandleMethodTypeLookupTable is disabled for OpenJDK MethodHandles because
+	 * it is not used.
+	 */
 	sizeInformation->rcWithOutUTF8sSize = mainAreaCursor.getCount();
 	sizeInformation->lineNumberSize = lineNumberCursor.getCount();
 	sizeInformation->variableInfoSize = variableInfoCursor.getCount();
@@ -815,14 +837,14 @@ ROMClassBuilder::prepareAndLaydown( BufferManager *bufferManager, ClassFileParse
 		U_16 classNameIndex = classFileOracle.getClassNameIndex();
 		U_8* classNameBytes = classFileOracle.getUTF8Data(classNameIndex);
 		U_16 classNameFullLength = classFileOracle.getUTF8Length(classNameIndex);
-		U_16 classNameRealLenghth = classNameFullLength - ROM_ADDRESS_LENGTH;
+		U_16 classNameRealLength = classNameFullLength - ROM_ADDRESS_LENGTH;
 		char* nameString = NULL;
 		char message[ROM_ADDRESS_LENGTH + 1];
 		if (J9_ARE_ALL_BITS_SET(context->findClassFlags(), J9_FINDCLASS_FLAG_REDEFINING)
 			|| J9_ARE_ALL_BITS_SET(context->findClassFlags(), J9_FINDCLASS_FLAG_RETRANSFORMING)
 		) {
 			/* When redefining we need to use the original class name */
-			nameString = ((char*) context->className() + classNameRealLenghth);
+			nameString = ((char*) context->className() + classNameRealLength);
 		} else {
 			/* fix up the ROM className with segment Address
 			 * write the name into a buffer first because j9str_printf automatically adds a NULL terminator
@@ -831,7 +853,7 @@ ROMClassBuilder::prepareAndLaydown( BufferManager *bufferManager, ClassFileParse
 			j9str_printf(PORTLIB, message, ROM_ADDRESS_LENGTH + 1, ROM_ADDRESS_FORMAT, (UDATA)romClassBuffer);
 			nameString = (char*) message;
 		}
-		memcpy((char*) (classNameBytes + classNameRealLenghth), nameString, ROM_ADDRESS_LENGTH);
+		memcpy((char*) (classNameBytes + classNameRealLength), nameString, ROM_ADDRESS_LENGTH);
 	}
 
 #if defined(J9VM_OPT_SHARED_CLASSES)
@@ -915,7 +937,7 @@ ROMClassBuilder::checkDebugInfoCompression(J9ROMClass *romClass, ClassFileOracle
 									j9tty_printf(PORTLIB, "Error while uncompressing the debug information for the class %.*s\n", (UDATA)J9UTF8_LENGTH(name), J9UTF8_DATA(name));
 									j9tty_printf(PORTLIB, "lineNumber.lineNumber(%d) / lineNumberOriginal(%d)\n", lineNumber.lineNumber,lineNumberOriginal);
 									j9tty_printf(PORTLIB, "lineNumber.location(%d) / pcOriginal(%d)\n", lineNumber.location, pcOriginal);
-									Trc_BCU_Assert_ShouldNeverHappen_CompressionMissmatch();
+									Trc_BCU_Assert_ShouldNeverHappen_CompressionMismatch();
 								}
 							}
 						}
@@ -942,7 +964,7 @@ ROMClassBuilder::checkDebugInfoCompression(J9ROMClass *romClass, ClassFileOracle
 							localVariablesIterator.next()) {
 							if (NULL == values) {
 								/* The number of compressed variableTableInfo is less than the original number */
-								Trc_BCU_Assert_ShouldNeverHappen_CompressionMissmatch();
+								Trc_BCU_Assert_ShouldNeverHappen_CompressionMismatch();
 							}
 							Trc_BCU_Assert_Equals_Level1(values->startVisibility, localVariablesIterator.getStartPC());
 							Trc_BCU_Assert_Equals_Level1(values->visibilityLength, localVariablesIterator.getLength());
@@ -1095,7 +1117,10 @@ ROMClassBuilder::finishPrepareAndLaydown(
 									ROMClassWriter::MARK_AND_COUNT_ONLY);
 
 		/* NOTE: the size of the VarHandle MethodType lookup table is already included in
-		 * rcWithOutUTF8sSize; see ROMClassWriter::writeVarHandleMethodTypeLookupTable() */
+		 * rcWithOutUTF8sSize; see ROMClassWriter::writeVarHandleMethodTypeLookupTable().
+		 * VarHandleMethodTypeLookupTable is disabled for OpenJDK MethodHandles because
+		 * it is not used.
+		 */
 		sizeInformation->rcWithOutUTF8sSize = mainAreaCursor.getCount();
 		sizeInformation->lineNumberSize = 0;
 		sizeInformation->variableInfoSize = 0;
@@ -1167,7 +1192,7 @@ ROMClassBuilder::finishPrepareAndLaydown(
  *                   + AccClassNeedsStaticConstantInit
  *                  + AccClassIntermediateDataIsClassfile
  *                 + AccClassUnsafe
- *                + AccClassAnnnotionRefersDoubleSlotEntry
+ *                + AccClassAnnotationRefersDoubleSlotEntry
  *
  *              + AccClassBytecodesModified
  *             + AccClassHasEmptyFinalize
@@ -1297,7 +1322,7 @@ ROMClassBuilder::computeExtraModifiers(ClassFileOracle *classFileOracle, ROMClas
 	}
 
 	if (classFileOracle->annotationRefersDoubleSlotEntry()) {
-		modifiers |= J9AccClassAnnnotionRefersDoubleSlotEntry;
+		modifiers |= J9AccClassAnnotationRefersDoubleSlotEntry;
 	}
 
 	if (context->isIntermediateDataAClassfile()) {

@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 1991, 2021 IBM Corp. and others
+ * Copyright (c) 1991, 2022 IBM Corp. and others
  *
  * This program and the accompanying materials are made available under
  * the terms of the Eclipse Public License 2.0 which accompanies this
@@ -1249,6 +1249,14 @@ readPool(J9CfrClassFile* classfile, U_8* data, U_8* dataEnd, U_8* segment, U_8* 
 				previousUTF8 = info;
 			}
 			classfile->lastUTF8CPIndex = i;
+#if defined(J9VM_OPT_VALHALLA_VALUE_TYPES)
+			/**
+			 * The following line should be put inside if (classfile->majorVersion > 61) according to the SPEC. However, the current
+			 * OpenJDK Valhalla implementation is not updated on this yet. There are cases that the new VT form is used in old classes
+			 * from OpenJDK Valhalla JCL.
+			 */
+			info->flags1 |= CFR_CLASS_FILE_VERSION_SUPPORT_VALUE_TYPE;
+#endif /* defined(J9VM_OPT_VALHALLA_VALUE_TYPES) */
 			i++;
 			break;
 
@@ -1348,16 +1356,6 @@ readPool(J9CfrClassFile* classfile, U_8* data, U_8* dataEnd, U_8* segment, U_8* 
 		case CFR_CONSTANT_Package:
 			if (classfile->majorVersion < 53) {
 				errorCode = J9NLS_CFR_ERR_CP_ENTRY_INVALID_BEFORE_V53__ID;
-				offset = (U_32)(index - data - 1);
-				goto _errorFound;
-			}
-
-			if (!J9_ARE_ALL_BITS_SET(classfile->accessFlags, CFR_ACC_MODULE)) {
-				if (J9_ARE_ALL_BITS_SET(info->tag, CFR_CONSTANT_Module)) {
-					errorCode = J9NLS_CFR_ERR_CONSTANT_MODULE_OUTSIDE_MODULE__ID;
-				} else {
-					errorCode = J9NLS_CFR_ERR_CONSTANT_PACKAGE_OUTSIDE_MODULE__ID;
-				}
 				offset = (U_32)(index - data - 1);
 				goto _errorFound;
 			}
@@ -1578,10 +1576,20 @@ checkPool(J9CfrClassFile* classfile, U_8* segment, U_8* poolStart, I_32 *maxBoot
 			index += 5;
 			break;
 
+			/* According to the VM Spec, a CONSTANT_Module_info or CONSTANT_Package_info structure
+			 * is permitted only in the constant pool of a class file where the access_flags item
+			 * has the ACC_MODULE flag set, which means any other class with a CONSTANT_Module_info
+			 * or CONSTANT_Package_info structure is illegal.
+			 * Note: a class with ACC_MODULE set is checked and rejected in j9bcutil_readClassFileBytes()
+			 * prior to checkPool().
+			 */
 		case CFR_CONSTANT_Module:
+			errorCode = J9NLS_CFR_ERR_CONSTANT_MODULE_OUTSIDE_MODULE__ID;
+			goto _errorFound;
+
 		case CFR_CONSTANT_Package:
-			index += 3;
-			break;
+			errorCode = J9NLS_CFR_ERR_CONSTANT_PACKAGE_OUTSIDE_MODULE__ID;
+			goto _errorFound;
 
 		default:
 			errorCode = J9NLS_CFR_ERR_UNKNOWN_CONSTANT__ID;
@@ -1626,6 +1634,22 @@ checkFields(J9PortLibrary* portLib, J9CfrClassFile * classfile, U_8 * segment, U
 				goto _errorFound;
 			}
 		}
+
+#if defined(J9VM_OPT_VALHALLA_VALUE_TYPES)
+		if (J9_ARE_ALL_BITS_SET(classfile->accessFlags, CFR_ACC_VALUE_TYPE)) {
+			if (J9_ARE_NO_BITS_SET(value, CFR_ACC_STATIC | CFR_ACC_FINAL)) {
+				errorCode = J9NLS_CFR_ERR_VALUE_CLASS_FIELD_NOT_STATIC_OR_FINAL__ID;
+				goto _errorFound;
+			}
+		}
+		if (J9_ARE_ALL_BITS_SET(classfile->accessFlags, CFR_ACC_PERMITS_VALUE)) {
+			/* if CFR_ACC_PERMITS_VALUE is set, we already know that CFR_ACC_ABSTRACT must be set as well */
+			if (J9_ARE_NO_BITS_SET(value, CFR_ACC_STATIC)) {
+				errorCode = J9NLS_CFR_ERR_MISSING_ACC_STATIC_ON_ABSTRACT_CLASS_FIELD__ID;
+				goto _errorFound;
+			}
+		}
+#endif /* defined(J9VM_OPT_VALHALLA_VALUE_TYPES) */
 
 		maskedValue = value & CFR_PUBLIC_PRIVATE_PROTECTED_MASK;
 		/* Check none or only one of the access flags set - result is 0 if no bits or only 1 bit is set */
@@ -1775,11 +1799,23 @@ checkMethods(J9PortLibrary* portLib, J9CfrClassFile* classfile, U_8* segment, U_
 		} 
 
 		if (nameIndexOK && utf8Equal(&classfile->constantPool[method->nameIndex], "<init>", 6)) {
+			BOOLEAN classfileIsValuetype = J9_IS_CLASSFILE_VALUETYPE(classfile);
+#if defined(J9VM_OPT_VALHALLA_VALUE_TYPES)
+#if defined(J9VM_OPT_VALHALLA_NEW_FACTORY_METHOD)
+			if (classfileIsValuetype) {
+				errorCode = J9NLS_CFR_ERR_INIT_ON_VALUE_CLASS__ID;
+				goto _errorFound;
+			}
+#else /* #if defined(J9VM_OPT_VALHALLA_NEW_FACTORY_METHOD) */
+			if (classfileIsValuetype && (value & ~CFR_INIT_VT_METHOD_ACCESS_MASK)) {
+				errorCode = J9NLS_CFR_ERR_INIT_METHOD__ID;
+				goto _errorFound;
+			}
+#endif /* #if defined(J9VM_OPT_VALHALLA_NEW_FACTORY_METHOD) */
+#endif /* #if defined(J9VM_OPT_VALHALLA_VALUE_TYPES) */
 
 			/* check no invalid flags set */
-			if ((J9_IS_CLASSFILE_VALUETYPE(classfile) && (value & ~CFR_INIT_VT_METHOD_ACCESS_MASK))
-				||  (!J9_IS_CLASSFILE_VALUETYPE(classfile) && (value & ~CFR_INIT_METHOD_ACCESS_MASK))
-			) {
+			if ((!classfileIsValuetype) && (value & ~CFR_INIT_METHOD_ACCESS_MASK)) {
 				errorCode = J9NLS_CFR_ERR_INIT_METHOD__ID;
 				goto _errorFound;
 			}
@@ -1795,6 +1831,21 @@ checkMethods(J9PortLibrary* portLib, J9CfrClassFile* classfile, U_8* segment, U_
 				}
 			}
 		}
+
+#if defined(J9VM_OPT_VALHALLA_VALUE_TYPES)
+#if defined(J9VM_OPT_VALHALLA_NEW_FACTORY_METHOD)
+		if (nameIndexOK && utf8Equal(&classfile->constantPool[method->nameIndex], "<new>", 5)) {
+			if (J9_ARE_NO_BITS_SET(value, CFR_ACC_STATIC)) {
+				errorCode = J9NLS_CFR_ERR_INVALID_FLAGS_ON_NEW__ID;
+				goto _errorFound;
+			}
+			if (J9_ARE_ANY_BITS_SET(value, ~CFR_INIT_VT_METHOD_ACCESS_MASK)) {
+				errorCode = J9NLS_CFR_ERR_INVALID_FLAGS_ON_NEW__ID;
+				goto _errorFound;
+			}
+		}
+#endif /* #if defined(J9VM_OPT_VALHALLA_NEW_FACTORY_METHOD) */
+#endif /* #if defined(J9VM_OPT_VALHALLA_VALUE_TYPES) */
 
 		/* Check interface-method-only access flag constraints. */
 		if (classfile->accessFlags & CFR_ACC_INTERFACE) {
@@ -1849,6 +1900,19 @@ checkMethods(J9PortLibrary* portLib, J9CfrClassFile* classfile, U_8* segment, U_
 			errorCode = J9NLS_CFR_ERR_ACCESS_CONFLICT_METHOD__ID;
 			goto _errorFound;
 		}
+
+#if defined(J9VM_OPT_VALHALLA_VALUE_TYPES)
+		if (J9_ARE_ALL_BITS_SET(classfile->accessFlags, CFR_ACC_VALUE_TYPE) ||
+			J9_ARE_ALL_BITS_SET(classfile->accessFlags, CFR_ACC_PERMITS_VALUE))
+		{
+			if (J9_ARE_ALL_BITS_SET(value, CFR_ACC_SYNCHRONIZED)) {
+				if (J9_ARE_NO_BITS_SET(value, CFR_ACC_STATIC)) {
+					errorCode = J9NLS_CFR_ERR_NON_STATIC_SYNCHRONIZED_VALUE_TYPE_METHOD__ID;
+					goto _errorFound;
+				}
+			}
+		}
+#endif /* #if defined(J9VM_OPT_VALHALLA_VALUE_TYPES) */
 		
 _nameCheck:
 
@@ -2167,6 +2231,22 @@ checkAttributes(J9PortLibrary* portLib, J9CfrClassFile* classfile, J9CfrAttribut
 				if ((0 != value) && (cpBase[value].tag != CFR_CONSTANT_Class)) {
 					errorCode = J9NLS_CFR_ERR_OUTER_CLASS_NOT_CLASS__ID;
 					goto _errorFound;
+				}
+				if (0 != value) {
+					J9CfrConstantPoolInfo* outerClassInfoUtf8 = &cpBase[cpBase[value].slot1];
+					if (CFR_CONSTANT_Utf8 != outerClassInfoUtf8->tag) {
+						errorCode = J9NLS_CFR_ERR_OUTER_CLASS_NAME_NOT_UTF8__ID;
+						goto _errorFound;
+					}
+					if (0 == outerClassInfoUtf8->slot1) {
+						errorCode = J9NLS_CFR_ERR_OUTER_CLASS_UTF8_ZERO_LENGTH__ID;
+						goto _errorFound;
+					}
+					/* Capture the error if the outer_class_info_index points to an array class */
+					if ('[' == outerClassInfoUtf8->bytes[0]) {
+						errorCode = J9NLS_CFR_ERR_OUTER_CLASS_BAD_ARRAY_CLASS__ID;
+						goto _errorFound;
+					}
 				}
 				/* Check class name integrity? */
 
@@ -2766,7 +2846,7 @@ j9bcutil_readClassFileBytes(J9PortLibrary *portLib,
 	ALLOC(classfile, J9CfrClassFile);
 
 	/* Verify the class version before any other checks. */
-	CHECK_EOF(8); /* magic, minor version, master version */
+	CHECK_EOF(8); /* magic, minor version, major version */
 	NEXT_U32(classfile->magic, index);
 	if (classfile->magic != (U_32) CFR_MAGIC) {
 		errorCode = J9NLS_CFR_ERR_MAGIC__ID;
@@ -2857,26 +2937,45 @@ j9bcutil_readClassFileBytes(J9PortLibrary *portLib,
 	}
 
 #if defined(J9VM_OPT_VALHALLA_VALUE_TYPES)
-	/* Currently value type is built on JDK17, so compare with JDK17 for now. Eventually it needs to compare to JDK18. */
-	if ((flags & BCT_MajorClassFileVersionMask) < BCT_JavaMajorVersionShifted(17)) {
-		classfile->accessFlags &= ~(CFR_ACC_VALUE_TYPE | CFR_ACC_ATOMIC);
+	/* Currently value type is built on JDK19, so compare with JDK19 for now. Eventually it may need to compare to JDK20. */
+	if ((flags & BCT_MajorClassFileVersionMask) < BCT_JavaMajorVersionShifted(19)) {
+		classfile->accessFlags &= ~(CFR_ACC_VALUE_TYPE | CFR_ACC_PRIMITIVE_VALUE_TYPE | CFR_ACC_PERMITS_VALUE);
 	}
-	/*
-	 * TODO This behaviour is based on the LW2 spec http://cr.openjdk.java.net/~fparain/L-world/LW2-JVMS-draft-20181009.pdf.
-	 * In the future the CFR_ACC_VALUE_TYPE class access bit will be replaced by a ValObject subtyping relationship. We will
-	 * likely keep the bit in the romClass class, but it will no longer appear in .class files.
-	 *
-	 * The LW10 prototype will likely still be enabled with a -XX:+EnableValhalla flag so a check and error message similar
-	 * to this will be required.
-	 */
-
-	/* class files with the ACC_VALUE_TYPE can only be loaded if -XX:+EnableValhalla is set, which is on by default. */
-	if (J9_ARE_ANY_BITS_SET(classfile->accessFlags, CFR_ACC_VALUE_TYPE | CFR_ACC_ATOMIC)
-		&& J9_ARE_NO_BITS_SET(flags, BCT_ValueTypesEnabled)
-	) {
-		errorCode = J9NLS_CFR_ERR_VALUE_TYPES_IS_NOT_SUPPORTED_V1__ID;
-		offset = index - data - 2;
-		goto _errorFound;
+	if (J9_ARE_ALL_BITS_SET(classfile->accessFlags, CFR_ACC_PRIMITIVE_VALUE_TYPE)) {
+		if (J9_ARE_NO_BITS_SET(classfile->accessFlags, CFR_ACC_VALUE_TYPE)) {
+			errorCode = J9NLS_CFR_ERR_VALUE_FLAG_MISSING_ON_PRIMITIVE_CLASS__ID;
+			offset = index - data - 2;
+			goto _errorFound;
+		}
+	}
+	if (J9_ARE_ALL_BITS_SET(classfile->accessFlags, CFR_ACC_VALUE_TYPE)) {
+		if (J9_ARE_NO_BITS_SET(classfile->accessFlags, CFR_ACC_FINAL)) {
+			errorCode = J9NLS_CFR_ERR_FINAL_FLAG_MISSING_ON_VALUE_CLASS__ID;
+			offset = index - data - 2;
+			goto _errorFound;
+		}
+		if (J9_ARE_ANY_BITS_SET(classfile->accessFlags, CFR_ACC_ABSTRACT | CFR_ACC_PERMITS_VALUE | CFR_ACC_ENUM | CFR_ACC_INTERFACE | CFR_ACC_MODULE)) {
+			errorCode = J9NLS_CFR_ERR_INCORRECT_FLAG_FOUND_ON_VALUE_CLASS__ID;
+			offset = index - data - 2;
+			goto _errorFound;
+		}
+	}
+	if (J9_ARE_ALL_BITS_SET(classfile->accessFlags, CFR_ACC_PERMITS_VALUE)) {
+		if (J9_ARE_NO_BITS_SET(classfile->accessFlags, CFR_ACC_ABSTRACT)) {
+			errorCode = J9NLS_CFR_ERR_PERMITS_VALUE_ON_NON_ABSTRACT_CLASS__ID;
+			offset = index - data - 2;
+			goto _errorFound;
+		}
+		if (J9_ARE_ALL_BITS_SET(classfile->accessFlags, CFR_ACC_FINAL)) {
+			errorCode = J9NLS_CFR_ERR_PERMITS_VALUE_ON_FINAL_CLASS__ID;
+			offset = index - data - 2;
+			goto _errorFound;
+		}
+		if (J9_ARE_ALL_BITS_SET(classfile->accessFlags, CFR_ACC_INTERFACE)) {
+			errorCode = J9NLS_CFR_ERR_PERMITS_VALUE_ON_INTERFACE__ID;
+			offset = index - data - 2;
+			goto _errorFound;
+		}
 	}
 #endif /* defined(J9VM_OPT_VALHALLA_VALUE_TYPES) */
 

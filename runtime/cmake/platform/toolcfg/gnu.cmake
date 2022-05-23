@@ -1,5 +1,5 @@
 ################################################################################
-# Copyright (c) 2020, 2021 IBM Corp. and others
+# Copyright (c) 2020, 2022 IBM Corp. and others
 #
 # This program and the accompanying materials are made available under
 # the terms of the Eclipse Public License 2.0 which accompanies this
@@ -21,6 +21,11 @@
 ################################################################################
 
 list(APPEND OMR_PLATFORM_COMPILE_OPTIONS -O3 -g -fstack-protector)
+if(OMR_DDR AND NOT (CMAKE_C_COMPILER_VERSION VERSION_LESS 11))
+	# In gcc 11+ the default is to use DWARF version 5 which is not yet
+	# supported by ddrgen: tell the compiler to use DWARF version 4.
+	list(APPEND OMR_PLATFORM_COMPILE_OPTIONS -gdwarf-4)
+endif()
 list(APPEND OMR_PLATFORM_C_COMPILE_OPTIONS -Wimplicit -Wreturn-type)
 list(APPEND OMR_PLATFORM_CXX_COMPILE_OPTIONS -fno-threadsafe-statics)
 
@@ -39,7 +44,4 @@ omr_append_flags(CMAKE_C_FLAGS ${OMR_STRNCPY_FORTIFY_OPTIONS})
 omr_append_flags(CMAKE_CXX_FLAGS ${OMR_STRNCPY_FORTIFY_OPTIONS})
 if(J9VM_USE_RDYNAMIC AND OMR_OS_LINUX)
 	omr_append_flags(CMAKE_SHARED_LINKER_FLAGS "-rdynamic")
-endif()
-if(J9VM_OPT_CRIU_SUPPORT AND OMR_OS_LINUX)
-	set(CMAKE_CXX_STANDARD_LIBRARIES "${CMAKE_CXX_STANDARD_LIBRARIES} -lcriu")
 endif()

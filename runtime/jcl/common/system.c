@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 1998, 2019 IBM Corp. and others
+ * Copyright (c) 1998, 2022 IBM Corp. and others
  *
  * This program and the accompanying materials are made available under
  * the terms of the Eclipse Public License 2.0 which accompanies this
@@ -60,21 +60,128 @@ typedef struct {
 } CreateSystemPropertiesData;
 
 jint propertyListAddString( JNIEnv *env, jarray array, jint arrayIndex, const char *value);
-jstring getEncoding(JNIEnv *env, jint encodingType);
 static void JNICALL systemPropertyIterator(char* key, char* value, void* userData);
 char* getDefinedEncoding(JNIEnv *env, char *defArg);
 jobject getPropertyList(JNIEnv *env);
 
-jstring JNICALL Java_java_lang_System_getEncoding(JNIEnv *env, jclass clazz, jint encodingType)
+#if JAVA_SPEC_VERSION >= 11
+void JNICALL
+Java_java_lang_System_initJCLPlatformEncoding(JNIEnv *env, jclass clazz)
 {
-	return getEncoding(env, encodingType);
+	UDATA handle = 0;
+	J9JavaVM * const vm = ((J9VMThread*)env)->javaVM;
+	char dllPath[EsMaxPath] = {0};
+	UDATA written = 0;
+	const char *encoding = NULL;
+	PORT_ACCESS_FROM_ENV(env);
+
+#if defined(OSX)
+	encoding = "UTF-8";
+#else
+	char property[128] = {0};
+	encoding = getPlatformFileEncoding(env, property, sizeof(property), 1); /* platform encoding */
+#endif /* defined(OSX) */
+	/* libjava.[so|dylib] is in the jdk/lib/ directory, one level up from the default/ & compressedrefs/ directories */
+	written = j9str_printf(PORTLIB, dllPath, sizeof(dllPath), "%s/../java", vm->j2seRootDirectory);
+	/* Assert the number of characters written (not including the null) fit within the dllPath buffer */
+	Assert_JCL_true(written < (sizeof(dllPath) - 1));
+	if (0 == j9sl_open_shared_library(dllPath, &handle, J9PORT_SLOPEN_DECORATE)) {
+		void (JNICALL *nativeFuncAddrJNU)(JNIEnv *env, const char *str) = NULL;
+		if (0 == j9sl_lookup_name(handle, "InitializeEncoding", (UDATA*) &nativeFuncAddrJNU, "VLL")) {
+			/* invoke JCL native to initialize platform encoding explicitly */
+			nativeFuncAddrJNU(env, encoding);
+		}
+	}
+}
+#endif /* JAVA_SPEC_VERSION >= 11 */
+
+/**
+ * sysPropID
+ *    0 - os.version
+ *    1 - platform encoding
+ *    2 - file.encoding
+ *    3 - os.encoding
+ */
+jstring JNICALL
+Java_java_lang_System_getSysPropBeforePropertiesInitialized(JNIEnv *env, jclass clazz, jint sysPropID)
+{
+	const char *sysPropValue = NULL;
+	/* The sysPropValue points to following property which has to be declared at top level. */
+	char property[128] = {0};
+	jstring result = NULL;
+	PORT_ACCESS_FROM_ENV(env);
+
+	switch (sysPropID) {
+	case 0: /* os.version */
+		/* Same logic as vmprops.c:initializeSystemProperties(vm) - j9sysinfo_get_OS_version() */
+		sysPropValue = j9sysinfo_get_OS_version();
+		if (NULL != sysPropValue) {
+#if defined(WIN32)
+			char *cursor = strchr(sysPropValue, ' ');
+			if (NULL != cursor) {
+				*cursor = '\0';
+			}
+#endif /* defined(WIN32) */
+		} else {
+			sysPropValue = "unknown";
+		}
+		break;
+
+	case 1: /* platform encoding: ibm.system.encoding, sun.jnu.encoding, native.encoding when file.encoding is NULL */
+#if defined(OSX)
+		sysPropValue = "UTF-8";
+#else
+		sysPropValue = getPlatformFileEncoding(env, property, sizeof(property), sysPropID);
+#endif /* defined(OSX) */
+		break;
+
+	case 2: /* file.encoding */
+		sysPropValue = getDefinedEncoding(env, "-Dfile.encoding=");
+		if (NULL == sysPropValue) {
+#if JAVA_SPEC_VERSION < 18
+			sysPropValue = getPlatformFileEncoding(env, property, sizeof(property), sysPropID);
+#else /* JAVA_SPEC_VERSION < 18 */
+			sysPropValue = "UTF-8";
+		} else {
+			if (0 == strcmp("COMPAT", sysPropValue)) {
+				sysPropValue = getPlatformFileEncoding(env, property, sizeof(property), sysPropID);
+			}
+#endif /* JAVA_SPEC_VERSION < 18 */
+		}
+#if defined(J9ZOS390)
+		if (__CSNameType(sysPropValue) == _CSTYPE_ASCII) {
+			__ccsid_t ccsid;
+			ccsid = __toCcsid(sysPropValue);
+			atoe_setFileTaggingCcsid(&ccsid);
+		}
+#endif /* defined(J9ZOS390) */
+		break;
+
+	case 3: /* os.encoding */
+		sysPropValue = getDefinedEncoding(env, "-Dos.encoding=");
+		if (NULL == sysPropValue) {
+#if defined(J9ZOS390) || defined(J9ZTPF)
+			sysPropValue = "ISO8859_1";
+#elif defined(WIN32) /* defined(J9ZOS390) || defined(J9ZTPF) */
+			sysPropValue = "UTF-8";
+#endif /* defined(J9ZOS390) || defined(J9ZTPF) */
+		}
+		break;
+
+	default:
+		break;
+	}
+	if (NULL != sysPropValue) {
+		result = (*env)->NewStringUTF(env, sysPropValue);
+	}
+
+	return result;
 }
 
 jobject JNICALL Java_java_lang_System_getPropertyList(JNIEnv *env, jclass clazz)
 {
 	return getPropertyList(env);
 }
-
 
 jstring JNICALL Java_java_lang_System_mapLibraryName(JNIEnv * env, jclass unusedClass, jstring inName)
 {
@@ -226,23 +333,25 @@ jobject getPropertyList(JNIEnv *env)
 {
 	PORT_ACCESS_FROM_ENV(env);
 	int propIndex = 0;
-	jobject propertyList;
+	jobject propertyList = NULL;
 #define PROPERTY_COUNT 137
-	char *propertyKey= NULL;
-	const char * language;
-	const char * region;
-	const char * variant;
+	char *propertyKey = NULL;
+	const char * language = NULL;
+	const char * region = NULL;
+	const char * variant = NULL;
 	const char *strings[PROPERTY_COUNT];
 #define USERNAME_LENGTH 128
 	char username[USERNAME_LENGTH];
 	char *usernameAlloc = NULL;
-	IDATA result;
+	/* buffer to hold the size of the maximum direct byte buffer allocations */
+	char maxDirectMemBuff[24];
+	IDATA result = 0;
 
 	J9JavaVM *javaVM = ((J9VMThread *) env)->javaVM;
 	OMR_VM *omrVM = javaVM->omrVM;
 
-	/* Change the allocation value PROPERTY_COUNT above as you add/remove properties, 
-	 * then follow the propIndex++ convention and consume 2 * slots for each property. 2 * number of property keys is the 
+	/* Change the allocation value PROPERTY_COUNT above as you add/remove properties,
+	 * then follow the propIndex++ convention and consume 2 * slots for each property. 2 * number of property keys is the
 	 * correct allocation.
 	 * Also note the call to addSystemProperties below, which may add some configuration-specific properties.  Be sure to leave
 	 * enough room in the property list for all possibilities.
@@ -319,7 +428,6 @@ jobject getPropertyList(JNIEnv *env)
 
 	/*[PR 95709]*/
 
-
 	/* Get the language, region and variant */
 	language = j9nls_get_language();	
 	region = j9nls_get_region();
@@ -361,20 +469,26 @@ jobject getPropertyList(JNIEnv *env)
 
 #undef USERNAME_LENGTH
 
-#if defined(OPENJ9_BUILD)
+#if defined(OPENJ9_BUILD) && JAVA_SPEC_VERSION == 8
 	/* Set the maximum direct byte buffer allocation property if it has not been set manually */
 	if ((UDATA) -1 == javaVM->directByteBufferMemoryMax) {
 		UDATA heapSize = javaVM->memoryManagerFunctions->j9gc_get_maximum_heap_size(javaVM);
 		/* allow up to 7/8 of the heap to be direct byte buffers */
 		javaVM->directByteBufferMemoryMax = heapSize - (heapSize / 8);
 	}
-#endif /* defined(OPENJ9_BUILD) */
-	if ((UDATA) -1 != javaVM->directByteBufferMemoryMax) {
-		/* buffer to hold the size of the maximum direct byte buffer allocations */
-		char maxDirectMemBuff[24];
+#endif /* defined(OPENJ9_BUILD) && JAVA_SPEC_VERSION == 8 */
+#if !defined(OPENJ9_BUILD)
+	/* Don't set a default value for IBM Java 8. */
+	if ((UDATA) -1 != javaVM->directByteBufferMemoryMax)
+#endif /* !defined(OPENJ9_BUILD) */
+	{
 		strings[propIndex] = "sun.nio.MaxDirectMemorySize";
 		propIndex += 1;
-		j9str_printf(PORTLIB, maxDirectMemBuff, sizeof(maxDirectMemBuff), "%zu", javaVM->directByteBufferMemoryMax);
+		if ((UDATA) -1 == javaVM->directByteBufferMemoryMax) {
+			strcpy(maxDirectMemBuff, "-1");
+		} else {
+			j9str_printf(PORTLIB, maxDirectMemBuff, sizeof(maxDirectMemBuff), "%zu", javaVM->directByteBufferMemoryMax);
+		}
 		strings[propIndex] = maxDirectMemBuff;
 		propIndex += 1;
 	}
@@ -384,87 +498,6 @@ jobject getPropertyList(JNIEnv *env)
 		jclmem_free_memory(env, usernameAlloc);
 	}
 	return propertyList;
-}
-
-
-/**
- * encodingType
- *    0 - initialize the locale
- *    1 - platform encoding
- *    2 - file.encoding
- *    3 - os.encoding
- */
-jstring getEncoding(JNIEnv *env, jint encodingType)
-{
-	char *encoding = NULL;
-	char property[128];
-	jstring result = NULL;
-
-	switch (encodingType) {
-	case 0:		/* initialize the locale */
-		getPlatformFileEncoding(env, NULL, 0, encodingType);
-		break;
-
-	case 1: 		/* platform encoding */
-#if defined(OSX)
-		encoding = "UTF-8";
-#else
-		encoding = getPlatformFileEncoding(env, property, sizeof(property), encodingType);
-#endif /* defined(OSX) */
-#if JAVA_SPEC_VERSION >= 11
-		{
-			UDATA handle = 0;
-			J9JavaVM * const vm = ((J9VMThread*)env)->javaVM;
-			char dllPath[EsMaxPath];
-			UDATA written = 0;
-			PORT_ACCESS_FROM_ENV(env);
-			/* libjava.[so|dylib] is in the jdk/lib/ directory, one level up from the default/ & compressedrefs/ directories */
-			written = j9str_printf(PORTLIB, dllPath, sizeof(dllPath), "%s/../java", vm->j2seRootDirectory);
-			/* Assert the number of characters written (not including the null) fit within the dllPath buffer */
-			Assert_JCL_true(written < (sizeof(dllPath) - 1));
-			if (0 == j9sl_open_shared_library(dllPath, &handle, J9PORT_SLOPEN_DECORATE)) {
-				void (JNICALL *nativeFuncAddrJNU)(JNIEnv *env, const char *str) = NULL;
-				if (0 == j9sl_lookup_name(handle, "InitializeEncoding", (UDATA*) &nativeFuncAddrJNU, "VLL")) {
-					/* invoke JCL native to initialize platform encoding explicitly */
-					nativeFuncAddrJNU(env, encoding);
-				}
-			}
-		}
-#endif /* JAVA_SPEC_VERSION >= 11 */
-		break;
-
-	case 2:		/* file.encoding */
-		encoding = getDefinedEncoding(env, "-Dfile.encoding=");
-		if (NULL == encoding) {
-			encoding = getPlatformFileEncoding(env, property, sizeof(property), encodingType);
-		}
-#if defined(J9ZOS390)
-		if (__CSNameType(encoding) == _CSTYPE_ASCII) {
-			__ccsid_t ccsid;
-			ccsid = __toCcsid(encoding);
-			atoe_setFileTaggingCcsid(&ccsid);
-		}
-#endif /* defined(J9ZOS390) */
-		break;
-
-	case 3:		/* os.encoding */
-		encoding = getDefinedEncoding(env, "-Dos.encoding=");
-		if (NULL == encoding) {
-#if defined(J9ZOS390) || defined(J9ZTPF)
-			encoding = "ISO8859_1";
-#elif defined(WIN32)
-			encoding = "UTF8";
-#endif /* defined(J9ZOS390) || defined(J9ZTPF) */
-		 } 
-		break;
-
-	default:
-		break;
-	}
-	if (NULL != encoding) {
-		result = (*env)->NewStringUTF(env, encoding);
-	}
-	return result;
 }
 
 static void JNICALL
@@ -542,7 +575,6 @@ Java_java_lang_System_startSNMPAgent(JNIEnv *env, jclass jlClass)
 void JNICALL
 Java_java_lang_System_rasInitializeVersion(JNIEnv * env, jclass unusedClass, jstring javaRuntimeVersion)
 {
-#if defined(J9VM_RAS_EYECATCHERS)
 	J9JavaVM *javaVM = ((J9VMThread *)env)->javaVM;
 	jboolean isCopy = JNI_FALSE;
 	const char *utfRuntimeVersion = NULL;
@@ -556,5 +588,4 @@ Java_java_lang_System_rasInitializeVersion(JNIEnv * env, jclass unusedClass, jst
 	if (NULL != utfRuntimeVersion) {
 		(*env)->ReleaseStringUTFChars(env, javaRuntimeVersion, utfRuntimeVersion);
 	}
-#endif /* J9VM_RAS_EYECATCHERS */
 }

@@ -178,7 +178,7 @@ public class Parser implements EntityResolver {
 		
 	}
 	
-	void addAllModulesFoundInDiretory( File dir, Vector<String> moduleFilenames ) {
+	void addAllModulesFoundInDirectory( File dir, Vector<String> moduleFilenames ) {
 		String rootDir = generator.getRootDirectory();
 		File [] dirListing = dir.listFiles();
 		Vector<File> directories = new Vector<File>();
@@ -198,7 +198,7 @@ public class Parser implements EntityResolver {
 			}
 		}
 		for ( File file : directories ) {
-			addAllModulesFoundInDiretory(file, moduleFilenames);
+			addAllModulesFoundInDirectory(file, moduleFilenames);
 		}
 	}
 	
@@ -216,7 +216,7 @@ public class Parser implements EntityResolver {
 	public boolean parse() throws UMAException {
 		Vector<String> moduleFilenames = new Vector<String>();
 		File rootDirectory = new File(generator.getRootDirectory());
-		addAllModulesFoundInDiretory(rootDirectory, moduleFilenames);
+		addAllModulesFoundInDirectory(rootDirectory, moduleFilenames);
 
 		// parse it to determine directories to search for module.xml files.
 		moduleFilenames = getModuleFilenames(moduleFilenames);

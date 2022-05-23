@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2000, 2021 IBM Corp. and others
+ * Copyright (c) 2000, 2022 IBM Corp. and others
  *
  * This program and the accompanying materials are made available under
  * the terms of the Eclipse Public License 2.0 which accompanies this
@@ -32,8 +32,8 @@
 #include "runtime/IProfiler.hpp"
 #include "runtime/J9Profiler.hpp"
 #if defined(J9VM_OPT_JITSERVER)
-#include "runtime/JITServerAOTDeserializer.hpp"
 #include "runtime/Listener.hpp"
+#include "runtime/MetricsServer.hpp"
 #endif /* J9VM_OPT_JITSERVER */
 #include "runtime/codertinit.hpp"
 #include "rossa.h"
@@ -111,8 +111,6 @@ IDATA J9VMDllMain(J9JavaVM* vm, IDATA stage, void * reserved)
          FIND_AND_CONSUME_ARG( EXACT_MATCH, "-Xnoquickstart", 0); // deprecated
          FIND_AND_CONSUME_ARG(STARTSWITH_MATCH, "-Xtune:elastic", 0);
          argIndexQuickstart = FIND_AND_CONSUME_ARG( EXACT_MATCH, "-Xquickstart", 0);
-         argIndexClient = FIND_AND_CONSUME_ARG( EXACT_MATCH, "-client", 0);
-         argIndexServer = FIND_AND_CONSUME_ARG( EXACT_MATCH, "-server", 0);
          tlhPrefetch = FIND_AND_CONSUME_ARG(EXACT_MATCH, "-XtlhPrefetch", 0);
          notlhPrefetch = FIND_AND_CONSUME_ARG(EXACT_MATCH, "-XnotlhPrefetch", 0);
          lockReservation = FIND_AND_CONSUME_ARG(EXACT_MATCH, "-XlockReservation", 0);
@@ -139,16 +137,7 @@ IDATA J9VMDllMain(J9JavaVM* vm, IDATA stage, void * reserved)
 
          TR::Options::_doNotProcessEnvVars = (FIND_AND_CONSUME_ARG(EXACT_MATCH, "-XX:doNotProcessJitEnvVars", 0) >= 0);
 
-         // Determine if quickstart mode or not; -client, -server, -Xquickstart can all be specified
-         // on the command line. The last appearance wins
-         if (argIndexServer < argIndexClient || argIndexServer < argIndexQuickstart)
-            {
-            isQuickstart = true;
-            }
-         else if (argIndexServer > 0)
-            {
-            TR::Options::_bigAppThreshold = 1;
-            }
+         isQuickstart = J9_ARE_ANY_BITS_SET(vm->extendedRuntimeFlags2, J9_EXTENDED_RUNTIME2_TUNE_QUICKSTART);
 
 #ifdef TR_HOST_X86
          // By default, disallow reservation of objects' monitors for which a
@@ -371,19 +360,17 @@ IDATA J9VMDllMain(J9JavaVM* vm, IDATA stage, void * reserved)
             TR_J9SharedCache *sharedCache = new (PERSISTENT_NEW) TR_J9SharedCache((TR_J9VMBase *)feWithoutThread);
             if (sharedCache != NULL)
                {
-               TR_PersistentMemory * persistentMemory = (TR_PersistentMemory *)(vm->jitConfig->scratchSegment);
+               TR_PersistentMemory *persistentMemory = (TR_PersistentMemory *)(vm->jitConfig->scratchSegment);
                TR_PersistentClassLoaderTable *loaderTable = persistentMemory->getPersistentInfo()->getPersistentClassLoaderTable();
                sharedCache->setPersistentClassLoaderTable(loaderTable);
                loaderTable->setSharedCache(sharedCache);
-#if defined(J9VM_OPT_JITSERVER)
-               if (auto deserializer = getCompilationInfo(vm->jitConfig)->getJITServerAOTDeserializer())
-                  deserializer->setSharedCache(sharedCache);
-#endif /* defined(J9VM_OPT_JITSERVER) */
                }
             }
          else
-#endif
+#endif /* defined(J9VM_OPT_SHARED_CLASSES) */
+            {
             TR::Options::setSharedClassCache(false);
+            }
 
          if (!isAOT)
             {
@@ -611,7 +598,13 @@ IDATA J9VMDllMain(J9JavaVM* vm, IDATA stage, void * reserved)
                         {
                         listener->stop();
                         }
+                     MetricsServer *metricsServer = ((TR_JitPrivateConfig*)(vm->jitConfig->privateConfig))->metricsServer;
+                     if (metricsServer)
+                        {
+                        metricsServer->stop();
+                        }
                      }
+
 #endif /* defined(J9VM_OPT_JITSERVER) */
                   trvm->_compInfo->stopCompilationThreads();
                   }

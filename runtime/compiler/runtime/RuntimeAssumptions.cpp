@@ -61,7 +61,7 @@ TR_PatchNOPedGuardSiteOnClassPreInitialize::hashCode(char *sig, uint32_t sigLen)
    bool skipFirstAndLastChars = false;
    if (sigLen > 0)
       {
-      if ((sig[0] == 'L') && (sig[sigLen-1] == ';'))
+      if ((sig[0] == 'L' || sig[0] == 'Q') && (sig[sigLen-1] == ';'))
          skipFirstAndLastChars = true;
       }
 
@@ -387,7 +387,7 @@ void
 TR_PersistentCHTable::methodGotOverridden(
       TR_FrontEnd *fe,
       TR_PersistentMemory *persistentMemory,
-      TR_OpaqueMethodBlock *overriddingMethod,
+      TR_OpaqueMethodBlock *overridingMethod,
       TR_OpaqueMethodBlock *overriddenMethod,
       int32_t smpFlag)
    {

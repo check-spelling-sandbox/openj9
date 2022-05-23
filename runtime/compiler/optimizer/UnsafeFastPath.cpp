@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2000, 2021 IBM Corp. and others
+ * Copyright (c) 2000, 2022 IBM Corp. and others
  *
  * This program and the accompanying materials are made available under
  * the terms of the Eclipse Public License 2.0 which accompanies this
@@ -254,7 +254,7 @@ bool TR_UnsafeFastPath::tryTransformUnsafeAtomicCallInVarHandleAccessMethod(TR::
       TR::Node *j9Class = TR::Node::createWithSymRef(node, TR::aloadi, 1, jlClass, comp()->getSymRefTab()->findOrCreateClassFromJavaLangClassSymbolRef());
       TR::Node *ramStatics = TR::Node::createWithSymRef(node, TR::aloadi, 1, j9Class, comp()->getSymRefTab()->findOrCreateRamStaticsFromClassSymbolRef());
       TR::Node *offset = node->getChild(2);
-      // The offset for a static field is low taged, mask out the flag bit to get the real offset
+      // The offset for a static field is low tagged, mask out the flag bit to get the real offset
       //
       offset = TR::Node::create(node, TR::land, 2, offset,
                                                    TR::Node::lconst(node, ~J9_SUN_FIELD_OFFSET_MASK));
@@ -478,7 +478,7 @@ int32_t TR_UnsafeFastPath::perform()
          TR::Node *offset = NULL, *index = NULL;
          TR::Node *value = NULL;  // the value to be written
          TR::Node *object = NULL; // the owning object to be written to or read from in original unsafe call
-         TR::Node *base = NULL; // the base used to calcluate address for the new store / load
+         TR::Node *base = NULL; // the base used to calculate address for the new store / load
          TR::DataType type = TR::NoType;
          bool isVolatile = false;
          bool isArrayOperation = false;
@@ -489,6 +489,7 @@ int32_t TR_UnsafeFastPath::perform()
          switch (symbol->getRecognizedMethod())
             {
             case TR::java_lang_StringUTF16_getChar:
+            case TR::java_lang_StringUTF16_putChar:
                objectChild = 0;
                offsetChild = 1;
                break;
@@ -650,6 +651,11 @@ int32_t TR_UnsafeFastPath::perform()
                value = node->getChild(3);
                type = TR::Int16;
                break;
+            case TR::java_lang_StringUTF16_putChar:
+               isByIndex = true;
+               value = node->getChild(2);
+               type = TR::Int16;
+               break;
             case TR::com_ibm_jit_JITHelpers_putCharInArrayVolatile:
                isVolatile = true;
             case TR::com_ibm_jit_JITHelpers_putCharInArray:
@@ -740,6 +746,7 @@ int32_t TR_UnsafeFastPath::perform()
             switch (calleeMethod)
                {
                case TR::java_lang_StringUTF16_getChar:
+               case TR::java_lang_StringUTF16_putChar:
                   unsafeSymRef = comp()->getSymRefTab()->findOrCreateArrayShadowSymbolRef(TR::Int8);
                   break;
 
@@ -761,7 +768,7 @@ int32_t TR_UnsafeFastPath::perform()
                node->setAndIncChild(objectChild, ramStatics);
                jlClass->recursivelyDecReferenceCount();
                offset = node->getChild(offsetChild);
-               // The offset for a static field is low taged, mask out the last bit to get the real offset
+               // The offset for a static field is low tagged, mask out the last bit to get the real offset
                TR::Node *newOffset =
                   TR::Node::create(offset, TR::land, 2, offset,
                                   TR::Node::lconst(offset, ~1));

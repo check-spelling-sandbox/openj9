@@ -23,7 +23,7 @@
 
 /**
  * Defines the jcmd tool, used for obtaining information about a running JVM, or requesting a
- * running JVM to do operations such as creating diagnotic files or performing a GC.
+ * running JVM to do operations such as creating diagnostic files or performing a GC.
  */
 module jdk.jcmd {
   requires java.management;

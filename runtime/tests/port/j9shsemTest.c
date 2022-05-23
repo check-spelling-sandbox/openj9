@@ -418,7 +418,7 @@ j9shsem_test5(J9PortLibrary *portLibrary)
 	params.proj_id = 10;
 	rc = j9shsem_open(&myhandle1, &params);
 	if(rc == J9PORT_ERROR_SHSEM_OPFAILED || rc == J9PORT_ERROR_SHSEM_WAIT_FOR_CREATION_MUTEX_TIMEDOUT) {
-		outputErrorMessage(PORTTEST_ERROR_ARGS, "Error opening waiting sempahore");
+		outputErrorMessage(PORTTEST_ERROR_ARGS, "Error opening waiting semaphore");
 		goto cleanup;
 	}
 
@@ -486,7 +486,7 @@ j9shsem_test6(J9PortLibrary *portLibrary, const char* argv0)
 	params.proj_id = 10;
 	rc = j9shsem_open(&sem0, &params);
 	if(rc<0) {
-		outputErrorMessage(PORTTEST_ERROR_ARGS, "Error opening sempahore");
+		outputErrorMessage(PORTTEST_ERROR_ARGS, "Error opening semaphore");
 		goto cleanup;
 	}
 

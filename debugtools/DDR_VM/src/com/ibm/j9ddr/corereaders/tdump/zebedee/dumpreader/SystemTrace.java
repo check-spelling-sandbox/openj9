@@ -675,7 +675,7 @@ public class SystemTrace {
                 case 0x4: return "NDSys Set";
                 case 0x5: return "NDTcb Set";
                 case 0x6: return "Stop  SRBs/TCBs";
-                default:  return "Uknown";
+                default:  return "Unknown";
                 }
 /*
 4F Status   NDTcb Reset

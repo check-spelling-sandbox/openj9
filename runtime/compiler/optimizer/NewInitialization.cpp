@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2000, 2021 IBM Corp. and others
+ * Copyright (c) 2000, 2022 IBM Corp. and others
  *
  * This program and the accompanying materials are made available under
  * the terms of the Eclipse Public License 2.0 which accompanies this
@@ -90,7 +90,7 @@ TR_LocalNewInitialization::optDetailString() const throw()
 int32_t TR_NewInitialization::performAnalysis(bool doGlobalAnalysis)
    {
    // AOT does not support TR_New optimizations at this time
-   if(comp()->getOption(TR_AOT))
+   if(comp()->compileRelocatableCode())
       return 0;
 
    //
@@ -531,7 +531,7 @@ bool TR_NewInitialization::sniffCall(TR::TreeTop *callTree)
    // See if this call is a candidate for inlining - if so, sniff it
    // to see if it would be useful to inline.
    //
-   TR::ResolvedMethodSymbol *calleeSymbol = findInlinableMethod(callTree);
+   TR::ResolvedMethodSymbol *calleeSymbol = findInlineableMethod(callTree);
    if (!calleeSymbol)
       return false;
 
@@ -569,7 +569,7 @@ bool TR_NewInitialization::sniffCall(TR::TreeTop *callTree)
    return sniffedCompleteMethod;
    }
 
-TR::ResolvedMethodSymbol *TR_NewInitialization::findInlinableMethod(TR::TreeTop *callTree)
+TR::ResolvedMethodSymbol *TR_NewInitialization::findInlineableMethod(TR::TreeTop *callTree)
    {
    // See if this call is a candidate for inlining.
    //
@@ -876,7 +876,17 @@ bool TR_NewInitialization::visitNode(TR::Node *node)
             //
             offset = node->getSymbolReference()->getOffset() + base->getSecondChild()->getInt() - c->startOffset;
             }
-         else if (node->getOpCode().isLoadVar())
+         else if (base->getSecondChild()->getOpCodeValue() == TR::lconst)
+            {
+            int64_t longOffset = base->getSecondChild()->getLongInt();
+	    if ((longOffset <= (int64_t) INT_MAX) && (longOffset >= (int64_t) INT_MIN))
+	       {
+               // Array new reference with constant index
+               //
+               offset = node->getSymbolReference()->getOffset() + ((int32_t) longOffset) - c->startOffset;
+	       }
+            }
+	 else if (node->getOpCode().isLoadVar())
             {
             // Array new reference with unknown index
             //

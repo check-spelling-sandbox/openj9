@@ -97,7 +97,7 @@ static void rewriteExceptionHandlers (J9JSRIData * inlineBuffers);
 static void createNewMap (J9JSRIData * inlineBuffers);
 static UDATA isJSRRecursive (J9JSRIJSRData * data, J9JSRIData * inlineBuffers);
 static void allocateInlineBuffers (J9JSRIData * inlineBuffers);
-static void flattenCodeBlockHeirarchyToList (J9JSRICodeBlock * structureRoot, J9JSRIData * inlineBuffers);
+static void flattenCodeBlockHierarchyToList (J9JSRICodeBlock * structureRoot, J9JSRIData * inlineBuffers);
 static U_8 pushOntoStack (J9JSRIJSRData * ourData, U_8 value);
 static J9JSRIJSRData * createJSRData (J9JSRICodeBlock * parent, J9JSRIJSRData * previous, U_32 spawnPC, U_32 destinationPC, J9JSRIData * inlineBuffers);
 static U_8 popStack (J9JSRIJSRData * ourData);
@@ -619,7 +619,7 @@ createNewMap(J9JSRIData * inlineBuffers)
 				for (j = 0; j < localVariableTableAttribute->localVariableTableLength; j++) {
 					inlineBuffers->map->reachable[localVariableTableAttribute->localVariableTable[j].startPC] |= J9JSRI_MAP_MARKED_END_BLOCK;
 					endPC = localVariableTableAttribute->localVariableTable[j].startPC + localVariableTableAttribute->localVariableTable[j].length;
-					/* reachable oversized by 1 to handle local variable end points one beyoind the code array */
+					/* reachable oversized by 1 to handle local variable end points one beyond the code array */
 					inlineBuffers->map->reachable[endPC] |= J9JSRI_MAP_MARKED_END_BLOCK;
 				}
 			}
@@ -1574,7 +1574,7 @@ Lays down the smallest source address element.
 */
 
 static void 
-flattenCodeBlockHeirarchyToList(J9JSRICodeBlock * root, J9JSRIData * inlineBuffers)
+flattenCodeBlockHierarchyToList(J9JSRICodeBlock * root, J9JSRIData * inlineBuffers)
 {
 #if J9JSRI_DEBUG
 	PORT_ACCESS_FROM_PORT(inlineBuffers->portLib);
@@ -1661,7 +1661,7 @@ flattenCodeBlockHeirarchyToList(J9JSRICodeBlock * root, J9JSRIData * inlineBuffe
 
 			if (root->coloured & J9JSRI_COLOUR_FOR_JSR) {
 				/* Write out jsr bodies as encountered */
-				flattenCodeBlockHeirarchyToList(root->primaryChild, inlineBuffers);
+				flattenCodeBlockHierarchyToList(root->primaryChild, inlineBuffers);
 
 				if (inlineBuffers->errorCode) {
 					return;
@@ -2570,7 +2570,7 @@ _inlineWide:
 	if (inlineBuffers->wideBranchesNeeded) {
 		flattenCodeBlocksWide(inlineBuffers);
 	} else {
-		flattenCodeBlockHeirarchyToList(root, inlineBuffers);
+		flattenCodeBlockHierarchyToList(root, inlineBuffers);
 #if WIDE_BRANCH_TEST
 		if (inlineBuffers->errorCode) {
 			return;

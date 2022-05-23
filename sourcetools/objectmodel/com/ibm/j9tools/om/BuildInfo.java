@@ -120,7 +120,7 @@ public class BuildInfo extends OMObject {
 	 * @return	the branch name
 	 */
 	public String getVmBranch() {
-		StringBuilder sb = new StringBuilder(getProducName());
+		StringBuilder sb = new StringBuilder(getProductName());
 
 		if (getProductRelease() != null && getProductRelease().length() != 0) {
 			sb.append("_"); //$NON-NLS-1$
@@ -183,10 +183,10 @@ public class BuildInfo extends OMObject {
 	 * @return	the stream split date in XML format
 	 */
 	public String getXMLStreamSplitDate() {
-		// Create a formater with the proper timezone
-		SimpleDateFormat formater = new SimpleDateFormat(DATE_FORMAT_PATTERN);
-		formater.setTimeZone(streamSplitDate.getTimeZone());
-		StringBuilder sb = new StringBuilder(formater.format(streamSplitDate.getTime()));
+		// Create a formatter with the proper timezone
+		SimpleDateFormat formatter = new SimpleDateFormat(DATE_FORMAT_PATTERN);
+		formatter.setTimeZone(streamSplitDate.getTimeZone());
+		StringBuilder sb = new StringBuilder(formatter.format(streamSplitDate.getTime()));
 
 		// Format timezone as per the XML spec (+|-)zz:zz
 		int offset = streamSplitDate.getTimeZone().getRawOffset();
@@ -231,7 +231,7 @@ public class BuildInfo extends OMObject {
 	 * 
 	 * @return	the name of the product
 	 */
-	public String getProducName() {
+	public String getProductName() {
 		return (productName == null) ? "Unknown" : productName; //$NON-NLS-1$
 	}
 
@@ -259,7 +259,7 @@ public class BuildInfo extends OMObject {
 	 * @return	the combination of product name and release
 	 */
 	public String getProduct() {
-		StringBuilder sb = new StringBuilder(getProducName());
+		StringBuilder sb = new StringBuilder(getProductName());
 
 		if (getProductRelease() != null && getProductRelease().length() != 0) {
 			sb.append(" "); //$NON-NLS-1$

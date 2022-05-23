@@ -1,5 +1,5 @@
 <!--
-Copyright (c) 2017, 2021 IBM Corp. and others
+Copyright (c) 2017, 2022 IBM Corp. and others
 
 This program and the accompanying materials are made available under
 the terms of the Eclipse Public License 2.0 which accompanies this
@@ -38,7 +38,7 @@ Build instructions are available for the following platforms:
 
 User documentation for the latest release of Eclipse OpenJ9 is available at the [Eclipse Foundation](https://www.eclipse.org/openj9/docs).
 If you build a binary from the current OpenJ9 source, new features and changes might be in place for the next release of OpenJ9. Draft user
-documentation for the next release of OpenJ9 can be found [here](https://eclipse.github.io/openj9-docs/).
+documentation for the next release of OpenJ9 can be found [here](https://eclipse-openj9.github.io/openj9-docs/).
 
 ----------------------------------
 
@@ -73,7 +73,7 @@ wget https://raw.githubusercontent.com/eclipse-openj9/openj9/master/buildenv/doc
 
 3. Next, run the following command to build a Docker image, called **openj9**:
 ```
-bash mkdocker.sh --tag=openj9 --dist=ubuntu --version=16.04 --build
+bash mkdocker.sh --tag=openj9 --dist=ubuntu --version=16.04 --gitcache=no --jdk=8 --build
 ```
 
 4. Start a Docker container from the **openj9** image with the following command, where `-v` maps any directory, `<host_directory>`,
@@ -91,7 +91,7 @@ Now that you have the Docker image running, you are ready to move to the next st
 If you don't want to user Docker, you can still build directly on your Ubuntu system or in a Ubuntu virtual machine. Use the output of the following command like a recipe card to determine the software dependencies that must be installed on the system, plus a few configuration steps.
 
 ```
-bash mkdocker.sh --tag=openj9 --dist=ubuntu --version=16.04 --print
+bash mkdocker.sh --tag=openj9 --dist=ubuntu --version=16.04 --gitcache=no --jdk=8 --print
 ```
 
 1. Install the list of dependencies that can be obtained with the `apt-get` command from the following section of the Dockerfile:
@@ -103,7 +103,7 @@ apt-get update \
 ```
 
 2. The previous step installed g++-7 and gcc-7 packages, which might be different
-than the default version installed on your system. Export variables to set the 
+than the default version installed on your system. Export variables to set the
 version used in the build.
 ```
 export CC=gcc-7 CXX=g++-7
@@ -147,7 +147,7 @@ bash get_source.sh
 :penguin:
 When you have all the source files that you need, run the configure script, which detects how to build in the current build environment.
 ```
-bash configure --with-boot-jdk=/usr/lib/jvm/adoptojdk-java-80
+bash configure --with-boot-jdk=/home/jenkins/bootjdks/jdk8
 ```
 :warning: The path in the example --with-boot-jdk= option is appropriate for the Docker installation. If not using the Docker environment, set the path appropriate for your setup, such as "<my_home_dir>/bootjdk8" as setup in the previous instructions.
 
@@ -159,8 +159,8 @@ bash configure --with-boot-jdk=/usr/lib/jvm/adoptojdk-java-80
 Mixed references is the default to build when no options are specified. _Note that `--with-cmake=no` cannot be used to build mixed references._ `configure` options include:
 - `--with-mixedrefs` create a mixed references static build (equivalent to `--with-mixedrefs=static`)
 - `--with-mixedrefs=no` create a build supporting compressed references only
-- `--with-mixedrefs=dynamic` create a mixed references build that uses runtime checks 
-- `--with-mixedrefs=static` (this is the default) create a mixed references build which avoids runtime checks by compiling source twice 
+- `--with-mixedrefs=dynamic` create a mixed references build that uses runtime checks
+- `--with-mixedrefs=static` (this is the default) create a mixed references build which avoids runtime checks by compiling source twice
 - `--with-noncompressedrefs` create a build supporting non-compressed references only
 
 :pencil: **OpenSSL support:** If you want to build an OpenJDK that includes OpenSSL, you must specify `--with-openssl={fetched|system|path_to_library}`
@@ -172,7 +172,7 @@ Mixed references is the default to build when no options are specified. _Note th
   - `path_to_library` uses a custom OpenSSL library that's already built.
 
   If you want to include the OpenSSL cryptographic library in the OpenJDK binary, you must include `--enable-openssl-bundling`.
-  
+
 :pencil: When building using `--with-cmake=no`, you must specify `freemarker.jar` with an absolute path, such as `--with-freemarker-jar=/root/freemarker.jar`.
 
 ### 4. Build
@@ -290,8 +290,8 @@ where `<cups_include_path>` is the absolute path to CUPS. For example, `/opt/fre
 Mixed references is the default to build when no options are specified. _Note that `--with-cmake=no` cannot be used to build mixed references._ `configure` options include:
 - `--with-mixedrefs` create a mixed references static build (equivalent to `--with-mixedrefs=static`)
 - `--with-mixedrefs=no` create a build supporting compressed references only
-- `--with-mixedrefs=dynamic` create a mixed references build that uses runtime checks 
-- `--with-mixedrefs=static` (this is the default) create a mixed references build which avoids runtime checks by compiling source twice 
+- `--with-mixedrefs=dynamic` create a mixed references build that uses runtime checks
+- `--with-mixedrefs=static` (this is the default) create a mixed references build which avoids runtime checks by compiling source twice
 - `--with-noncompressedrefs` create a build supporting non-compressed references only
 
 :pencil: **OpenSSL support:** If you want to build an OpenJDK that includes OpenSSL, you must specify `--with-openssl={fetched|system|path_to_library}`
@@ -439,7 +439,7 @@ bash get_source.sh
 
 :pencil: Create the directory that is going to contain the OpenJDK clone by using the `mkdir` command in the Cygwin bash shell and not using Windows Explorer. This ensures that it will have proper Cygwin attributes, and that its children will inherit those attributes.
 
-:pencil: **OpenSSL support:** If you want to build an OpenJDK with OpenJ9 binary with OpenSSL support and you do not have a built version of OpenSSL v1.1.x available locally, you must obtain a prebuilt OpenSSL v1.1.x binary.
+:pencil: **OpenSSL support:** If you want to build an OpenJDK with OpenJ9 binary with OpenSSL support and you do not have a built version of OpenSSL v1.1.x available locally, you must specify `--openssl-version=<version>` where `<version>` is an OpenSSL level like 1.1.0 or 1.1.1. If the specified version of OpenSSL is already available in the standard location (SRC_DIR/openssl), `get_source.sh` uses it. Otherwise, the script deletes the content and downloads the specified version of OpenSSL source to the standard location and builds it. If you already have the version of OpenSSL in the standard location but you want a fresh copy, you must delete your current copy.
 
 ### 3. Configure
 :ledger:
@@ -470,11 +470,19 @@ Note: If you have multiple versions of Visual Studio installed, you can enforce 
 Mixed references is the default to build when no options are specified. _Note that `--with-cmake=no` cannot be used to build mixed references._ `configure` options include:
 - `--with-mixedrefs` create a mixed references static build (equivalent to `--with-mixedrefs=static`)
 - `--with-mixedrefs=no` create a build supporting compressed references only
-- `--with-mixedrefs=dynamic` create a mixed references build that uses runtime checks 
-- `--with-mixedrefs=static` (this is the default) create a mixed references build which avoids runtime checks by compiling source twice 
+- `--with-mixedrefs=dynamic` create a mixed references build that uses runtime checks
+- `--with-mixedrefs=static` (this is the default) create a mixed references build which avoids runtime checks by compiling source twice
 - `--with-noncompressedrefs` create a build supporting non-compressed references only
 
-:pencil: **OpenSSL support:** If you want to build an OpenJDK that includes OpenSSL, you must specify `--with-openssl=path_to_library`, where `path_to_library` specifies the path to the prebuilt OpenSSL library that you obtained in **2. Get the source**. If you want to include the OpenSSL cryptographic library in the OpenJDK binary, you must also include `--enable-openssl-bundling`.
+:pencil: **OpenSSL support:** If you want to build an OpenJDK that includes OpenSSL, you must specify `--with-openssl={fetched|system|path_to_library}`
+
+  where:
+
+  - `fetched` uses the OpenSSL source downloaded by `get-source.sh` in step **2. Get the source**.
+  - `system` uses the package installed OpenSSL library in the system.
+  - `path_to_library` uses a custom OpenSSL library that's already built.
+
+  If you want to include the OpenSSL cryptographic library in the OpenJDK binary, you must include `--enable-openssl-bundling`.
 
 :pencil: When building using `--with-cmake=no`, you must specify `freemarker.jar` with an absolute path, such as `--with-freemarker-jar=/cygdrive/c/temp/freemarker.jar`.
 
@@ -632,8 +640,8 @@ bash configure \
 Mixed references is the default to build when no options are specified. _Note that `--with-cmake=no` cannot be used to build mixed references._ `configure` options include:
 - `--with-mixedrefs` create a mixed references static build (equivalent to `--with-mixedrefs=static`)
 - `--with-mixedrefs=no` create a build supporting compressed references only
-- `--with-mixedrefs=dynamic` create a mixed references build that uses runtime checks 
-- `--with-mixedrefs=static` (this is the default) create a mixed references build which avoids runtime checks by compiling source twice 
+- `--with-mixedrefs=dynamic` create a mixed references build that uses runtime checks
+- `--with-mixedrefs=static` (this is the default) create a mixed references build which avoids runtime checks by compiling source twice
 - `--with-noncompressedrefs` create a build supporting non-compressed references only
 
 :pencil: **OpenSSL support:** If you want to build an OpenJDK that includes OpenSSL, you must specify `--with-openssl=path_to_library`, where `path_to_library` specifies the path to the prebuilt OpenSSL library that you obtained in **2. Get the source**. If you want to include the OpenSSL cryptographic library in the OpenJDK binary, you must also include `--enable-openssl-bundling`.
@@ -737,8 +745,8 @@ bash configure --with-boot-jdk=<path_to_boot_JDK>
 Mixed references is the default to build when no options are specified. _Note that `--with-cmake=no` cannot be used to build mixed references._ `configure` options include:
 - `--with-mixedrefs` create a mixed references static build (equivalent to `--with-mixedrefs=static`)
 - `--with-mixedrefs=no` create a build supporting compressed references only
-- `--with-mixedrefs=dynamic` create a mixed references build that uses runtime checks 
-- `--with-mixedrefs=static` (this is the default) create a mixed references build which avoids runtime checks by compiling source twice 
+- `--with-mixedrefs=dynamic` create a mixed references build that uses runtime checks
+- `--with-mixedrefs=static` (this is the default) create a mixed references build which avoids runtime checks by compiling source twice
 - `--with-noncompressedrefs` create a build supporting non-compressed references only
 
 :pencil: **OpenSSL support:** If you want to build an OpenJDK that uses OpenSSL, you must specify `--with-openssl={system|path_to_library}`

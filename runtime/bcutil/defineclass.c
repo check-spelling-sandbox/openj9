@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 1991, 2021 IBM Corp. and others
+ * Copyright (c) 1991, 2022 IBM Corp. and others
  *
  * This program and the accompanying materials are made available under
  * the terms of the Eclipse Public License 2.0 which accompanies this
@@ -315,14 +315,14 @@ internalLoadROMClass(J9VMThread * vmThread, J9LoadROMClassData *loadData, J9Tran
 	UDATA classFileBytesReplacedByRCA = FALSE;
 	U_8 * intermediateClassData = loadData->classData;
 	UDATA intermediateClassDataLength = loadData->classDataLength;
-	void* intermedtiateFreeUserData = NULL;
+	void* intermediateFreeUserData = NULL;
 	classDataFreeFunction intermediateFreeFunction = NULL;
 	PORT_ACCESS_FROM_VMC(vmThread);
 
 	Trc_BCU_internalLoadROMClass_Entry(vmThread, loadData, loadData->classDataLength);
 
 #if 0
-	/*This block of code is disabled until CMVC 155494 is resolved. Otherwise it will block cbuilds*/
+	/*This block of code is disabled until CMVC 155494 is resolved. Otherwise it will block builds*/
 	Trc_Assert_BCU_mustHaveVMAccess(vmThread);
 #endif
 
@@ -417,7 +417,7 @@ internalLoadROMClass(J9VMThread * vmThread, J9LoadROMClassData *loadData, J9Tran
 
 		intermediateClassData = loadData->classData;
 		intermediateClassDataLength = loadData->classDataLength;
-		intermedtiateFreeUserData = loadData->freeUserData;
+		intermediateFreeUserData = loadData->freeUserData;
 		intermediateFreeFunction = loadData->freeFunction;
 		loadData->freeFunction = NULL;
 
@@ -542,11 +542,12 @@ internalLoadROMClass(J9VMThread * vmThread, J9LoadROMClassData *loadData, J9Tran
 	if (J9_ARE_ANY_BITS_SET(vm->extendedRuntimeFlags2, J9_EXTENDED_RUNTIME2_ENABLE_PREVIEW)) {
 		translationFlags |= BCT_EnablePreview;
 	}
-
-	if (J9_ARE_ALL_BITS_SET(vm->extendedRuntimeFlags2, J9_EXTENDED_RUNTIME2_ENABLE_VALHALLA)) {
-		translationFlags |= BCT_ValueTypesEnabled;
+#if (JAVA_SPEC_VERSION == 8) && defined(J9ZOS390) && defined(J9VM_ENV_DATA64)
+	/* This code duplication is intentional, it works around a JDK8 z/OS 64bit (non-compressedrefs) compiler issue, RTC 147197. */
+	if (J9_ARE_ANY_BITS_SET(vm->extendedRuntimeFlags2, J9_EXTENDED_RUNTIME2_ENABLE_PREVIEW)) {
+		translationFlags |= BCT_EnablePreview;
 	}
-
+#endif
 	/* Determine allowed class file version */
 #ifdef J9VM_OPT_SIDECAR
 	{
@@ -567,7 +568,7 @@ doneFreeMem:
 			loadData->freeFunction = NULL;
 			loadData->classData = NULL;
 		}
-		intermediateFreeFunction(intermedtiateFreeUserData, intermediateClassData);
+		intermediateFreeFunction(intermediateFreeUserData, intermediateClassData);
 		intermediateClassData = NULL;
 	}
 

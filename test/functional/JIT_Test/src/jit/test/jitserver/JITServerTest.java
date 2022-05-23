@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2020, 2021 IBM Corp. and others
+ * Copyright (c) 2020, 2022 IBM Corp. and others
  *
  * This program and the accompanying materials are made available under
  * the terms of the Eclipse Public License 2.0 which accompanies this
@@ -26,9 +26,12 @@ import java.util.Random;
 import java.util.concurrent.TimeUnit;
 import java.util.Scanner;
 import java.util.ArrayList;
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.io.FileNotFoundException;
+import java.net.Socket;
 
 import org.testng.AssertJUnit;
 import org.testng.SkipException;
@@ -47,17 +50,81 @@ public class JITServerTest {
 
 	private final ProcessBuilder clientBuilder;
 	private final ProcessBuilder serverBuilder;
+	private final boolean updatePorts;
+
+	private static final String SERVER_PORT_ENV_VAR_NAME = "JITServerTest_SERVER_PORT";
+	private static final String JITSERVER_PORT_OPTION_FORMAT_STRING = "-XX:JITServerPort=%d";
 
 	JITServerTest() {
 		AssertJUnit.assertEquals("Tests have only been validated on Linux. Other platforms are currently unsupported.", "Linux", System.getProperty("os.name"));
 
-		final String SERVER_PORT_ENV_VAR_NAME = "JITServerTest_SERVER_PORT";
 		final String SERVER_EXE = System.getProperty("SERVER_EXE");
 		final String CLIENT_EXE = System.getProperty("CLIENT_EXE");
 		final String CLIENT_PROGRAM = System.getProperty("CLIENT_PROGRAM");
 		// -Xjit options may already be on the command line so add extra JIT options via TR_Options instead to avoid one overriding the other.
 		final String JIT_LOG_ENV_OPTION = "verbose={compileEnd|JITServer|heartbeat}";
-		final String JITSERVER_PORT_OPTION_FORMAT_STRING = "-XX:JITServerPort=%d";
+
+		// Set the port if it was specified by a user
+		final String userPort = System.getenv().get(SERVER_PORT_ENV_VAR_NAME);
+
+		String portOption;
+		if (userPort != null) {
+			portOption = String.format(JITSERVER_PORT_OPTION_FORMAT_STRING, Integer.parseInt(userPort));
+			logger.info("Using " + SERVER_PORT_ENV_VAR_NAME + "=" + userPort + " from env for server port.");
+			updatePorts = false;
+		} else {
+			portOption = generatePortOption();
+			updatePorts = true;
+		}
+
+		// This handy regex pattern uses positive lookahead to match a string containing either zero or an even number of " (double quote) characters.
+		// If a character is followed by this pattern it means that the character itself is not in a quoted string, otherwise it would be followed by
+		// an odd number of " characters. Note that this doesn't handle ' (single quote) characters.
+		final String QUOTES_LOOKAHEAD_PATTERN = "(?=([^\"]*\"[^\"]*\")*[^\"]*$)";
+		// We want to split the client program string on whitespace, unless the space appears in a quoted string.
+		final String SPLIT_ARGS_PATTERN = "\\s+" + QUOTES_LOOKAHEAD_PATTERN;
+
+		clientBuilder = new ProcessBuilder(stripQuotesFromEachArg(String.join(" ", CLIENT_EXE, portOption, "-XX:+UseJITServer", CLIENT_PROGRAM).split(SPLIT_ARGS_PATTERN)));
+		serverBuilder = new ProcessBuilder(stripQuotesFromEachArg(String.join(" ", SERVER_EXE, portOption).split(SPLIT_ARGS_PATTERN)));
+
+		// Redirect stderr to stdout, one log for each of the client and server is sufficient.
+		clientBuilder.redirectErrorStream(true);
+		serverBuilder.redirectErrorStream(true);
+		// Join our TR_Options with others if they exist, otherwise just set ours.
+		clientBuilder.environment().compute("TR_Options", (k, v) -> v != null && !v.isEmpty() ? String.join(",", v, JIT_LOG_ENV_OPTION) : JIT_LOG_ENV_OPTION);
+		serverBuilder.environment().compute("TR_Options", (k, v) -> v != null && !v.isEmpty() ? String.join(",", v, JIT_LOG_ENV_OPTION) : JIT_LOG_ENV_OPTION);
+
+	}
+
+	private void updateJITServerPort() {
+		// If user provided a specific port, do not update
+		if (!updatePorts)
+			return;
+		// The port must be the first parameter passed to the program
+		int portOptionBaseLength = JITSERVER_PORT_OPTION_FORMAT_STRING.length() - 2;
+		String portOptionBaseStr = JITSERVER_PORT_OPTION_FORMAT_STRING.substring(0, portOptionBaseLength);
+
+		String firstClientArg = clientBuilder.command().get(1);
+		firstClientArg = firstClientArg.length() > portOptionBaseLength ? firstClientArg.substring(0, portOptionBaseLength) : firstClientArg;
+		AssertJUnit.assertEquals("-XX:JITServerPort=<port> must be the first argument passed to the client",
+			firstClientArg,
+			JITSERVER_PORT_OPTION_FORMAT_STRING.substring(0, portOptionBaseLength));
+
+		String firstServerArg = serverBuilder.command().get(1);
+		firstServerArg = firstServerArg.length() > portOptionBaseLength ? firstServerArg.substring(0, portOptionBaseLength) : firstServerArg;
+		AssertJUnit.assertEquals("-XX:JITServerPort=<port> must be the first argument passed to the server",
+			firstServerArg,
+			JITSERVER_PORT_OPTION_FORMAT_STRING.substring(0, portOptionBaseLength));
+
+		// Generate a new port and update process builders
+		String newPortOption = generatePortOption();
+		logger.info("Chose random port for server: " + newPortOption + ", set " + SERVER_PORT_ENV_VAR_NAME + " in your env to override.");
+
+		clientBuilder.command().set(1, newPortOption);
+		serverBuilder.command().set(1, newPortOption);
+	}
+
+	private static String generatePortOption() {
 		// Most systems have a specified ephemeral ports range. We're not bothering to find the actual range, just choosing a range that is outside the reserved area, reasonably large, and well-behaved.
 		// The range chosen here is within the actual ephemeral range on recent Linux systems and others (at the time of writing).
 		final int EPHEMERAL_PORTS_START = 33000, EPHEMERAL_PORTS_LAST = 60000;
@@ -69,33 +136,59 @@ public class JITServerTest {
 		// The only way to avoid most of the races is to have the server choose a random port (and retry if it is busy) and for us read the port
 		// from the server log. We still need to worry about tests where we stop and restart the server, because we need to keep using the same
 		// port but someone may grab it in the interim.
-		String portOption;
-		final String userPort = System.getenv().get(SERVER_PORT_ENV_VAR_NAME);
-		if (userPort != null) {
-			portOption = String.format(JITSERVER_PORT_OPTION_FORMAT_STRING, Integer.parseInt(userPort));
-			logger.info("Using " + SERVER_PORT_ENV_VAR_NAME + "=" + userPort + " from env for server port.");
-		}
-		else {
-			final int randomPort = EPHEMERAL_PORTS_START + new Random().nextInt(EPHEMERAL_PORTS_LAST - EPHEMERAL_PORTS_START + 1);
-			portOption = String.format(JITSERVER_PORT_OPTION_FORMAT_STRING, randomPort);
-			logger.info("Chose random port for server: " + randomPort + ", set " + SERVER_PORT_ENV_VAR_NAME + " in your env to override.");
-		}
+		int randomPort = EPHEMERAL_PORTS_START + new Random().nextInt(EPHEMERAL_PORTS_LAST - EPHEMERAL_PORTS_START + 1);
+		while (!isPortOpen(randomPort)) {
+			String[] portInfo = infoOfProcessUsingPort(randomPort);
+			if (0 != portInfo.length) {
+				logger.info("Port " + randomPort + " is busy. Process info:");
+				for (int i = 0; i < portInfo.length; ++i) {
+					logger.info(portInfo[i]);
+				}
+			} else {
+				logger.info("Port " + randomPort + " is busy");
+			}
 
-		// This handy regex pattern uses positive lookahead to match a string containing either zero or an even number of " (double quote) characters.
-		// If a character is followed by this pattern it means that the character itself is not in a quoted string, otherwise it would be followed by
-		// an odd number of " characters. Note that this doesn't handle ' (single quote) characters.
-		final String QUOTES_LOOKAHEAD_PATTERN = "(?=([^\"]*\"[^\"]*\")*[^\"]*$)";
-		// We want to split the client program string on whitespace, unless the space appears in a quoted string.
-		final String SPLIT_ARGS_PATTERN = "\\s+" + QUOTES_LOOKAHEAD_PATTERN;
-		clientBuilder = new ProcessBuilder(stripQuotesFromEachArg(String.join(" ", CLIENT_EXE, "-XX:+UseJITServer", portOption, CLIENT_PROGRAM).split(SPLIT_ARGS_PATTERN)));
-		serverBuilder = new ProcessBuilder(stripQuotesFromEachArg(String.join(" ", SERVER_EXE, portOption).split(SPLIT_ARGS_PATTERN)));
+			randomPort = EPHEMERAL_PORTS_START + new Random().nextInt(EPHEMERAL_PORTS_LAST - EPHEMERAL_PORTS_START + 1);
+		}
+		return String.format(JITSERVER_PORT_OPTION_FORMAT_STRING, randomPort);
+	}
 
-		// Redirect stderr to stdout, one log for each of the client and server is sufficient.
-		clientBuilder.redirectErrorStream(true);
-		serverBuilder.redirectErrorStream(true);
-		// Join our TR_Options with others if they exist, otherwise just set ours.
-		clientBuilder.environment().compute("TR_Options", (k, v) -> v != null && !v.isEmpty() ? String.join(",", v, JIT_LOG_ENV_OPTION) : JIT_LOG_ENV_OPTION);
-		serverBuilder.environment().compute("TR_Options", (k, v) -> v != null && !v.isEmpty() ? String.join(",", v, JIT_LOG_ENV_OPTION) : JIT_LOG_ENV_OPTION);
+	private static boolean isPortOpen(int port) {
+		Socket s = null;
+		try {
+			// Connect to the port as a client. If this succeeds, then something else is using that port.
+			s = new Socket((String)null, port);
+			s.close();
+			return false;
+		} catch (IOException e) {
+			// A client connection could not be established, so nothing is using the port.
+			return true;
+		} catch (SecurityException e) {
+			// Access to the port is forbidden.
+			return false;
+		}
+	}
+
+	private static String[] infoOfProcessUsingPort(int port) {
+		String[] output = {};
+		if (System.getProperty("os.name").toLowerCase().contains("linux")) {
+			try {
+				Process proc = new ProcessBuilder("lsof", "-i", ":" + port).start();
+				proc.waitFor();
+				if (proc.exitValue() == 0) {
+					BufferedReader stdOutput = new BufferedReader(new InputStreamReader(proc.getInputStream()));
+					ArrayList<String> al = new ArrayList<String>();
+					String line = null;
+					while ((line = stdOutput.readLine()) != null) {
+						al.add(line);
+					}
+					output = al.toArray(new String[0]);
+				}
+			} catch (IOException|InterruptedException e) {
+				// Do nothing.
+			}
+		}
+		return output;
 	}
 
 	private static String[] stripQuotesFromEachArg(String[] args) {
@@ -211,6 +304,8 @@ public class JITServerTest {
 		redirectProcessOutputs(clientBuilder, "testServer.client");
 		redirectProcessOutputs(serverBuilder, "testServer.server");
 
+		updateJITServerPort();
+
 		final Process server = startProcess(serverBuilder, "server");
 
 		Thread.sleep(SERVER_START_WAIT_TIME_MS);
@@ -232,6 +327,8 @@ public class JITServerTest {
 
 		redirectProcessOutputs(clientBuilder, "testServerGoesDown.client");
 		redirectProcessOutputs(serverBuilder, "testServerGoesDown.server");
+
+		updateJITServerPort();
 
 		final Process server = startProcess(serverBuilder, "server");
 
@@ -257,6 +354,8 @@ public class JITServerTest {
 
 		redirectProcessOutputs(clientBuilder, "testServerGoesDownAnotherComesUp.client");
 		redirectProcessOutputs(serverBuilder, "testServerGoesDownAnotherComesUp.server");
+
+		updateJITServerPort();
 
 		Process client = null;
 
@@ -303,6 +402,8 @@ public class JITServerTest {
 		redirectProcessOutputs(clientBuilder, "testServerUnreachableForAWhile.client");
 		redirectProcessOutputs(serverBuilder, "testServerUnreachableForAWhile.server");
 
+		updateJITServerPort();
+
 		final Process server = startProcess(serverBuilder, "server");
 
 		Thread.sleep(SERVER_START_WAIT_TIME_MS);
@@ -339,6 +440,8 @@ public class JITServerTest {
 		redirectProcessOutputs(clientBuilder, "testServerComesUpAfterClient.client");
 		redirectProcessOutputs(serverBuilder, "testServerComesUpAfterClient.server");
 
+		updateJITServerPort();
+
 		final Process client = startProcess(clientBuilder, "client");
 
 		logger.info("Waiting for " + CLIENT_TEST_TIME_MS + " millis.");
@@ -363,6 +466,8 @@ public class JITServerTest {
 
 		redirectProcessOutputs(clientBuilder, "testServerComesUpAfterClientAndGoesDownAgain.client");
 		redirectProcessOutputs(serverBuilder, "testServerComesUpAfterClientAndGoesDownAgain.server");
+
+		updateJITServerPort();
 
 		final Process client = startProcess(clientBuilder, "client");
 

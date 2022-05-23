@@ -364,7 +364,7 @@ MM_ReclaimDelegate::rebuildRegionsSortedByEmptinessArray(MM_EnvironmentVLHGC *en
 			if (region->getRememberedSetCardList()->isAccurate() && (!regionHasCriticalRegions)) {
 				/* Don't want to double-count regions that would be selected by other collection set algorithms 
 				 * (i.e. nursery or DCSS) when calculating optimalEmptinessRegionThreshold.
-				 * Going to only filter out nursery for now as with exponential aging, there may be alot of objects
+				 * Going to only filter out nursery for now as with exponential aging, there may be a lot of objects
 				 * that might never reach maximum age.
 				 */
 				 if (!MM_CompactGroupManager::isRegionInNursery(env, region)) {
@@ -885,7 +885,9 @@ MM_ReclaimDelegate::reportSweepEnd(MM_EnvironmentBase *env)
 {
 	J9VMThread *vmThread = (J9VMThread *)env->getLanguageVMThread();
 	PORT_ACCESS_FROM_ENVIRONMENT(env);
-	Trc_MM_SweepEnd(vmThread);
+	MM_SweepVLHGCStats sweepStats = static_cast<MM_CycleStateVLHGC*>(env->_cycleState)->_vlhgcIncrementStats._sweepStats;
+
+	Trc_MM_SweepEndBalancedGC(vmThread, j9time_hires_delta(sweepStats._startTime, sweepStats._endTime, J9PORT_TIME_DELTA_IN_MICROSECONDS));
 
 	TRIGGER_J9HOOK_MM_PRIVATE_SWEEP_END(
 		MM_GCExtensions::getExtensions(env)->privateHookInterface,

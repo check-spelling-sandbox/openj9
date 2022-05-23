@@ -32,7 +32,7 @@
 #include "StringTable.hpp"
 #include "VMHelpers.hpp"
 
-/* the following is all ones except the least significant bit */
+/* the following is all zeros except the least significant bit */
 #define TYPE_UTF8 ((UDATA)1)
 
 extern "C" {
@@ -555,6 +555,7 @@ j9gc_createJavaLangString(J9VMThread *vmThread, U_8 *data, UDATA length, UDATA s
 	bool translateSlashes = J9_ARE_ANY_BITS_SET(stringFlags, J9_STR_XLAT);
 	bool anonClassName = J9_ARE_ANY_BITS_SET(stringFlags, J9_STR_ANON_CLASS_NAME);
 	bool internString = J9_ARE_ANY_BITS_SET(stringFlags, J9_STR_INTERN);
+	UDATA unicodeLength = 0;
 
 	Trc_MM_createJavaLangString_Entry(vmThread, length, data, stringFlags);
 
@@ -568,13 +569,14 @@ j9gc_createJavaLangString(J9VMThread *vmThread, U_8 *data, UDATA length, UDATA s
 		/* Currently, the only users of isASCII when isUnicode is true are also gated by compressStrings, so
 		 * don't bother computing isASCII if compression is off.
 		 */
+		unicodeLength = length / 2;
 		if (compressStrings) {
 			U_16 *unicodeData = (U_16*)data;
-			for (UDATA i = 0; i < length; ++i) {
+			for (UDATA i = 0; i < unicodeLength; ++i) {
 				if (unicodeData[i] > 0x7F) {
 					isASCII = false;
 					if (J2SE_VERSION(vm) >= J2SE_V17) {
-						for (UDATA j = i; j < length; ++j) {
+						for (UDATA j = i; j < unicodeLength; ++j) {
 							if (unicodeData[j] > 0xFF) {
 								isASCIIorLatin1 = false;
 								break;
@@ -635,7 +637,6 @@ j9gc_createJavaLangString(J9VMThread *vmThread, U_8 *data, UDATA length, UDATA s
 	}
 
 	if (NULL == result) {
-		UDATA unicodeLength = 0;
 		UDATA allocateFlags = J9_ARE_ANY_BITS_SET(stringFlags, J9_STR_INSTRUMENTABLE)
 				? J9_GC_ALLOCATE_OBJECT_INSTRUMENTABLE
 				: J9_GC_ALLOCATE_OBJECT_NON_INSTRUMENTABLE;
@@ -650,9 +651,7 @@ j9gc_createJavaLangString(J9VMThread *vmThread, U_8 *data, UDATA length, UDATA s
 			goto nomem;
 		}
 
-		if (isUnicode) {
-			unicodeLength = length / 2;
-		} else {
+		if (!isUnicode) {
 			if (isASCII) {
 				unicodeLength = length;
 			} else {
@@ -785,17 +784,17 @@ j9gc_createJavaLangString(J9VMThread *vmThread, U_8 *data, UDATA length, UDATA s
 
 		if (compressStrings) {
 			if (isASCIIorLatin1) {
-				if (J2SE_VERSION(vm) >= J2SE_V11) {
-					J9VMJAVALANGSTRING_SET_CODER(vmThread, result, 0);
-				} else {
-					J9VMJAVALANGSTRING_SET_COUNT(vmThread, result, (I_32)unicodeLength);
-				}
+#if JAVA_SPEC_VERSION >= 11
+				J9VMJAVALANGSTRING_SET_CODER(vmThread, result, 0);
+#else /* JAVA_SPEC_VERSION >= 11 */
+				J9VMJAVALANGSTRING_SET_COUNT(vmThread, result, (I_32)unicodeLength);
+#endif /* JAVA_SPEC_VERSION >= 11 */
 			} else {
-				if (J2SE_VERSION(vm) >= J2SE_V11) {
-					J9VMJAVALANGSTRING_SET_CODER(vmThread, result, 1);
-				} else {
-					J9VMJAVALANGSTRING_SET_COUNT(vmThread, result, (I_32)unicodeLength | (I_32)0x80000000);
-				}
+#if JAVA_SPEC_VERSION >= 11
+				J9VMJAVALANGSTRING_SET_CODER(vmThread, result, 1);
+#else /* JAVA_SPEC_VERSION >= 11 */
+				J9VMJAVALANGSTRING_SET_COUNT(vmThread, result, (I_32)unicodeLength | (I_32)0x80000000);
+#endif /* JAVA_SPEC_VERSION >= 11 */
 
 				if (J9VMJAVALANGSTRING_COMPRESSIONFLAG(vmThread, stringClass) == 0) {
 					/*
@@ -818,11 +817,11 @@ j9gc_createJavaLangString(J9VMThread *vmThread, U_8 *data, UDATA length, UDATA s
 				}
 			}
 		} else {
-			if (J2SE_VERSION(vm) >= J2SE_V11) {
-				J9VMJAVALANGSTRING_SET_CODER(vmThread, result, 1);
-			} else {
-				J9VMJAVALANGSTRING_SET_COUNT(vmThread, result, (I_32)unicodeLength);
-			}
+#if JAVA_SPEC_VERSION >= 11
+			J9VMJAVALANGSTRING_SET_CODER(vmThread, result, 1);
+#else /* JAVA_SPEC_VERSION >= 11 */
+			J9VMJAVALANGSTRING_SET_COUNT(vmThread, result, (I_32)unicodeLength);
+#endif /* JAVA_SPEC_VERSION >= 11 */
 		}
 
 		MM_AtomicOperations::writeBarrier();
@@ -906,11 +905,11 @@ setupCharArray(J9VMThread *vmThread, j9object_t sourceString, j9object_t newStri
 
 		J9VMJAVALANGSTRING_SET_VALUE(vmThread, newString, newChars);
 
-		if (J2SE_VERSION(vm) >= J2SE_V11) {
-			J9VMJAVALANGSTRING_SET_CODER(vmThread, newString, J9VMJAVALANGSTRING_CODER(vmThread, sourceString));
-		} else {
-			J9VMJAVALANGSTRING_SET_COUNT(vmThread, newString, J9VMJAVALANGSTRING_COUNT(vmThread, sourceString));
-		}
+#if JAVA_SPEC_VERSION >= 11
+		J9VMJAVALANGSTRING_SET_CODER(vmThread, newString, J9VMJAVALANGSTRING_CODER(vmThread, sourceString));
+#else /* JAVA_SPEC_VERSION >= 11 */
+		J9VMJAVALANGSTRING_SET_COUNT(vmThread, newString, J9VMJAVALANGSTRING_COUNT(vmThread, sourceString));
+#endif /* JAVA_SPEC_VERSION >= 11 */
 
 		result = newString;
 	}
@@ -918,8 +917,7 @@ setupCharArray(J9VMThread *vmThread, j9object_t sourceString, j9object_t newStri
 	return result;
 }
 
-
-j9object_t	
+j9object_t
 j9gc_internString(J9VMThread *vmThread, j9object_t sourceString)
 {
 	J9JavaVM *vm = vmThread->javaVM;
@@ -974,6 +972,62 @@ j9gc_internString(J9VMThread *vmThread, j9object_t sourceString)
 	*candidatePtr = internedString;
 	Trc_MM_stringTableCacheMiss(vmThread, internedString);
 	return internedString;
+}
+
+typedef struct {
+	J9UTF8* utf;
+	j9object_t stringObject;
+} J9UTFCacheEntry;
+
+static UDATA
+utfCacheHashFn(void *key, void *userData)
+{
+	/* UTF8 pointers are 2-aligned, so shift the pointer for maximum entropy */
+	return ((UDATA)((J9UTFCacheEntry*)key)->utf) >> 1;
+}
+
+static UDATA
+utfCacheHashEqualFn(void *leftKey, void *rightKey, void *userData)
+{
+	return ((J9UTFCacheEntry*)leftKey)->utf == ((J9UTFCacheEntry*)rightKey)->utf;
+}
+
+j9object_t
+j9gc_createJavaLangStringWithUTFCache(J9VMThread *vmThread, J9UTF8 *utf)
+{
+	j9object_t result = NULL;
+	/* Allocation may cause a GC which frees the cache - ensure no local copy of the cache
+	 * is held across the allocation.
+	 */
+	{
+		J9HashTable *utfCache = vmThread->utfCache;
+		if (NULL != utfCache) {
+			J9UTFCacheEntry exemplar = { utf, NULL };
+			J9UTFCacheEntry *entry = (J9UTFCacheEntry*)hashTableFind(utfCache, &exemplar);
+			if (NULL != entry) {
+				result = J9WEAKROOT_OBJECT_LOAD(vmThread, &entry->stringObject);
+				goto done;
+			}
+		}
+	}
+	result = j9gc_createJavaLangString(vmThread, J9UTF8_DATA(utf), J9UTF8_LENGTH(utf), J9_STR_INTERN);
+	if (NULL != result) {
+		if (J9_ARE_ANY_BITS_SET(vmThread->javaVM->extendedRuntimeFlags2, J9_EXTENDED_RUNTIME2_ENABLE_UTF_CACHE)) {
+			J9HashTable *utfCache = vmThread->utfCache;
+			if (NULL == utfCache) {
+				/* Failure to allocate the cache is non-fatal and is ignored */
+				utfCache = hashTableNew(OMRPORT_FROM_J9PORT(vmThread->javaVM->portLibrary), J9_GET_CALLSITE(), 0, sizeof(J9UTFCacheEntry), sizeof(void*), 0, J9MEM_CATEGORY_VM, utfCacheHashFn, utfCacheHashEqualFn, NULL, NULL);
+				vmThread->utfCache = utfCache;
+			}
+			if (NULL != utfCache) {
+				J9UTFCacheEntry entry = { utf, result };
+				/* Failure to add to the cache is non-fatal and is ignored */
+				hashTableAdd(utfCache, (void*)&entry);
+			}
+		}
+	}
+done:
+	return result;
 }
 
 } /* end of extern "C" */

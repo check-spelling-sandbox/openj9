@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2001, 2020 IBM Corp. and others
+ * Copyright (c) 2001, 2022 IBM Corp. and others
  *
  * This program and the accompanying materials are made available under
  * the terms of the Eclipse Public License 2.0 which accompanies this
@@ -125,7 +125,9 @@ public:
 
 	void computeConstantPoolMapAndSizes();
 
+#if defined(J9VM_OPT_METHOD_HANDLE)
 	void findVarHandleMethodRefs();
+#endif /* defined(J9VM_OPT_METHOD_HANDLE) */
 
 	bool isOK() const { return OK == _buildResult; }
 	BuildResult getBuildResult() const { return _buildResult; }
@@ -167,10 +169,10 @@ public:
 	U_32 getInvokeCacheCount() const { return _invokeCacheCount; }
 #else /* defined(J9VM_OPT_OPENJDK_METHODHANDLE) */
 	U_32 getMethodTypeCount() const { return _methodTypeCount; }
-#endif /* defined(J9VM_OPT_OPENJDK_METHODHANDLE) */
 	U_32 getVarHandleMethodTypeCount() const { return _varHandleMethodTypeCount; }
 	U_32 getVarHandleMethodTypePaddedCount() const { return _varHandleMethodTypeCount + (_varHandleMethodTypeCount & 0x1); /* Rounding up to an even number */ }
 	U_16 *getVarHandleMethodTypeLookupTable() const { return _varHandleMethodTypeLookupTable; }
+#endif /* defined(J9VM_OPT_OPENJDK_METHODHANDLE) */
 	U_32 getCallSiteCount() const { return _callSiteCount; }
 	U_16 getRAMConstantPoolCount() const { return _ramConstantPoolCount; }
 	U_16 getROMConstantPoolCount() const { return _romConstantPoolCount; }
@@ -260,7 +262,9 @@ public:
 	bool hasSpecialSplitTable() const { return _specialSplitEntryCount != 0; }
 
 	bool hasCallSites() const { return 0 != _callSiteCount; }
+#if defined(J9VM_OPT_METHOD_HANDLE)
 	bool hasVarHandleMethodRefs() const { return 0 != _varHandleMethodTypeCount; }
+#endif /* defined(J9VM_OPT_METHOD_HANDLE) */
 
 	void markConstantAsReferencedDoubleSlot(U_16 cfrCPIndex) { mark(cfrCPIndex); }
 	void markConstantAsUsedByLDC(U_8 cfrCPIndex) { _constantPoolEntries[cfrCPIndex].isUsedByLDC = true; }
@@ -278,7 +282,7 @@ public:
 	void markClassAsUsedByANewArray(U_16 classCfrCPIndex)      { mark(classCfrCPIndex, ANEW_ARRAY); }
 	void markClassAsUsedByNew(U_16 classCfrCPIndex)            { mark(classCfrCPIndex, NEW); }
 #if defined(J9VM_OPT_VALHALLA_VALUE_TYPES)
-	void markClassAsUsedByDefaultValue(U_16 classCfrCPIndex)    { mark(classCfrCPIndex, DEFAULT_VALUE); }
+	void markClassAsUsedByAconst_init(U_16 classCfrCPIndex)    { mark(classCfrCPIndex, ACONST_INIT); }
 	void markFieldRefAsUsedByWithField(U_16 fieldRefCfrCPIndex) { mark(fieldRefCfrCPIndex, WITH_FIELD); }
 #endif
 
@@ -364,9 +368,9 @@ private:
 	U_32 _invokeCacheCount;
 #else /* defined(J9VM_OPT_OPENJDK_METHODHANDLE) */
 	U_32 _methodTypeCount;
-#endif /* defined(J9VM_OPT_OPENJDK_METHODHANDLE) */
 	U_16 _varHandleMethodTypeCount;
 	U_16 *_varHandleMethodTypeLookupTable;
+#endif /* defined(J9VM_OPT_OPENJDK_METHODHANDLE) */
 	U_32 _callSiteCount;
 	U_16 _ramConstantPoolCount;
 	U_16 _romConstantPoolCount;
@@ -386,7 +390,7 @@ public:
 		PUT_FIELD = SPLIT1,
 		GET_FIELD = SPLIT1,
 #if defined(J9VM_OPT_VALHALLA_VALUE_TYPES)
-		DEFAULT_VALUE = SPLIT1,
+		ACONST_INIT = SPLIT1,
 		WITH_FIELD = SPLIT1,
 #endif /* defined(J9VM_OPT_VALHALLA_VALUE_TYPES) */
 		NEW = SPLIT1,

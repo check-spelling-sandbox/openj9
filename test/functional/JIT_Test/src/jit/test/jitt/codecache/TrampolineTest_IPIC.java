@@ -102,27 +102,27 @@ public class TrampolineTest_IPIC extends TestCase {
 			/*Wait a little bit so that the compilation info for IAdderImpl_Int.add() gets printed to log and read in by the LogParserThread */
 			Thread.sleep(4000);
 
-			int implemeterDistance = TestManager.getLogParserDriver().
+			int implementerDistance = TestManager.getLogParserDriver().
 					getCodeCacheDifference( Constants.IPIC_TRAMPOLINE_TEST_IADDERIMPL_INT,
 							Constants.IPIC_TRAMPOLINE_TEST_IADDERIMPL_STR );
 
-			if ( implemeterDistance < 0 ) {
+			if ( implementerDistance < 0 ) {
 				/*May be we did not wait long enough for the LogParserThread to update itself */
 				for ( int i = 0 ; i < 24 ; i++ ){
 					Thread.sleep(1000);
-					implemeterDistance = TestManager.getLogParserDriver().
+					implementerDistance = TestManager.getLogParserDriver().
 							getCodeCacheDifference( Constants.IPIC_TRAMPOLINE_TEST_IADDERIMPL_INT,
 									Constants.IPIC_TRAMPOLINE_TEST_IADDERIMPL_STR );
-					if ( implemeterDistance > -1 ) {
+					if ( implementerDistance > -1 ) {
 						break;
 					}
 				}
 			}
 
-			System.out.println("Code cache distance between IAdderImpl_Int.add() and IAdderImpl_String.add() = " + implemeterDistance);
+			System.out.println("Code cache distance between IAdderImpl_Int.add() and IAdderImpl_String.add() = " + implementerDistance);
 
 			/*Validate the 2 implementers are in 2 different code caches*/
-			assertTrue ( implemeterDistance > 0) ;
+			assertTrue ( implementerDistance > 0) ;
 
 		} catch ( Exception e ) {
 			e.printStackTrace();

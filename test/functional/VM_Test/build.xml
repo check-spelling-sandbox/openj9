@@ -27,12 +27,12 @@
 	<description>
 		Build VM_Test
 	</description>
-	<import file="${TEST_ROOT}/functional/build.xml"/>
 	<property name="LIB" value="junit4,asm_all,javassist,testng"/>
 	<import file="${TEST_ROOT}/TKG/scripts/getDependencies.xml"/>
 
 	<!-- set global properties for this build -->
 	<property name="DEST" value="${BUILD_ROOT}/functional/VM_Test" />
+	<property name="jarfile" value="${DEST}/VM_Test.jar" />
 	<property name="excludeFiles" location="../J9 Exclude File Support/src"/>
 	<property name="data" location="./data" />
 	<property name="databin" location="./data/bin" />
@@ -171,7 +171,7 @@
 		<jar jarfile="${databin}/JarFileUpdateTestRunnerResource2.jar" filesonly="true" manifest="./META-INF/MANIFEST.MF">
 			<fileset dir="${databin}/JarFileUpdateTestRunnerResource2"/>
 		</jar>
-		<jar jarfile="${DEST}/VM_Test.jar" filesonly="true" manifest="./META-INF/MANIFEST.MF">
+		<jar jarfile="${jarfile}" filesonly="true" manifest="./META-INF/MANIFEST.MF">
 			<fileset dir="${build}" />
 			<fileset dir="${excludeFiles}"/>
 			<fileset dir="${src}/../" includes="*.properties,*.xml" />
@@ -204,7 +204,11 @@
 		<delete dir="${classUnloadingBin}" />
 	</target>
 
-	<target name="build" >
+	<target name="check-jar">
+		<available file="${jarfile}" property="jar.exist"/>
+	</target>
+
+	<target name="build" depends="check-jar" unless="jar.exist">
 		<if>
 			<or>
 				<equals arg1="${JDK_IMPL}" arg2="ibm"  />

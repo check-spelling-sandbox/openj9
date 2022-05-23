@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2000, 2021 IBM Corp. and others
+ * Copyright (c) 2000, 2022 IBM Corp. and others
  *
  * This program and the accompanying materials are made available under
  * the terms of the Eclipse Public License 2.0 which accompanies this
@@ -99,6 +99,11 @@ J9::Z::CodeGenerator::initialize()
       cg->setSupportsInlineStringHashCode();
       }
 
+   if (cg->getSupportsVectorRegisters() && comp->target().cpu.isAtLeast(OMR_PROCESSOR_S390_Z14))
+      {
+      cg->setSupportsInlineStringLatin1Inflate();
+      }
+
    // See comment in `handleHardwareReadBarrier` implementation as to why we cannot support CTX under CS
    if (cg->getSupportsTM() && TR::Compiler->om.readBarrierType() == gc_modron_readbar_none)
       {
@@ -112,8 +117,14 @@ J9::Z::CodeGenerator::initialize()
       cg->resetSupportsArrayTranslateTRxx();
       }
 
+   static char *disableInlineEncodeASCII = feGetEnv("TR_disableInlineEncodeASCII");
+   if (comp->fej9()->isStringCompressionEnabledVM() && cg->getSupportsVectorRegisters() && !TR::Compiler->om.canGenerateArraylets() && !disableInlineEncodeASCII)
+      {
+      cg->setSupportsInlineEncodeASCII();
+      }
+
    // Let's turn this on.  There is more work needed in the opt
-   // to catch the case where the BNDSCHK is inserted after
+   // to catch the case where the BNDchk is inserted after
    //
    cg->setDisableNullCheckOfArrayLength();
 
@@ -196,6 +207,13 @@ J9::Z::CodeGenerator::initialize()
    if (comp->fej9()->hasFixedFrameC_CallingConvention())
       {
       cg->setHasFixedFrameC_CallingConvention();
+      }
+
+   static bool disableIntegerToChars = (feGetEnv("TR_DisableIntegerToChars") != NULL);
+   if (cg->getSupportsVectorRegisters() && !TR::Compiler->om.canGenerateArraylets() && !disableIntegerToChars && comp->target().cpu.isAtLeast(OMR_PROCESSOR_S390_ZNEXT))
+      {
+      cg->setSupportsIntegerToChars();
+      cg->setSupportsIntegerStringSize();
       }
 
    cg->setIgnoreDecimalOverflowException(false);
@@ -348,7 +366,7 @@ J9::Z::CodeGenerator::lowerTreeIfNeeded(
    if (self()->yankIndexScalingOp() &&
        (node->getOpCodeValue() == TR::aiadd || node->getOpCodeValue() == TR::aladd ) )
       {
-      // 390 sees a lot of scaling ops getting stuck between BNDSchk and array read/write
+      // 390 sees a lot of scaling ops getting stuck between BNDchk and array read/write
       // causing heavy AGIs.  This transformation pulls the scaling opp up a tree to unpin it.
       //
 
@@ -3549,8 +3567,6 @@ TR::Instruction* J9::Z::CodeGenerator::generateVMCallHelperSnippet(TR::Instructi
    // AOT relocation for the helper address
    TR::S390EncodingRelocation* encodingRelocation = new (self()->trHeapMemory()) TR::S390EncodingRelocation(TR_AbsoluteHelperAddress, helperSymRef);
 
-   AOTcgDiag3(comp, "Add encodingRelocation = %p reloType = %p symbolRef = %p\n", encodingRelocation, encodingRelocation->getReloType(), encodingRelocation->getSymbolReference());
-
    const intptr_t vmCallHelperAddress = reinterpret_cast<intptr_t>(helperSymRef->getMethodAddress());
 
    // Encode the address of the VM call helper
@@ -3572,8 +3588,6 @@ TR::Instruction* J9::Z::CodeGenerator::generateVMCallHelperSnippet(TR::Instructi
    j9MethodAddressMemRef->setOffset(offsetFromEPRegisterValueToJ9MethodAddress);
    TR::SymbolReference *methodSymRef = new (self()->trHeapMemory()) TR::SymbolReference(self()->symRefTab(), methodSymbol);
    encodingRelocation = new (self()->trHeapMemory()) TR::S390EncodingRelocation(TR_RamMethod, methodSymRef);
-
-   AOTcgDiag2(comp, "Add encodingRelocation = %p reloType = %p\n", encodingRelocation, encodingRelocation->getReloType());
 
    const intptr_t j9MethodAddress = reinterpret_cast<intptr_t>(methodSymbol->getResolvedMethod()->resolvedMethodAddress());
 
@@ -3657,19 +3671,13 @@ J9::Z::CodeGenerator::suppressInliningOfRecognizedMethod(TR::RecognizedMethod me
    if (self()->isMethodInAtomicLongGroup(method))
       return true;
 
-   if (self()->getSupportsVectorRegisters()){
-      if (method == TR::java_lang_Math_fma_D ||
-          method == TR::java_lang_StrictMath_fma_D)
-         {
-         return true;
-         }
-      if (comp->target().cpu.supportsFeature(OMR_FEATURE_S390_VECTOR_FACILITY_ENHANCEMENT_1) &&
-            (method == TR::java_lang_Math_fma_F ||
-             method == TR::java_lang_StrictMath_fma_F))
-         {
-         return true;
-         }
-   }
+   if (method == TR::java_lang_Math_fma_D ||
+       method == TR::java_lang_StrictMath_fma_D ||
+       method == TR::java_lang_Math_fma_F ||
+       method == TR::java_lang_StrictMath_fma_F)
+      {
+      return true;
+      }
 
    if (method == TR::java_lang_Integer_highestOneBit ||
        method == TR::java_lang_Integer_numberOfLeadingZeros ||
@@ -3738,7 +3746,13 @@ J9::Z::CodeGenerator::inlineDirectCall(
    // If the method to be called is marked as an inline method, see if it can
    // actually be generated inline.
    //
-   if (comp->getSymRefTab()->isNonHelper(node->getSymbolReference(), TR::SymbolReferenceTable::currentTimeMaxPrecisionSymbol))
+
+   if (comp->getSymRefTab()->isNonHelper(node->getSymbolReference(), TR::SymbolReferenceTable::encodeASCIISymbol))
+      {
+      TR::TreeEvaluator::inlineEncodeASCII(node, cg);
+      return true;
+      }
+   else if (comp->getSymRefTab()->isNonHelper(node->getSymbolReference(), TR::SymbolReferenceTable::currentTimeMaxPrecisionSymbol))
       {
       resultReg = TR::TreeEvaluator::inlineCurrentTimeMaxPrecision(cg, node);
       return true;
@@ -3903,9 +3917,42 @@ J9::Z::CodeGenerator::inlineDirectCall(
             }
         break;
 
+      case TR::java_lang_StringLatin1_inflate:
+         if (cg->getSupportsInlineStringLatin1Inflate())
+            {
+            resultReg = TR::TreeEvaluator::inlineStringLatin1Inflate(node, cg);
+            return resultReg != NULL;
+            }
+      break;
       case TR::com_ibm_jit_JITHelpers_transformedEncodeUTF16Big:
          return resultReg = comp->getOption(TR_DisableUTF16BEEncoder) ? TR::TreeEvaluator::inlineUTF16BEEncodeSIMD(node, cg)
                                                                       : TR::TreeEvaluator::inlineUTF16BEEncode    (node, cg);
+         break;
+      case TR::java_lang_Integer_stringSize:
+      case TR::java_lang_Long_stringSize:
+         if (cg->getSupportsIntegerStringSize())
+            {
+            resultReg = TR::TreeEvaluator::inlineIntegerStringSize(node, cg);
+            return resultReg != NULL;
+            }
+         break;
+      case TR::java_lang_Integer_getChars:
+      case TR::java_lang_Long_getChars:
+         if (cg->getSupportsIntegerToChars())
+            {
+            resultReg = TR::TreeEvaluator::inlineIntegerToCharsForLatin1Strings(node, cg);
+            return resultReg != NULL;
+            }
+         break;
+      case TR::java_lang_StringUTF16_getChars_Integer:
+      case TR::java_lang_StringUTF16_getChars_Long:
+      case TR::java_lang_Integer_getChars_charBuffer:
+      case TR::java_lang_Long_getChars_charBuffer:
+         if (cg->getSupportsIntegerToChars())
+            {
+            resultReg = TR::TreeEvaluator::inlineIntegerToCharsForUTF16Strings(node, cg);
+            return resultReg != NULL;
+            }
          break;
 
       default:
@@ -3978,51 +4025,43 @@ J9::Z::CodeGenerator::inlineDirectCall(
          case TR::java_lang_StringLatin1_indexOf:
          case TR::com_ibm_jit_JITHelpers_intrinsicIndexOfStringLatin1:
                resultReg = TR::TreeEvaluator::inlineVectorizedStringIndexOf(node, cg, false);
-               return true;
+               return resultReg != NULL;
          case TR::java_lang_StringUTF16_indexOf:
          case TR::com_ibm_jit_JITHelpers_intrinsicIndexOfStringUTF16:
                resultReg = TR::TreeEvaluator::inlineVectorizedStringIndexOf(node, cg, true);
-               return true;
+               return resultReg != NULL;
          default:
             break;
          }
       }
 
-      if (!comp->getOption(TR_DisableSIMDDoubleMaxMin) && cg->getSupportsVectorRegisters())
+   if (!comp->getOption(TR_DisableSIMDDoubleMaxMin) && cg->getSupportsVectorRegisters())
+      {
+      switch (methodSymbol->getRecognizedMethod())
          {
-         switch (methodSymbol->getRecognizedMethod())
-            {
-            case TR::java_lang_Math_max_D:
-               resultReg = TR::TreeEvaluator::inlineDoubleMax(node, cg);
-               return true;
-            case TR::java_lang_Math_min_D:
-               resultReg = TR::TreeEvaluator::inlineDoubleMin(node, cg);
-               return true;
-            default:
-               break;
-            }
+         case TR::java_lang_Math_max_D:
+            resultReg = TR::TreeEvaluator::inlineDoubleMax(node, cg);
+            return true;
+         case TR::java_lang_Math_min_D:
+            resultReg = TR::TreeEvaluator::inlineDoubleMin(node, cg);
+            return true;
+         default:
+            break;
          }
-      if (cg->getSupportsVectorRegisters())
-         {
-         switch (methodSymbol->getRecognizedMethod())
-            {
-            case TR::java_lang_Math_fma_D:
-            case TR::java_lang_StrictMath_fma_D:
-               resultReg = TR::TreeEvaluator::inlineMathFma(node, cg);
-               return true;
+      }
 
-            case TR::java_lang_Math_fma_F:
-            case TR::java_lang_StrictMath_fma_F:
-               if (comp->target().cpu.supportsFeature(OMR_FEATURE_S390_VECTOR_FACILITY_ENHANCEMENT_1))
-                  {
-                  resultReg = TR::TreeEvaluator::inlineMathFma(node, cg);
-                  return true;
-                  }
-               break;
-            default:
-               break;
-            }
-         }
+   switch (methodSymbol->getRecognizedMethod())
+      {
+      case TR::java_lang_Math_fma_D:
+      case TR::java_lang_StrictMath_fma_D:
+      case TR::java_lang_Math_fma_F:
+      case TR::java_lang_StrictMath_fma_F:
+         resultReg = TR::TreeEvaluator::inlineMathFma(node, cg);
+         return true;
+
+      default:
+         break;
+      }
 
    TR::MethodSymbol * symbol = node->getSymbol()->castToMethodSymbol();
    if ((symbol->isVMInternalNative() || symbol->isJITInternalNative()) || isKnownMethod(methodSymbol))

@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 1991, 2021 IBM Corp. and others
+ * Copyright (c) 1991, 2022 IBM Corp. and others
  *
  * This program and the accompanying materials are made available under
  * the terms of the Eclipse Public License 2.0 which accompanies this
@@ -767,8 +767,8 @@ gcParseXXgcArguments(J9JavaVM *vm, char *optArg)
 			continue;
 		} 
 
-		if(try_scan(&scan_start, "dbfEnablePermanantHotFields")) {
-			extensions->allowPermanantHotFields = true;
+		if(try_scan(&scan_start, "dbfEnablePermanentHotFields")) {
+			extensions->allowPermanentHotFields = true;
 			continue;
 		}
 		
@@ -1189,8 +1189,8 @@ gcParseXXgcArguments(J9JavaVM *vm, char *optArg)
 		}
 #endif /* defined (J9VM_GC_VLHGC) */
 
-		if (try_scan(&scan_start, "fvtest_disableExplictMainThread")) {
-			extensions->fvtest_disableExplictMainThread = true;
+		if (try_scan(&scan_start, "fvtest_disableExplicitMainThread")) {
+			extensions->fvtest_disableExplicitMainThread = true;
 			continue;
 		}
 		
@@ -1481,6 +1481,16 @@ gcParseXXgcArguments(J9JavaVM *vm, char *optArg)
 				break;
 			}
 			extensions->freeSizeThresholdForSurvivor = size;
+			continue;
+		}
+
+		if (try_scan(&scan_start, "noRecycleRemainders")) {
+			extensions->recycleRemainders = false;
+			continue;
+		}
+
+		if (try_scan(&scan_start, "recycleRemainders")) {
+			extensions->recycleRemainders = true;
 			continue;
 		}
 

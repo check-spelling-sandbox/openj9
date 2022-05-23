@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2000, 2021 IBM Corp. and others
+ * Copyright (c) 2000, 2022 IBM Corp. and others
  *
  * This program and the accompanying materials are made available under
  * the terms of the Eclipse Public License 2.0 which accompanies this
@@ -1254,7 +1254,7 @@ static void populateInlineCalls(
          TR_OpaqueClassBlock *clazzOfInlinedMethod = vm->getClassFromMethodBlock(inlinedCallSite->_methodInfo);
          if (comp->fej9()->isUnloadAssumptionRequired(clazzOfInlinedMethod, comp->getCurrentMethod()))
             {
-            if (comp->getOption(TR_AOT) && comp->getOption(TR_TraceRelocatableDataDetailsCG))
+            if (comp->compileRelocatableCode() && comp->getOption(TR_TraceRelocatableDataDetailsCG))
                {
                TR_OpaqueClassBlock *clazzOfCallerMethod =  comp->getCurrentMethod()->classOfMethod();
                traceMsg(comp, "createClassUnloadPicSite: clazzOfInlinedMethod %p, loader = %p, clazzOfCallerMethod %p, loader = %p, callsiteCursor %p\n",
@@ -1504,7 +1504,7 @@ createMethodMetaData(
    data->scalarTempSlots = methodSymbol->getScalarTempSlots();
    data->objectTempSlots = methodSymbol->getObjectTempSlots();
    data->prologuePushes = methodSymbol->getProloguePushSlots();
-   data->numExcptionRanges = numberOfExceptionRangesWithBits;
+   data->numExceptionRanges = numberOfExceptionRangesWithBits;
    data->tempOffset = comp->cg()->getStackAtlas()->getNumberOfPendingPushSlots();
    data->size = tableSize;
 
@@ -1527,6 +1527,11 @@ createMethodMetaData(
 #if defined(J9VM_OPT_JITSERVER)
    if (comp->isOutOfProcessCompilation())
       data->flags |= JIT_METADATA_IS_REMOTE_COMP;
+
+   if (comp->isDeserializedAOTMethod())
+      {
+      data->flags |= JIT_METADATA_IS_DESERIALIZED_COMP;
+      }
 #endif
 
 #if defined(J9VM_INTERP_AOT_COMPILE_SUPPORT)
@@ -1599,7 +1604,7 @@ createMethodMetaData(
          }
 
       // totalAllocated space is in comp object
-      TR_ASSERT(comp->getTotalNeededDataCacheSpace() == aotMethodHeaderEntry->compileMethodDataSize, "Size missmatach");
+      TR_ASSERT(comp->getTotalNeededDataCacheSpace() == aotMethodHeaderEntry->compileMethodDataSize, "Size mismatch");
       }
 #endif
 

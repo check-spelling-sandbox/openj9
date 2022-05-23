@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2000, 2021 IBM Corp. and others
+ * Copyright (c) 2000, 2022 IBM Corp. and others
  *
  * This program and the accompanying materials are made available under
  * the terms of the Eclipse Public License 2.0 which accompanies this
@@ -40,7 +40,7 @@ namespace J9 { typedef J9::PersistentInfo PersistentInfoConnector; }
 
 class TR_FrontEnd;
 class TR_PersistentMemory;
-class TR_PersistentCHTable; 
+class TR_PersistentCHTable;
 class TR_PersistentClassLoaderTable;
 class TR_J2IThunkTable;
 namespace J9 { class Options; }
@@ -146,6 +146,7 @@ class PersistentInfo : public OMR::PersistentInfoConnector
          _jitSampleCountWhenStartupStateExited(0),
          _vmTotalCpuTimeWhenStartupStateEntered(0),
          _vmTotalCpuTimeWhenStartupStateExited(0),
+         _lateSCCDisclaimTime(300000000000), // 300s
          _inliningAggressiveness(100),
          _lastTimeSamplerThreadEnteredIdle(0),
          _lastTimeSamplerThreadEnteredDeepIdle(0),
@@ -163,8 +164,11 @@ class PersistentInfo : public OMR::PersistentInfoConnector
          _JITServerPort(38400),
          _socketTimeoutMs(2000),
          _clientUID(0),
+         _JITServerMetricsPort(38500),
          _JITServerUseAOTCache(false),
          _requireJITServer(false),
+         _localSyncCompiles(false),
+         _JITServerAOTCacheName(),
 #endif /* defined(J9VM_OPT_JITSERVER) */
       OMR::PersistentInfoConnector(pm)
       {}
@@ -247,6 +251,9 @@ class PersistentInfo : public OMR::PersistentInfoConnector
 
    void setVmTotalCpuTimeWhenStartupStateExited(int64_t n) { _vmTotalCpuTimeWhenStartupStateExited = n; }
    int64_t getVmTotalCpuTimeWhenStartupStateExited() const { return _vmTotalCpuTimeWhenStartupStateExited; }
+
+   void setLateSCCDisclaimTime(int64_t t) { _lateSCCDisclaimTime = t; }
+   int64_t getLateSCCDisclaimTime() const { return _lateSCCDisclaimTime; }
 
    void setInliningAggressiveness(int32_t n) { _inliningAggressiveness = n; }
    int32_t getInliningAggressiveness() const { return _inliningAggressiveness; }
@@ -331,7 +338,7 @@ class PersistentInfo : public OMR::PersistentInfoConnector
 
    static JITServer::RemoteCompilationModes getRemoteCompilationMode() { return _remoteCompilationMode; }
    const std::string &getJITServerAddress() const { return _JITServerAddress; }
-   void setJITServerAddress(char *addr) { _JITServerAddress = addr; }
+   void setJITServerAddress(const char *addr) { _JITServerAddress = addr; }
    uint32_t getSocketTimeout() const { return _socketTimeoutMs; }
    void setSocketTimeout(uint32_t t) { _socketTimeoutMs = t; }
    uint32_t getJITServerPort() const { return _JITServerPort; }
@@ -340,10 +347,16 @@ class PersistentInfo : public OMR::PersistentInfoConnector
    void setClientUID(uint64_t val) { _clientUID = val; }
    uint64_t getServerUID() const { return _serverUID; }
    void setServerUID(uint64_t val) { _serverUID = val; }
-   bool getJITServerUseAOTCache() const { return _JITServerUseAOTCache; }
-   void setJITServerUseAOTCache(bool use) { _JITServerUseAOTCache = use; }
+   uint32_t getJITServerMetricsPort() const { return _JITServerMetricsPort; }
+   void setJITServerMetricsPort(uint32_t port) { _JITServerMetricsPort = port; }
    bool getRequireJITServer() const { return _requireJITServer; }
    void setRequireJITServer(bool requireJITServer) { _requireJITServer = requireJITServer; }
+   bool isLocalSyncCompiles() const { return _localSyncCompiles; }
+   void setLocalSyncCompiles(bool localSyncCompiles) { _localSyncCompiles = localSyncCompiles; }
+   bool getJITServerUseAOTCache() const { return _JITServerUseAOTCache; }
+   void setJITServerUseAOTCache(bool use) { _JITServerUseAOTCache = use; }
+   const std::string &getJITServerAOTCacheName() const { return _JITServerAOTCacheName; }
+   void setJITServerAOTCacheName(const char *name) { _JITServerAOTCacheName = name; }
 #endif /* defined(J9VM_OPT_JITSERVER) */
 
    private:
@@ -395,6 +408,8 @@ class PersistentInfo : public OMR::PersistentInfoConnector
 
    int64_t _vmTotalCpuTimeWhenStartupStateExited;  // set when we exit STARTUP state
 
+   int64_t _lateSCCDisclaimTime; // CPU time in ns
+
    int32_t _inliningAggressiveness;
 
    // The following four fields are stored here for RAS purposes (easy access from a debugging session)
@@ -413,7 +428,6 @@ class PersistentInfo : public OMR::PersistentInfoConnector
 
    TR_J2IThunkTable *_invokeExactJ2IThunkTable;
 
-
    TR::Monitor *_gpuInitMonitor;
 
    bool _runtimeInstrumentationEnabled;
@@ -422,20 +436,22 @@ class PersistentInfo : public OMR::PersistentInfoConnector
    bool _classLoadingPhase;            ///< true, if we detect a large number of classes loaded per second
    bool _inlinerTemporarilyRestricted; ///< do not inline when true; used to restrict cold inliner during startup
 
-
    volatile uint64_t _elapsedTime; ///< elapsed time as computed by the sampling thread (ms)
                                    ///< May need adjustment if sampling thread goes to sleep
 
-
    int32_t _numLoadedClasses; ///< always increasing
+
 #if defined(J9VM_OPT_JITSERVER)
    std::string _JITServerAddress;
    uint32_t    _JITServerPort;
    uint32_t    _socketTimeoutMs; // timeout for communication sockets used in out-of-process JIT compilation
    uint64_t    _clientUID;
    uint64_t    _serverUID; // At the client, this represents the UID of the server the client is connected to
-   bool        _JITServerUseAOTCache;
+   uint32_t    _JITServerMetricsPort; // Port for receiving http metrics requests from Prometheus; only used at server
    bool        _requireJITServer;
+   bool        _localSyncCompiles;
+   bool        _JITServerUseAOTCache;
+   std::string _JITServerAOTCacheName; // Name of the server AOT cache that this client is using
 #endif /* defined(J9VM_OPT_JITSERVER) */
    };
 

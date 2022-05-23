@@ -179,7 +179,7 @@ public class Test_ReflectionAndMethodHandles {
 		Method method = c.getDeclaredMethod("child_public_non_static_method");
 		method.setAccessible(true);
 		Object returnStatement = method.invoke(instance);
-		AssertJUnit.assertEquals("Failing as public non static method of ITestChild interface didnt return expected output", expected_child_public_non_static, returnStatement);
+		AssertJUnit.assertEquals("Failing as public non static method of ITestChild interface didn't return expected output", expected_child_public_non_static, returnStatement);
 	}
 
 	/**
@@ -191,7 +191,7 @@ public class Test_ReflectionAndMethodHandles {
 		Method method = c.getDeclaredMethod("child_private_non_static_method");
 		method.setAccessible(true);
 		Object returnStatement = method.invoke(instance);
-		AssertJUnit.assertEquals("Failing as private non static method of ITestChild interface didnt return expected output", expected_child_private_non_static, returnStatement);
+		AssertJUnit.assertEquals("Failing as private non static method of ITestChild interface didn't return expected output", expected_child_private_non_static, returnStatement);
 	}
 
 	/**
@@ -203,7 +203,7 @@ public class Test_ReflectionAndMethodHandles {
 		Method method = c.getDeclaredMethod("child_private_static_method");
 		method.setAccessible(true);
 		Object returnStatement = method.invoke(instance);
-		AssertJUnit.assertEquals("Failing as private static method of ITestChild interface didnt return expected output", expected_child_private_static, returnStatement);
+		AssertJUnit.assertEquals("Failing as private static method of ITestChild interface didn't return expected output", expected_child_private_static, returnStatement);
 	}
 
 	/**
@@ -215,7 +215,7 @@ public class Test_ReflectionAndMethodHandles {
 		Method method = c.getDeclaredMethod("child_public_static_method");
 		method.setAccessible(true);
 		Object returnStatement = method.invoke(instance);
-		AssertJUnit.assertEquals("Failing as private static method of ITestChild interface didnt return expected output", expected_child_public_static, returnStatement);
+		AssertJUnit.assertEquals("Failing as private static method of ITestChild interface didn't return expected output", expected_child_public_static, returnStatement);
 	}
 
 	/* --------------- Tests  to invoke methods contained in parent interface ITest ---------------------- */
@@ -229,7 +229,7 @@ public class Test_ReflectionAndMethodHandles {
 		Method method = c.getDeclaredMethod("private_static_method");
 		method.setAccessible(true);
 		Object returnStatement = method.invoke(instance);
-		AssertJUnit.assertEquals("Failing as private static method of parent interface ITest didnt return expected output", expected_ITest_private_static, returnStatement);
+		AssertJUnit.assertEquals("Failing as private static method of parent interface ITest didn't return expected output", expected_ITest_private_static, returnStatement);
 	}
 
 	/**
@@ -241,7 +241,7 @@ public class Test_ReflectionAndMethodHandles {
 		Method method = c.getDeclaredMethod("private_non_static_method");
 		method.setAccessible(true);
 		Object returnStatement = method.invoke(instance);
-		AssertJUnit.assertEquals("Failing as private non static method of parent interface ITest didnt return expected output", expected_ITest_private_non_static, returnStatement);
+		AssertJUnit.assertEquals("Failing as private non static method of parent interface ITest didn't return expected output", expected_ITest_private_non_static, returnStatement);
 	}
 
 	/**
@@ -253,7 +253,7 @@ public class Test_ReflectionAndMethodHandles {
 		Method method = c.getDeclaredMethod("RunTest_private_static_method_with_InvokeStatic");
 		method.setAccessible(true);
 		Object returnStatement = method.invoke(instance);
-		AssertJUnit.assertEquals("Failing as public static method of parent interface ITest didnt return expected output", expected_ITest_private_static, returnStatement);
+		AssertJUnit.assertEquals("Failing as public static method of parent interface ITest didn't return expected output", expected_ITest_private_static, returnStatement);
 	}
 
 	/**
@@ -265,7 +265,7 @@ public class Test_ReflectionAndMethodHandles {
 		Method method = c.getDeclaredMethod("RunTest_private_non_static_method_with_InvokeSpecial", c);
 		method.setAccessible(true);
 		Object returnStatement = method.invoke(instance, instance);
-		AssertJUnit.assertEquals("Failing as public non static method of parent interface ITest didnt return expected output", expected_ITest_private_non_static, returnStatement);
+		AssertJUnit.assertEquals("Failing as public non static method of parent interface ITest didn't return expected output", expected_ITest_private_non_static, returnStatement);
 	}
 		
 	/* --------------- Tests to test findStatic ---------------------- */
@@ -281,7 +281,7 @@ public class Test_ReflectionAndMethodHandles {
 		Lookup lookup = getLookupObject(c);
 		MethodHandle mh = lookup.findStatic(c, "child_private_static_method", type);
 		String returnStatement = (String)mh.invoke();
-		AssertJUnit.assertEquals("Failing as private static method of child interface didnt return expected output when invoked", expected_child_private_static, returnStatement);
+		AssertJUnit.assertEquals("Failing as private static method of child interface didn't return expected output when invoked", expected_child_private_static, returnStatement);
 	}
 	
 	/**
@@ -295,7 +295,7 @@ public class Test_ReflectionAndMethodHandles {
 		Lookup lookup = getLookupObject(c);
 		MethodHandle mh = lookup.findStatic(c, "child_public_static_method", type);
 		String returnStatement = (String)mh.invoke();
-		AssertJUnit.assertEquals("Failing as public static method of child interface didnt return expected output when invoked", expected_child_public_static, returnStatement);
+		AssertJUnit.assertEquals("Failing as public static method of child interface didn't return expected output when invoked", expected_child_public_static, returnStatement);
 	}
 	
 	/**
@@ -381,7 +381,7 @@ public class Test_ReflectionAndMethodHandles {
 		Lookup lookup = getLookupObject(c);
 		MethodHandle mh = lookup.findVirtual(c, "child_public_non_static_method", type);
 		String returnStatement = (String) mh.invoke(instance);
-		AssertJUnit.assertEquals("Failing as public non static method of child interface didnt return expected output when invoked", expected_child_public_non_static, returnStatement);
+		AssertJUnit.assertEquals("Failing as public non static method of child interface didn't return expected output when invoked", expected_child_public_non_static, returnStatement);
 	}
 	
 	/**
@@ -663,7 +663,7 @@ public class Test_ReflectionAndMethodHandles {
 		Lookup lookup = getLookupObject(c);
 		MethodHandle mh = lookup.unreflect(method);
 		String returnStatement = (String)mh.invoke();
-		AssertJUnit.assertEquals("Failing as private static method of ITestChild interface didnt return expected output", expected_child_private_static, returnStatement);
+		AssertJUnit.assertEquals("Failing as private static method of ITestChild interface didn't return expected output", expected_child_private_static, returnStatement);
 	}
 	
 	/**
@@ -678,7 +678,7 @@ public class Test_ReflectionAndMethodHandles {
 		Lookup lookup = getLookupObject(c);
 		MethodHandle mh = lookup.unreflect(method);
 		String returnStatement = (String)mh.invoke();
-		AssertJUnit.assertEquals("Failing as public static method of ITestChild interface didnt return expected output", expected_child_public_static, returnStatement);
+		AssertJUnit.assertEquals("Failing as public static method of ITestChild interface didn't return expected output", expected_child_public_static, returnStatement);
 	}
 	
 	/**
@@ -693,7 +693,7 @@ public class Test_ReflectionAndMethodHandles {
 		Lookup lookup = getLookupObject(c);
 		MethodHandle mh = lookup.unreflect(method);
 		String returnStatement = (String)mh.invoke(instance);
-		AssertJUnit.assertEquals("Failing as public non static method of ITestChild interface didnt return expected output", expected_child_public_non_static, returnStatement);
+		AssertJUnit.assertEquals("Failing as public non static method of ITestChild interface didn't return expected output", expected_child_public_non_static, returnStatement);
 	}
 
 	/**
@@ -708,7 +708,7 @@ public class Test_ReflectionAndMethodHandles {
 		Lookup lookup = getLookupObject(d);
 		MethodHandle mh = lookup.unreflect(method);
 		String returnStatement = (String)mh.invoke();
-		AssertJUnit.assertEquals("Failing as private static method of interface ITest didnt return expected output", expected_ITest_private_static, returnStatement);
+		AssertJUnit.assertEquals("Failing as private static method of interface ITest didn't return expected output", expected_ITest_private_static, returnStatement);
 	}
 	
 	@Test
@@ -766,7 +766,7 @@ public class Test_ReflectionAndMethodHandles {
 		Lookup lookup = getLookupObject(c);
 		MethodHandle mh = lookup.unreflectSpecial(method, c);
 		String returnStatement = (String)mh.invoke(instance);
-		AssertJUnit.assertEquals("Failing as private non static method of ITestChild interface didnt return expected output", expected_child_private_non_static, returnStatement);
+		AssertJUnit.assertEquals("Failing as private non static method of ITestChild interface didn't return expected output", expected_child_private_non_static, returnStatement);
 	}
 	
 	/**
@@ -802,7 +802,7 @@ public class Test_ReflectionAndMethodHandles {
 		Lookup lookup = getLookupObject(c);
 		MethodHandle mh = lookup.unreflectSpecial(method, c);
 		String returnStatement = (String)mh.invoke(instance);
-		AssertJUnit.assertEquals("Failing as public non static method of ITestChild interface didnt return expected output", expected_child_public_non_static, returnStatement);
+		AssertJUnit.assertEquals("Failing as public non static method of ITestChild interface didn't return expected output", expected_child_public_non_static, returnStatement);
 	}
 
 	/**
@@ -818,7 +818,7 @@ public class Test_ReflectionAndMethodHandles {
 		Lookup lookup = getLookupObject(d);
 		MethodHandle mh = lookup.unreflectSpecial(method, d);
 		String returnStatement = (String)mh.invoke(instance);
-		AssertJUnit.assertEquals("Failing as public non static method of ITestChild interface didnt return expected output", expected_ITest_private_non_static, returnStatement);
+		AssertJUnit.assertEquals("Failing as public non static method of ITestChild interface didn't return expected output", expected_ITest_private_non_static, returnStatement);
 	}
 	
 	/**

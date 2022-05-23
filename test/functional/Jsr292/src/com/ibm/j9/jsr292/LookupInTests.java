@@ -383,7 +383,7 @@ public class LookupInTests {
 	 * @throws Throwable
 	 */
 	@Test(groups = { "level.extended" })
-	public void testLookup_StaticdOuterClassLookup() throws Throwable {
+	public void testLookup_StaticOuterClassLookup() throws Throwable {
 		Lookup lookup = SamePackageExample.SamePackageInnerClass_Static.getLookup();
 		Lookup inObj = lookup.in(SamePackageExample.class);
 		assertClassAndMode(inObj, SamePackageExample.class, PUBLIC_PACKAGE_PRIVATE_MODE);

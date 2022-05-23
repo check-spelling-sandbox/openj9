@@ -117,7 +117,7 @@ fake_j9tty_startup(struct OMRPortLibrary *portLibrary)
  * @param[in] format The format String.
  * @param[in] args Variable argument list.
  * 
- * @note The caller is reponsible for restoring the tty_startup slot in the port library function table.
+ * @note The caller is responsible for restoring the tty_startup slot in the port library function table.
  */
 void
 fake_j9file_vprintf(struct OMRPortLibrary *portLibrary, IDATA fd, const char *format, va_list args)
@@ -142,7 +142,7 @@ fake_j9file_vprintf(struct OMRPortLibrary *portLibrary, IDATA fd, const char *fo
  * @param[in] format The format String.
  * @param[in] args Variable argument list..
  * 
- * @note The caller is reponsible for restoring the tty_startup slot in the port library function table.
+ * @note The caller is responsible for restoring the tty_startup slot in the port library function table.
  */
 void
 fake_j9tty_vprintf(struct OMRPortLibrary *portLibrary, const char *format, va_list args)
@@ -167,7 +167,7 @@ fake_j9tty_vprintf(struct OMRPortLibrary *portLibrary, const char *format, va_li
  * @param[in] format The format String.
  * @param[in] args Variable argument list..
  * 
- * @note The caller is reponsible for restoring the tty_startup slot in the port library function table.
+ * @note The caller is responsible for restoring the tty_startup slot in the port library function table.
  */
 void
 fake_j9tty_err_vprintf(struct OMRPortLibrary *portLibrary, const char *format, va_list args)

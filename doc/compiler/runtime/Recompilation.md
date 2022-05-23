@@ -78,7 +78,7 @@ of a method to decrement a counter when the method is invoked, and to trigger
 a recompilation when the counter hits 0. A "Counting Body" is another example
 which is similar in principle to GCR, but has a different pre-prologue. 
 
-#### Explict
+#### Explicit
 
 This section refers to mechanisms that trigger recompilation explicitly, i.e.
 not based on counting or sampling, but via some other criteria. The features
@@ -158,4 +158,4 @@ recompilation, and hence the names that refer to the shape of the pre-prologue
 are now misnomers: a "Counting Body" still refers to the shape of the pre-prologue 
 generated in a Profiled Compilation, whereas a "Sampling Body" refers to the
 shape of the pre-prologue generated in all other compilations, even if it was 
-an Explict or GCR triggered compilation.
+an Explicit or GCR triggered compilation.

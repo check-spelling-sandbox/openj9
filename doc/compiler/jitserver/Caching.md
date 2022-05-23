@@ -24,10 +24,15 @@ SPDX-License-Identifier: EPL-2.0 OR Apache-2.0 OR GPL-2.0 WITH Classpath-excepti
 
 Server-side caching is an important aspect of `JITServer` and one of the main reasons why `JITServer` client consumes less CPU time compared to local compilation. This document will explain why caching is important, what kind of entities we cache, and provide examples of how some caches work.
 
-1. [Importance of caching](#importance-of-caching)
-2. [Types of caching](#types-of-caching)
-3. [Important caches](#important-caches)
-4. [Cache control](#cache-control)
+- [Caching in JITServer](#caching-in-jitserver)
+  - [Importance of caching](#importance-of-caching)
+  - [Types of caching](#types-of-caching)
+  - [Important caches](#important-caches)
+    - [`ClientSessionData`](#clientsessiondata)
+    - [`CompilationInfoPerThreadRemote`](#compilationinfoperthreadremote)
+      - [`TR_ResolvedMethodInfoCache`](#tr_resolvedmethodinfocache)
+      - [`IPTableHeap_t`](#iptableheap_t)
+  - [Cache control](#cache-control)
 
 ## Importance of caching
 
@@ -39,7 +44,7 @@ This is bad because remote calls have to go through the network, and many data s
 These are expensive operations, both in terms of latency and CPU. If the server makes hundreds of requests to the client just for one compilation, client will spend more CPU time just sending and receiving data over the network than it would take for it to compile a method locally.
 What makes it worse is that in order for the client to fetch the requested data it needs to do some work, which additionally increases CPU consumption.
 
-Caching helps alleviate this problem by storing the result of frequent remote calls on the server, so that if the same data is needed again, it can accesss it from the cache, instead of making a remote call.
+Caching helps alleviate this problem by storing the result of frequent remote calls on the server, so that if the same data is needed again, it can access it from the cache, instead of making a remote call.
 
 ## Types of caching
 
@@ -48,7 +53,7 @@ There are 2 types of caching that JITServer does: global and per-compilation.
 - Global caching (in persistent memory) is done for entities that will not change (or are very unlikely to change) over the lifetime of a client JVM, e.g. GC mode, IProfiler data for compiled methods, parent class of a J9 class, etc. Data stored in global caches will persist across multiple compilations or until the Java class it's describing is unloaded/redefined.
 - Local caching (on the compilation heap) is done for entities that are not going to change during the current compilation, but might change in-between compilations or are just unique for each compilation, e.g. resolved methods are created anew for each compilation. We also use local caching for entities that can change, but are unlikely to do so during the limited life span of the current compilation, e.g. IProfiler data for interpreted methods. Since method is still interpreted, new profiling data might be added, but it's unlikely to change significantly enough to affect performance over the duration of the current compilation.
 
-Both types of caching are done on per-client basis, that is, if multiple clients are connected to the same server, they will not share caches, as that would make entities very complicated. There is one exception: when an option `-Xjit:shareROMClasses` is specified on the server, cached ROM classes can be shared between different clients.
+Both types of caching are done on per-client basis, that is, if multiple clients are connected to the same server, they will not share caches, as that would make entities very complicated. There is one exception: when an option `-XX:+JITServerShareROMClasses` is specified on the server, cached ROM classes can be shared between different clients.
 
 Whenever possible, caching should be done globally, because hit rates will be higher, but one should be careful and make sure that the client data will not actually change.
 
@@ -68,7 +73,7 @@ Some important per-compilation caches:
 
 #### `TR_ResolvedMethodInfoCache`
 
-This cache stores pointers to resolved methods created for the current compilaton. It is important, because messages requesting the creation of resolved methods are some of the most frequent messages. Unfortunately, persistent caching does not seem possible, since every compilation creates its own resolved methods. For more information on resolved method caching, read [this](ResolvedMethod.md).
+This cache stores pointers to resolved methods created for the current compilation. It is important, because messages requesting the creation of resolved methods are some of the most frequent messages. Unfortunately, persistent caching does not seem possible, since every compilation creates its own resolved methods. For more information on resolved method caching, read [this](ResolvedMethod.md).
 
 #### `IPTableHeap_t`
 

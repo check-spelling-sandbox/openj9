@@ -48,7 +48,7 @@ class CFGSimplifier : public OMR::CFGSimplifier
     * \parm needToDuplicateTree
     *    Boolean to indicate whether or not to duplicate node.
     *
-    * \return Boolean that indicates whether tranformation is performed based on a matched pattern
+    * \return Boolean that indicates whether transformation is performed based on a matched pattern
     */
    virtual bool simplifyIfPatterns(bool needToDuplicateTree);
 
@@ -60,7 +60,7 @@ class CFGSimplifier : public OMR::CFGSimplifier
     * \parm needToDuplicateTree
     *    Boolean to indicate whether or not to duplicate node.
     *
-    * \return Boolean that indicates true if tranformation is performed based on a matched pattern.
+    * \return Boolean that indicates true if transformation is performed based on a matched pattern.
     */
    bool simplifyUnresolvedRequireNonNull(bool needToDuplicateTree);
 
@@ -72,7 +72,7 @@ class CFGSimplifier : public OMR::CFGSimplifier
     * \parm needToDuplicateTree
     *    Boolean to indicate whether or not to duplicate node.
     *
-    * \return Boolean that indicates true if tranformation is performed based on a matched pattern.
+    * \return Boolean that indicates true if transformation is performed based on a matched pattern.
     */
    bool simplifyResolvedRequireNonNull(bool needToDuplicateTree);
 

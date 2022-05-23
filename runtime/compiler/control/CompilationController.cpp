@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2000, 2021 IBM Corp. and others
+ * Copyright (c) 2000, 2022 IBM Corp. and others
  *
  * This program and the accompanying materials are made available under
  * the terms of the Eclipse Public License 2.0 which accompanies this
@@ -179,7 +179,7 @@ TR_OptimizationPlan *TR::DefaultCompilationStrategy::processEvent(TR_MethodEvent
          compInfo->_stats._methodsCompiledOnCount++;
          // most likely we need to compile the method, unless it's already being compiled
          // even if the method is already queued for compilation we must still invoke
-         // compilemethod because we may need to do a async compilation and the thread
+         // compile method because we may need to do a async compilation and the thread
          // needs to block
 
          // use the counts to determine the first level of compilation
@@ -363,7 +363,7 @@ TR::DefaultCompilationStrategy::processInterpreterSample(TR_MethodEvent *event)
                      if (logSampling)
                         curMsg += sprintf(curMsg, " reducing count %d --> %d", count, newCount);
                      if (cmdLineOptions->getOption(TR_UseSamplingJProfilingForInterpSampledMethods))
-                        compInfo->getInterpSamplTrackingInfo()->addOrUpdate(j9method, count - newCount);
+                        compInfo->getInterpSampleTrackingInfo()->addOrUpdate(j9method, count - newCount);
                      }
                   else
                      {
@@ -398,7 +398,7 @@ TR::DefaultCompilationStrategy::processInterpreterSample(TR_MethodEvent *event)
                      if (logSampling)
                         curMsg += sprintf(curMsg, " reducing count %d --> %d", count, newCount);
                      if (cmdLineOptions->getOption(TR_UseSamplingJProfilingForInterpSampledMethods))
-                        compInfo->getInterpSamplTrackingInfo()->addOrUpdate(j9method, count - newCount);
+                        compInfo->getInterpSampleTrackingInfo()->addOrUpdate(j9method, count - newCount);
                      }
                   else
                      {
@@ -423,7 +423,7 @@ TR::DefaultCompilationStrategy::processInterpreterSample(TR_MethodEvent *event)
                      if (logSampling)
                         curMsg += sprintf(curMsg, " reducing count %d --> %d", count, newCount);
                      if (cmdLineOptions->getOption(TR_UseSamplingJProfilingForInterpSampledMethods))
-                        compInfo->getInterpSamplTrackingInfo()->addOrUpdate(j9method, count - newCount);
+                        compInfo->getInterpSampleTrackingInfo()->addOrUpdate(j9method, count - newCount);
                      }
                   else
                      {
@@ -904,7 +904,7 @@ TR::DefaultCompilationStrategy::processJittedSample(TR_MethodEvent *event)
                   nextOptLevel = hot;
                   // Decide whether to deny optimizer to switch to profiling on the fly
                   if (globalSamplesInHotWindow > TR::Options::_sampleDontSwitchToProfilingThreshold &&
-                     !TR::Options::getCmdLineOptions()->getOption(TR_AggressiveOpts))
+                     !TR::Options::getCmdLineOptions()->getOption(TR_AggressiveSwitchingToProfiling))
                      dontSwitchToProfiling = true;
                   recompile = true;
                   compInfo->_stats._methodsSelectedToRecompile++;
@@ -1143,11 +1143,10 @@ TR::DefaultCompilationStrategy::processJittedSample(TR_MethodEvent *event)
       bool bufferOverflow = ((curMsg - msg) >= MSG_SZ); // check for overflow at runtime
       if (fe->isLogSamplingSet())
          {
-         TR_VerboseLog::vlogAcquire();
+         TR_VerboseLog::CriticalSection vlogLock;
          TR_VerboseLog::writeLine(TR_Vlog_SAMPLING,"%s", msg);
          if (bufferOverflow)
             TR_VerboseLog::writeLine(TR_Vlog_SAMPLING,"Sampling line is too big: %d characters", curMsg-msg);
-         TR_VerboseLog::vlogRelease();
          }
       Trc_JIT_Sampling_Detail(getJ9VMThreadFromTR_VM(fe), msg);
       if (bufferOverflow)
@@ -1583,7 +1582,7 @@ TR::ThresholdCompilationStrategy::processJittedSample(TR_MethodEvent *event)
          }
       else
          {
-         // increment the CPOcount and see if we need to recompile
+         // increment the cpoSampleCounter and see if we need to recompile
          int32_t sampleCount = methodInfo->cpoIncCounter();
          fe->releaseCompilationLock();
          TR_Hotness curOptLevel = bodyInfo->getHotness();

@@ -27,19 +27,19 @@ import java.lang.reflect.*;
 public class rc017 {
 	public static native boolean redefineMultipleClass(Class[] originalClasses, int classCount, byte[][] classBytes, int[] classBytesLength);
 
-	public boolean testClassGrandParenetHierachy()	{
+	public boolean testClassGrandParentHierarchy()	{
 		Class noparams[] = {};
 		try {
-			rc017_testClassGrandParentHierachy_grandParent_0 test[] =
+			rc017_testClassGrandParentHierarchy_grandParent_0 test[] =
 				{
-					new rc017_testClassGrandParentHierachy_grandParent_0(),
-					new rc017_testClassGrandParentHierachy_child_0()
+					new rc017_testClassGrandParentHierarchy_grandParent_0(),
+					new rc017_testClassGrandParentHierarchy_child_0()
 				};
 
 			boolean redefined = Util.redefineMultipleClass(
 				getClass(),
-				new Class<?>[] {rc017_testClassGrandParentHierachy_child_0.class, rc017_testClassGrandParentHierachy_grandParent_0.class},
-				new Class<?>[] {rc017_testClassGrandParentHierachy_child_1.class, rc017_testClassGrandParentHierachy_grandParent_1.class}
+				new Class<?>[] {rc017_testClassGrandParentHierarchy_child_0.class, rc017_testClassGrandParentHierarchy_grandParent_0.class},
+				new Class<?>[] {rc017_testClassGrandParentHierarchy_child_1.class, rc017_testClassGrandParentHierarchy_grandParent_1.class}
 			);
 
 			if (!redefined) {
@@ -47,16 +47,16 @@ public class rc017 {
 				return false;
 			}
 
-			rc017_testClassGrandParentHierachy_grandParent_0 test2[] =
+			rc017_testClassGrandParentHierarchy_grandParent_0 test2[] =
 				{
-					new rc017_testClassGrandParentHierachy_grandParent_0(),
-					new rc017_testClassGrandParentHierachy_child_0()
+					new rc017_testClassGrandParentHierarchy_grandParent_0(),
+					new rc017_testClassGrandParentHierarchy_child_0()
 				};
 
 			return true;
 
 		} catch (ArrayStoreException e) {
-			System.out.println("rc017 failed to store retranformed class into array of grandparent, See CMVC 199556/JAZZ 45682 for detail");
+			System.out.println("rc017 failed to store retransformed class into array of grandparent, See CMVC 199556/JAZZ 45682 for detail");
 			e.printStackTrace();
 			return false;
 		} catch (Exception e) {
@@ -65,8 +65,8 @@ public class rc017 {
 		}
 	}
 
-	public String helpClassGrandParenetHierachy() {
-		return "Tests redefining a class and its grandpaent maintains the correct super class hierachy in class";
+	public String helpClassGrandParentHierarchy() {
+		return "Tests redefining a class and its grandparent maintains the correct super class hierarchy in class";
 	}
 
 

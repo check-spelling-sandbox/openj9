@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2017, 2021 IBM Corp. and others
+ * Copyright (c) 2017, 2022 IBM Corp. and others
  *
  * This program and the accompanying materials are made available under
  * the terms of the Eclipse Public License 2.0 which accompanies this
@@ -155,8 +155,21 @@ def checkout_pullrequest() {
 
         // Setup PR_IDs for dependent changes
         for (DEPEND in DEPENDS_ARRAY) {
-            String REPO = DEPEND.substring(DEPEND.indexOf("/") + 1, DEPEND.indexOf("#"));
-            String PR_ID = DEPEND.substring(DEPEND.indexOf("#") + 1, DEPEND.length());
+            String REPO = ''
+            String PR_ID = ''
+            switch (DEPEND) {
+                case ~/https:\/\/github\.(ibm\.)?com\/[^\s\/]+\/[^\s\/]+\/pull\/[0-9]+/:
+                    def urlList = DEPEND.tokenize('/')
+                    REPO = urlList[3]
+                    PR_ID = urlList[5]
+                    break
+                case ~/[^\s\/#]+\/[^\s\/#]+#[0-9]+/:
+                    REPO = DEPEND.substring(DEPEND.indexOf("/") + 1, DEPEND.indexOf("#"));
+                    PR_ID = DEPEND.substring(DEPEND.indexOf("#") + 1, DEPEND.length());
+                    break
+                default:
+                    error "Cannot parse dependent change: '${DEPEND}'"
+            }
             switch (REPO) {
                 case "omr":
                 case "openj9-omr":
@@ -298,13 +311,26 @@ def archive_sdk() {
         def buildDir = "build/${RELEASE}/images/"
         def debugImageDir = "${buildDir}debug-image/"
         def testDir = "test"
+        def makeDir = "make"
 
         dir(OPENJDK_CLONE_DIR) {
+            // Code coverage files archive for report
+            if (params.CODE_COVERAGE) {
+                // Use WORKSPACE since code coverage gcno files are in vm folder, java is in jdk and images folder, and omr and openj9 folders are in workspace.
+                def codeCoverageDir = "${env.WORKSPACE}"
+                sh "touch ${CODE_COVERAGE_FILENAME}"
+                if (SPEC.contains('zos')) {
+                    sh "pax --exclude=${CODE_COVERAGE_FILENAME} -wvzf ${CODE_COVERAGE_FILENAME} ${codeCoverageDir}"
+                } else {
+                    sh "tar --exclude=${CODE_COVERAGE_FILENAME} -zcvf ${CODE_COVERAGE_FILENAME} ${codeCoverageDir}"
+                }
+            }
+
             // The archiver receives pathnames on stdin and writes to stdout.
             def archiveCmd = SPEC.contains('zos') ? 'pax -wvz -p x' : 'tar -cvz -T -'
             // Filter out unwanted files (most of which are available in the debug-image).
             def filterCmd = "sed -e '/\\.dbg\$/d' -e '/\\.debuginfo\$/d' -e '/\\.diz\$/d' -e '/\\.dSYM\\//d' -e '/\\.map\$/d' -e '/\\.pdb\$/d'"
-            sh "( cd ${buildDir} && find ${JDK_FOLDER} -type f | ${filterCmd} | ${archiveCmd} ) > ${SDK_FILENAME}"
+            sh "( cd ${buildDir} && find ${JDK_FOLDER} '(' -type f -o -type l ')' | ${filterCmd} | ${archiveCmd} ) > ${SDK_FILENAME}"
             // test if the test natives directory is present, only in JDK11+
             if (fileExists("${buildDir}${testDir}")) {
                 if (SPEC.contains('zos')) {
@@ -367,6 +393,15 @@ def archive_sdk() {
                                 "target": "${ARTIFACTORY_CONFIG['uploadDir']}",
                                 "props": "build.buildIdentifier=${BUILD_IDENTIFIER}"]
                 specs.add(debugImageSpec)
+                // Extract obfuscation change log files to Artifactory
+                def findZelixOut = sh(script: "find ${makeDir} -name 'ObfuscateLog*.txt' -type f", returnStdout: true).trim()
+                def zelixFiles = findZelixOut.tokenize('\n');
+                for (String zelixFile in zelixFiles) {
+                    def zelixSpec = ["pattern": "${zelixFile}",
+                                     "target": "${ARTIFACTORY_CONFIG['uploadDir']}",
+                                     "props": "build.buildIdentifier=${BUILD_IDENTIFIER}"]
+                    specs.add(zelixSpec)
+                }
                 if (params.ARCHIVE_JAVADOC) {
                     def javadocSpec = ["pattern": "${OPENJDK_CLONE_DIR}/${JAVADOC_FILENAME}",
                                        "target": "${ARTIFACTORY_CONFIG['uploadDir']}",
@@ -377,6 +412,13 @@ def archive_sdk() {
                                                  "props": "build.buildIdentifier=${BUILD_IDENTIFIER}"]
                     specs.add(javadocOpenJ9OnlySpec)
                 }
+                if (params.CODE_COVERAGE) {
+                    def codeCoverageSpec = ["pattern": "${OPENJDK_CLONE_DIR}/${CODE_COVERAGE_FILENAME}",
+                                       "target": "${ARTIFACTORY_CONFIG['uploadDir']}",
+                                       "props": "build.buildIdentifier=${BUILD_IDENTIFIER}"]
+                    specs.add(codeCoverageSpec)
+                }
+
                 def uploadFiles = [files : specs]
                 def uploadSpec = JsonOutput.toJson(uploadFiles)
                 upload_artifactory(uploadSpec)
@@ -385,13 +427,18 @@ def archive_sdk() {
                 env.CUSTOMIZED_SDK_URL = "${ARTIFACTORY_CONFIG[ARTIFACTORY_CONFIG['defaultGeo']]['url']}/${ARTIFACTORY_CONFIG['uploadDir']}${SDK_FILENAME}"
                 currentBuild.description += "<br><a href=${CUSTOMIZED_SDK_URL}>${SDK_FILENAME}</a>"
 
+                for (String zelixFile in zelixFiles) {
+                    def zelixFileStripped = zelixFile.substring(zelixFile.lastIndexOf("/") + 1)
+                    ZELIX_URL = "${ARTIFACTORY_CONFIG[ARTIFACTORY_CONFIG['defaultGeo']]['url']}/${ARTIFACTORY_CONFIG['uploadDir']}${zelixFileStripped}"
+                    currentBuild.description += "<br><a href=${ZELIX_URL}>${zelixFileStripped}</a>"
+                }
                 if (fileExists("${TEST_FILENAME}")) {
                     TEST_LIB_URL = "${ARTIFACTORY_CONFIG[ARTIFACTORY_CONFIG['defaultGeo']]['url']}/${ARTIFACTORY_CONFIG['uploadDir']}${TEST_FILENAME}"
                     currentBuild.description += "<br><a href=${TEST_LIB_URL}>${TEST_FILENAME}</a>"
                     env.CUSTOMIZED_SDK_URL += " " + TEST_LIB_URL
                 }
                 if (fileExists("${DEBUG_IMAGE_FILENAME}")) {
-                    DEBUG_IMAGE_LIB_URL = "${ARTIFACTORY_CONFIG[ARTIFACTORY_CONFIG['defaultGeo']]['url']}/${ARTIFACTORY_CONFIG['uploadDir']}/${DEBUG_IMAGE_FILENAME}"
+                    DEBUG_IMAGE_LIB_URL = "${ARTIFACTORY_CONFIG[ARTIFACTORY_CONFIG['defaultGeo']]['url']}/${ARTIFACTORY_CONFIG['uploadDir']}${DEBUG_IMAGE_FILENAME}"
                     currentBuild.description += "<br><a href=${DEBUG_IMAGE_LIB_URL}>${DEBUG_IMAGE_FILENAME}</a>"
                 }
                 if (params.ARCHIVE_JAVADOC) {
@@ -406,6 +453,14 @@ def archive_sdk() {
                         echo "Javadoc (OpenJ9 extensions only):'${JAVADOC_OPENJ9_ONLY_LIB_URL}'"
                     }
                 }
+                if (params.CODE_COVERAGE) {
+                    if (fileExists("${CODE_COVERAGE_FILENAME}")) {
+                        CODE_COVERAGE_LIB_URL = "${ARTIFACTORY_CONFIG[ARTIFACTORY_CONFIG['defaultGeo']]['url']}/${ARTIFACTORY_CONFIG['uploadDir']}${CODE_COVERAGE_FILENAME}"
+                        currentBuild.description += "<br><a href='${CODE_COVERAGE_LIB_URL}'>${CODE_COVERAGE_FILENAME}</a>"
+                        env.CUSTOMIZED_SDK_URL += " " + CODE_COVERAGE_LIB_URL
+                        echo "Code Coverage:'${CODE_COVERAGE_LIB_URL}'"
+                    }
+                }
                 echo "CUSTOMIZED_SDK_URL:'${CUSTOMIZED_SDK_URL}'"
             } else {
                 echo "ARTIFACTORY server is not set saving artifacts on jenkins."
@@ -413,6 +468,9 @@ def archive_sdk() {
                 if (params.ARCHIVE_JAVADOC) {
                     ARTIFACTS_FILES += ",**/${JAVADOC_FILENAME}"
                     ARTIFACTS_FILES += ",**/${JAVADOC_OPENJ9_ONLY_FILENAME}"
+                }
+                if (params.CODE_COVERAGE) {
+                    ARTIFACTS_FILES += ",**/${CODE_COVERAGE_FILENAME}"
                 }
                 archiveArtifacts artifacts: ARTIFACTS_FILES, fingerprint: false, onlyIfSuccessful: true
             }
@@ -504,7 +562,11 @@ def upload_artifactory(uploadSpec) {
             if (ARTIFACTORY_CONFIG[geo]['vpn'] == 'true' && !NODE_LABELS.contains("ci.geo.${geo}")) {
                 if (!ARTIFACTORY_CONFIG['stashed']) {
                     // Stash only what test needs (CUSTOMIZED_SDK_URL)
-                    stash includes: "**/${SDK_FILENAME},**/${TEST_FILENAME}", name: 'sdk'
+                    if (params.CODE_COVERAGE) {
+                        stash includes: "**/${SDK_FILENAME},**/${TEST_FILENAME},**/${CODE_COVERAGE_FILENAME}", name: 'sdk'
+                    } else {
+                        stash includes: "**/${SDK_FILENAME},**/${TEST_FILENAME}", name: 'sdk'
+                    }
                     ARTIFACTORY_CONFIG['stashed'] = true
                     ARTIFACTORY_CONFIG['uploadSpec'] = uploadSpec
                 }
@@ -645,7 +707,7 @@ def build_all() {
                 timeout(time: 5, unit: 'HOURS') {
                     if ("${DOCKER_IMAGE}") {
                         prepare_docker_environment()
-                        docker.image(DOCKER_IMAGE_ID).inside {
+                        docker.image(DOCKER_IMAGE_ID).inside("-v /home/jenkins/openjdk_cache:/home/jenkins/openjdk_cache:rw,z") {
                             _build_all()
                         }
                     } else {

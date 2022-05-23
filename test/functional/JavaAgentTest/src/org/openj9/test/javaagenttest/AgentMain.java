@@ -39,7 +39,7 @@ public class AgentMain {
 	public static String agentArguments = null;
 
 	public static void premain( String agentArgs, Instrumentation inst ) {
-		logger.info("AgentMain.premain() is initilized");
+		logger.info("AgentMain.premain() is initialized");
 		instrumentation = inst;
 		agentArguments = agentArgs;
 	}
@@ -60,7 +60,7 @@ public class AgentMain {
 				e.printStackTrace();
 			}
 		} catch (java.lang.NullPointerException ex) {
-			Assert.fail("Unexpected exception occored " + ex.getMessage(), ex);
+			Assert.fail("Unexpected exception occurred " + ex.getMessage(), ex);
 		}
 	}
 }

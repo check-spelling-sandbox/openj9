@@ -843,7 +843,7 @@ testLaunch(struct J9PortLibrary * portLibrary, uint32_t deviceCount)
 		rc = j9cuda_launchKernel(deviceId, function, 1, 1, 1, 32, 1, 1, 0, NULL, kernelParms);
 
 		if (0 != rc) {
-			outputErrorMessage(PORTTEST_ERROR_ARGS, "Failed to lauch kernel: %d\n", rc);
+			outputErrorMessage(PORTTEST_ERROR_ARGS, "Failed to launch kernel: %d\n", rc);
 			goto cleanup;
 		}
 

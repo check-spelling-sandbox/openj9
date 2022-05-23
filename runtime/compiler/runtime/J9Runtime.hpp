@@ -115,11 +115,11 @@ typedef struct TR_InlinedSiteLinkedListEntry
    } TR_InlinedSiteLinkedListEntry;
 
 
-typedef struct TR_InlinedSiteHastTableEntry
+typedef struct TR_InlinedSiteHashTableEntry
    {
    TR_InlinedSiteLinkedListEntry *first;
    TR_InlinedSiteLinkedListEntry *last;
-   } TR_InlinedSiteHastTableEntry;
+   } TR_InlinedSiteHashTableEntry;
 
 
 typedef enum
@@ -217,7 +217,7 @@ typedef struct TR_AOTStats
    int32_t numEntriesFoundInLocalChain;
    int32_t numEntriesFoundAndValidatedInSharedClass;
    int32_t numClassChainNotInSharedClass;
-   int32_t numCHInSharedCacheButFailValiation;
+   int32_t numCHInSharedCacheButFailValidation;
    int32_t numInstanceFieldInfoNotUsed;
    int32_t numStaticFieldInfoNotUsed;
    int32_t numDefiningClassNotFound;

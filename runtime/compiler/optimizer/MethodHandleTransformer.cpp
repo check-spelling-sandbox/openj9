@@ -34,7 +34,6 @@
 #include "env/IO.hpp"
 #include "env/VMJ9.h"
 #include "env/j9method.h"
-#include "env/VMAccessCriticalSection.hpp"
 #include "il/ILOpCodes.hpp"
 #include "il/ILOps.hpp"
 #include "il/MethodSymbol.hpp"
@@ -350,9 +349,15 @@ TR_MethodHandleTransformer::getObjectInfoOfNode(TR::Node* node)
    if (node->getOpCode().isLoadDirect() &&
        symbol->isAutoOrParm())
       {
+      TR::KnownObjectTable::Index koi = (*_currentObjectInfo)[symbol->getLocalIndex()];
+      node->setKnownObjectIndex(koi);
+
       if (trace())
-         traceMsg(comp(), "getObjectInfoOfNode n%dn is load from auto or parm, local #%d\n", node->getGlobalIndex(), symbol->getLocalIndex());
-      return (*_currentObjectInfo)[symbol->getLocalIndex()];
+         {
+         traceMsg(comp(), "getObjectInfoOfNode n%dn is load from auto or parm, local #%d, set node known object=%d\n", node->getGlobalIndex(), symbol->getLocalIndex(), koi);
+         }
+
+      return koi;
       }
 
    auto knot = comp()->getKnownObjectTable();
@@ -371,7 +376,8 @@ TR_MethodHandleTransformer::getObjectInfoOfNode(TR::Node* node)
               {
               auto mnIndex = comp()->fej9()->getMemberNameFieldKnotIndexFromMethodHandleKnotIndex(comp(), mhIndex, "member");
               if (trace())
-                 traceMsg(comp(), "Get DirectMethodHandle.member known object %d\n", mnIndex);
+                 traceMsg(comp(), "Get DirectMethodHandle.member known object %d, update node n%dn known object\n", mnIndex, node->getGlobalIndex());
+              node->setKnownObjectIndex(mnIndex);
               return mnIndex;
               }
            }
@@ -382,10 +388,22 @@ TR_MethodHandleTransformer::getObjectInfoOfNode(TR::Node* node)
               {
               auto mnIndex = comp()->fej9()->getMemberNameFieldKnotIndexFromMethodHandleKnotIndex(comp(), mhIndex, "initMethod");
               if (trace())
-                 traceMsg(comp(), "Get DirectMethodHandle.initMethod known object %d\n", mnIndex);
+                 traceMsg(comp(), "Get DirectMethodHandle.initMethod known object %d, update node n%dn known object\n", mnIndex, node->getGlobalIndex());
+              node->setKnownObjectIndex(mnIndex);
               return mnIndex;
               }
            }
+
+#if defined(J9VM_OPT_OPENJDK_METHODHANDLE)
+         case TR::java_lang_invoke_DelegatingMethodHandle_getTarget:
+            {
+            TR::KnownObjectTable::Index dmhIndex =
+               getObjectInfoOfNode(node->getArgument(0));
+
+            return comp()->fej9()->delegatingMethodHandleTarget(
+               comp(), dmhIndex, trace());
+            }
+#endif
 
          default:
             break;
@@ -665,15 +683,11 @@ TR_MethodHandleTransformer::process_java_lang_invoke_Invokers_checkExactType(TR:
 
    TR::KnownObjectTable::Index mhIndex = getObjectInfoOfNode(methodHandleNode);
    TR::KnownObjectTable::Index expectedTypeIndex = getObjectInfoOfNode(expectedTypeNode);
-   auto knot = comp()->getKnownObjectTable();
-   if (knot && isKnownObject(mhIndex) && isKnownObject(expectedTypeIndex))
+   if (isKnownObject(mhIndex) && isKnownObject(expectedTypeIndex))
       {
-      TR::VMAccessCriticalSection vmAccess(fej9);
-      uintptr_t mhObject = knot->getPointer(mhIndex);
-      uintptr_t mtObject = fej9->getReferenceField(mhObject, "type", "Ljava/lang/invoke/MethodType;");
-      uintptr_t etObject = knot->getPointer(expectedTypeIndex);
+      bool typesMatch = fej9->isMethodHandleExpectedType(comp(), mhIndex, expectedTypeIndex);
 
-      if (etObject == mtObject && performTransformation(comp(), "%sChanging checkExactType call node n%dn to PassThrough\n", optDetailString(), node->getGlobalIndex()))
+      if (typesMatch && performTransformation(comp(), "%sChanging checkExactType call node n%dn to PassThrough\n", optDetailString(), node->getGlobalIndex()))
          {
          TR::TransformUtil::transformCallNodeToPassThrough(this, node, tt, node->getFirstArgument());
          return;
@@ -692,11 +706,12 @@ TR_MethodHandleTransformer::process_java_lang_invoke_Invokers_checkExactType(TR:
                                                                                          "java/lang/invoke/MethodHandle.type Ljava/lang/invoke/MethodType;");
    auto handleTypeNode = TR::Node::createWithSymRef(node, comp()->il.opCodeForIndirectLoad(TR::Address), 1, methodHandleNode, typeSymRef);
    auto cmpEqNode = TR::Node::create(node, TR::acmpeq, 2, expectedTypeNode, handleTypeNode);
-   prepareToReplaceNode(node);
-   TR::Node::recreate(node, TR::ZEROCHK);
-   node->setSymbolReference(comp()->getSymRefTab()->findOrCreateMethodTypeCheckSymbolRef(comp()->getMethodSymbol()));
-   node->setNumChildren(1);
-   node->setAndIncChild(0, cmpEqNode);
+   TR::Node* zerochkNode = TR::Node::createWithSymRef(TR::ZEROCHK, 1, 1,
+                                                       cmpEqNode,
+                                                       comp()->getSymRefTab()->findOrCreateMethodTypeCheckSymbolRef(comp()->getMethodSymbol()));
+   zerochkNode->setByteCodeInfo(node->getByteCodeInfo());
+   tt->insertBefore(TR::TreeTop::create(comp(), zerochkNode));
+   TR::TransformUtil::transformCallNodeToPassThrough(this, node, tt, node->getFirstArgument());
    }
 
 /*

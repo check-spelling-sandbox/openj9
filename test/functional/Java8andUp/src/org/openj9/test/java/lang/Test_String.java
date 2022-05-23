@@ -236,7 +236,7 @@ public class Test_String {
 		// substring_length_1
 		String s = new String(("Hello World" + "\u0090").substring(11, 12));
 		AssertJUnit.assertTrue(
-				"Failed to construct correct string when the argument is a susbtring of legnth 1 and is out the range of ascii",
+				"Failed to construct correct string when the argument is a substring of length 1 and is out the range of ascii",
 				s.equals("\u0090"));
 	}
 
@@ -1402,7 +1402,7 @@ public class Test_String {
 	 */
 	@Test
 	public void test_localeLanguageReferenceEquality() {
-		AssertJUnit.assertTrue("String constructor failed to create new string for Local langauge testing",
+		AssertJUnit.assertTrue("String constructor failed to create new string for Local language testing",
 				new String("en") != "en");
 		AssertJUnit.assertTrue("Non-interned Locale language string from Locale.US", Locale.US.getLanguage() == "en");
 		AssertJUnit.assertTrue("Non-interned Locale language string from Locale.<init>(String)",

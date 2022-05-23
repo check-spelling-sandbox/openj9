@@ -29,6 +29,7 @@
 
 #include "j9cel4ro64.h"
 #include "jni.h"
+#include "j9cfg.h"
 
 /* High tag bits to signify 31-bit function handles that are passed to 64-bit. */
 #define HANDLE31_HIGHTAG 0x31000000
@@ -51,7 +52,7 @@ extern "C" {
 #endif
 
 /* A 31-bit JavaVM struct, instances of which are used by 31-bit native code.
- * Each instance should always have a matching 64-bit JavaVM * isntance from the JVM.
+ * Each instance should always have a matching 64-bit JavaVM * instance from the JVM.
  */
 typedef struct JavaVM31 {
 	struct JNIInvokeInterface_ *functions;
@@ -64,7 +65,7 @@ typedef struct JavaVM31 {
 } JavaVM31;
 
 /* A 31-bit JNIEnv struct, instances of which are used by 31-bit native code.
- * Each instance should always have a matching 64-bit JNIEnv * isntance from the JVM.
+ * Each instance should always have a matching 64-bit JNIEnv * instance from the JVM.
  */
 typedef struct JNIEnv31 {
 	struct JNINativeInterface_ *functions;

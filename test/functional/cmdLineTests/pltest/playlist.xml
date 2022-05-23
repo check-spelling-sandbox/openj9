@@ -1,6 +1,6 @@
 <?xml version='1.0' encoding='UTF-8'?>
 <!--
-Copyright (c) 2016, 2021 IBM Corp. and others
+Copyright (c) 2016, 2022 IBM Corp. and others
 
 This program and the accompanying materials are made available under
 the terms of the Eclipse Public License 2.0 which accompanies this
@@ -51,11 +51,6 @@ SPDX-License-Identifier: EPL-2.0 OR Apache-2.0 OR GPL-2.0 WITH Classpath-excepti
 			<impl>openj9</impl>
 			<impl>ibm</impl>
 		</impls>
-		<versions>
-			<version>8</version>
-			<version>9</version>
-			<version>11+</version>
-		</versions>
 	</test>
 	<test>
 		<testCaseName>cmdLineTester_pltest_osx</testCaseName>
@@ -68,6 +63,12 @@ SPDX-License-Identifier: EPL-2.0 OR Apache-2.0 OR GPL-2.0 WITH Classpath-excepti
 	-xids all,$(PLATFORM),$(VARIATION) -plats all,$(PLATFORM),$(VARIATION) -nonZeroExitWhenError; \
 	$(TEST_STATUS)</command>
 		<platformRequirements>os.osx</platformRequirements>
+		<disables>
+			<disable>
+				<comment>https://github.com/eclipse-openj9/openj9/issues/13767</comment>
+				<platform>aarch64_mac.*</platform>
+			</disable>
+		</disables>
 		<levels>
 			<level>sanity</level>
 		</levels>
@@ -81,11 +82,6 @@ SPDX-License-Identifier: EPL-2.0 OR Apache-2.0 OR GPL-2.0 WITH Classpath-excepti
 			<impl>openj9</impl>
 			<impl>ibm</impl>
 		</impls>
-		<versions>
-			<version>8</version>
-			<version>9</version>
-			<version>11+</version>
-		</versions>
 	</test>
 	<test>
 		<testCaseName>cmdLineTester_pltest_aix</testCaseName>
@@ -111,11 +107,6 @@ SPDX-License-Identifier: EPL-2.0 OR Apache-2.0 OR GPL-2.0 WITH Classpath-excepti
 			<impl>openj9</impl>
 			<impl>ibm</impl>
 		</impls>
-		<versions>
-			<version>8</version>
-			<version>9</version>
-			<version>11+</version>
-		</versions>
 	</test>
 	<test>
 		<testCaseName>cmdLineTester_pltest_CEEHDLR</testCaseName>
@@ -141,11 +132,6 @@ SPDX-License-Identifier: EPL-2.0 OR Apache-2.0 OR GPL-2.0 WITH Classpath-excepti
 			<impl>openj9</impl>
 			<impl>ibm</impl>
 		</impls>
-		<versions>
-			<version>8</version>
-			<version>9</version>
-			<version>11+</version>
-		</versions>
 	</test>
 	<test>
 		<testCaseName>cmdLineTester_pltest_tty_extended</testCaseName>
@@ -180,11 +166,6 @@ SPDX-License-Identifier: EPL-2.0 OR Apache-2.0 OR GPL-2.0 WITH Classpath-excepti
 			<impl>openj9</impl>
 			<impl>ibm</impl>
 		</impls>
-		<versions>
-			<version>8</version>
-			<version>9</version>
-			<version>11+</version>
-		</versions>
 	</test>
 	<test>
 		<testCaseName>cmdLineTester_pltest_numcpus_notBound</testCaseName>
@@ -219,11 +200,6 @@ SPDX-License-Identifier: EPL-2.0 OR Apache-2.0 OR GPL-2.0 WITH Classpath-excepti
 			<impl>openj9</impl>
 			<impl>ibm</impl>
 		</impls>
-		<versions>
-			<version>8</version>
-			<version>9</version>
-			<version>11+</version>
-		</versions>
 	</test>
 	<test>
 		<testCaseName>cmdLineTester_pltest_numcpus_bound_linux</testCaseName>
@@ -251,11 +227,6 @@ SPDX-License-Identifier: EPL-2.0 OR Apache-2.0 OR GPL-2.0 WITH Classpath-excepti
 			<impl>openj9</impl>
 			<impl>ibm</impl>
 		</impls>
-		<versions>
-			<version>8</version>
-			<version>9</version>
-			<version>11+</version>
-		</versions>
 	</test>
 	<test>
 		<testCaseName>cmdLineTester_pltest_numcpus_bound_win</testCaseName>
@@ -292,11 +263,6 @@ SPDX-License-Identifier: EPL-2.0 OR Apache-2.0 OR GPL-2.0 WITH Classpath-excepti
 			<impl>openj9</impl>
 			<impl>ibm</impl>
 		</impls>
-		<versions>
-			<version>8</version>
-			<version>9</version>
-			<version>11+</version>
-		</versions>
 	</test>
 	<test>
 		<testCaseName>cmdLineTester_pltest_numcpus_bound_aix</testCaseName>
@@ -323,11 +289,6 @@ SPDX-License-Identifier: EPL-2.0 OR Apache-2.0 OR GPL-2.0 WITH Classpath-excepti
 			<impl>openj9</impl>
 			<impl>ibm</impl>
 		</impls>
-		<versions>
-			<version>8</version>
-			<version>9</version>
-			<version>11+</version>
-		</versions>
 	</test>
 	<test>
 		<testCaseName>cmdLineTester_pltest_hyp_HV_vmware</testCaseName>
@@ -355,11 +316,6 @@ SPDX-License-Identifier: EPL-2.0 OR Apache-2.0 OR GPL-2.0 WITH Classpath-excepti
 			<impl>openj9</impl>
 			<impl>ibm</impl>
 		</impls>
-		<versions>
-			<version>8</version>
-			<version>9</version>
-			<version>11+</version>
-		</versions>
 	</test>
 	<test>
 		<testCaseName>cmdLineTester_pltest_hyp_HV_kvm</testCaseName>
@@ -387,11 +343,6 @@ SPDX-License-Identifier: EPL-2.0 OR Apache-2.0 OR GPL-2.0 WITH Classpath-excepti
 			<impl>openj9</impl>
 			<impl>ibm</impl>
 		</impls>
-		<versions>
-			<version>8</version>
-			<version>9</version>
-			<version>11+</version>
-		</versions>
 	</test>
 	<test>
 		<testCaseName>cmdLineTester_pltest_j9sig_ext</testCaseName>
@@ -400,7 +351,7 @@ SPDX-License-Identifier: EPL-2.0 OR Apache-2.0 OR GPL-2.0 WITH Classpath-excepti
 		</variations>
 		<command>$(ADD_JVM_LIB_DIR_TO_LIBPATH) \
 	$(JAVA_COMMAND) $(JVM_OPTIONS) -DRESOURCES_DIR=$(Q)$(RESOURCES_DIR)$(Q) -DJVM_TEST_ROOT=$(Q)$(JVM_TEST_ROOT)$(Q) \
-	-DEXE=$(SQ)$(JAVA_SHARED_LIBRARIES_DIR)$(D)pltest -inlcude:j9sig_extended $(JVM_OPTIONS)$(SQ) -jar $(CMDLINETESTER_JAR) \
+	-DEXE=$(SQ)$(JAVA_SHARED_LIBRARIES_DIR)$(D)pltest -include:j9sig_extended $(JVM_OPTIONS)$(SQ) -jar $(CMDLINETESTER_JAR) \
 	-config $(Q)$(TEST_RESROOT)$(D)pltest.xml$(Q) -explainExcludes \
 	-xids all,$(PLATFORM),$(VARIATION) -plats all,$(PLATFORM),$(VARIATION) -nonZeroExitWhenError; \
 	$(TEST_STATUS)</command>
@@ -418,8 +369,5 @@ SPDX-License-Identifier: EPL-2.0 OR Apache-2.0 OR GPL-2.0 WITH Classpath-excepti
 			<impl>openj9</impl>
 			<impl>ibm</impl>
 		</impls>
-		<versions>
-			<version>8+</version>
-		</versions>
 	</test>
 </playlist>

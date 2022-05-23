@@ -75,7 +75,7 @@ public class ts001 {
 		}
 
 		/* should fail with no external trace because no way to flush in core trace */
-		System.out.println("Flushing trace data (will fail if not outputing trace to a file)");
+		System.out.println("Flushing trace data (will fail if not outputting trace to a file)");
 		try {
 			tryFlushTraceData();
 		} catch (Exception e) {

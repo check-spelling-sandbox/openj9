@@ -644,7 +644,7 @@ typedef struct J9IndexableObject* mm_j9array_t;
 #define J9OBJECT_MONITOR_EA(vmThread, object) ((j9objectmonitor_t*)(((U_8 *)(object)) + J9OBJECT_MONITOR_OFFSET(vmThread, object)))
 #define J9OBJECT_MONITOR_EA_VM(vm, object) ((j9objectmonitor_t*)(((U_8 *)(object)) + J9OBJECT_MONITOR_OFFSET_VM(vm, object)))
 
-/* Note the volatile in these macros may be unncessary, but they replace hard-coded volatile operations in the
+/* Note the volatile in these macros may be unnecessary, but they replace hard-coded volatile operations in the
  * source, so maintaining the volatility is safest.
  */
 #define J9_LOAD_LOCKWORD(vmThread, lwEA) \

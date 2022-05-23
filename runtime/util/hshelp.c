@@ -73,7 +73,7 @@ static UDATA areNameAndSigsIdentical(J9ROMNameAndSignature * nas1, J9ROMNameAndS
 static UDATA areSingleSlotConstantRefsIdentical(J9ROMConstantPoolItem * romCP1, U_32 index1, J9ROMConstantPoolItem * romCP2, U_32 index2);
 static UDATA areMethodsEquivalentPropagateCallSites(J9ROMMethod * method1, J9Class * ramClass1, J9ROMMethod * method2, J9Class * ramClass2);
 static UDATA areMethodsEquivalentSub(J9ROMMethod * method1, J9ROMClass * romClass1, J9Class * ramClass1, J9ROMMethod * method2, J9ROMClass * romClass2, J9Class * ramClass2);
-static UDATA areCallSiteDataMethodsEquivalent(J9ROMClass* romClass1, UDATA callSiteIndex1, J9ROMClass* romClass2, UDATA callSiteIndes2);
+static UDATA areCallSiteDataMethodsEquivalent(J9ROMClass* romClass1, UDATA callSiteIndex1, J9ROMClass* romClass2, UDATA callSiteIndex2);
 static UDATA areDoubleSlotConstantRefsIdentical(J9ROMConstantPoolItem * romCP1, U_32 index1, J9ROMConstantPoolItem * romCP2, U_32 index2);
 static void fixClassSlot(J9VMThread* currentThread, J9Class** classSlot, J9HashTable *classPairs);
 static void fixJNIFieldIDs(J9VMThread * currentThread, J9Class * originalClass, J9Class * replacementClass);
@@ -2460,8 +2460,8 @@ swapClassesForFastHCR(J9Class *originalClass, J9Class *obsoleteClass)
 	SWAP_MEMBER(romClass, J9ROMClass *, originalClass, obsoleteClass);
 	SWAP_MEMBER(ramMethods, J9Method *, originalClass, obsoleteClass);
 	SWAP_MEMBER(ramConstantPool, J9ConstantPool *, originalClass, obsoleteClass);
-	((J9ConstantPool *) originalClass->ramConstantPool)->ramClass = originalClass;
-	((J9ConstantPool *) obsoleteClass->ramConstantPool)->ramClass = obsoleteClass;
+	originalClass->ramConstantPool->ramClass = originalClass;
+	obsoleteClass->ramConstantPool->ramClass = obsoleteClass;
 	SWAP_MEMBER(replacedClass, J9Class *, originalClass, obsoleteClass);
 	SWAP_MEMBER(staticSplitMethodTable, J9Method **, originalClass, obsoleteClass);
 	SWAP_MEMBER(specialSplitMethodTable, J9Method **, originalClass, obsoleteClass);
@@ -3257,7 +3257,7 @@ verifyRecordAttributesAreSame(J9ROMClass *originalROMClass, J9ROMClass *replacem
 {
 	jvmtiError rc = JVMTI_ERROR_NONE;
 
-	/* Since retranformation is not allowed to change inheritance there's no need to consider 
+	/* Since retransformation is not allowed to change inheritance there's no need to consider 
 	 * one class being a record and one not. */
 	if (J9ROMCLASS_IS_RECORD(originalROMClass) && J9ROMCLASS_IS_RECORD(replacementROMClass)) {
 		U_32 originalNumberOfRecords = getNumberOfRecordComponents(originalROMClass);
@@ -4099,13 +4099,13 @@ hshelpUTRegister(J9JavaVM *vm)
  * jit to patch the compiled code to account for the redefined classes.
  */
 void
-jitClassRedefineEvent(J9VMThread * currentThread, J9JVMTIHCRJitEventData * jitEventData, UDATA extensionsEnabled)
+jitClassRedefineEvent(J9VMThread * currentThread, J9JVMTIHCRJitEventData * jitEventData, UDATA extensionsEnabled, UDATA extensionsUsed)
 {
 	J9JavaVM * vm = currentThread->javaVM;
 	J9JITConfig *jitConfig = vm->jitConfig;
 
 	if (NULL != jitConfig) {
-		jitConfig->jitClassesRedefined(currentThread, jitEventData->classCount, (J9JITRedefinedClass*)jitEventData->data);
+		jitConfig->jitClassesRedefined(currentThread, jitEventData->classCount, (J9JITRedefinedClass*)jitEventData->data, extensionsUsed);
 		if (extensionsEnabled) {
 			/* Toss the whole code cache */
 			jitConfig->jitHotswapOccurred(currentThread);

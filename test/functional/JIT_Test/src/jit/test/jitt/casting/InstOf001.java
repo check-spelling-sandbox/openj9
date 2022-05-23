@@ -38,7 +38,7 @@ public class InstOf001 extends jit.test.jitt.Test {
 	static final int TEST_ARRAY_OBJECT_FAIL = 6;
 	static final int TEST_ARRAY_ARRAY_PASS = 7;
 	static final int TEST_ARRAY_ARRAY_FAIL = 8;
-	static final int TEST_ARRAY_INTERACE_PASS = 9;
+	static final int TEST_ARRAY_INTERFACE_PASS = 9;
 	static final int TEST_ARRAY_INTERFACE_FAIL = 10;
 
 	static class Z extends X {
@@ -100,7 +100,7 @@ public class InstOf001 extends jit.test.jitt.Test {
 					instanceof String[]);
 					break;
 
-				case TEST_ARRAY_INTERACE_PASS :
+				case TEST_ARRAY_INTERFACE_PASS :
 					logger.debug("pos: array --!instanceOf--> interface, passed=");
 					passed = (new Object[] {arg}
 					instanceof Cloneable);
@@ -137,7 +137,7 @@ public class InstOf001 extends jit.test.jitt.Test {
 		x.tst_jit(x, TEST_ARRAY_OBJECT_FAIL);
 		x.tst_jit(x, TEST_ARRAY_ARRAY_PASS);
 		x.tst_jit(x, TEST_ARRAY_ARRAY_FAIL);
-		x.tst_jit(x, TEST_ARRAY_INTERACE_PASS);
+		x.tst_jit(x, TEST_ARRAY_INTERFACE_PASS);
 		x.tst_jit(x, TEST_ARRAY_INTERFACE_FAIL);
 
 		for (int j = 0; j < sJitThreshold; j++) {
@@ -152,7 +152,7 @@ public class InstOf001 extends jit.test.jitt.Test {
 		x.tst_jit(x, TEST_ARRAY_OBJECT_FAIL);
 		x.tst_jit(x, TEST_ARRAY_ARRAY_PASS);
 		x.tst_jit(x, TEST_ARRAY_ARRAY_FAIL);
-		x.tst_jit(x, TEST_ARRAY_INTERACE_PASS);
+		x.tst_jit(x, TEST_ARRAY_INTERFACE_PASS);
 		x.tst_jit(x, TEST_ARRAY_INTERFACE_FAIL);
 	}
 

@@ -124,7 +124,7 @@ bool MemoryWatcherAgent::init()
 	_cls = NULL;
 	_method = NULL;
 	_dumpGenerated = false;
-	_dumpThreshHold = 0;
+	_dumpThreshold = 0;
 
 	OMRMemCategoryWalkState walkState;
 
@@ -266,8 +266,8 @@ void MemoryWatcherAgent::runAction()
 	CloseHandle(process);
 
 #endif
-	message("Threshhold:");
-	messageIDATA(_dumpThreshHold);
+	message("Threshold:");
+	messageIDATA(_dumpThreshold);
 	message("\n");
 
 #if defined(J9ZOS390)
@@ -283,7 +283,7 @@ void MemoryWatcherAgent::runAction()
 	message("\n");
 
 	/* generate a system dump */
-	if ((_dumpGenerated == false)&&(_dumpThreshHold!=0)&&(raxfmct >_dumpThreshHold)){
+	if ((_dumpGenerated == false)&&(_dumpThreshold!=0)&&(raxfmct >_dumpThreshold)){
 		_dumpGenerated = true;
 		if (_method != NULL){
 			getEnv()->CallStaticVoidMethod(_cls, _method);
@@ -307,8 +307,8 @@ jint MemoryWatcherAgent::parseArgument(char* option)
 	jint rc = AGENT_ERROR_NONE;
 
 	/* check for threshHold option */
-	if (try_scan(&option,"dumpThreshHold:")){
-		if (1 != sscanf(option,"%d",&_dumpThreshHold)){
+	if (try_scan(&option,"dumpThreshold:")){
+		if (1 != sscanf(option,"%d",&_dumpThreshold)){
 			error("invalid dumpThreshold value passed to agent\n");
 			return AGENT_ERROR_INVALID_ARGUMENT_VALUE;
 		}

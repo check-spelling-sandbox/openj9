@@ -1,4 +1,4 @@
-!! Copyright (c) 2000, 2021 IBM Corp. and others
+!! Copyright (c) 2000, 2022 IBM Corp. and others
 !!
 !! This program and the accompanying materials are made available under
 !! the terms of the Eclipse Public License 2.0 which accompanies this
@@ -597,7 +597,7 @@ _interpreterUnresolvedInstanceDataGlue:
 	stw     r3, 0(r9)                                       ! replace isync with noop
 	bl      .__code_synchronization
 .L.normal_patching:
-	ori     r3, r30, 0                                      ! restore resolved field addre
+	ori     r3, r30, 0                                      ! restore resolved field address
 .L11.common_code:						!   not modified, r3 is result
 	laddr	r6, 0(r7)					! Load code cache RA
 	rlwinm  r17, r3, 0, 31, 31                              ! keep in r17 if r3 last bit is set: <clinit> is being executed
@@ -2128,7 +2128,7 @@ _virtualUnresolvedHelper:
         staddr  r3, 7*ALen(J9SP)
         laddr   r9, VirtualJ9MethodOffset(r11)                          ! Load the J9Method
         or.     r9, r9, r9                                              ! Check if J9Method is null
-        bc      BO_IF_NOT, CR0_EQ, .L.callPrivate                       ! If not null, this is a prevously resolved private method
+        bc      BO_IF_NOT, CR0_EQ, .L.callPrivate                       ! If not null, this is a previously resolved private method
 #ifdef AIXPPC
 	laddr	RTOC, J9TR_VMThreadRTOCOffset(J9VM_STRUCT)		! Restore TOC register
 	laddr	r5, TOCjitResolveVirtualMethod(RTOC)
@@ -2645,7 +2645,7 @@ _interfaceSlotsUnavailable:
         bne     .L.callHelper
         ! lastITable is a match
         laddr   r12, 4*ALen(r11)                                ! Load the itable offset from the snippet
-        andis.  r11,r12,J9TR_J9_ITABLE_OFFSET_TAG_BITS          ! Call the helper if the itable offset is tagged
+        andi.   r0, r12, J9TR_J9_ITABLE_OFFSET_TAG_BITS         ! Call the helper if the itable offset is tagged
         bne     .L.callHelper
         laddrx  r12, r9, r12                                    ! Load the interpreter vft offset
         neg     r12, r12
@@ -2767,7 +2767,7 @@ TOCjitResolveInterfaceMethod:
 TOCjitLookupInterfaceMethod:
 	.tc       jitLookupInterfaceMethod[TC],jitLookupInterfaceMethod
 TOC_interfaceCompeteSlot2:
-	.tc       _interfaceCompteteSlot2[TC],_interfaceCompeteSlot2{DS}
+	.tc       _interfaceCompeteSlot2[TC],_interfaceCompeteSlot2{DS}
 TOC_interfaceSlotsUnavailable:
 	.tc       _interfaceSlotsUnavailable[TC],_interfaceSlotsUnavailable{DS}
 TOC_jitAddPicToPatchOnClassUnload:
@@ -3066,7 +3066,7 @@ TOCjitResolveInterfaceMethod:
 TOCjitLookupInterfaceMethod:
 	.tc       jitLookupInterfaceMethod[TC],jitLookupInterfaceMethod
 TOC_interfaceCompeteSlot2:
-	.tc       _interfaceCompteteSlot2[TC],_interfaceCompeteSlot2
+	.tc       _interfaceCompeteSlot2[TC],_interfaceCompeteSlot2
 TOC_interfaceSlotsUnavailable:
 	.tc       _interfaceSlotsUnavailable[TC],_interfaceSlotsUnavailable
 TOC_jitAddPicToPatchOnClassUnload:

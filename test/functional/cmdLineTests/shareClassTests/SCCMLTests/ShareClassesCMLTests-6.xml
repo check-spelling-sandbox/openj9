@@ -478,7 +478,7 @@
 	<test id="Test 205-a: Create a new cache with -Xshareclasses:restrictClasspaths option. Also generate a javacore to be used in later tests." timeout="600" runPath=".">
 		<command>$JAVA_EXE$ $currentMode$,restrictClasspaths,reset,verbose -Xdump:java:events=vmstop,file=javacore.txt -version</command>
 		<output type="success" caseSensitive="no" regex="yes" javaUtilPattern="yes">(java|openjdk|semeru) version</output>
-		<output type="required" caseSesitive="yes" regex="no">JVM has created shared cache with '-Xshareclasses:restrictClasspaths' option</output>
+		<output type="required" caseSensitive="yes" regex="no">JVM has created shared cache with '-Xshareclasses:restrictClasspaths' option</output>
 		<output type="required" caseSensitive="yes" regex="no">Processed dump event</output>
 		<output type="required" caseSensitive="yes" regex="no">javacore.txt</output>
 		<output type="failure" caseSensitive="no" regex="no">Unhandled Exception</output>
@@ -553,7 +553,7 @@
 	<test id="Test 205-h: Using existing cache run another application without -Xshareclasses:allowClasspaths option. Verify the trace point prohibiting addition of classpath is triggered." timeout="600" runPath=".">
 		<exec command="cp $UTILSDIR$$PATHSEP$utils.jar $UTILSDIR$$PATHSEP$utilsBK.jar"/>
 		<command>$JAVA_EXE$ $currentMode$,verbose -Xtrace:print={j9shr.2097} $CP_FIB$ $PROGRAM_FIB$</command>
-		<output type="success" caseSenditive="no" regex="no">Fibonacci: iterations</output>
+		<output type="success" caseSensitive="no" regex="no">Fibonacci: iterations</output>
 		<output type="required" caseSensitive="yes" regex="no">JVM cannot store classpaths into the shared cache</output>
 		<output type="required" caseSensitive="yes" regex="no">JVM is not allowed to store classpaths to the cache</output>
 		<output type="failure" caseSensitive="no" regex="no">Unhandled Exception</output>
@@ -576,7 +576,7 @@
 	<test id="Test 205-j: Create a new shared cache without -Xshareclasses:restrictClasspaths option" timeout="600" runPath=".">
 		<command>$JAVA_EXE$ $currentMode$,reset,verbose -version</command>
 		<output type="success" caseSensitive="no" regex="yes" javaUtilPattern="yes">(java|openjdk|semeru) version</output>
-		<output type="failure" caseSesitive="yes" regex="no">created shared cache with '-Xshareclasses:restrictClasspaths' option</output>
+		<output type="failure" caseSensitive="yes" regex="no">created shared cache with '-Xshareclasses:restrictClasspaths' option</output>
 		<output type="failure" caseSensitive="no" regex="no">Unhandled Exception</output>
 		<output type="failure" caseSensitive="yes" regex="no">Exception:</output>
 		<output type="failure" caseSensitive="no" regex="no">corrupt</output>
@@ -585,7 +585,7 @@
 	<test id="Test 205-k: Re-use shared cache created in previous test with -Xshareclasses:restrictClasspaths option. Also generate a javacore to be used in subsequent test." timeout="600" runPath=".">
 		<command>$JAVA_EXE$ $currentMode$,restrictClasspaths,verbose -Xdump:java:events=vmstop,file=javacore.txt -version</command>
 		<output type="success" caseSensitive="no" regex="yes" javaUtilPattern="yes">(java|openjdk|semeru) version</output>
-		<output type="required" caseSesitive="yes" regex="no">JVM has ignored '-Xshareclasses:restrictClasspaths' option</output>
+		<output type="required" caseSensitive="yes" regex="no">JVM has ignored '-Xshareclasses:restrictClasspaths' option</output>
 		<output type="failure" caseSensitive="no" regex="no">Unhandled Exception</output>
 		<output type="failure" caseSensitive="yes" regex="no">Exception:</output>
 		<output type="failure" caseSensitive="no" regex="no">corrupt</output>

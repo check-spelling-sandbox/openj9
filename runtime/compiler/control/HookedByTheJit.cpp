@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2000, 2021 IBM Corp. and others
+ * Copyright (c) 2000, 2022 IBM Corp. and others
  *
  * This program and the accompanying materials are made available under
  * the terms of the Eclipse Public License 2.0 which accompanies this
@@ -84,6 +84,7 @@
 #include "runtime/JITServerIProfiler.hpp"
 #include "runtime/JITServerStatisticsThread.hpp"
 #include "runtime/Listener.hpp"
+#include "runtime/MetricsServer.hpp"
 #endif /* defined(J9VM_OPT_JITSERVER) */
 
 extern "C" {
@@ -209,7 +210,7 @@ static void reportHook(J9VMThread *curThread, char *name, char *format=NULL, ...
    if (  TR::Options::getCmdLineOptions()->getVerboseOption(TR_VerboseHooks)
       || TR::Options::getCmdLineOptions()->getVerboseOption(TR_VerboseHookDetails))
       {
-      TR_VerboseLog::vlogAcquire();
+      TR_VerboseLog::CriticalSection vlogLock;
       TR_VerboseLog::write(TR_Vlog_HK,"vmThread=%p hook %s ", curThread, name);
       if (format)
          {
@@ -219,7 +220,6 @@ static void reportHook(J9VMThread *curThread, char *name, char *format=NULL, ...
          va_end(args);
          }
       TR_VerboseLog::writeLine("");
-      TR_VerboseLog::vlogRelease();
       }
    }
 
@@ -229,7 +229,7 @@ static void reportHookFinished(J9VMThread *curThread, char *name, char *format=N
    TR::CompilationInfo * compInfo = TR::CompilationInfo::get(jitConfig);
    if (TR::Options::getCmdLineOptions()->getVerboseOption(TR_VerboseHookDetails))
       {
-      TR_VerboseLog::vlogAcquire();
+      TR_VerboseLog::CriticalSection vlogLock;
       TR_VerboseLog::writeLine(TR_Vlog_HD,"vmThread=%p hook %s finished ", curThread, name);
       if (format)
          {
@@ -238,7 +238,6 @@ static void reportHookFinished(J9VMThread *curThread, char *name, char *format=N
          j9jit_vprintf(jitConfig, format, args);
          va_end(args);
          }
-      TR_VerboseLog::vlogRelease();
       }
    }
 
@@ -248,13 +247,12 @@ static void reportHookDetail(J9VMThread *curThread, char *name, char *format, ..
    TR::CompilationInfo * compInfo = TR::CompilationInfo::get(jitConfig);
    if (TR::Options::getCmdLineOptions()->getVerboseOption(TR_VerboseHookDetails))
       {
-      TR_VerboseLog::vlogAcquire();
+      TR_VerboseLog::CriticalSection vlogLock;
       TR_VerboseLog::writeLine(TR_Vlog_HD,"vmThread=%p hook %s detail ", curThread, name);
       va_list args;
       va_start(args, format);
       j9jit_vprintf(jitConfig, format, args);
       va_end(args);
-      TR_VerboseLog::vlogRelease();
       }
    }
 
@@ -374,6 +372,8 @@ static uint32_t initializeSendTargetHelperFuncHashValueForSpreading(J9Method* me
    return hashValue;
    }
 
+static bool highCodeCacheOccupancyThresholdReached = false;
+
 static void jitHookInitializeSendTarget(J9HookInterface * * hook, UDATA eventNum, void * eventData, void * userData)
    {
    J9VMInitializeSendTargetEvent * event = (J9VMInitializeSendTargetEvent *)eventData;
@@ -402,18 +402,26 @@ static void jitHookInitializeSendTarget(J9HookInterface * * hook, UDATA eventNum
 
    method->methodRunAddress = jitGetCountingSendTarget(vmThread, method);
 
+   bool countInOptionSet = false;
+
    if (TR::Options::getJITCmdLineOptions()->anOptionSetContainsACountValue())
       {
       TR::OptionSet * optionSet = findOptionSet(method, false);
       if (optionSet)
+         {
          optionsJIT = optionSet->getOptions();
+         countInOptionSet = true;
+         }
       }
 
    if (TR::Options::getAOTCmdLineOptions()->anOptionSetContainsACountValue())
       {
       TR::OptionSet * optionSet = findOptionSet(method, true);
       if (optionSet)
+         {
          optionsAOT = optionSet->getOptions();
+         countInOptionSet = true;
+         }
       }
 
    int32_t count = -1; // means we didn't set the value yet
@@ -438,13 +446,20 @@ static void jitHookInitializeSendTarget(J9HookInterface * * hook, UDATA eventNum
          {
          count = 0;
          }
+      else if (highCodeCacheOccupancyThresholdReached && !countInOptionSet && !TR::Options::getCountsAreProvidedByUser())
+         {
+         count = J9ROMMETHOD_HAS_BACKWARDS_BRANCHES(romMethod) ?
+                     TR::Options::getHighCodeCacheOccupancyBCount() :
+                     TR::Options::getHighCodeCacheOccupancyCount();
+         }
       else if (TR::Options::sharedClassCache())
          {
          // The default FE may not have TR_J9SharedCache object because the FE may have
          // been created before options were processed.
-         TR_J9SharedCache *sc = TR_J9VMBase::get(jitConfig, vmThread, TR_J9VMBase::AOT_VM)->sharedCache();
+         TR_J9VMBase *fej9 = TR_J9VMBase::get(jitConfig, vmThread, TR_J9VMBase::AOT_VM);
+         TR_J9SharedCache *sc = fej9 ? fej9->sharedCache() : NULL;
 #if defined(J9VM_INTERP_AOT_COMPILE_SUPPORT) && defined(J9VM_OPT_SHARED_CLASSES) && (defined(TR_HOST_X86) || defined(TR_HOST_POWER) || defined(TR_HOST_S390) || defined(TR_HOST_ARM) || defined(TR_HOST_ARM64))
-         if (TR_J9VMBase::get(jitConfig, vmThread, TR_J9VMBase::AOT_VM)->sharedCache()->isROMClassInSharedCache(J9_CLASS_FROM_METHOD(method)->romClass))
+         if (sc && sc->isROMClassInSharedCache(J9_CLASS_FROM_METHOD(method)->romClass))
             {
             PORT_ACCESS_FROM_JAVAVM(jitConfig->javaVM);
             I_64 sharedQueryTime = 0;
@@ -470,7 +485,7 @@ static void jitHookInitializeSendTarget(J9HookInterface * * hook, UDATA eventNum
                compInfo->incrementNumMethodsFoundInSharedCache();
                }
             // AOT Body not in SCC, so scount was not set
-            else if (!TR::Options::getCountsAreProvidedByUser())
+            else if (!TR::Options::getCountsAreProvidedByUser() && !countInOptionSet)
                {
                bool useLowerCountsForAOTCold = false;
                if (TR::Options::getCmdLineOptions()->getOption(TR_LowerCountsForAotCold) && compInfo->isWarmSCC() == TR_no)
@@ -1322,8 +1337,17 @@ static void jitMethodSampleInterrupt(J9VMThread* vmThread, IDATA handlerKey, voi
          }
 
 #if defined(J9VM_JIT_DYNAMIC_LOOP_TRANSFER)
-      if (!TR::Options::getCmdLineOptions()->getOption(TR_MimicInterpreterFrameShape) &&
-          !compInfo->getPersistentInfo()->getDisableFurtherCompilation())
+      if (!TR::Options::getCmdLineOptions()->getOption(TR_MimicInterpreterFrameShape)
+#if defined(J9VM_OPT_CRIU_SUPPORT)
+          /* It's ok to not acquire the comp monitor here. Even if at this
+           * point a checkpoint isn't in progress but later it does, a
+           * compilation won't be started because of other places where the
+           * flag is checked with the monitor in hand. This is more of an
+           * optimization that statistically should be useful.
+           */
+          && !compInfo->isCheckpointInProgress()
+#endif
+          && !compInfo->getPersistentInfo()->getDisableFurtherCompilation())
          {
          static char *enableDebugDLT = feGetEnv("TR_DebugDLT");
          static J9Method *skipDLTMethod = NULL;
@@ -1368,8 +1392,17 @@ static void jitMethodSampleInterrupt(J9VMThread* vmThread, IDATA handlerKey, voi
             TR::Recompilation::sampleMethod(vmThread, vm, startPC, codeSize, walkState.pc, walkState.method, jitConfig->samplingTickCount);
          }
 #else // !J9VM_JIT_DYNAMIC_LOOP_TRANSFER
-      if (!TR::Options::getCmdLineOptions()->getOption(TR_MimicInterpreterFrameShape) &&
-          !compInfo->getPersistentInfo()->getDisableFurtherCompilation())
+      if (!TR::Options::getCmdLineOptions()->getOption(TR_MimicInterpreterFrameShape)
+#if defined(J9VM_OPT_CRIU_SUPPORT)
+          /* It's ok to not acquire the comp monitor here. Even if at this
+           * point a checkpoint isn't in progress but later it does, a
+           * compilation won't be started because of other places where the
+           * flag is checked with the monitor in hand. This is more of an
+           * optimization that statistically should be useful.
+           */
+          && !compInfo->isCheckpointInProgress()
+#endif
+          && !compInfo->getPersistentInfo()->getDisableFurtherCompilation())
          {
          TR::Recompilation::sampleMethod(vmThread, vm, startPC, codeSize, walkState.pc, walkState.method, jitConfig->samplingTickCount);
          }
@@ -1612,21 +1645,13 @@ static void initThreadAfterCreation(J9VMThread *vmThread)
    vmThread->jitCountDelta = 2; // by default we assume there are compilation threads active
    if (compInfo)
       {
-      if (compInfo->useSeparateCompilationThread())
+      compInfo->acquireCompMonitor(vmThread);
+      if (compInfo->getNumUsableCompilationThreads() > 0 && compInfo->getNumCompThreadsActive() == 0)
          {
-         compInfo->acquireCompMonitor(vmThread);
-         if (compInfo->getNumUsableCompilationThreads() > 0 && compInfo->getNumCompThreadsActive() == 0)
-            {
-            vmThread->jitCountDelta = 0;
-            }
-         compInfo->releaseCompMonitor(vmThread);
+         vmThread->jitCountDelta = 0;
          }
-      else
-         {
-         CompilationThreadState state = compInfo->getCompInfoForCompOnAppThread()->getCompilationThreadState();
-         if (state != COMPTHREAD_UNINITIALIZED && state != COMPTHREAD_ACTIVE)
-            vmThread->jitCountDelta = 0;
-         }
+      compInfo->releaseCompMonitor(vmThread);
+
       vmThread->maxProfilingCount = (UDATA)encodeCount(compInfo->getIprofilerMaxCount());
       }
 
@@ -1806,6 +1831,13 @@ static void jitHookThreadDestroy(J9HookInterface * * hookInterface, UDATA eventN
 #if defined(J9VM_OPT_CRIU_SUPPORT)
 static void jitHookPrepareCheckpoint(J9HookInterface * * hookInterface, UDATA eventNum, void * eventData, void * userData)
    {
+   J9VMClassesUnloadEvent * restoreEvent = (J9VMClassesUnloadEvent *)eventData;
+   J9VMThread * vmThread = restoreEvent->currentThread;
+   J9JavaVM * javaVM = vmThread->javaVM;
+   J9JITConfig * jitConfig = javaVM->jitConfig;
+
+   TR::CompilationInfo * compInfo = TR::CompilationInfo::get(jitConfig);
+   compInfo->prepareForCheckpoint();
    }
 
 static void jitHookPrepareRestore(J9HookInterface * * hookInterface, UDATA eventNum, void * eventData, void * userData)
@@ -1813,6 +1845,7 @@ static void jitHookPrepareRestore(J9HookInterface * * hookInterface, UDATA event
    J9VMClassesUnloadEvent * restoreEvent = (J9VMClassesUnloadEvent *)eventData;
    J9VMThread * vmThread = restoreEvent->currentThread;
    J9JavaVM * javaVM = vmThread->javaVM;
+   J9JITConfig * jitConfig = javaVM->jitConfig;
 
    /* If the restored run does not allow further checkpoints, then
     * remove the portability restrictions on the target CPU (used
@@ -1823,8 +1856,11 @@ static void jitHookPrepareRestore(J9HookInterface * * hookInterface, UDATA event
       TR::Compiler->target.cpu = TR::CPU::detect(TR::Compiler->omrPortLib);
       jitConfig->targetProcessor = TR::Compiler->target.cpu.getProcessorDescription();
       }
+
+   TR::CompilationInfo * compInfo = TR::CompilationInfo::get(jitConfig);
+   compInfo->prepareForRestore();
    }
-#endif
+#endif /* defined(J9VM_OPT_CRIU_SUPPORT) */
 
 #if defined(J9VM_GC_DYNAMIC_CLASS_UNLOADING)
 static void jitHookClassesUnload(J9HookInterface * * hookInterface, UDATA eventNum, void * eventData, void * userData)
@@ -2127,7 +2163,7 @@ static void jitHookClassUnload(J9HookInterface * * hookInterface, UDATA eventNum
       compInfo->getUnloadedClassesTempList()->push_back(clazz);
       // Loop through the set to find the class that needs to be purged.
       // Once found erase from the set.
-      compInfo->getclassesCachedAtServer().erase(unloadedEvent->clazz);      
+      compInfo->getclassesCachedAtServer().erase(unloadedEvent->clazz);
       if (auto deserializer = compInfo->getJITServerAOTDeserializer())
          deserializer->invalidateClass(vmThread, j9clazz);
       }
@@ -2241,7 +2277,7 @@ static bool methodsAreRedefinedInPlace()
 #define VM_PASSES_SAME_CLASS_TWICE 1
 
 #if (defined(TR_HOST_X86) || defined(TR_HOST_POWER) || defined(TR_HOST_S390) || defined(TR_HOST_ARM) || defined(TR_HOST_ARM64))
-void jitClassesRedefined(J9VMThread * currentThread, UDATA classCount, J9JITRedefinedClass *classList)
+void jitClassesRedefined(J9VMThread * currentThread, UDATA classCount, J9JITRedefinedClass *classList, UDATA extensionsUsed)
    {
    reportHook(currentThread, "jitClassesRedefined");
 
@@ -2380,11 +2416,12 @@ void jitClassesRedefined(J9VMThread * currentThread, UDATA classCount, J9JITRede
 #if defined(J9VM_OPT_JITSERVER)
       // Add to JITServer unload list
       if (compInfo->getPersistentInfo()->getRemoteCompilationMode() == JITServer::CLIENT)
+         {
          compInfo->getUnloadedClassesTempList()->push_back((TR_OpaqueClassBlock *) classPair->oldClass);
-      if (auto deserializer = compInfo->getJITServerAOTDeserializer())
-         deserializer->invalidateClass(currentThread, classPair->oldClass);
+         if (auto deserializer = compInfo->getJITServerAOTDeserializer())
+            deserializer->invalidateClass(currentThread, classPair->oldClass);
+         }
 #endif
-
       freshClass = ((TR_J9VMBase *)fe)->convertClassPtrToClassOffset(classPair->newClass);
       if (VM_PASSES_SAME_CLASS_TWICE)
          staleClass = ((TR_J9VMBase *)fe)->convertClassPtrToClassOffset(((J9Class*)freshClass)->replacedClass);
@@ -2437,8 +2474,16 @@ void jitClassesRedefined(J9VMThread * currentThread, UDATA classCount, J9JITRede
          reportHookDetail(currentThread, "jitClassesRedefined", "  Notify CHTable on class old=%p fresh=%p", oldClass, freshClass);
          table->classGotRedefined(fe, oldClass, freshClass);
          }
+
       classPair = (J9JITRedefinedClass *) ((char *) classPair->methodList + (classPair->methodCount * sizeof(struct J9JITMethodEquivalence)));
       }
+
+#if defined(J9VM_OPT_JITSERVER)
+   if (compInfo->getPersistentInfo()->getRemoteCompilationMode() == JITServer::CLIENT && extensionsUsed)
+      {
+      compInfo->getUnloadedClassesTempList()->push_back(ClientSessionData::mustClearCachesFlag);
+      }
+#endif
 
    if (!TR::Options::getCmdLineOptions()->getOption(TR_DisableNoVMAccess))
       {
@@ -2684,7 +2729,7 @@ static void jitHookInterruptCompilation(J9HookInterface * * hookInterface, UDATA
 
 // jitUpdateMethodOverride is called indirectly from updateCHTable
 //
-void jitUpdateMethodOverride(J9VMThread * vmThread, J9Class * cl, J9Method * overriddenMethod, J9Method * overriddingMethod)
+void jitUpdateMethodOverride(J9VMThread * vmThread, J9Class * cl, J9Method * overriddenMethod, J9Method * overridingMethod)
    {
    J9JITConfig * jitConfig = vmThread->javaVM->jitConfig;
 
@@ -2707,7 +2752,7 @@ void jitUpdateMethodOverride(J9VMThread * vmThread, J9Class * cl, J9Method * ove
       {
       jitAcquireClassTableMutex(vmThread);
       compInfo->getPersistentInfo()->getPersistentCHTable()->methodGotOverridden(
-                                                                                 vm, compInfo->persistentMemory(), (TR_OpaqueMethodBlock *) overriddingMethod, (TR_OpaqueMethodBlock *) overriddenMethod, isSMP);
+                                                                                 vm, compInfo->persistentMemory(), (TR_OpaqueMethodBlock *) overridingMethod, (TR_OpaqueMethodBlock *) overriddenMethod, isSMP);
       jitReleaseClassTableMutex(vmThread);
       }
    }
@@ -2717,7 +2762,7 @@ void jitUpdateMethodOverride(J9VMThread * vmThread, J9Class * cl, J9Method * ove
 static void updateOverriddenFlag( J9VMThread *vm , J9Class *cl)
    {
 
-   static const char *traceIt = 0; //  feGetEnv("TR_TraceUpdateOverridenFlag"); //this trace should only be enabled if it is needed
+   static const char *traceIt = 0; //  feGetEnv("TR_TraceUpdateOverriddenFlag"); //this trace should only be enabled if it is needed
 
    J9ROMClass *ROMCl = cl->romClass;
 
@@ -4373,7 +4418,7 @@ static void samplingObservationsLogic(J9JITConfig * jitConfig, TR::CompilationIn
    {
    if (TR::Options::getCmdLineOptions()->getVerboseOption(TR_VerboseHeartbeat))
       {
-      TR_VerboseLog::vlogAcquire();
+      TR_VerboseLog::CriticalSection vlogLock;
       TR_VerboseLog::writeLine(TR_Vlog_INFO,"<samplewindow intervalTicks=%u interpretedMethodSamples=%u",
                    jitConfig->samplingTickCount + 1 - compInfo->_stats._windowStartTick, compInfo->_stats._interpretedMethodSamples);
       TR_VerboseLog::writeLine(TR_Vlog_INFO,"  compiledMethodSamples=%u compiledMethodSamplesIgnored=%u",
@@ -4382,7 +4427,6 @@ static void samplingObservationsLogic(J9JITConfig * jitConfig, TR::CompilationIn
                    compInfo->_stats._sampleMessagesSent, compInfo->_stats._sampleMessagesReceived, compInfo->_stats._ticksInIdleMode);
       TR_VerboseLog::writeLine(TR_Vlog_INFO,"  methodsCompiledOnCount=%u methodsReachingSampleInterval=%u",
                    compInfo->_stats._methodsCompiledOnCount, compInfo->_stats._methodsReachingSampleInterval);
-      TR_VerboseLog::vlogRelease();
       }
 
    // sample tick is about to be incremented for the samples we're about to take
@@ -4412,7 +4456,9 @@ char* jitStateNames[]=
 static int32_t startupPhaseId = 0;
 static bool firstIdleStateAfterStartup = false;
 static uint64_t timeToAllocateTrackingHT = 0xffffffffffffffff; // never
+static bool lateDisclaimNeeded = true;
 
+#define GCR_HYSTERESIS 100
 
 static void jitStateLogic(J9JITConfig * jitConfig, TR::CompilationInfo * compInfo, uint32_t diffTime)
    {
@@ -4544,7 +4590,6 @@ static void jitStateLogic(J9JITConfig * jitConfig, TR::CompilationInfo * compInf
    //t= 98186 oldState=3 newState=2 cSamples=125 iSamples= 11 comp=239 recomp=  4, Q_SZ=114
 
    static uint64_t lastTimeInStartupMode = 0;
-   #define GCR_HYSTERESIS 100
 
    // current JPQ implementation does not use this, but it may need to be re-animated shortly so leaving commented out for now
    /*static char *disableJProfilingRecomp = feGetEnv("TR_DisableJProfilingRecomp");
@@ -4559,7 +4604,7 @@ static void jitStateLogic(J9JITConfig * jitConfig, TR::CompilationInfo * compInf
             TR_BlockFrequencyInfo::enableJProfilingRecompilation();
             if (TR::Options::getCmdLineOptions()->isAnyVerboseOptionSet(TR_VerboseJitState, TR_VerboseCompileEnd, TR_VerbosePerformance))
                {
-               TR_VerboseLog::writeLineLocked(TR_Vlog_INFO,"Enabling JProfiling recompilation. recompileThrehold = %d loopRecompileThreshold = %d nestedLoopRecompileThreshold = %d", TR_JProfiling::recompileThreshold, TR_JProfiling::loopRecompileThreshold, TR_JProfiling::nestedLoopRecompileThreshold);
+               TR_VerboseLog::writeLineLocked(TR_Vlog_INFO,"Enabling JProfiling recompilation. recompileThreshold = %d loopRecompileThreshold = %d nestedLoopRecompileThreshold = %d", TR_JProfiling::recompileThreshold, TR_JProfiling::loopRecompileThreshold, TR_JProfiling::nestedLoopRecompileThreshold);
                }
             }
          }
@@ -4589,7 +4634,7 @@ static void jitStateLogic(J9JITConfig * jitConfig, TR::CompilationInfo * compInf
             }
           if (thresholdsLowered && TR::Options::getCmdLineOptions()->isAnyVerboseOptionSet(TR_VerboseJitState, TR_VerboseCompileEnd, TR_VerbosePerformance))
              {
-             TR_VerboseLog::writeLineLocked(TR_Vlog_INFO, "Lowering JProfiling recompilation thresholds. recompileThrehold = %d loopRecompileThreshold = %d nestedLoopRecompileThreshold = %d", TR_JProfiling::recompileThreshold, TR_JProfiling::loopRecompileThreshold, TR_JProfiling::nestedLoopRecompileThreshold);
+             TR_VerboseLog::writeLineLocked(TR_Vlog_INFO, "Lowering JProfiling recompilation thresholds. recompileThreshold = %d loopRecompileThreshold = %d nestedLoopRecompileThreshold = %d", TR_JProfiling::recompileThreshold, TR_JProfiling::loopRecompileThreshold, TR_JProfiling::nestedLoopRecompileThreshold);
              }
          }
       }*/
@@ -5042,6 +5087,22 @@ static void jitStateLogic(J9JITConfig * jitConfig, TR::CompilationInfo * compInf
             }
          }
       }
+
+   if (lateDisclaimNeeded)
+      {
+      CpuUtilization *cpuUtil = compInfo->getCpuUtil();
+      cpuUtil->updateCpuUtil(jitConfig);
+      if (cpuUtil->getVmTotalCpuTime() >= persistentInfo->getLateSCCDisclaimTime())
+         {
+         javaVM->internalVMFunctions->jvmPhaseChange(javaVM, J9VM_PHASE_LATE_SCC_DISCLAIM);
+         lateDisclaimNeeded = false;
+         if (TR::Options::getCmdLineOptions()->getVerboseOption(TR_VerbosePerformance))
+            {
+            TR_VerboseLog::writeLineLocked(TR_Vlog_PERF, "t=%u JIT issuing late SCC disclaim", (uint32_t)crtElapsedTime);
+            }
+         }
+      }
+
    if (TR::Options::getCmdLineOptions()->getVerboseOption(TR_VerboseJitState))
       {
       TR_VerboseLog::writeLineLocked(TR_Vlog_JITSTATE,"t=%6u oldState=%s newState=%s cls=%3u ssn=%u tsn=%3u cSmpl=%3u iSmpl=%3u comp=%3u recomp=%3u, Q_SZ=%3d VMSTATE=%d jvmCPU=%d%%",
@@ -5143,7 +5204,7 @@ static void DoCalculateOverallCompCPUUtilization(TR::CompilationInfo *compInfo, 
    // Print the overall comp CPU utilization if the right verbose option is specified
    if (TR::Options::isAnyVerboseOptionSet(TR_VerboseCompilationThreads, TR_VerboseCompilationThreadsDetails))
       {
-      TR_VerboseLog::vlogAcquire();
+      TR_VerboseLog::CriticalSection vlogLock;
       TR_VerboseLog::write(TR_Vlog_INFO, "t=%6u TotalCompCpuUtil=%3d%%.", static_cast<uint32_t>(crtTime), totalCompCPUUtilization);
       TR::CompilationInfoPerThread * const *arrayOfCompInfoPT = compInfo->getArrayOfCompilationInfoPerThread();
       for (int32_t i = 0; i < compInfo->getNumUsableCompilationThreads(); i++)
@@ -5151,13 +5212,12 @@ static void DoCalculateOverallCompCPUUtilization(TR::CompilationInfo *compInfo, 
          const CpuSelfThreadUtilization& cpuUtil = arrayOfCompInfoPT[i]->getCompThreadCPU();
          TR_VerboseLog::write(" compThr%d:%3d%% (%2d%%, %2d%%) ", i, cpuUtilizationValues[i], cpuUtil.getThreadLastCpuUtil(), cpuUtil.getThreadPrevCpuUtil());
          if (TR::Options::getCmdLineOptions()->getVerboseOption(TR_VerboseCompilationThreadsDetails))
-            TR_VerboseLog::write("(%dms, %dms, lastCheckpoint=%u) ", 
+            TR_VerboseLog::write("(%dms, %dms, lastCheckpoint=%u) ",
                static_cast<int32_t>(cpuUtil.getLastMeasurementInterval()) / 1000000,
                static_cast<int32_t>(cpuUtil.getSecondLastMeasurementInterval()) / 1000000,
                cpuUtil.getLowResolutionClockAtLastUpdate());
          }
       TR_VerboseLog::writeLine("");
-      TR_VerboseLog::vlogRelease();
       }
    }
 
@@ -5299,7 +5359,7 @@ static void classLoadPhaseLogic(J9JITConfig * jitConfig, TR::CompilationInfo * c
 
             if (TR::Options::getCmdLineOptions()->getVerboseOption(TR_VerboseCLP))
                {
-               TR_VerboseLog::writeLineLocked(TR_Vlog_INFO,"ScalingFactor=%.2f Changed CLPTHreshold to %d secondaryCLPThreshold to %d", scalingFactor, newCLPThreshold, newSecondaryCLPThreshold);
+               TR_VerboseLog::writeLineLocked(TR_Vlog_INFO,"ScalingFactor=%.2f Changed CLPThreshold to %d secondaryCLPThreshold to %d", scalingFactor, newCLPThreshold, newSecondaryCLPThreshold);
                }
 
             // On some platforms, if application startup hints have NOT been used by now
@@ -5395,7 +5455,7 @@ static void iProfilerActivationLogic(J9JITConfig * jitConfig, TR::CompilationInf
          TR_J9VMBase *fej9 = (TR_J9VMBase *)(TR_J9VMBase::get(jitConfig, 0));
          TR_IProfiler *iProfiler = fej9->getIProfiler();
          TR::PersistentInfo *persistentInfo = compInfo->getPersistentInfo();
-         if (iProfiler 
+         if (iProfiler
             && iProfiler->getProfilerMemoryFootprint() < TR::Options::_iProfilerMemoryConsumptionLimit
 #if defined(J9VM_OPT_JITSERVER)
             && compInfo->getPersistentInfo()->getRemoteCompilationMode() != JITServer::SERVER
@@ -5852,7 +5912,7 @@ static int32_t J9THREAD_PROC samplerThreadProc(void * entryarg)
       char timestamp[32];
       bool incomplete;
       omrstr_ftime_ex(timestamp, sizeof(timestamp), "%b %d %H:%M:%S %Y", persistentInfo->getStartTime(), OMRSTR_FTIME_FLAG_LOCAL);
-      TR_VerboseLog::vlogAcquire();
+      TR_VerboseLog::CriticalSection vlogLock;
       TR_VerboseLog::writeLine(TR_Vlog_INFO, "StartTime: %s", timestamp);
       uint64_t phMemAvail = compInfo->computeAndCacheFreePhysicalMemory(incomplete);
       if (phMemAvail != OMRPORT_MEMINFO_NOT_AVAILABLE)
@@ -5880,6 +5940,13 @@ static int32_t J9THREAD_PROC samplerThreadProc(void * entryarg)
             javacoreData->numAotDataEntries,
             javacoreData->numJitHints,
             javacoreData->numJitProfiles);
+#if defined(OMR_GC_COMPRESSED_POINTERS)
+         const TR_AOTHeader *hdrInCache = TR_SharedCacheRelocationRuntime::getStoredAOTHeaderWithConfig(vm->sharedClassConfig, samplerThread);
+         if (NULL != hdrInCache)
+            {
+            TR_VerboseLog::writeLine(TR_Vlog_INFO, "\tAOT header compressedRefs shiftAmount=%u", hdrInCache->compressedPointerShift);
+            }
+#endif /* OMR_GC_COMPRESSED_POINTERS */
          }
 #endif
       if (TR::Options::isAnyVerboseOptionSet(TR_VerboseHWProfiler))
@@ -5910,7 +5977,6 @@ static int32_t J9THREAD_PROC samplerThreadProc(void * entryarg)
          {
          TR_VerboseLog::writeLine(TR_Vlog_INFO, "CPU entitlement = %3.2f", compInfo->getJvmCpuEntitlement());
          }
-      TR_VerboseLog::vlogRelease();
       } // if (TR::Options::isAnyVerboseOptionSet())
 
    if (!TR::Options::getCmdLineOptions()->getOption(TR_DisableScorchingSampleThresholdScalingBasedOnNumProc))
@@ -6119,7 +6185,7 @@ static int32_t J9THREAD_PROC samplerThreadProc(void * entryarg)
                {
                bool incomplete;
                TR_PersistentMemory *persistentMemory = compInfo->persistentMemory();
-               TR_VerboseLog::vlogAcquire();
+               TR_VerboseLog::CriticalSection vlogLock;
                uint64_t phMemAvail = compInfo->computeAndCacheFreePhysicalMemory(incomplete);
                if (phMemAvail != OMRPORT_MEMINFO_NOT_AVAILABLE)
                   TR_VerboseLog::writeLine(TR_Vlog_INFO, "Free Physical Memory: %lld MB %s", phMemAvail >> 20, incomplete ? "estimated" : "");
@@ -6134,7 +6200,6 @@ static int32_t J9THREAD_PROC samplerThreadProc(void * entryarg)
                TR_RuntimeAssumptionTable * rat = persistentInfo->getRuntimeAssumptionTable();
                for (int32_t i=0; i < LastAssumptionKind; i++)
                   TR_VerboseLog::writeLine(TR_Vlog_MEMORY,"\tAssumptionType=%d allocated=%d reclaimed=%d", i, rat->getAssumptionCount(i), rat->getReclaimedAssumptionCount(i));
-               TR_VerboseLog::vlogRelease();
                }
 #if defined(WINDOWS) && defined(TR_TARGET_32BIT)
             if (TR::Options::getCmdLineOptions()->getVerboseOption(TR_VerboseVMemAvailable))
@@ -6177,6 +6242,23 @@ static int32_t J9THREAD_PROC samplerThreadProc(void * entryarg)
                compInfo->getCpuUtil()->updateCpuUsageCircularBuffer(jitConfig);
             }
 
+         // Determine if we need to turn GCR counting off. GCR counting is known to have high overhead.
+         // If more than a certain number of GCR induced compilations is queued, turn off counting.
+         if (persistentInfo->_countForRecompile) // No need to check if GCR is disabled
+            {
+            if (TR::Options::getAOTCmdLineOptions()->getOption(TR_EnableMultipleGCRPeriods) ||
+                TR::Options::getJITCmdLineOptions()->getOption(TR_EnableMultipleGCRPeriods))
+               {
+               if (compInfo->getNumGCRRequestsQueued() > TR::Options::_GCRQueuedThresholdForCounting + GCR_HYSTERESIS)
+                  {
+                  persistentInfo->_countForRecompile = 0; // disable counting
+                  // write a message in the vlog
+                  if (TR::Options::isAnyVerboseOptionSet(TR_VerboseJitState, TR_VerbosePerformance))
+                     TR_VerboseLog::writeLineLocked(TR_Vlog_INFO,"t=%6u GCR disabled; GCR queued=%d", (uint32_t)crtTime, compInfo->getNumGCRRequestsQueued());
+                  }
+               }
+            }
+
          // sample every _classLoadingPhaseInterval (i.e. 500 ms)
          static uint64_t lastTimeClassLoadPhaseAnalyzed = 0;
          uint32_t diffTime = (uint32_t)(crtTime - lastTimeClassLoadPhaseAnalyzed);
@@ -6214,6 +6296,27 @@ static int32_t J9THREAD_PROC samplerThreadProc(void * entryarg)
 
             // compute jit state
             jitStateLogic(jitConfig, compInfo, diffTime); // Update JIT state before going to sleep
+
+            // detect high code cache occupancy
+            TR::CodeCacheManager *manager = TR::CodeCacheManager::instance();
+            size_t usedCacheSize = manager->getCurrTotalUsedInBytes();
+            size_t threshold = manager->codeCacheConfig().highCodeCacheOccupancyThresholdInBytes();
+            if ((usedCacheSize > threshold) && !highCodeCacheOccupancyThresholdReached)
+               {
+               highCodeCacheOccupancyThresholdReached = true;
+               if (TR::Options::getCmdLineOptions()->isAnyVerboseOptionSet(TR_VerbosePerformance))
+                  {
+                  TR_VerboseLog::writeLineLocked(TR_Vlog_PERF, "t=%6u JIT entered high code cache occupancy state", (uint32_t)crtTime);
+                  }
+               }
+            else if ((usedCacheSize <= threshold) && highCodeCacheOccupancyThresholdReached)
+               {
+               highCodeCacheOccupancyThresholdReached = false;
+               if (TR::Options::getCmdLineOptions()->isAnyVerboseOptionSet(TR_VerbosePerformance))
+                  {
+                  TR_VerboseLog::writeLineLocked(TR_Vlog_PERF, "t=%6u JIT exited high code cache occupancy state", (uint32_t)crtTime);
+                  }
+               }
 
 #if defined(J9VM_INTERP_PROFILING_BYTECODES)
             // iProfilerActivationLogic must stay after classLoadPhaseLogic and jitStateLogic
@@ -6459,7 +6562,7 @@ static void jitReleaseCodeStackWalk(OMR_VMThread *omrVMThread, condYieldFromGCFu
    /*
     * After we have determined what can be reclaimed for the current pass,
     * we must clear the _isStillLive flag or we will never again consider
-    * the faint blocks as candidates for reclaimation.
+    * the faint blocks as candidates for reclamation.
     */
    for (cursor = (OMR::FaintCacheBlock *)jitConfig->methodsToDelete; cursor; cursor = cursor->_next)
       {
@@ -6555,7 +6658,7 @@ int32_t setUpHooks(J9JavaVM * javaVM, J9JITConfig * jitConfig, TR_FrontEnd * vm)
 
    jitConfig->samplerMonitor = NULL; // initialize this field just in case
    compInfo->setSamplingThreadLifetimeState(TR::CompilationInfo::SAMPLE_THR_NOT_CREATED); // just in case
-   if (jitConfig->samplingFrequency 
+   if (jitConfig->samplingFrequency
       && !vmj9->isAOT_DEPRECATED_DO_NOT_USE()
 #if defined(J9VM_OPT_JITSERVER)
       && compInfo->getPersistentInfo()->getRemoteCompilationMode() != JITServer::SERVER
@@ -6569,7 +6672,6 @@ int32_t setUpHooks(J9JavaVM * javaVM, J9JITConfig * jitConfig, TR_FrontEnd * vm)
          }
 
       j9thread_monitor_init_with_name(&(jitConfig->samplerMonitor), 0, "JIT sampling thread");
-
 
       if (jitConfig->samplerMonitor)
          {
@@ -6678,7 +6780,7 @@ int32_t setUpHooks(J9JavaVM * javaVM, J9JITConfig * jitConfig, TR_FrontEnd * vm)
          interpreterProfilingWasOnAtStartup = true;
 
          if (TR::Options::getCmdLineOptions()->getOption(TR_VerboseInterpreterProfiling))
-            j9tty_printf(PORTLIB, "Succesfully installed J9HOOK_VM_PROFILING_BYTECODE_BUFFER_FULL listener\n");
+            j9tty_printf(PORTLIB, "Successfully installed J9HOOK_VM_PROFILING_BYTECODE_BUFFER_FULL listener\n");
          }
 #endif
       if (compInfo->getPersistentInfo()->isRuntimeInstrumentationEnabled())
@@ -6798,7 +6900,7 @@ int32_t setUpHooks(J9JavaVM * javaVM, J9JITConfig * jitConfig, TR_FrontEnd * vm)
       j9tty_printf(PORTLIB, "Error: Unable to register CRIU hook\n");
       return -1;
       }
-#endif
+#endif /* defined(J9VM_OPT_CRIU_SUPPORT) */
 
    if (!vmj9->isAOT_DEPRECATED_DO_NOT_USE()
 #if defined(J9VM_OPT_JITSERVER)
@@ -6829,6 +6931,13 @@ int32_t startJITServer(J9JITConfig *jitConfig)
 
    if (TR::Options::getVerboseOption(TR_VerboseJITServer))
       TR_VerboseLog::writeLineLocked(TR_Vlog_JITServer, "Started JITServer listener thread: %p ", listener->getListenerThread());
+
+
+   MetricsServer *metricsServer = ((TR_JitPrivateConfig*)(jitConfig->privateConfig))->metricsServer;
+   if (metricsServer)
+      {
+      metricsServer->startMetricsThread(javaVM);
+      }
 
    if (jitConfig->samplingFrequency != 0)
       {

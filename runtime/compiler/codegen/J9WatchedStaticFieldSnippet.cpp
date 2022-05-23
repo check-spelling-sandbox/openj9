@@ -97,7 +97,7 @@ uint8_t *TR::J9WatchedStaticFieldSnippet::emitSnippetBody()
          {
          // As things currently stand, this will not work on Power because TR_ClassAddress is used to a generate a 5 instruction sequence that materializes the address into a register. Meanwhile we are using TR_ClassAddress here to represent a contiguous word.
          // A short-term solution would be to use TR_ClassPointer. However this is hacky because TR_ClassPointer expects an aconst node (so we would have to create a dummy node). The proper solution would be to implement the functionality in the power
-         // codegenerator to be able to patch TR_ClassAddress contiguous word.
+         // code generator to be able to patch TR_ClassAddress contiguous word.
          cg()->addExternalRelocation(
             new (cg()->trHeapMemory()) TR::ExternalRelocation(cursor + offsetof(J9JITWatchedStaticFieldData, fieldClass), reinterpret_cast<uint8_t *>(node->getSymbolReference()), reinterpret_cast<uint8_t *>(node->getInlinedSiteIndex()), TR_ClassAddress, cg()),
             __FILE__,

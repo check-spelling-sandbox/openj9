@@ -122,7 +122,7 @@ j9gc_is_garbagecollection_disabled(J9JavaVM *javaVM)
 /**
  * VM API for determining the amount of free memory available on the heap.
  * The call returns the approximate free memory on the heap available for allocation.  An approximation is used
- * in part because defered work (e.g., concurrent sweep) may be hiding potential free memory.
+ * in part because deferred work (e.g., concurrent sweep) may be hiding potential free memory.
  * @return The approximate free memory available on the heap.
  */
 UDATA 
@@ -136,7 +136,7 @@ j9gc_heap_free_memory(J9JavaVM *javaVM)
 /**
  * return integer presents all memory pool IDs supported by current jvm. 
  * base on current gcpolicy settings, set supported all memory pool IDs for current jvm
- * possible memorypool ID is defined in omrgcconsts.h, one bit for each possible memorypool, the bit is set if the memory pool is supported by currrent jvm.
+ * possible memorypool ID is defined in omrgcconsts.h, one bit for each possible memorypool, the bit is set if the memory pool is supported by current jvm.
  * gc also can decide which memory pools should expose to outside via updating this method.
  */
 UDATA
@@ -703,13 +703,13 @@ j9gc_get_gc_cause(OMR_VMThread *omrVMthread)
 			ret = "excessive";
 			break;
 		case J9MMCONSTANT_IMPLICIT_GC_PERCOLATE :
-			ret = "collect due to scavanger percolate";
+			ret = "collect due to scavenger percolate";
 			break;
 		case J9MMCONSTANT_IMPLICIT_GC_PERCOLATE_UNLOADING_CLASSES :
-			ret = "collect due to scavanger percolate(unloading classes)";
+			ret = "collect due to scavenger percolate(unloading classes)";
 			break;
 		case J9MMCONSTANT_IMPLICIT_GC_PERCOLATE_AGGRESSIVE :
-			ret = "collect due to aggressive scavanger percolate";
+			ret = "collect due to aggressive scavenger percolate";
 			break;
 		case J9MMCONSTANT_EXPLICIT_GC_SYSTEM_GC :
 			ret = "Java code has requested a System.gc()";

@@ -26,7 +26,7 @@
 /*
  * Calculate the flatlock recursion count for an owned or reserved flat lock.
  * NOTE: this will return an incorrect value if the flat lock is unowned or for an inflated lock
- * The location of the RC field is slightly different under the Learning state so a check is done to deteremine the shift value.
+ * The location of the RC field is slightly different under the Learning state so a check is done to determine the shift value.
  * Flat state has a different internal representation of the same nested locking depth compared to Reserved and Learning. Under Flat, 1 needs to be added before returning the value.
  */
 #if defined(J9VM_THR_LOCK_RESERVATION)

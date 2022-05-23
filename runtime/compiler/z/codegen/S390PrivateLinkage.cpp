@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2000, 2021 IBM Corp. and others
+ * Copyright (c) 2000, 2022 IBM Corp. and others
  *
  * This program and the accompanying materials are made available under
  * the terms of the Eclipse Public License 2.0 which accompanies this
@@ -658,11 +658,6 @@ J9::Z::PrivateLinkage::mapStack(TR::ResolvedMethodSymbol * method)
    lowGCOffset = stackIndex;
    int32_t firstLocalGCIndex = atlas->getNumberOfParmSlotsMapped();
 
-   if (firstLocalGCIndex != 0)
-      {
-      setStackSizeCheckNeeded(true);
-      }
-
    stackIndex -= (atlas->getNumberOfSlotsMapped() - firstLocalGCIndex) * TR::Compiler->om.sizeofReferenceAddress();
 
    uint32_t localObjectAlignment = 1 << TR::Compiler->om.compressedReferenceShift();
@@ -679,8 +674,6 @@ J9::Z::PrivateLinkage::mapStack(TR::ResolvedMethodSymbol * method)
    //
    for (localCursor = automaticIterator.getFirst(); localCursor; localCursor = automaticIterator.getNext())
       {
-      setStackSizeCheckNeeded(true);
-
       if (localCursor->getGCMapIndex() >= 0)
          {
          localCursor->setOffset(stackIndex + TR::Compiler->om.sizeofReferenceAddress() * (localCursor->getGCMapIndex() - firstLocalGCIndex));
@@ -725,7 +718,6 @@ J9::Z::PrivateLinkage::mapStack(TR::ResolvedMethodSymbol * method)
       {
       if (localCursor->getGCMapIndex() < 0 && !TR::Linkage::needsAlignment(localCursor->getDataType(), cg()))
          {
-         setStackSizeCheckNeeded(true);
          mapSingleAutomatic(localCursor, stackIndex);
          }
       localCursor = automaticIterator.getNext();
@@ -739,8 +731,6 @@ J9::Z::PrivateLinkage::mapStack(TR::ResolvedMethodSymbol * method)
       {
       if (localCursor->getGCMapIndex() < 0 && TR::Linkage::needsAlignment(localCursor->getDataType(), cg()))
          {
-         setStackSizeCheckNeeded(true);
-
          stackIndex -= (stackIndex & 0x4) ? 4 : 0;
          mapSingleAutomatic(localCursor, stackIndex);
          }
@@ -949,17 +939,17 @@ J9::Z::PrivateLinkage::setParameterLinkageRegisterIndex(TR::ResolvedMethodSymbol
          case TR::UnicodeDecimalSignTrailing:
          case TR::Aggregate:
             break;
-         case TR::VectorInt8:
-         case TR::VectorInt16:
-         case TR::VectorInt32:
-         case TR::VectorInt64:
-         case TR::VectorDouble:
-            if (numVectorArgs < self()->getNumVectorArgumentRegisters())
+         default:
+            if (dt.isVector())
                {
-               index = numVectorArgs;
+               // TODO: special handling for Float?
+               if (numVectorArgs < self()->getNumVectorArgumentRegisters())
+                  {
+                  index = numVectorArgs;
+                  }
+               numVectorArgs++;
+               break;
                }
-            numVectorArgs++;
-            break;
          }
       paramCursor->setLinkageRegisterIndex(index);
       paramCursor = paramIterator.getNext();
@@ -1115,11 +1105,6 @@ J9::Z::PrivateLinkage::createPrologue(TR::Instruction * cursor)
    regSaveSize = calculateRegisterSaveSize(firstUsedReg, lastUsedReg,
                                            registerSaveDescription,
                                            numIntSaved, numFloatSaved);
-
-   if (regSaveSize != 0)
-      {
-      setStackSizeCheckNeeded(true);
-      }
 
    if (0 && comp()->target().is64Bit())
       {
@@ -1591,6 +1576,7 @@ J9::Z::PrivateLinkage::buildVirtualDispatch(TR::Node * callNode, TR::RegisterDep
       switch (methodSymbol->getMandatoryRecognizedMethod())
          {
          case TR::java_lang_invoke_ComputedCalls_dispatchVirtual:
+         case TR::com_ibm_jit_JITHelpers_dispatchVirtual:
             {
             char *j2iSignature = fej9->getJ2IThunkSignatureForDispatchVirtual(methodSymbol->getMethod()->signatureChars(), methodSymbol->getMethod()->signatureLength(), comp());
             int32_t signatureLen = strlen(j2iSignature);
@@ -1814,7 +1800,6 @@ J9::Z::PrivateLinkage::buildVirtualDispatch(TR::Node * callNode, TR::RegisterDep
 
          if (!performGuardedDevirtualization &&
              !comp()->getOption(TR_DisableInterpreterProfiling) &&
-             comp()->getOption(TR_enableProfiledDevirtualization) &&
              TR_ValueProfileInfoManager::get(comp()) && resolvedMethod
              )
             {
@@ -1832,11 +1817,10 @@ J9::Z::PrivateLinkage::buildVirtualDispatch(TR::Node * callNode, TR::RegisterDep
                   {
                   topValue = 0;
                   }
-               // We can't do this guarded devirtualization if the profile data is not correct for this context. See defect 98813
                else
                   {
-                  TR_OpaqueClassBlock *callSiteMethod = methodSymRef->getSymbol()->getResolvedMethodSymbol()->getResolvedMethod()->classOfMethod();
-                  if( fej9->isInstanceOf( (TR_OpaqueClassBlock *)topValue, callSiteMethod, true, true ) != TR_yes )
+                  TR_OpaqueClassBlock *callSiteMethodClass = methodSymRef->getSymbol()->getResolvedMethodSymbol()->getResolvedMethod()->classOfMethod();
+                  if (!cg()->isProfiledClassAndCallSiteCompatible((TR_OpaqueClassBlock *)topValue, callSiteMethodClass))
                      {
                      topValue = 0;
                      }
@@ -1847,7 +1831,7 @@ J9::Z::PrivateLinkage::buildVirtualDispatch(TR::Node * callNode, TR::RegisterDep
                {
                TR_ResolvedMethod *profiledVirtualMethod = methodSymRef->getOwningMethod(comp())->getResolvedVirtualMethod(comp(),
                           (TR_OpaqueClassBlock *)topValue, methodSymRef->getOffset());
-               if (profiledVirtualMethod)
+               if (profiledVirtualMethod && !profiledVirtualMethod->isInterpreted())
                   {
                   if (comp()->getOption(TR_TraceCG))
                      {
@@ -1910,54 +1894,36 @@ J9::Z::PrivateLinkage::buildVirtualDispatch(TR::Node * callNode, TR::RegisterDep
          }
 
       // load class pointer
-      TR::Register *classReg;
-      if (!TR::Compiler->cls.classesOnHeap() && methodSymRef == comp()->getSymRefTab()->findObjectNewInstanceImplSymbol())
+      TR::Register *classReg = vftReg;
+
+      // It should be impossible to have a offset that can't fit in 20bit given Java method table limitations.
+      // We assert here to insure limitation/assumption remains true. If this fires we need to fix this code
+      // and the _virtualUnresolvedHelper() code to deal with a new worst case scenario for patching.
+      TR_ASSERT_FATAL(offset>MINLONGDISP, "JIT VFT offset does not fit in 20bits");
+      TR_ASSERT_FATAL(offset!=0 || unresolvedSnippet, "Offset is 0 yet unresolvedSnippet is NULL");
+      TR_ASSERT_FATAL(offset<=MAX_IMMEDIATE_VAL, "Offset is larger then MAX_IMMEDIATE_VAL");
+
+      // If unresolved/AOT, this instruction will be patched by _virtualUnresolvedHelper() with the correct offset
+      cursor = generateRXInstruction(cg(), TR::InstOpCode::getExtendedLoadOpCode(), callNode, RegRA,
+                                       generateS390MemoryReference(classReg, offset, cg()));
+
+      if (unresolvedSnippet)
          {
-         classReg = RegThis;
-         TR_ASSERT( offset >= 0,"J9::Z::PrivateLinkage::buildVirtualDispatch - Offset to instanceOf method is assumed positive\n");
-         }
-      else
-         {
-         classReg = vftReg;
+         ((TR::S390VirtualUnresolvedSnippet *)unresolvedSnippet)->setPatchVftInstruction(cursor);
          }
 
-      if (!TR::Compiler->cls.classesOnHeap() && offset >= 0 && methodSymRef == comp()->getSymRefTab()->findObjectNewInstanceImplSymbol())
+      // A load immediate into R0 instruction (LHI/LGFI) MUST be generated here because the "LA" instruction used by
+      // the VM to find VFT table entries can't handle negative displacements. For unresolved/AOT targets we must assume
+      // the worse case (offset can't fit in 16bits). VFT offset 0 means unresolved/AOT, otherwise offset is negative.
+      // Some special cases have positive offsets i.e. java/lang/Object.newInstancePrototype()
+      if (!unresolvedSnippet && offset >= MIN_IMMEDIATE_VAL && offset <= MAX_IMMEDIATE_VAL) // Offset fits in 16bits
          {
-         cursor =
-            generateRXInstruction(cg(), TR::InstOpCode::getLoadOpCode(), callNode, RegRA, generateS390MemoryReference(classReg, offset, cg()));
          cursor = generateRIInstruction(cg(), TR::InstOpCode::getLoadHalfWordImmOpCode(), callNode, RegZero, offset);
          }
-      else
+      else // if unresolved || offset can't fit in 16bits
          {
-         // It should be impossible to have a offset that can't fit in 20bit given Java method table limitations.
-         // We assert here to insure limitation/assumption remains true. If this fires we need to fix this code
-         // and the _virtualUnresolvedHelper() code to deal with a new worst case scenario for patching.
-         TR_ASSERT_FATAL(offset>MINLONGDISP, "JIT VFT offset does not fit in 20bits");
-         TR_ASSERT_FATAL(offset!=0 || unresolvedSnippet, "Offset is 0 yet unresolvedSnippet is NULL");
-         TR_ASSERT_FATAL(offset<=MAX_IMMEDIATE_VAL, "Offset is larger then MAX_IMMEDIATE_VAL");
-
          // If unresolved/AOT, this instruction will be patched by _virtualUnresolvedHelper() with the correct offset
-         cursor = generateRXInstruction(cg(), TR::InstOpCode::getExtendedLoadOpCode(), callNode, RegRA,
-                                        generateS390MemoryReference(classReg, offset, cg()));
-
-         if (unresolvedSnippet)
-            {
-            ((TR::S390VirtualUnresolvedSnippet *)unresolvedSnippet)->setPatchVftInstruction(cursor);
-            }
-
-         // A load immediate into R0 instruction (LHI/LGFI) MUST be generated here because the "LA" instruction used by
-         // the VM to find VFT table entries can't handle negative displacements. For unresolved/AOT targets we must assume
-         // the worse case (offset can't fit in 16bits). VFT offset 0 means unresolved/AOT, otherwise offset is negative.
-         // Some special cases have positive offsets i.e. java/lang/Object.newInstancePrototype()
-         if (!unresolvedSnippet && offset >= MIN_IMMEDIATE_VAL && offset <= MAX_IMMEDIATE_VAL) // Offset fits in 16bits
-            {
-            cursor = generateRIInstruction(cg(), TR::InstOpCode::getLoadHalfWordImmOpCode(), callNode, RegZero, offset);
-            }
-         else // if unresolved || offset can't fit in 16bits
-            {
-            // If unresolved/AOT, this instruction will be patched by _virtualUnresolvedHelper() with the correct offset
-            cursor = generateRILInstruction(cg(), TR::InstOpCode::LGFI, callNode, RegZero, static_cast<int32_t>(offset));
-            }
+         cursor = generateRILInstruction(cg(), TR::InstOpCode::LGFI, callNode, RegZero, static_cast<int32_t>(offset));
          }
 
       gcPoint = new (trHeapMemory()) TR::S390RRInstruction(TR::InstOpCode::BASR, callNode, RegRA, RegRA, cg());
@@ -2690,7 +2656,7 @@ void J9::Z::JNILinkage::acquireVMAccessMask(TR::Node * callNode, TR::Register * 
    self()->cg()->addSnippet(new (self()->trHeapMemory()) TR::S390HelperCallSnippet(self()->cg(), callNode, longAcquireSnippetLabel,
                               comp()->getSymRefTab()->findOrCreateAcquireVMAccessSymbolRef(comp()->getJittedMethodSymbol()), acquireDoneLabel));
    generateS390LabelInstruction(self()->cg(), TR::InstOpCode::label, callNode, acquireDoneLabel);
-   // end of acquire vm accessa
+   // end of acquire vm access
    }
 
 #ifdef J9VM_INTERP_ATOMIC_FREE_JNI
@@ -3079,7 +3045,7 @@ TR::Register * J9::Z::JNILinkage::buildDirectDispatch(TR::Node * callNode)
      checkException(callNode, methodMetaDataVirtualRegister, methodAddressReg);
      }
 
-   OMR::Z::Linkage::generateDispatchReturnLable(callNode, codeGen, deps, javaReturnRegister, hasGlRegDeps, GlobalRegDeps);
+   OMR::Z::Linkage::generateDispatchReturnLabel(callNode, codeGen, deps, javaReturnRegister, hasGlRegDeps, GlobalRegDeps);
    return javaReturnRegister;
    }
 
@@ -3138,6 +3104,7 @@ J9::Z::PrivateLinkage::addSpecialRegDepsForBuildArgs(TR::Node * callNode, TR::Re
          specialArgReg = getJ9MethodArgumentRegister();
          break;
       case TR::java_lang_invoke_ComputedCalls_dispatchVirtual:
+      case TR::com_ibm_jit_JITHelpers_dispatchVirtual:
          specialArgReg = getVTableIndexArgumentRegister();
          break;
       }

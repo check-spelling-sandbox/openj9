@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2018, 2021 IBM Corp. and others
+ * Copyright (c) 2018, 2022 IBM Corp. and others
  *
  * This program and the accompanying materials are made available under
  * the terms of the Eclipse Public License 2.0 which accompanies this
@@ -541,7 +541,7 @@ J9::Z::TreeEvaluator::pd2udEvaluator(TR::Node *node, TR::CodeGenerator *cg)
  *
  * \param node              Parent node object.
  * \param targetReg         PseudoRegister object for the parent node (the node)
- * \param sourceMR          MemoryRefernece object pointer
+ * \param sourceMR          MemoryReference object pointer
  * \param childReg          PseudoRegister object for the child node (e.g. pdloadi node)
  * \param isSeparateSign    True if the operation is pd2udsl or pd2udst, which all have separate sign code. False
  *                          if it's pd2ud.
@@ -1602,7 +1602,8 @@ J9::Z::TreeEvaluator::zd2pdVectorEvaluatorHelper(TR::Node * node, TR::CodeGenera
 void
 J9::Z::TreeEvaluator::pd2zdSignFixup(TR::Node *node,
                                              TR::MemoryReference *destMR,
-                                             TR::CodeGenerator * cg)
+                                             TR::CodeGenerator * cg,
+                                             bool useLeftAlignedMR)
    {
    TR::Register* signCode     = cg->allocateRegister();
    TR::Register* signCode4Bit = cg->allocateRegister();
@@ -1615,8 +1616,14 @@ J9::Z::TreeEvaluator::pd2zdSignFixup(TR::Node *node,
    generateS390LabelInstruction(cg, TR::InstOpCode::label, node, processSign);
    processSign->setStartInternalControlFlow();
 
+   TR::MemoryReference* signByteMR = NULL;
+   if (useLeftAlignedMR)
+      signByteMR = generateS390LeftAlignedMemoryReference(*destMR, node, 0, cg, 1);
+   else
+      signByteMR = generateS390MemoryReference(*destMR, (node->getSecondChild())->getDecimalPrecision() - 1, cg);
+
    // Load the sign byte of the Zoned Decimal from memory
-   generateRXInstruction(cg, TR::InstOpCode::LLC, node, signCode, generateS390LeftAlignedMemoryReference(*destMR, node, 0, cg, 1));
+   generateRXInstruction(cg, TR::InstOpCode::LLC, node, signCode, signByteMR);
 
    generateRRInstruction(cg, TR::InstOpCode::LR, node, signCode4Bit, signCode);
 
@@ -1654,7 +1661,7 @@ J9::Z::TreeEvaluator::pd2zdSignFixup(TR::Node *node,
 
    generateS390LabelInstruction(cg, TR::InstOpCode::label, node, processSignEnd);
 
-   generateRXInstruction(cg, TR::InstOpCode::STC, node, signCode, generateS390LeftAlignedMemoryReference(*destMR, node, 0, cg, 1));
+   generateRXInstruction(cg, TR::InstOpCode::STC, node, signCode, generateS390MemoryReference(*signByteMR, 0, cg));
 
    // Set up the proper register dependencies
    TR::RegisterDependencyConditions* dependencies = new (cg->trHeapMemory()) TR::RegisterDependencyConditions(0, 2, cg);
@@ -1843,7 +1850,7 @@ J9::Z::TreeEvaluator::packedToZonedHelper(TR::Node *node, TR_PseudoRegister *tar
    if (!evaluatedPaddingAnchor)
       cg->processUnusedNodeDuringEvaluation(paddingAnchor);
 
-   pd2zdSignFixup(node, destMR, cg);
+   pd2zdSignFixup(node, destMR, cg, true);
 
    targetReg->transferSignState(childReg, isTruncation);
    targetReg->transferDataState(childReg);
@@ -1859,7 +1866,7 @@ J9::Z::TreeEvaluator::pd2zdVectorEvaluatorHelper(TR::Node * node, TR::CodeGenera
    traceMsg(comp, "DAA: Enter pd2zdVectorEvaluatorHelper\n");
    TR_PseudoRegister *targetReg = cg->allocatePseudoRegister(node->getDataType());
 
-   // pd2zd we need to create storagerefence and save this value to the memoryreference
+   // pd2zd we need to create storagereference and save this value to the memoryreference
    // associated to that storagereference.
    // To do this, we need to
    //
@@ -1900,7 +1907,7 @@ J9::Z::TreeEvaluator::pd2zdVectorEvaluatorHelper(TR::Node * node, TR::CodeGenera
    generateVSIInstruction(cg, TR::InstOpCode::VUPKZ, node, valueRegister, targetMR, sizeOfZonedValue - 1);
 
    // Fix pd2zd signs. VUPKZ and its non-vector counterpart don't validate digits nor signs.
-   pd2zdSignFixup(node, targetMR, cg);
+   pd2zdSignFixup(node, targetMR, cg, true);
 
    node->setRegister(targetReg);
    cg->decReferenceCount(child);
@@ -3169,7 +3176,7 @@ J9::Z::TreeEvaluator::evaluateValueModifyingOperand(TR::Node * node,
             int32_t srcLength = sourceSize;
             // If the firstStorageReference is not a temp or a hint then the recursive dec in setStorageReference() will be wrong.
             // This should always be true because this is the initialized case and it is not legal to initialize a non-temp or non-hint.
-            TR_ASSERT( firstStorageReference->isNodeBasedHint(), "expecting the srcStorargeReference to be a node based hint\n");
+            TR_ASSERT( firstStorageReference->isNodeBasedHint(), "expecting the srcStorageReference to be a node based hint\n");
             bool performExplicitWidening = false;
             cg->initializeNewTemporaryStorageReference(node, targetReg, destLength, firstChild, firstReg, srcLength, sourceMR, performExplicitWidening, alwaysLegalToCleanSign, trackSignState);
             if (targetBCDReg)
@@ -3665,13 +3672,25 @@ J9::Z::TreeEvaluator::pdstoreEvaluator(TR::Node *node, TR::CodeGenerator *cg)
    cg->traceBCDEntry("pdstore",node);
    cg->generateDebugCounter(TR::DebugCounter::debugCounterName(cg->comp(), "PD-Op/%s", node->getOpCode().getName()),
                             1, TR::DebugCounter::Cheap);
-   static char* isVectorBCDEnv = feGetEnv("TR_enableVectorBCD");
-   if((cg->comp()->target().cpu.supportsFeature(OMR_FEATURE_S390_VECTOR_PACKED_DECIMAL) &&
-       !cg->comp()->getOption(TR_DisableVectorBCD) ||
-       isVectorBCDEnv) &&
-           (node->getOpCodeValue() == TR::pdstore || node->getOpCodeValue() == TR::pdstorei))
+
+   static bool disablePdstoreVectorEvaluator = (feGetEnv("TR_DisablePdstoreVectorEvaluator") != NULL);
+   static bool disableZdstoreVectorEvaluator = (feGetEnv("TR_DisableZdstoreVectorEvaluator") != NULL);
+
+   if (!cg->comp()->getOption(TR_DisableVectorBCD) && !disablePdstoreVectorEvaluator
+      && cg->comp()->target().cpu.supportsFeature(OMR_FEATURE_S390_VECTOR_PACKED_DECIMAL)
+      && (node->getOpCodeValue() == TR::pdstore || node->getOpCodeValue() == TR::pdstorei))
       {
       pdstoreVectorEvaluatorHelper(node, cg);
+      }
+   else if (!cg->comp()->getOption(TR_DisableVectorBCD) && !disableZdstoreVectorEvaluator
+         && cg->comp()->target().cpu.supportsFeature(OMR_FEATURE_S390_VECTOR_PACKED_DECIMAL_ENHANCEMENT_FACILITY_2)
+         && node->getOpCodeValue() == TR::zdstorei
+         && node->getSecondChild()->getReferenceCount() == 1
+         && node->getSecondChild()->getRegister() == NULL
+         && (node->getSecondChild())->getOpCodeValue() == TR::pd2zd
+         && ((node->getSecondChild())->getFirstChild())->getOpCodeValue() == TR::pdloadi)
+      {
+      zdstoreiVectorEvaluatorHelper(node, cg);
       }
    else
       {
@@ -4714,7 +4733,7 @@ TR_OpaquePseudoRegister * J9::Z::TreeEvaluator::evaluateSignModifyingOperand(TR:
       TR_ASSERT( isBCD, "this path should only be taken for BCD nodes (unless we extend support for aggr types)\n");
       TR_StorageReference *firstStorageReference = firstReg->getStorageReference();
       // An initialized reg cannot have a non-hint node based storage reference as these would come from an ipdload node and pdload's never initialize a register
-      TR_ASSERT( firstStorageReference->isTemporaryBased() || firstStorageReference->isNodeBasedHint(),"expecting the initalized firstReg to be either a temp or a node based hint\n");
+      TR_ASSERT( firstStorageReference->isTemporaryBased() || firstStorageReference->isNodeBasedHint(),"expecting the initialized firstReg to be either a temp or a node based hint\n");
       targetReg = cg->allocatePseudoRegister(node->getDataType());
       // transfer the zeroDigits/deadBytes and cache the firstReg->getStorageReference() *before* calling ssrClobberEvaluate in case
       // a new storage reference set on firstReg causes these values to be reset
@@ -4983,7 +5002,7 @@ J9::Z::TreeEvaluator::pdclearEvaluator(TR::Node *node, TR::CodeGenerator *cg)
    int32_t targetRegPrec = targetReg->getDecimalPrecision();
 
    if (cg->traceBCDCodeGen())
-      traceMsg(comp,"\tset targetReg prec to %d (isTrucation %s)\n",targetRegPrec,isTruncation?"yes":"no");
+      traceMsg(comp,"\tset targetReg prec to %d (isTruncation %s)\n",targetRegPrec,isTruncation?"yes":"no");
 
    bool truncatedIntoClearedDigits = false;
    if (targetRegPrec < leftMostDigit)
@@ -6376,4 +6395,60 @@ J9::Z::TreeEvaluator::pdshrVectorEvaluatorHelper(TR::Node *node, TR::CodeGenerat
    cg->decReferenceCount(roundAmountNode);
 
    return targetReg;
+   }
+
+TR::Register*
+J9::Z::TreeEvaluator::zdstoreiVectorEvaluatorHelper(TR::Node *node, TR::CodeGenerator *cg)
+   {
+   if (cg->comp()->getOption(TR_TraceCG))
+      traceMsg(cg->comp(), "DAA: Entering zdstoreiVectorEvaluator %d\n", __LINE__);
+
+   TR::Node* pd2zdNode = node->getSecondChild();
+   TR::Node* pdloadiNode = pd2zdNode->getFirstChild();
+   TR::Register* pdValueReg = cg->evaluate(pdloadiNode);
+   TR_ASSERT_FATAL_WITH_NODE(pdloadiNode, (pdValueReg->getKind() == TR_FPR || pdValueReg->getKind() == TR_VRF),
+            "vectorized zdstore is expecting the packed decimal to be in a vector register.");
+
+   // No need to evaluate the address node of the zdstorei.
+   // generateVSIInstruction() API will call separateIndexRegister() to separate the index
+   // register by emitting an LA instruction. If there's a need for large displacement adjustment,
+   // LAY will be emitted instead.
+   TR::MemoryReference * targetMR = TR::MemoryReference::create(cg, node);
+
+   TR::Register *zonedDecimalHigh = cg->allocateRegister(TR_VRF);
+   TR::Register *zonedDecimalLow = cg->allocateRegister(TR_VRF);
+
+   // 0 we store 1 byte, 15 we store 16 bytes.
+   // 15 - lengthToStore = index from which to start.
+   uint8_t lengthToStore = pd2zdNode->getDecimalPrecision() - 1;
+   uint8_t M3 = 0x8; // Disable sign validation.
+   TR::MemoryReference * zonedDecimalMR = targetMR;
+   generateVRRkInstruction(cg, TR::InstOpCode::VUPKZL, node, zonedDecimalLow, pdValueReg, M3); // Also copies the sign bit.
+
+   if (pd2zdNode->getDecimalPrecision() > TR_VECTOR_REGISTER_SIZE)
+      {
+      generateVRRkInstruction(cg, TR::InstOpCode::VUPKZH, node, zonedDecimalHigh, pdValueReg, M3);
+      lengthToStore = pd2zdNode->getDecimalPrecision() - TR_VECTOR_REGISTER_SIZE;
+      generateVSIInstruction(cg, TR::InstOpCode::VSTRL, node, zonedDecimalHigh, zonedDecimalMR, lengthToStore - 1);
+      zonedDecimalMR = generateS390MemoryReference(*targetMR, lengthToStore, cg);
+      lengthToStore = TR_VECTOR_REGISTER_SIZE - 1;
+      }
+
+   generateVSIInstruction(cg, TR::InstOpCode::VSTRL, node, zonedDecimalLow, zonedDecimalMR, lengthToStore);
+
+   pd2zdSignFixup(node, targetMR, cg, false);
+
+   // This would have been decremented in pd2zdVectorEvaluatorHelper
+   // but since we skip that evaluator we decrement it here.
+   cg->decReferenceCount(pdloadiNode);
+
+   for (int32_t i = 0; i < node->getNumChildren(); ++i)
+      {
+      cg->decReferenceCount(node->getChild(i));
+      }
+
+   cg->stopUsingRegister(zonedDecimalHigh);
+   cg->stopUsingRegister(zonedDecimalLow);
+
+   return NULL;
    }

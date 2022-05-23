@@ -148,7 +148,7 @@ public class TestClassLoaderMain {
 		}
 		else
 		{
-			System.err.println("com.ibm.tests.garbagecollector.TestClassLoaderMain:  A test to excercise the GC's dynamic class unloading capability.");
+			System.err.println("com.ibm.tests.garbagecollector.TestClassLoaderMain:  A test to exercise the GC's dynamic class unloading capability.");
 			System.err.println("You must specify the number of objects to keep alive, the percentage of objects which are to be class loaders, and how many times to fill the array of live objects");
 			System.err.println("Usage:  \"com.ibm.tests.garbagecollector.TestClassLoaderMain <live object array size> <percentage of live objects which are class loaders> <number of times to fill live object array before declaring success>\"");
 			System.err.println("        (any <argument> may be replaced with \"-\" to use the default value)");

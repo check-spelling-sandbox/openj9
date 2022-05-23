@@ -42,7 +42,7 @@ public class MethodHandleAPI_withVarargs {
 		MethodHandle mhResult = lookup.findStatic(SamePackageExample.class,"nonVarArityMethod", methodType(int.class, int.class, int.class));
 		try {
 			mhResult = mhResult.withVarargs(true);
-			AssertJUnit.fail("IllegalArgumentException should be thrown out as there is no trailing array paramter in the handle");
+			AssertJUnit.fail("IllegalArgumentException should be thrown out as there is no trailing array parameter in the handle");
 		} catch (IllegalArgumentException e) {
 			/* Success */
 		}
@@ -146,7 +146,7 @@ public class MethodHandleAPI_withVarargs {
 	 * @throws Throwable
 	 */
 	@Test(groups = { "level.extended" })
-	public void test_withVarargs_VarArity_ReplaceParamterType() throws Throwable {
+	public void test_withVarargs_VarArity_ReplaceParameterType() throws Throwable {
 		MethodHandle mhResult = lookup.findStatic(SamePackageExample.class,"varArityMethod", methodType(String.class, int.class, String[].class));
 		try {
 			AssertJUnit.assertTrue(mhResult.isVarargsCollector());

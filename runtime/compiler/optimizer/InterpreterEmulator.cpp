@@ -36,14 +36,6 @@
 #include "env/j9methodServer.hpp"
 #endif /* defined(J9VM_OPT_JITSERVER) */
 
-#include <stdio.h>
-
-#if defined (_MSC_VER) && (_MSC_VER < 1900)
-#define snprintf _snprintf
-#endif
-
-#define OPERAND_STR_BUF_SIZE 128
-
 const char* Operand::KnowledgeStrings[] = {"NONE", "OBJECT", "MUTABLE_CALLSITE_TARGET", "PREEXISTENT", "FIXED_CLASS", "KNOWN_OBJECT", "ICONST" };
 
 char*
@@ -124,7 +116,7 @@ IconstOperand::merge1(Operand* other)
       return NULL;
    }
 
-// TODO: check instanceOf relationship and create new Operand if neccessary
+// TODO: check instanceOf relationship and create new Operand if necessary
 Operand*
 ObjectOperand::merge1(Operand* other)
    {
@@ -183,54 +175,34 @@ MutableCallsiteTargetOperand::merge1(Operand* other)
       return NULL;
    }
 
-int
-Operand::printToString(char *buffer, size_t size)
+void
+Operand::printToString(TR::StringBuf *buf)
    {
-   return snprintf(buffer, size, "(unknown)");
+   buf->appendf("(unknown)");
    }
 
-int
-IconstOperand::printToString(char *buffer, size_t size)
+void
+IconstOperand::printToString(TR::StringBuf *buf)
    {
-   return snprintf(buffer, size, "(iconst=%d)", intValue);
+   buf->appendf("(iconst=%d)", intValue);
    }
 
-int
-ObjectOperand::printToString(char *buffer, size_t size)
+void
+ObjectOperand::printToString(TR::StringBuf *buf)
    {
-   return snprintf(buffer, size, "(%s=clazz%p)", KnowledgeStrings[getKnowledgeLevel()], getClass());
+   buf->appendf("(%s=clazz%p)", KnowledgeStrings[getKnowledgeLevel()], getClass());
    }
 
-int
-KnownObjOperand::printToString(char *buffer, size_t size)
+void
+KnownObjOperand::printToString(TR::StringBuf *buf)
    {
-   return snprintf(buffer, size, "(obj%d)", getKnownObjectIndex());
+   buf->appendf("(obj%d)", getKnownObjectIndex());
    }
 
-int
-MutableCallsiteTargetOperand::printToString(char *buffer, size_t size)
+void
+MutableCallsiteTargetOperand::printToString(TR::StringBuf *buf)
    {
-   return snprintf(buffer, size, "(mh=%d, mcs=%d)", getMethodHandleIndex(), getMutableCallsiteIndex());
-   }
-
-static void printToString(TR::Compilation *comp, Operand *operand, char *buffer, size_t size)
-   {
-   TR_ASSERT_FATAL(size >= 1, "undersized buffer has no space for the NUL terminator");
-
-   int len = operand->printToString(buffer, size);
-
-   // If the formatted length is > size, MSVC _snprintf() returns a negative
-   // value instead of the length, so check for len < 0 as well.
-   if (len < 0 || len >= size)
-      {
-      // When the formatted length is >= size, MSVC _snprintf() fails to
-      // NUL-terminate.
-      buffer[size - 1] = '\0';
-
-      // Warn that the output has been truncated. Do not assert here, since
-      // that risks producing less diagnostic information.
-      traceMsg(comp, "warning: Operand::printToString() result is truncated: %s\n", buffer);
-      }
+   buf->appendf("(mh=%d, mcs=%d)", getMethodHandleIndex(), getMutableCallsiteIndex());
    }
 
 void
@@ -239,9 +211,9 @@ InterpreterEmulator::printOperandArray(OperandArray* operands)
    int32_t size = operands->size();
    for (int32_t i = 0; i < size; i++)
       {
-      char buffer[OPERAND_STR_BUF_SIZE];
-      printToString(comp(), (*operands)[i], buffer, sizeof (buffer));
-      traceMsg(comp(), "[%d]=%s, ", i, buffer);
+      _operandBuf->clear();
+      (*operands)[i]->printToString(_operandBuf);
+      traceMsg(comp(), "[%d]=%s, ", i, _operandBuf->text());
       }
    if (size > 0)
       traceMsg(comp(), "\n");
@@ -534,9 +506,15 @@ InterpreterEmulator::setupMethodEntryLocalObjectState()
              }
          if (tracer()->heuristicLevel())
             {
-            char buffer[OPERAND_STR_BUF_SIZE];
-            printToString(comp(), (*_currentLocalObjectInfo)[slotIndex], buffer, sizeof (buffer));
-            heuristicTrace(tracer(), "Creating operand %s for parm %d slot %d from PrexArgument %p", buffer, ordinal, slotIndex, prexArgument);
+            _operandBuf->clear();
+            (*_currentLocalObjectInfo)[slotIndex]->printToString(_operandBuf);
+            heuristicTrace(
+               tracer(),
+               "Creating operand %s for parm %d slot %d from PrexArgument %p",
+               _operandBuf->text(),
+               ordinal,
+               slotIndex,
+               prexArgument);
             }
          }
       }
@@ -708,7 +686,7 @@ InterpreterEmulator::maintainStack(TR_J9ByteCode bc)
          push(top());
          break;
       case J9BCldc:
-         maintainStackForldc(nextByte()); break;
+         maintainStackForLDC(nextByte()); break;
       default:
          static const bool assertfatal = feGetEnv("TR_AssertFatalForUnexpectedBytecodeInMethodHandleThunk") ? true: false;
          if (!assertfatal)
@@ -793,7 +771,7 @@ InterpreterEmulator::maintainStackForAstore(int slotIndex)
    }
 
 void
-InterpreterEmulator::maintainStackForldc(int32_t cpIndex)
+InterpreterEmulator::maintainStackForLDC(int32_t cpIndex)
    {
    TR::DataType type = method()->getLDCType(cpIndex);
    switch (type)
@@ -904,9 +882,9 @@ InterpreterEmulator::dumpStack()
    for (int i = 0; i < _stack->size(); i++ )
       {
       Operand *x = (*_stack)[i];
-      char buffer[OPERAND_STR_BUF_SIZE];
-      printToString(comp(), x, buffer, sizeof (buffer));
-      debugTrace(tracer(), "[%d]=%s", i, buffer);
+      _operandBuf->clear();
+      x->printToString(_operandBuf);
+      debugTrace(tracer(), "[%d]=%s", i, _operandBuf->text());
       }
    }
 
@@ -935,6 +913,23 @@ InterpreterEmulator::getReturnValue(TR_ResolvedMethod *callee)
       case TR::java_lang_invoke_ILGenMacros_isShareableThunk:
          result = new (trStackMemory()) IconstOperand(0);
          break;
+
+#if defined(J9VM_OPT_OPENJDK_METHODHANDLE)
+      case TR::java_lang_invoke_DelegatingMethodHandle_getTarget:
+         {
+         TR::KnownObjectTable::Index dmhIndex = top()->getKnownObjectIndex();
+         bool trace = tracer()->debugLevel();
+         TR::KnownObjectTable::Index targetIndex =
+            comp()->fej9()->delegatingMethodHandleTarget(comp(), dmhIndex, trace);
+
+         if (targetIndex == TR::KnownObjectTable::UNKNOWN)
+            return NULL;
+
+         result = new (trStackMemory()) KnownObjOperand(targetIndex);
+         break;
+         }
+#endif
+
       case TR::java_lang_invoke_MutableCallSite_getTarget:
       case TR::java_lang_invoke_Invokers_getCallSiteTarget:
          {
@@ -1043,7 +1038,6 @@ InterpreterEmulator::refineResolvedCalleeForInvokestatic(TR_ResolvedMethod *&cal
       return;
 
    bool isVirtual = false;
-   bool isInterface = false;
    TR::RecognizedMethod rm = callee->getRecognizedMethod();
    switch (rm)
       {
@@ -1074,69 +1068,27 @@ InterpreterEmulator::refineResolvedCalleeForInvokestatic(TR_ResolvedMethod *&cal
          return;
          }
       // refine the leaf method handle callees
-      case TR::java_lang_invoke_InterfaceHandle_interfaceCall:
-         isInterface = true;
       case TR::java_lang_invoke_VirtualHandle_virtualCall:
-         isVirtual = !isInterface;
-         isIndirectCall = true;
+         isVirtual = true;
       case TR::java_lang_invoke_DirectHandle_directCall:
          {
-         isIndirectCall = false;
-         TR_OpaqueMethodBlock *j9method;
-         int64_t vmSlot = 0;
-         uintptr_t jlClass = 0;
          TR_J9VMBase *fej9 = comp()->fej9();
-            {
-            TR::KnownObjectTable *knot = comp()->getOrCreateKnownObjectTable();
-#if defined(J9VM_OPT_JITSERVER)
-            if (comp()->isOutOfProcessCompilation())
-               {
-               bool knotEnabled = (knot != NULL);
-               uintptr_t *methodHandleLocation = _calltarget->_calleeMethod->getMethodHandleLocation();
-               auto stream = TR::CompilationInfo::getStream();
-               stream->write(JITServer::MessageType::KnownObjectTable_invokeDirectHandleDirectCall, methodHandleLocation, knotEnabled);
+         TR_J9VMBase::MethodOfHandle moh = fej9->methodOfDirectOrVirtualHandle(
+            _calltarget->_calleeMethod->getMethodHandleLocation(), isVirtual);
 
-               auto recv = stream->read<int64_t, uintptr_t, TR::KnownObjectTable::Index, uintptr_t*>();
-               vmSlot = std::get<0>(recv);
-               jlClass = std::get<1>(recv);
-               TR::KnownObjectTable::Index resultIndex = std::get<2>(recv);
-               uintptr_t *objectPointerReference = std::get<3>(recv);
+         TR_ASSERT_FATAL(moh.j9method != NULL, "Must have a j9method to generate a custom call");
+         uint32_t vTableSlot = isVirtual ? (uint32_t)moh.vmSlot : 0;
+         TR_ResolvedMethod *newCallee = fej9->createResolvedMethodWithVTableSlot(
+            trMemory(), vTableSlot, moh.j9method, _calltarget->_calleeMethod);
 
-               if (knot && (resultIndex != TR::KnownObjectTable::UNKNOWN))
-                  {
-                  knot->updateKnownObjectTableAtServer(resultIndex, objectPointerReference);
-                  }
+         // Don't refine virtualCall to an interface method, which will confuse
+         // the virtual call site logic in visitInvokestatic()
+         TR_OpaqueClassBlock *defClass = newCallee->classOfMethod();
+         if (isVirtual && TR::Compiler->cls.isInterfaceClass(comp(), defClass))
+            return;
 
-               debugTrace(tracer(), "refine resolved method for leaf methodHandle [obj%d]\n", resultIndex);
-               }
-            else
-#endif /* defined(J9VM_OPT_JITSERVER) */
-               {
-               TR::VMAccessCriticalSection invokeDirectHandleDirectCall(fej9);
-               uintptr_t methodHandle = *_calltarget->_calleeMethod->getMethodHandleLocation();
-               vmSlot = fej9->getInt64Field(methodHandle, "vmSlot");
-               jlClass = fej9->getReferenceField(methodHandle, "defc", "Ljava/lang/Class;");
-               debugTrace(tracer(), "refine resolved method for leaf methodHandle [obj%d]\n", knot ? knot->getOrCreateIndex(methodHandle) : -1);
-               }
-
-            if (isInterface)
-               {
-               TR_OpaqueClassBlock *clazz = fej9->getClassFromJavaLangClass(jlClass);
-               j9method = (TR_OpaqueMethodBlock*)&(((J9Class *)clazz)->ramMethods[vmSlot]);
-               }
-            else if (isVirtual)
-               {
-               TR_OpaqueMethodBlock **vtable = (TR_OpaqueMethodBlock**)(((uintptr_t)fej9->getClassFromJavaLangClass(jlClass)) + J9JIT_INTERP_VTABLE_OFFSET);
-               int32_t index = (int32_t)((vmSlot - J9JIT_INTERP_VTABLE_OFFSET) / sizeof(vtable[0]));
-               j9method = vtable[index];
-               }
-            else
-               {
-               j9method = (TR_OpaqueMethodBlock*)(intptr_t)vmSlot;
-               }
-            }
-         TR_ASSERT(j9method, "Must have a j9method to generate a custom call");
-         callee = fej9->createResolvedMethod(this->trMemory(), j9method);
+         isIndirectCall = isVirtual;
+         callee = newCallee;
          return;
          }
 #if defined(J9VM_OPT_OPENJDK_METHODHANDLE)
@@ -1152,10 +1104,37 @@ InterpreterEmulator::refineResolvedCalleeForInvokestatic(TR_ResolvedMethod *&cal
 
          uint32_t vTableSlot = 0;
          if (rm == TR::java_lang_invoke_MethodHandle_linkToVirtual)
-            vTableSlot = fej9->vTableOrITableIndexFromMemberName(comp(), memberNameIndex);
+            {
+            uintptr_t slot = fej9->vTableOrITableIndexFromMemberName(comp(), memberNameIndex);
+            if ((slot & J9_JNI_MID_INTERFACE) == 0)
+               {
+               vTableSlot = (uint32_t)slot;
+               }
+            else
+               {
+               // TODO: Refine to the method identified by the itable slot
+               // together with the defining (interface) class of the method
+               // from the MemberName. For such a refinement to matter,
+               // TR_J9InterfaceCallSite will need to be able to find call
+               // targets without a CP index.
+               //
+               // For the moment, just leave the call unrefined.
+               //
+               return;
+               }
+            }
 
+         // Direct or virtual dispatch. A vTableSlot of 0 indicates a direct
+         // call, in which case vTableSlot won't really be used as such.
          callee = fej9->createResolvedMethodWithVTableSlot(comp()->trMemory(), vTableSlot, targetMethod, _calltarget->_calleeMethod);
-         isIndirectCall = rm == TR::java_lang_invoke_MethodHandle_linkToVirtual || rm == TR::java_lang_invoke_MethodHandle_linkToInterface;
+
+         isIndirectCall = vTableSlot != 0;
+         TR_ASSERT_FATAL(
+            !isIndirectCall
+            || rm == TR::java_lang_invoke_MethodHandle_linkToVirtual
+            || rm == TR::java_lang_invoke_MethodHandle_linkToInterface,
+            "indirect linkTo call should only be linkToVirtual or linkToInterface");
+
          heuristicTrace(tracer(), "Refine linkTo to %s\n", callee->signature(trMemory(), stackAlloc));
          // The refined method doesn't take MemberName as an argument, pop MemberName out of the operand stack
          pop();
@@ -1169,13 +1148,13 @@ InterpreterEmulator::refineResolvedCalleeForInvokestatic(TR_ResolvedMethod *&cal
    }
 
 bool
-InterpreterEmulator::findAndCreateCallsitesFromBytecodes(bool wasPeekingSuccessfull, bool withState)
+InterpreterEmulator::findAndCreateCallsitesFromBytecodes(bool wasPeekingSuccessful, bool withState)
    {
    heuristicTrace(tracer(),"Find and create callsite %s\n", withState ? "with state" : "without state");
 
    if (withState)
       initializeIteratorWithState();
-   _wasPeekingSuccessfull = wasPeekingSuccessfull;
+   _wasPeekingSuccessful = wasPeekingSuccessful;
    _currentInlinedBlock = NULL;
    TR_J9ByteCode bc = first();
    while (bc != J9BCunknown)
@@ -1245,7 +1224,7 @@ InterpreterEmulator::findNextByteCodeToVisit()
       else next();
       }
 
-   if (_InterpreterEmulatorFlags[_bcIndex].testAny(InterpreterEmulator::BytecodePropertyFlag::bbStart))
+   if (_bcIndex < _maxByteCodeIndex && _InterpreterEmulatorFlags[_bcIndex].testAny(InterpreterEmulator::BytecodePropertyFlag::bbStart))
       {
       if (isGenerated(_bcIndex))
          setIndex(Base::findNextByteCodeToGen());
@@ -1330,9 +1309,9 @@ void
 InterpreterEmulator::updateKnotAndCreateCallSiteUsingInvokeCacheArray(TR_ResolvedJ9Method* owningMethod, uintptr_t * invokeCacheArray, int32_t cpIndex)
    {
    TR_J9VMBase *fej9 = comp()->fej9();
+   TR::KnownObjectTable::Index idx = fej9->getKnotIndexOfInvokeCacheArrayAppendixElement(comp(), invokeCacheArray);
    if (_iteratorWithState)
       {
-      TR::KnownObjectTable::Index idx = fej9->getKnotIndexOfInvokeCacheArrayAppendixElement(comp(), invokeCacheArray);
       if (idx != TR::KnownObjectTable::UNKNOWN)
          push(new (trStackMemory()) KnownObjOperand(idx));
       else
@@ -1357,7 +1336,7 @@ InterpreterEmulator::updateKnotAndCreateCallSiteUsingInvokeCacheArray(TR_Resolve
                                                                         resolvedSymbol, isIndirectCall, isInterface, *_newBCInfo, comp(),
                                                                         _recursionDepth, allconsts);
 
-   findTargetAndUpdateInfoForCallsite(callsite);
+   findTargetAndUpdateInfoForCallsite(callsite, idx);
    }
 
 #endif //J9VM_OPT_OPENJDK_METHODHANDLE
@@ -1375,7 +1354,7 @@ InterpreterEmulator::isCurrentCallUnresolvedOrCold(TR_ResolvedMethod *resolvedMe
    // Since bytecodes in a thunk archetype are never interpreted,
    // most of the cp entries may appear unresolved, and we always
    // compile-time resolve the cp entries. Thus ignore resolution
-   // status of cp entries of thunk arthetype
+   // status of cp entries of thunk archetype
    //
    if (_callerIsThunkArchetype)
       return resolvedMethod->isCold(comp(), isIndirectCall);
@@ -1657,9 +1636,10 @@ InterpreterEmulator::visitInvokestatic()
          }
       else if (isIndirectCall)
          {
+         int32_t noCPIndex = -1; // The method is not referenced via the constant pool
          callsite = new (comp()->trHeapMemory()) TR_J9VirtualCallSite(
                _calltarget->_calleeMethod, callNodeTreeTop, parent, callNode,
-               interfaceMethod, _currentCallMethod->classOfMethod(), (int32_t) _currentCallMethod->virtualCallSelector(cpIndex), cpIndex,
+               interfaceMethod, _currentCallMethod->classOfMethod(), (int32_t) _currentCallMethod->virtualCallSelector(cpIndex), noCPIndex,
                _currentCallMethod, resolvedSymbol, isIndirectCall, isInterface,
                *_newBCInfo, comp(), _recursionDepth, allconsts);
          }
@@ -1789,7 +1769,8 @@ InterpreterEmulator::createPrexArgFromOperand(Operand* operand)
    }
 
 TR_PrexArgInfo*
-InterpreterEmulator::computePrexInfo(TR_CallSite *callsite)
+InterpreterEmulator::computePrexInfo(
+   TR_CallSite *callsite, TR::KnownObjectTable::Index appendix)
    {
    if (tracer()->heuristicLevel())
       _ecs->getInliner()->tracer()->dumpCallSite(callsite, "Compute prex info for call site %p\n", callsite);
@@ -1809,7 +1790,7 @@ InterpreterEmulator::computePrexInfo(TR_CallSite *callsite)
 
    // Always favor prex arg from operand if we're iterating with state
    // But not for thunk archetype as the method's bytecodes manipulate
-   // the operand stack differently, and one int `argPlacehowler`
+   // the operand stack differently, and one int `argPlaceholder`
    // argument can represent more than one arguments
    //
    if (!_callerIsThunkArchetype && _iteratorWithState)
@@ -1828,7 +1809,7 @@ InterpreterEmulator::computePrexInfo(TR_CallSite *callsite)
          }
       return prexArgInfo;
       }
-   else if (_wasPeekingSuccessfull)
+   else if (_wasPeekingSuccessful)
       {
       auto callNodeTT = TR_PrexArgInfo::getCallTree(_methodSymbol, callsite, tracer());
       if (callNodeTT)
@@ -1844,16 +1825,44 @@ InterpreterEmulator::computePrexInfo(TR_CallSite *callsite)
          return prexArgInfo;
          }
       }
+#if defined(J9VM_OPT_OPENJDK_METHODHANDLE)
+   else if (appendix != TR::KnownObjectTable::UNKNOWN)
+      {
+      TR_ASSERT_FATAL(!callsite->isIndirectCall(), "appendix with indirect call");
+      TR_ASSERT_FATAL(
+         comp()->fej9()->isLambdaFormGeneratedMethod(callsite->_initialCalleeMethod),
+         "appendix with non-LambdaForm method - expected a call site adapter");
+
+      TR::KnownObjectTable *knot = comp()->getKnownObjectTable();
+      if (!knot->isNull(appendix))
+         {
+         TR_PrexArgInfo* prexArgInfo =
+            new (comp()->trHeapMemory()) TR_PrexArgInfo(numOfArgs, comp()->trMemory());
+
+         auto arg = new (comp()->trHeapMemory()) TR_PrexArgument(appendix, comp());
+         prexArgInfo->set(numOfArgs - 1, arg);
+
+         if (tracer()->heuristicLevel())
+            {
+            alwaysTrace(tracer(), "argInfo from appendix object:");
+            prexArgInfo->dumpTrace();
+            }
+
+         return prexArgInfo;
+         }
+      }
+#endif
 
    return NULL;
    }
 
 void
-InterpreterEmulator::findTargetAndUpdateInfoForCallsite(TR_CallSite *callsite)
+InterpreterEmulator::findTargetAndUpdateInfoForCallsite(
+   TR_CallSite *callsite, TR::KnownObjectTable::Index appendix)
    {
    _currentCallSite = callsite;
    callsite->_callerBlock = _currentInlinedBlock;
-   callsite->_ecsPrexArgInfo = computePrexInfo(callsite);
+   callsite->_ecsPrexArgInfo = computePrexInfo(callsite, appendix);
 
    if (_ecs->isInlineable(_callStack, callsite))
       {

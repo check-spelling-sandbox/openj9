@@ -1,5 +1,5 @@
 /* -----------------------------------------------------------------------
-   arcompact.S - Copyright (c) 2013 Synposys, Inc. (www.synopsys.com)
+   arcompact.S - Copyright (c) 2013 Synopsys, Inc. (www.synopsys.com)
    
    ARCompact Foreign Function Interface 
 

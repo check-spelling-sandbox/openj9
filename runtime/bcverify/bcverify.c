@@ -537,7 +537,7 @@ _underflow:
 
 _overflow:
 	/* Jazz 82615: Set the error code, the location of the last local variable allowed on 'locals'
-	 * and the maximum local size in the case of overflow on 'locals' in the currrent stackmap frame.
+	 * and the maximum local size in the case of overflow on 'locals' in the current stackmap frame.
 	 */
 	verifyData->errorDetailCode = BCV_ERR_STACKMAP_FRAME_LOCALS_OVERFLOW;
 	verifyData->errorCurrentFramePosition = (maxLocals > 0) ? (U_32)(maxLocals - 1) : 0;
@@ -1356,7 +1356,7 @@ simulateStack (J9BytecodeVerificationData * verifyData)
 	length = (UDATA) J9_BYTECODE_SIZE_FROM_ROM_METHOD(romMethod);
 	maxStack = J9_MAX_STACK_FROM_ROM_METHOD(romMethod);
 
-	/* Jazz 105041: Initialize the 1st data slot on 'stack' with 'top' (placeholdler)
+	/* Jazz 105041: Initialize the 1st data slot on 'stack' with 'top' (placeholder)
 	 * to avoid storing garbage data type in the error message buffer
 	 * when stack underflow occurs.
 	 */

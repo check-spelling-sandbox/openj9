@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 1991, 2020 IBM Corp. and others
+ * Copyright (c) 1991, 2021 IBM Corp. and others
  *
  * This program and the accompanying materials are made available under
  * the terms of the Eclipse Public License 2.0 which accompanies this
@@ -128,7 +128,7 @@ static J9PortLibrary MainPortLibraryTable = {
 	j9port_create_library, /* port_create_library */
 	j9hypervisor_startup, /* hypervisor_startup */
 	j9hypervisor_shutdown, /* hypervisor_shutdown */
-	j9hypervisor_hypervisor_present, /* hyperevisor_present */
+	j9hypervisor_hypervisor_present, /* hypervisor_present */
 	j9hypervisor_get_hypervisor_info,/* hypervisor_get_hypervisor_info */
 	j9hypervisor_get_guest_processor_usage, /* hypervisor_get_guest_processor_usage */
 	j9hypervisor_get_guest_memory_usage, /* hypervisor_get_guest_memory_usage */
@@ -351,11 +351,6 @@ j9port_startup_library(struct J9PortLibrary *portLibrary)
 		goto cleanup;
 	}
 	memset(portLibrary->portGlobals, 0, sizeof(J9PortLibraryGlobalData));
-
-	/* Check for omr port startup failure after allocating port globals. Globals must be allocated. */
-	if (0 != rc) {
-		goto cleanup;
-	}
 
 	rc = portLibrary->sysinfo_startup(portLibrary);
 	if (0 != rc) {

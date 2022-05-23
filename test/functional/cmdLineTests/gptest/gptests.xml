@@ -56,7 +56,7 @@
   <output type="required" regex="no">messageNumber: 3209</output>
   <output type="required" regex="no">feedback token: 0x0 0x3 0xc 0x89 0x59 0xc3 0xc5 0xc5</output>
   <output type="required" regex="no">at VMBench.GPTests.GPTest.gpFloat(Native Method)</output>
-  <output type="success" regex="no">Succesfully threw exception 10 times</output>
+  <output type="success" regex="no">Successfully threw exception 10 times</output>
   <output type="failure" regex="no">Unhandled exception</output>
  </test>
 

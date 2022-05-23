@@ -331,10 +331,10 @@ void TR_LoopAliasRefiner::buildAliasRefinementComparisonTrees(List<TR::TreeTop> 
      for (arrayPtr = arangeIterator.getFirst(); arrayPtr ; arrayPtr = arangeIterator.getNext())
         {
         TR::Node *nodeInfo  = arrayPtr->getCandidateList()->getListHead()->getData()->_node;
-        TR::Node * nodeToBeNullChkd = nodeInfo->getFirstChild();
+        TR::Node * nodeToBeNullChecked = nodeInfo->getFirstChild();
         vcount_t visitCount = comp()->incVisitCount();
         // Collecting all prereq tests
-        collectAllExpressionsToBeChecked(nullCheckTrees, divCheckTrees, checkCastTrees, arrayStoreCheckTrees, nodeToBeNullChkd, comparisonTrees, exitGotoBlock, visitCount);
+        collectAllExpressionsToBeChecked(nullCheckTrees, divCheckTrees, checkCastTrees, arrayStoreCheckTrees, nodeToBeNullChecked, comparisonTrees, exitGotoBlock, visitCount);
         }
 
    TR_ScratchList<ArrayRangeLimits> *listCopy = new(trStackMemory()) TR_ScratchList<ArrayRangeLimits>(trMemory());

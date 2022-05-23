@@ -1,6 +1,6 @@
-/*[INCLUDE-IF Sidecar18-SE]*/
+/*[INCLUDE-IF Sidecar18-SE & !OPENJDK_THREAD_SUPPORT]*/
 /*******************************************************************************
- * Copyright (c) 1998, 2021 IBM Corp. and others
+ * Copyright (c) 1998, 2022 IBM Corp. and others
  *
  * This program and the accompanying materials are made available under
  * the terms of the Eclipse Public License 2.0 which accompanies this
@@ -253,6 +253,9 @@ public boolean allowThreadSuspension(boolean b) {
  * If there is a SecurityManager installed, call <code>checkAccess</code>
  * in it passing the receiver as parameter, otherwise do nothing.
  */
+/*[IF JAVA_SPEC_VERSION >= 17]*/
+@Deprecated(since="17", forRemoval=true)
+/*[ENDIF] JAVA_SPEC_VERSION >= 17 */
 public final void checkAccess() {
 	// Forwards the message to the SecurityManager (if there's one)
 	// passing the receiver as parameter

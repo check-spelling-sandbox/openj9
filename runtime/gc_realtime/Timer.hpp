@@ -35,7 +35,7 @@ public:
 protected:
 private:
 	U_64 _tickBase; /**< Current tick count from the TSC */
-	U_64 _sytemTimeBase; /**< Current system time in nanoseconds */
+	U_64 _systemTimeBase; /**< Current system time in nanoseconds */
 	MM_OSInterface* _osInterface; /**< OS Interface used to set the time base on reset/initialize. */
 	
 /* Methods */
@@ -57,7 +57,7 @@ private:
 	
 	MM_Timer() :
 		_tickBase(J9CONST64(0)),
-		_sytemTimeBase(J9CONST64(0)),
+		_systemTimeBase(J9CONST64(0)),
 		_osInterface(NULL)
 	{
 		_typeId = __FUNCTION__;

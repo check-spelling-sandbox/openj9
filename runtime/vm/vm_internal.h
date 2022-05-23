@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 1991, 2021 IBM Corp. and others
+ * Copyright (c) 1991, 2022 IBM Corp. and others
  *
  * This program and the accompanying materials are made available under
  * the terms of the Eclipse Public License 2.0 which accompanies this
@@ -431,6 +431,18 @@ convertByteArrayToCString(J9VMThread *currentThread, j9object_t byteArray);
 j9object_t
 convertCStringToByteArray(J9VMThread *currentThread, const char *byteArray);
 
+/**
+ * Allocate native memory and copy the argument array to it.
+ *
+ * @param currentThread[in] the current J9VMThread
+ * @param argArray[in] the specified argument array (must not be NULL)
+ * @param javaArgs[in] the specified native memory to store the arguments (must not be NULL)
+ *
+ * @returns the newly-allocated memory, or NULL on failure (no exception is set pending)
+ */
+U_64 *
+convertToNativeArgArray(J9VMThread *currentThread, j9object_t argArray, U_64 *javaArgs);
+
 /* ------------------- romclasses.c ----------------- */
 
 /**
@@ -443,6 +455,7 @@ initializeROMClasses(J9JavaVM *vm);
 
 /* ------------------- visible.c ----------------- */
 
+#if JAVA_SPEC_VERSION >= 11
 /**
  * Check module access from srcModule to destModule.
  *
@@ -475,6 +488,7 @@ initializeROMClasses(J9JavaVM *vm);
 
 IDATA
 checkModuleAccess(J9VMThread *currentThread, J9JavaVM* vm, J9ROMClass* srcRomClass, J9Module* srcModule, J9ROMClass* destRomClass, J9Module* destModule, UDATA destPackageID, UDATA lookupOptions);
+#endif /* JAVA_SPEC_VERSION >= 11 */
 
 /* ------------------- guardedstorage.c ----------------- */
 
@@ -525,6 +539,19 @@ j9gs_deinitializeThread(struct J9VMThread *vmThread);
 
 UDATA initializeExclusiveAccess(J9JavaVM *vm);
 void shutDownExclusiveAccess(J9JavaVM *vm);
+
+#if JAVA_SPEC_VERSION >= 16
+/* LayoutFFITypeHelpers.cpp */
+
+/**
+ * Release the memory of struct specific ffi_types if exist in the argument/return types
+ *
+ * @param currentThread[in] the current J9VMThread
+ * @param cifNode[in] the ffi_cif element in cifNativeCalloutDataCache
+ */
+void
+freeAllStructFFITypes(J9VMThread *currentThread, void *cifNode);
+#endif /* JAVA_SPEC_VERSION >= 16 */
 
 #ifdef __cplusplus
 }

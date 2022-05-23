@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2001, 2021 IBM Corp. and others
+ * Copyright (c) 2001, 2022 IBM Corp. and others
  *
  * This program and the accompanying materials are made available under
  * the terms of the Eclipse Public License 2.0 which accompanies this
@@ -198,7 +198,7 @@ public class Constants {
 	public static final String SHRC_CP = "classpath";
 	public static final String SHRC_CP_SUCCESS_KEY = "vm.jar";
 	public static final String SHRC_CP_SUCCESS_KEY_JAVA9 = "lib[[/\\\\]]modules";
-	public static final String SHRC_CP_FAILIRE_KEY = "no shared cache";
+	public static final String SHRC_CP_FAILURE_KEY = "no shared cache";
 
 	public static final String SHRC_FINDCLASS = "findclass";
 	public static final String SHRC_FINDCLASS_NAME = "java/lang/Object";
@@ -287,7 +287,7 @@ public class Constants {
 	/* The following are constants related to Class related extensions */
 	public static final String ALL_CLASSES_CMD = "allclasses";
 	public static final String ALL_CLASSES_SUCCESS_KEY = "j9vm/test/corehelper/CoreGen,j9vm/test/corehelper/SimpleThread";
-	public static final String ALL_CLASSESS_FAILURE_KEY = "";
+	public static final String ALL_CLASSES_FAILURE_KEY = "";
 
 	public static final String J9CLASSSHAPE_CMD = "j9classshape";
 	public static final String J9CLASSSHAPE_TEST_CLASS = "j9vm/test/corehelper/SimpleThread$DumperThread";
@@ -604,7 +604,7 @@ public class Constants {
 	public static final String DCLIBS_CMD = "dclibs";
 	public static final String DCLIBS_SUCCESS_KEYS = "Showing library list for,(Lib.+)+";
 	public static final String DCLIBS_FAILURE_KEYS = "Problem running command";
-	public static final String DCLIBS_LIB_COLLENTED = "Library has been collected";
+	public static final String DCLIBS_LIB_COLLECTED = "Library has been collected";
 	public static final String DCLIBS_EXTRACT_SUCCESS_KEYS = "Extracting libraries to,(Extracting.+)+";
 
 	public static final String J9METHOD_CMD = "j9method";
@@ -634,6 +634,7 @@ public class Constants {
 	public static final String DEADLOCK_FIRST_MON = "First Monitor lock";
 	public static final String DEADLOCK_SECOND_MON = "Second Monitor lock";
 	public static final String DEADLOCK_JAVA_OBJ = "java/lang/Object";
+	public static final String DEADLOCK_JAVA_IDENTITY = "java/lang/Identity";
 	public static final String DEADLOCK_CMD = "deadlock";
 
 	/* Constants related to testing of runtime type resolution */

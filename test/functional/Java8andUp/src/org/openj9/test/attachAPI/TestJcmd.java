@@ -300,9 +300,9 @@ public class TestJcmd extends AttachApiTest {
 		if (output.indexOf(JCMD_OUTPUT_START_STRING) != -1) {
 			String filePathName = output.substring(JCMD_OUTPUT_START_STRING.length()).trim();
 			if (new File(filePathName).delete()) {
-				System.out.println("Deleted the temparary dump file : " + filePathName);
+				System.out.println("Deleted the temporary dump file : " + filePathName);
 			} else {
-				fail("Failed to delete the temparary dump file : " + filePathName);
+				fail("Failed to delete the temporary dump file : " + filePathName);
 			}
 		}
 	}

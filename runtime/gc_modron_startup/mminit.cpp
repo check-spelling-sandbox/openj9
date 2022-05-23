@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 1991, 2021 IBM Corp. and others
+ * Copyright (c) 1991, 2022 IBM Corp. and others
  *
  * This program and the accompanying materials are made available under
  * the terms of the Eclipse Public License 2.0 which accompanies this
@@ -94,10 +94,10 @@
 #if defined(J9VM_GC_VLHGC)
 #include "RememberedSetCardList.hpp"
 #endif /* J9VM_GC_VLHGC */
-#if defined(J9VM_GC_SEGRGATED_HEAP)
+#if defined(J9VM_GC_SEGREGATED_HEAP)
 #include "ObjectHeapIteratorSegregated.hpp"
 #include "SizeClasses.hpp"
-#endif /* J9VM_GC_SEGRGATED_HEAP */
+#endif /* J9VM_GC_SEGREGATED_HEAP */
 #if defined(J9VM_GC_REALTIME)
 #include "RememberedSetSATB.hpp"
 #endif /* J9VM_GC_REALTIME */
@@ -565,11 +565,18 @@ gcStartupHeapManagement(J9JavaVM *javaVM)
 	int result = 0;
 
 #if defined(J9VM_GC_FINALIZATION)
-	result = j9gc_finalizer_startup(javaVM);
-	if (JNI_OK != result) {
-		PORT_ACCESS_FROM_JAVAVM(javaVM);
-		j9nls_printf(PORTLIB, J9NLS_ERROR, J9NLS_GC_FAILED_TO_INITIALIZE_FINALIZE_SUPPORT);
-		return result;
+#if JAVA_SPEC_VERSION >= 18
+	if (J9_ARE_ANY_BITS_SET(javaVM->extendedRuntimeFlags2, J9_EXTENDED_RUNTIME2_DISABLE_FINALIZATION)) {
+		/* Finalization is disabled */
+	} else
+#endif /* JAVA_SPEC_VERSION >= 18 */
+	{
+		result = j9gc_finalizer_startup(javaVM);
+		if (JNI_OK != result) {
+			PORT_ACCESS_FROM_JAVAVM(javaVM);
+			j9nls_printf(PORTLIB, J9NLS_ERROR, J9NLS_GC_FAILED_TO_INITIALIZE_FINALIZE_SUPPORT);
+			return result;
+		}
 	}
 #endif /* J9VM_GC_FINALIZATION */
 
@@ -620,7 +627,7 @@ void j9gc_jvmPhaseChange(J9VMThread *currentThread, UDATA phase)
 				uintptr_t hintTenure = 0;
 
 				/* Standard GCs always have Default MSS (which is equal to Tenure for flat heap configuration).
-				 * So the simplest is always fetch Default, regardless if's generational haep configuration or not.
+				 * So the simplest is always fetch Default, regardless if's generational heap configuration or not.
 				 * We fetch Tenure only if only not equal to Default (which implies it's generational) */
 				if (defaultMemorySubSpace != tenureMemorySubspace) {
 					hintTenure = tenureMemorySubspace->getActiveMemorySize();
@@ -795,11 +802,19 @@ gcInitializeCalculatedValues(J9JavaVM *javaVM, IDATA* memoryParameters)
 	 * This used to be for free, calculations based on Xmx, now it is a manual check
 	 * in setConfigurationSpecificMemoryParameters
 	 */
-	/* TODO aryoung: eventually segregated heaps will allow heap expansion, although metronome
-	 * itself will still require a fully expanded heap on startup */
-	const bool shouldMaximizeInitialHeap = (extensions->isSegregatedHeap() || extensions->isMetronomeGC());
-	const UDATA initialXmsValueMax = shouldMaximizeInitialHeap ? J9_MEMORY_MAX : (8 * 1024 * 1024);
-	const UDATA initialXmsValueMin = shouldMaximizeInitialHeap ? UDATA_MAX     : (8 * 1024 * 1024);
+	UDATA initialXmsValueMax = 8 * 1024 * 1024;
+	UDATA initialXmsValueMin = 8 * 1024 * 1024;
+	if (extensions->isSegregatedHeap() || extensions->isMetronomeGC()) {
+		/* TODO aryoung: eventually segregated heaps will allow heap expansion, although metronome
+		 * itself will still require a fully expanded heap on startup
+		 */
+		initialXmsValueMax = J9_MEMORY_MAX;
+		initialXmsValueMin = UDATA_MAX;
+	} else if (J9_ARE_ANY_BITS_SET(javaVM->extendedRuntimeFlags2, J9_EXTENDED_RUNTIME2_TUNE_THROUGHPUT)) {
+		/* For -Xtune:throughput we want to set Xms=Xmx */
+		initialXmsValueMax = extensions->memoryMax;
+		initialXmsValueMin = extensions->memoryMax;
+	}
 
 	/**
 	 * GC memory parameters to be store in GCExtensions
@@ -1089,7 +1104,7 @@ gcInitializeXmxXmdxVerification(J9JavaVM *javaVM, IDATA* memoryParameters, bool 
 				/* Fail to initialize if assertions are off */
 				return JNI_ERR;
 			}
-	
+
 			/* Adjust heap ceiling value if it is necessary */
 			if (extensions->heapCeiling > maxHeapForCR) {
 				extensions->heapCeiling = maxHeapForCR;
@@ -2052,7 +2067,7 @@ combinationMemoryParameterVerification(J9JavaVM *javaVM, IDATA* memoryParameters
 				 * space to Xmos
 				 */
 				if ((candidateXmosValue + candidateXmnsValue) > maximumXmsValue) {
-					candidateXmnsValue = newSpaceSizeMinimum;
+					candidateXmnsValue = OMR_MAX(newSpaceSizeMinimum, maximumXmsValue - candidateXmosValue);
 					candidateXmosValue = maximumXmsValue - candidateXmnsValue;
 
 					/* Verify not too large */
@@ -2259,20 +2274,29 @@ combinationMemoryParameterVerification(J9JavaVM *javaVM, IDATA* memoryParameters
 			subSpaceTooLargeOption = "-Xmns";
 			goto _subSpaceTooLarge;
 		}
+		if (!isLessThanEqualOrUnspecifiedAgainstFixed(&extensions->userSpecifiedParameters._Xmns, ms)) {
+			if (!opt_XmsSet) {
+				ms = extensions->userSpecifiedParameters._Xmns._valueSpecified;
+				extensions->initialMemorySize = ms;
+				extensions->oldSpaceSize = extensions->initialMemorySize;
+			} else {
+				memoryOption = "-Xmn";
+				subSpaceTooLargeOption = displayXmsOrInitialRAMPercentage(memoryParameters);
+				goto _subSpaceTooLarge;
+			}
+		}
 		/* now interpret the values */
 		UDATA idealEdenMin = 0;
 		UDATA idealEdenMax = 0;
-		/* this implementation is meant to follow this design from JAZZ 39694
+		/*----------------------------------------------------------------
+		Arguments specified	|	initial Eden		|	maxEden
 		----------------------------------------------------------------
-		Arguments specified	|	minEden				|	maxEden
-		----------------------------------------------------------------
-		XmnA				|	OMR_MIN(A,Y)		|	A
+		XmnA				|	OMR_MIN(A,ms)		|	A
 		XmnsB				|	B					|	B
-		XmnxC				|	OMR_MIN(C,Y)		|	C
+		XmnxC				|	OMR_MIN(C,ms)		|	C
 		XmnsB XmnxC			|	B					|	C
-		(none)				|	OMR_MIN(X/4,Y)		|	X/4
-		----------------------------------------------------------------
-		 */
+		(none)				|	OMR_MIN(mx/4,ms)	|	mx*3/4
+		----------------------------------------------------------------*/
 		if (extensions->userSpecifiedParameters._Xmn._wasSpecified) {
 			/* earlier error checking would have ensured that we didn't specify -Xmns or -Xmnx with -Xmn */
 			UDATA mn = extensions->userSpecifiedParameters._Xmn._valueSpecified;
@@ -2294,8 +2318,10 @@ combinationMemoryParameterVerification(J9JavaVM *javaVM, IDATA* memoryParameters
 			idealEdenMax = mnx;
 		} else {
 			UDATA quarterMax = mx/4;
+			UDATA threeQuarterMax = quarterMax * 3;
+
 			idealEdenMin = OMR_MIN(quarterMax, ms);
-			idealEdenMax = quarterMax;
+			idealEdenMax = threeQuarterMax;
 		}
 
 		/* eden size has to be aligned with region size */
@@ -2844,7 +2870,7 @@ gcInitializeDefaults(J9JavaVM* vm)
 	vm->omrVM->_gcOmrVMExtensions = (void *)extensions;
 	vm->gcExtensions = vm->omrVM->_gcOmrVMExtensions;
 
-	/* enable estimateFragmentation for all GCs as default for java, but not the estimated result would not affect concurrentgc kickoff by default */
+	/* enable estimateFragmentation for all GCs as default for java, but not the estimated result would not affect concurrentGC kickoff by default */
 	extensions->estimateFragmentation = (GLOBALGC_ESTIMATE_FRAGMENTATION | LOCALGC_ESTIMATE_FRAGMENTATION);
 	extensions->processLargeAllocateStats = true;
 	extensions->concurrentSlackFragmentationAdjustmentWeight = 0;
@@ -2907,11 +2933,11 @@ gcInitializeDefaults(J9JavaVM* vm)
 
 				if (hwSupported) {
 					/* Software Barrier request overwrites HW usage on supported HW */
-					extensions->concurrentScavengerHWSupport = hwSupported 
-						&& !extensions->softwareRangeCheckReadBarrier 
+					extensions->concurrentScavengerHWSupport = hwSupported
+						&& !extensions->softwareRangeCheckReadBarrier
 #if defined(J9VM_OPT_CRIU_SUPPORT)
 						&& !vm->internalVMFunctions->isCRIUSupportEnabled(vm->internalVMFunctions->currentVMThread(vm))
-#endif
+#endif /* defined(J9VM_OPT_CRIU_SUPPORT) */
 						&& !J9_ARE_ANY_BITS_SET(vm->extendedRuntimeFlags2, J9_EXTENDED_RUNTIME2_ENABLE_PORTABLE_SHARED_CACHE);
 					extensions->concurrentScavenger = hwSupported || extensions->softwareRangeCheckReadBarrier;
 				} else {
@@ -2939,7 +2965,6 @@ gcInitializeDefaults(J9JavaVM* vm)
 	}
 
 	extensions->trackMutatorThreadCategory = J9_ARE_NO_BITS_SET(vm->extendedRuntimeFlags, J9_EXTENDED_RUNTIME_REDUCE_CPU_MONITOR_OVERHEAD);
-
 
 	if (!gcParseTGCCommandLine(vm)) {
 		loadInfo->fatalErrorStr = (char *)j9nls_lookup_message(J9NLS_DO_NOT_PRINT_MESSAGE_TAG | J9NLS_DO_NOT_APPEND_NEWLINE, J9NLS_GC_FAILED_TO_INITIALIZE_PARSING_COMMAND_LINE, "Failed to initialize, parsing command line.");
@@ -3000,7 +3025,6 @@ gcInitializeDefaults(J9JavaVM* vm)
 		MM_LargeObjectAllocateStats::initializeFreeMemoryProfileMaxSizeClasses(&env, extensions->largeObjectAllocationProfilingVeryLargeObjectThreshold,
 				(float)extensions->largeObjectAllocationProfilingSizeClassRatio / (float)100.0, extensions->heap->getMaximumMemorySize());
 	}
-
 	warnIfPageSizeNotSatisfied(vm,extensions);
 	j9mem_free_memory(memoryParameterTable);
 	return J9VMDLLMAIN_OK;
@@ -3047,7 +3071,7 @@ hookReleaseVMAccess(J9HookInterface** hook, UDATA eventNum, void* voidEventData,
 static void
 hookAcquiringExclusiveInNative(J9HookInterface** hook, UDATA eventNum, void* voidEventData, void* userData)
 {
-	J9VMAcquringExclusiveInNativeEvent* eventData = (J9VMAcquringExclusiveInNativeEvent*)voidEventData;
+	J9VMAcquiringExclusiveInNativeEvent* eventData = (J9VMAcquiringExclusiveInNativeEvent*)voidEventData;
 
 	J9VMThread *targetThread = eventData->targetThread;
 	MM_EnvironmentStandard *env = MM_EnvironmentStandard::getEnvironment(targetThread->omrVMThread);

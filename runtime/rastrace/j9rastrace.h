@@ -116,7 +116,7 @@ U_8 rasSetTriggerTrace(J9VMThread *thr, J9Method *method);
 void rasTriggerMethod(J9VMThread *thr, J9Method *mb, I_32 entry, const TriggerPhase phase);
 BOOLEAN matchMethod (RasMethodTable * methodTable, J9Method *method);
 omr_error_t processTriggerMethodClause(OMR_VMThread *, char *, BOOLEAN atRuntime);
-void doTriggerActionJstacktrace(OMR_VMThread *thr);
+void doTriggerActionJStacktrace(OMR_VMThread *thr);
 omr_error_t setStackDepth(J9JavaVM *thr, const char * value, BOOLEAN atRuntime);
 omr_error_t setStackCompressionLevel(J9JavaVM * vm, const char *str, BOOLEAN atRuntime);
 

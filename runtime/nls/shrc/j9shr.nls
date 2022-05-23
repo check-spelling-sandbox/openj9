@@ -261,7 +261,7 @@ J9NLS_SHRC_OSCACHE_ERROR_SHSEM_NOPERMISSION=Permission Denied
 # START NON-TRANSLATABLE
 J9NLS_SHRC_OSCACHE_ERROR_SHSEM_NOPERMISSION.explanation=The system does not have permission to access a system resource.  A previous message should be issued indicating the resource that cannot be accessed.  For example, a previous message may indicate that there was an error opening shared memory.  This message would indicate that the error was that you do not have permission to access the shared memory.
 J9NLS_SHRC_OSCACHE_ERROR_SHSEM_NOPERMISSION.system_action=The JVM terminates, unless you have specified the nonfatal option with "-Xshareclasses:nonfatal", in which case the JVM continues without using Shared Classes.
-J9NLS_SHRC_OSCACHE_ERROR_SHSEM_NOPERMISSION.user_response=Shared class caches are created so that only the user who created the cache has access to it, unless the -Xshareclasses:groupAccess is specified when other members of the creater's group may also access it.  If you do not come into one of these categories, you will not have access to the cache.  For more information on permissions and Shared Classes, see \"Chapter 4. Understanding Shared Classes\".
+J9NLS_SHRC_OSCACHE_ERROR_SHSEM_NOPERMISSION.user_response=Shared class caches are created so that only the user who created the cache has access to it, unless the -Xshareclasses:groupAccess is specified when other members of the creator's group may also access it.  If you do not come into one of these categories, you will not have access to the cache.  For more information on permissions and Shared Classes, see \"Chapter 4. Understanding Shared Classes\".
 # END NON-TRANSLATABLE
 
 J9NLS_SHRC_OSCACHE_ERROR_SHSEM_NOSPACE=Not enough memory left on the system
@@ -1363,7 +1363,7 @@ J9NLS_SHRC_CM_MARK_STALE=Change detected in %2$.*1$s...\n \
 J9NLS_SHRC_CM_MARK_STALE.sample_input_1=23
 J9NLS_SHRC_CM_MARK_STALE.sample_input_2=java/net/URLClassLoader
 J9NLS_SHRC_CM_MARK_STALE.sample_input_3=1003
-J9NLS_SHRC_CM_MARK_STALE.explanation=This message informs you that a change has been detetced in classpath 2$ and that, as a result, 3$ classes have been marked as "stale" in the Shared Classes cache.  This message is issued only if you have requested verbose Shared Classes messages with "-Xshareclasses:verbose".
+J9NLS_SHRC_CM_MARK_STALE.explanation=This message informs you that a change has been detected in classpath 2$ and that, as a result, 3$ classes have been marked as "stale" in the Shared Classes cache.  This message is issued only if you have requested verbose Shared Classes messages with "-Xshareclasses:verbose".
 J9NLS_SHRC_CM_MARK_STALE.system_action=The JVM continues.
 J9NLS_SHRC_CM_MARK_STALE.user_response=No action required, this is an information only message.
 # END NON-TRANSLATABLE
@@ -4211,7 +4211,7 @@ J9NLS_CACHE_BAD_CC_INIT= Composite cache has bad initialization flag value. The 
 # START NON-TRANSLATABLE
 J9NLS_CACHE_BAD_CC_INIT.sample_input_1=2
 J9NLS_CACHE_BAD_CC_INIT.explanation=Composite cache has bad initialization flag value.
-J9NLS_CACHE_BAD_CC_INIT.system_action=The cache is marked as corrup and JVM continues.
+J9NLS_CACHE_BAD_CC_INIT.system_action=The cache is marked as corrupt and JVM continues.
 J9NLS_CACHE_BAD_CC_INIT.user_response=Contact your service representative.
 # END NON-TRANSLATABLE
 
@@ -5238,14 +5238,14 @@ J9NLS_SHRC_SHRINIT_INVALID_OPTION=Only shared cache utility options can be used 
 # START NON-TRANSLATABLE
 J9NLS_SHRC_SHRINIT_INVALID_OPTION.explanation=Shared cache runtime options must be specified in the javad.options file. javad must be restarted before any shared cache options will take affect.
 J9NLS_SHRC_SHRINIT_INVALID_OPTION.system_action=The JVM terminates.
-J9NLS_SHRC_SHRINIT_INVALID_OPTION.user_response=Replace the incompatible -Xshareclasses option with a -Xshareclasses utilitiy option, and rerun.
+J9NLS_SHRC_SHRINIT_INVALID_OPTION.user_response=Replace the incompatible -Xshareclasses option with a -Xshareclasses utility option, and rerun.
 # END NON-TRANSLATABLE
 
 J9NLS_SHRC_SHRINIT_USING_NORMAL_CACHE_WITH_MPROTECT_DIAGNOSTIC_WARNING=JVM is using the existing shared class cache in mprotect diagnostic mode (using -Xshareclasses:mprotect=diagnostic option), but the cache was not creating in this mode. Using the cache in this mode can affect performance.
 # START NON-TRANSLATABLE
 J9NLS_SHRC_SHRINIT_USING_NORMAL_CACHE_WITH_MPROTECT_DIAGNOSTIC_WARNING.explanation=When running with -Xshareclasses:mprotect=diagnostic option, JVM performance is affected due to expensive system calls. This option should only be used for diagnostic purpose.
 J9NLS_SHRC_SHRINIT_USING_NORMAL_CACHE_WITH_MPROTECT_DIAGNOSTIC_WARNING.system_action=The JVM continues.
-J9NLS_SHRC_SHRINIT_USING_NORMAL_CACHE_WITH_MPROTECT_DIAGNOSTIC_WARNING.user_response=If user wants to use -Xshareclasses:mprotect=diagnostic option, it is advised to reset the cache to force JVM(s) to use the cache in mprotect diagnostic mode. Othewise, if the user wants to use the cache in normal mode then remove -Xshareclasses:mprotect=diagnostic option and re-run. This message is for information only.
+J9NLS_SHRC_SHRINIT_USING_NORMAL_CACHE_WITH_MPROTECT_DIAGNOSTIC_WARNING.user_response=If user wants to use -Xshareclasses:mprotect=diagnostic option, it is advised to reset the cache to force JVM(s) to use the cache in mprotect diagnostic mode. Otherwise, if the user wants to use the cache in normal mode then remove -Xshareclasses:mprotect=diagnostic option and re-run. This message is for information only.
 # END NON-TRANSLATABLE
 
 J9NLS_SHRC_SHRINIT_USING_NORMAL_CACHE_WITH_MPROTECT_DIAGNOSTIC_IGNORED_WARNING=JVM is attempting to use the existing shared class cache in mprotect diagnostic mode (using -Xshareclasses:mprotect=diagnostic option), but the cache was not creating in this mode. In such case mprotect=diagnostic option is ignored on z/OS.
@@ -5259,21 +5259,21 @@ J9NLS_SHRC_SHRINIT_CREATING_CACHE_WITH_MPROTECT_DIAGNOSTIC_WARNING=JVM has creat
 # START NON-TRANSLATABLE
 J9NLS_SHRC_SHRINIT_CREATING_CACHE_WITH_MPROTECT_DIAGNOSTIC_WARNING.explanation=When running with -Xshareclasses:mprotect=diagnostic, JVM performance is affected due to expensive system calls. This option should only be used for diagnostic purpose.
 J9NLS_SHRC_SHRINIT_CREATING_CACHE_WITH_MPROTECT_DIAGNOSTIC_WARNING.system_action=The JVM continues.
-J9NLS_SHRC_SHRINIT_CREATING_CACHE_WITH_MPROTECT_DIAGNOSTIC_WARNING.user_response=No action required if user has intentionally specified -Xshareclasses:mprotect=diagnostic on command line. Othewise, if the user wants to use the cache in normal mode then remove -Xshareclasses:mprotect=diagnostic option and reset the cache. This message is for information only.
+J9NLS_SHRC_SHRINIT_CREATING_CACHE_WITH_MPROTECT_DIAGNOSTIC_WARNING.user_response=No action required if user has intentionally specified -Xshareclasses:mprotect=diagnostic on command line. Otherwise, if the user wants to use the cache in normal mode then remove -Xshareclasses:mprotect=diagnostic option and reset the cache. This message is for information only.
 # END NON-TRANSLATABLE
 
 J9NLS_SHRC_SHRINIT_USING_CACHE_WITH_MPROTECT_DIAGNOSTIC_WARNING=JVM has attached to the shared class cache created in mprotect diagnostic mode (using -Xshareclasses:mprotect=diagnostic option). Using the cache in this mode can affect performance.
 # START NON-TRANSLATABLE
 J9NLS_SHRC_SHRINIT_USING_CACHE_WITH_MPROTECT_DIAGNOSTIC_WARNING.explanation=Shared class cache that JVM is attaching to is set to be used in diagnostic mode which will affect JVM's performance.
 J9NLS_SHRC_SHRINIT_USING_CACHE_WITH_MPROTECT_DIAGNOSTIC_WARNING.system_action=The JVM continues.
-J9NLS_SHRC_SHRINIT_USING_CACHE_WITH_MPROTECT_DIAGNOSTIC_WARNING.user_response=No action required if user has intentionally attached to a shared class cache created in mprotect diagnostic mode. Othewise, if the user wants to use cache in normal mode then remove -Xshareclasses:mprotect=diagnostic option and reset the cache. This message is for information only.
+J9NLS_SHRC_SHRINIT_USING_CACHE_WITH_MPROTECT_DIAGNOSTIC_WARNING.user_response=No action required if user has intentionally attached to a shared class cache created in mprotect diagnostic mode. Otherwise, if the user wants to use cache in normal mode then remove -Xshareclasses:mprotect=diagnostic option and reset the cache. This message is for information only.
 # END NON-TRANSLATABLE
 
 J9NLS_SHRC_SHRINIT_USING_CACHE_WITH_MPROTECT_DIAGNOSTIC_OVERRIDE_MPROTECT_NONE_WARNING=JVM has attached to the shared class cache created in mprotect diagnostic mode (using -Xshareclasses:mprotect=diagnostic option). -Xshareclasses:mprotect=none option will be ignored.
 # START NON-TRANSLATABLE
 J9NLS_SHRC_SHRINIT_USING_CACHE_WITH_MPROTECT_DIAGNOSTIC_OVERRIDE_MPROTECT_NONE_WARNING.explanation=Shared class cache that JVM is attaching to is set to be used in diagnostic mode which overrides -Xshareclasses:mprotect=none option specified on command line.
 J9NLS_SHRC_SHRINIT_USING_CACHE_WITH_MPROTECT_DIAGNOSTIC_OVERRIDE_MPROTECT_NONE_WARNING.system_action=The JVM continues.
-J9NLS_SHRC_SHRINIT_USING_CACHE_WITH_MPROTECT_DIAGNOSTIC_OVERRIDE_MPROTECT_NONE_WARNING.user_response=No action required if user has intentionally attached to a shared class cache created in mprotect diagnostic mode. Othewise, if the user wants to use cache with -Xshareclasses:mprotect=none option then remove -Xshareclasses:mprotect=diagnostic option and reset the cache.
+J9NLS_SHRC_SHRINIT_USING_CACHE_WITH_MPROTECT_DIAGNOSTIC_OVERRIDE_MPROTECT_NONE_WARNING.user_response=No action required if user has intentionally attached to a shared class cache created in mprotect diagnostic mode. Otherwise, if the user wants to use cache with -Xshareclasses:mprotect=none option then remove -Xshareclasses:mprotect=diagnostic option and reset the cache.
 # END NON-TRANSLATABLE
 
 J9NLS_SHRC_SHRINIT_HELPTEXT_MPROTECT_DIAGNOSTIC=Enable mprotect diagnostic mode
@@ -5532,7 +5532,7 @@ J9NLS_SHRC_OSCACHE_PORT_ERROR_MESSAGE_SYSV_ERR.user_response=Contact your servic
 J9NLS_SHRC_OSCACHE_SEMAPHORE_CONTROL_FILE_UNLINK_FAILED=Error recovery failure: Failed to remove the semaphore set control file %s associated with shared class cache.
 # START NON-TRANSLATABLE
 J9NLS_SHRC_OSCACHE_SEMAPHORE_CONTROL_FILE_UNLINK_FAILED.sample_input_1=C280M4F0A64_semaphore_mycache_G33
-J9NLS_SHRC_OSCACHE_SEMAPHORE_CONTROL_FILE_UNLINK_FAILED.explanation=An error occurred during shared class proccessing. JVM's attempt to remove the control file as part of error recovery has failed.
+J9NLS_SHRC_OSCACHE_SEMAPHORE_CONTROL_FILE_UNLINK_FAILED.explanation=An error occurred during shared class processing. JVM's attempt to remove the control file as part of error recovery has failed.
 J9NLS_SHRC_OSCACHE_SEMAPHORE_CONTROL_FILE_UNLINK_FAILED.system_action=The JVM continues.
 J9NLS_SHRC_OSCACHE_SEMAPHORE_CONTROL_FILE_UNLINK_FAILED.user_response=If JVM fails to startup, please remove the control files manually.
 # END NON-TRANSLATABLE
@@ -5540,7 +5540,7 @@ J9NLS_SHRC_OSCACHE_SEMAPHORE_CONTROL_FILE_UNLINK_FAILED.user_response=If JVM fai
 J9NLS_SHRC_OSCACHE_SHARED_MEMORY_CONTROL_FILE_UNLINK_FAILED=Error recovery failure: Failed to remove the semaphore set control file %s associated with shared class cache.
 # START NON-TRANSLATABLE
 J9NLS_SHRC_OSCACHE_SHARED_MEMORY_CONTROL_FILE_UNLINK_FAILED.sample_input_1=C280M4F0A64_semaphore_mycache_G33
-J9NLS_SHRC_OSCACHE_SHARED_MEMORY_CONTROL_FILE_UNLINK_FAILED.explanation=An error occurred during shared class proccessing. JVM's attempt to remove the control file as part of error recovery has failed.
+J9NLS_SHRC_OSCACHE_SHARED_MEMORY_CONTROL_FILE_UNLINK_FAILED.explanation=An error occurred during shared class processing. JVM's attempt to remove the control file as part of error recovery has failed.
 J9NLS_SHRC_OSCACHE_SHARED_MEMORY_CONTROL_FILE_UNLINK_FAILED.system_action=The JVM continues.
 J9NLS_SHRC_OSCACHE_SHARED_MEMORY_CONTROL_FILE_UNLINK_FAILED.user_response=If JVM fails to startup, please remove the control files manually.
 # END NON-TRANSLATABLE
@@ -6420,7 +6420,7 @@ J9NLS_SHRC_SHRINIT_HELPTEXT_ADJUST_MAXJIT_EQUALS.system_action=
 J9NLS_SHRC_SHRINIT_HELPTEXT_ADJUST_MAXJIT_EQUALS.user_response=
 # END NON-TRANSLATABLE
 
-J9NLS_SHRC_SHRINIT_TOTAL_MINAOT_MINJIT_GRTHAN_SOFTMX=The sum of minimum reserved AOT bytes %d and minumum reserved JIT data bytes %d should not be greater than the softmx bytes %d.
+J9NLS_SHRC_SHRINIT_TOTAL_MINAOT_MINJIT_GRTHAN_SOFTMX=The sum of minimum reserved AOT bytes %d and minimum reserved JIT data bytes %d should not be greater than the softmx bytes %d.
 # START NON-TRANSLATABLE
 J9NLS_SHRC_SHRINIT_TOTAL_MINAOT_MINJIT_GRTHAN_SOFTMX.sample_input_1=1024
 J9NLS_SHRC_SHRINIT_TOTAL_MINAOT_MINJIT_GRTHAN_SOFTMX.sample_input_2=1024

@@ -256,7 +256,7 @@ testForceEarlyReturn_waitForTestThread(agentEnv * env, jthread thread, jmethodID
 	jthread * threads;
 	jint threadCount;
 	jint i;
-	jint itterations = 1000000;
+	jint iterations = 1000000;
 	JVMTI_ACCESS_FROM_AGENT(env);
 
 	*suspendedThread = NULL;
@@ -269,7 +269,7 @@ testForceEarlyReturn_waitForTestThread(agentEnv * env, jthread thread, jmethodID
 	}
 
 	/* Look for the suspended thread */
-	while (NULL == *suspendedThread && itterations > 0) {
+	while (NULL == *suspendedThread && iterations > 0) {
 		for (i = 0; i < threadCount; ++i) {
 			jint state;
 			char *thrName;
@@ -298,7 +298,7 @@ testForceEarlyReturn_waitForTestThread(agentEnv * env, jthread thread, jmethodID
 
 			(*jvmti_env)->Deallocate(jvmti_env, (unsigned char *) thrName);
 		}
-		itterations--;
+		iterations--;
 	}
 
 	return JVMTI_ERROR_NONE;

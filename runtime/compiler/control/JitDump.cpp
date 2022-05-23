@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2020, 2021 IBM Corp. and others
+ * Copyright (c) 2020, 2022 IBM Corp. and others
  *
  * This program and the accompanying materials are made available under
  * the terms of the Eclipse Public License 2.0 which accompanies this
@@ -34,14 +34,20 @@
 #if defined(J9VM_OPT_JITSERVER)
 #include "control/JITServerCompilationThread.hpp"
 #include "control/JITServerHelpers.hpp"
+#include "runtime/JITServerAOTCache.hpp"
+#include "runtime/JITServerAOTDeserializer.hpp"
 #include "runtime/JITServerIProfiler.hpp"
 #include "runtime/JITServerStatisticsThread.hpp"
 #include "runtime/Listener.hpp"
-#endif
+#if defined(LINUX)
+#include <malloc.h> // for malloc_stats() (Linux glibc only)
+#endif /* defined(LINUX) */
+#endif /* defined(J9VM_OPT_JITSERVER) */
 
-struct ILOfCrashedThreadParamenters
+
+struct ILOfCrashedThreadParameters
    {
-   ILOfCrashedThreadParamenters(J9VMThread *vmThread, TR::Compilation *comp, TR::FILE *jitdumpFile)
+   ILOfCrashedThreadParameters(J9VMThread *vmThread, TR::Compilation *comp, TR::FILE *jitdumpFile)
    : vmThread(vmThread), comp(comp), jitdumpFile(jitdumpFile)
       {}
 
@@ -58,7 +64,7 @@ struct ILOfCrashedThreadParamenters
 static uintptr_t
 traceILOfCrashedThreadProtected(struct J9PortLibrary *portLib, void *handler_arg)
    {
-   auto p = *static_cast<ILOfCrashedThreadParamenters*>(handler_arg);
+   auto p = *static_cast<ILOfCrashedThreadParameters*>(handler_arg);
 
    TR_J9ByteCodeIlGenerator bci(p.comp->ilGenRequest().details(), p.comp->getMethodSymbol(),
       TR_J9VMBase::get(p.vmThread->javaVM->jitConfig, p.vmThread), p.comp, p.comp->getSymRefTab());
@@ -67,7 +73,7 @@ traceILOfCrashedThreadProtected(struct J9PortLibrary *portLib, void *handler_arg
    // This call will reset the previously recorded symbol reference size to 0, thus indicating to the debug object that
    // we should print all the symbol references in the symbol reference table when tracing the trees. By default the
    // debug object will only print new symbol references since the last time they were printed. Here we are in a
-   // crashed thread state so we can safely reset this coutner so we print all the symbol references.
+   // crashed thread state so we can safely reset this counter so we print all the symbol references.
    p.comp->setPrevSymRefTabSize(0);
    p.comp->dumpMethodTrees("Trees");
 
@@ -116,7 +122,7 @@ traceILOfCrashedThread(J9VMThread *vmThread, TR::Compilation *comp, TR::FILE *ji
 
    trfprintf(jitdumpFile, "<ilOfCrashedThread>\n");
 
-   ILOfCrashedThreadParamenters p(vmThread, comp, jitdumpFile);
+   ILOfCrashedThreadParameters p(vmThread, comp, jitdumpFile);
 
    U_32 flags = J9PORT_SIG_FLAG_MAY_RETURN |
                 J9PORT_SIG_FLAG_SIGSEGV | J9PORT_SIG_FLAG_SIGFPE |
@@ -214,7 +220,7 @@ jitDumpRecompileWithTracing(J9VMThread *vmThread, J9Method *ramMethod, TR::Compi
       stream->read<JITServer::Void>();
          {
          // Add an entry to the compilation queue using the current stream,
-         // and immediatelly set its method details as JitDump method details,
+         // and immediately set its method details as JitDump method details,
          // so that only the diagnostic thread can compile it.
          OMR::CriticalSection compilationMonitorLock(compInfo->getCompilationMonitor());
 
@@ -295,23 +301,42 @@ runJitdump(char *label, J9RASdumpContext *context, J9RASdumpAgent *agent)
       TR::CompilationInfo *compInfo = TR::CompilationInfo::get(context->javaVM->jitConfig);
       if (compInfo)
          {
-         static char * isPrintJITServerMsgStats = feGetEnv("TR_PrintJITServerMsgStats");
+         static char *isPrintJITServerMsgStats = feGetEnv("TR_PrintJITServerMsgStats");
          if (isPrintJITServerMsgStats)
             JITServerHelpers::printJITServerMsgStats(jitConfig, compInfo);
-         if (feGetEnv("TR_PrintJITServerCHTableStats"))
+
+         static char *isPrintJITServerCHTableStats = feGetEnv("TR_PrintJITServerCHTableStats");
+         if (isPrintJITServerCHTableStats)
             JITServerHelpers::printJITServerCHTableStats(jitConfig, compInfo);
-         if (feGetEnv("TR_PrintJITServerIPMsgStats"))
+
+         static char *isPrintJITServerIPMsgStats = feGetEnv("TR_PrintJITServerIPMsgStats");
+         if (isPrintJITServerIPMsgStats)
             {
             if (compInfo->getPersistentInfo()->getRemoteCompilationMode() == JITServer::SERVER)
                {
-               TR_J9VMBase * vmj9 = (TR_J9VMBase *)(TR_J9VMBase::get(context->javaVM->jitConfig, 0));
+               TR_J9VMBase *vmj9 = (TR_J9VMBase *)TR_J9VMBase::get(context->javaVM->jitConfig, NULL);
                JITServerIProfiler *iProfiler = (JITServerIProfiler *)vmj9->getIProfiler();
                iProfiler->printStats();
                }
             }
+
+         static char *isPrintJITServerAOTCacheStats = feGetEnv("TR_PrintJITServerAOTCacheStats");
+         if (isPrintJITServerAOTCacheStats)
+            {
+            if (auto aotCacheMap = compInfo->getJITServerAOTCacheMap())
+               aotCacheMap->printStats(stderr);
+            if (auto deserializer = compInfo->getJITServerAOTDeserializer())
+               deserializer->printStats(stderr);
+            }
+
+#if defined(LINUX)
+         static char *isPrintJITServerMallocStats = feGetEnv("TR_PrintJITServerMallocStats");
+         if (isPrintJITServerMallocStats)
+            malloc_stats();
+#endif /* defined(LINUX) */
          }
       }
-#endif
+#endif /* defined(J9VM_OPT_JITSERVER) */
 
    char *crashedThreadName = getOMRVMThreadName(crashedThread->omrVMThread);
    j9nls_printf(PORTLIB, J9NLS_INFO | J9NLS_STDERR, J9NLS_DMP_OCCURRED_THREAD_NAME_ID, "JIT", crashedThreadName, crashedThread);
@@ -564,7 +589,7 @@ runJitdump(char *label, J9RASdumpContext *context, J9RASdumpAgent *agent)
          // acquire VM access (ex. to get a class signature). Other VM events, such as VM shutdown or the GC unloading
          // classes may cause compilations to be interrupted. Because the crashed thread is not a diagnostic thread,
          // the call to print the crashed thread IL may get interrupted and the jitdump will be incomplete. We prevent
-         // this from occuring by disallowing interruptions until we are done generating the jitdump.
+         // this from occurring by disallowing interruptions until we are done generating the jitdump.
          TR::CompilationInfoPerThreadBase::UninterruptibleOperation jitDumpForCrashedCompilationThread(*threadCompInfo);
 
          TR::Compilation *comp = threadCompInfo->getCompilation();

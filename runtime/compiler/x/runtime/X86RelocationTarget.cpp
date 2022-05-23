@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2000, 2020 IBM Corp. and others
+ * Copyright (c) 2000, 2021 IBM Corp. and others
  *
  * This program and the accompanying materials are made available under
  * the terms of the Eclipse Public License 2.0 which accompanies this
@@ -121,6 +121,7 @@ j9ThunkInvokeExactHelperFromTerseSignature(UDATA signatureLength, char *signatur
       case '[':
          /* intentional fall-through */
       case 'L':
+      case 'Q':
          helper = TR_icallVMprJavaSendInvokeExactL;
          break;
       default:
@@ -183,7 +184,7 @@ TR_X86RelocationTarget::patchNonVolatileFieldMemoryFence(J9ROMFieldShape* resolv
    //Determine if a volatility check is needed
    U_32 cpIndexDoubleWord = *(U_32*)(snippetStartAddress+1);
 
-   //The volatility check falg is at bit 20 of the 32 cpIndex
+   //The volatility check flag is at bit 20 of the 32 cpIndex
    if ( !(cpIndexDoubleWord & VolCheckMask))
       return;
 

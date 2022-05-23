@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 1991, 2021 IBM Corp. and others
+ * Copyright (c) 1991, 2022 IBM Corp. and others
  *
  * This program and the accompanying materials are made available under
  * the terms of the Eclipse Public License 2.0 which accompanies this
@@ -138,6 +138,8 @@ void allSlotsInROMClassDo(J9ROMClass* romClass,
 	SLOT_CALLBACK(romClass, J9ROM_U32,  romClass, memberAccessFlags);
 	SLOT_CALLBACK(romClass, J9ROM_U32,  romClass, innerClassCount);
 	SLOT_CALLBACK(romClass, J9ROM_SRP,  romClass, innerClasses);
+	SLOT_CALLBACK(romClass, J9ROM_U32,  romClass, enclosedInnerClassCount);
+	SLOT_CALLBACK(romClass, J9ROM_SRP,  romClass, enclosedInnerClasses);
 #if JAVA_SPEC_VERSION >= 11
 	SLOT_CALLBACK(romClass, J9ROM_UTF8, romClass, nestHost);
 	SLOT_CALLBACK(romClass, J9ROM_U16,  romClass, nestMemberCount);
@@ -165,7 +167,7 @@ void allSlotsInROMClassDo(J9ROMClass* romClass,
 	rangeValid = callbacks->validateRangeCallback(romClass, srpCursor, count * sizeof(J9SRP), userData);
 	if (rangeValid) {
 		callbacks->sectionCallback(romClass, srpCursor, count * sizeof(J9SRP), "interfacesSRPs", userData);
-		for (; count > 0; count--) {
+		for (; 0 != count; count--) {
 			callbacks->slotCallback(romClass, J9ROM_UTF8, srpCursor++, "interfaceUTF8", userData);
 		}
 	}
@@ -176,8 +178,19 @@ void allSlotsInROMClassDo(J9ROMClass* romClass,
 	rangeValid = callbacks->validateRangeCallback(romClass, srpCursor, count * sizeof(J9SRP), userData);
 	if (rangeValid) {
 		callbacks->sectionCallback(romClass, srpCursor, count * sizeof(J9SRP), "innerClassesSRPs", userData);
-		for (; count > 0; count--) {
+		for (; 0 != count; count--) {
 			callbacks->slotCallback(romClass, J9ROM_UTF8, srpCursor++, "innerClassNameUTF8", userData);
+		}
+	}
+
+	/* walk enclosed inner classes SRPs block */
+	srpCursor = J9ROMCLASS_ENCLOSEDINNERCLASSES(romClass);
+	count = romClass->enclosedInnerClassCount;
+	rangeValid = callbacks->validateRangeCallback(romClass, srpCursor, count * sizeof(J9SRP), userData);
+	if (rangeValid) {
+		callbacks->sectionCallback(romClass, srpCursor, count * sizeof(J9SRP), "enclosedInnerClassesSRPs", userData);
+		for (; 0 != count; count--) {
+			callbacks->slotCallback(romClass, J9ROM_UTF8, srpCursor++, "enclosedInnerClassesNameUTF8", userData);
 		}
 	}
 
@@ -189,7 +202,7 @@ void allSlotsInROMClassDo(J9ROMClass* romClass,
 		rangeValid = callbacks->validateRangeCallback(romClass, srpCursor, count * sizeof(J9SRP), userData);
 		if (rangeValid) {
 			callbacks->sectionCallback(romClass, srpCursor, count * sizeof(J9SRP), "nestMembersSRPs", userData);
-			for (; count > 0; count--) {
+			for (; 0 != count; count--) {
 				callbacks->slotCallback(romClass, J9ROM_UTF8, srpCursor++, "nestMemberUTF8", userData);
 			}
 		}
@@ -526,8 +539,8 @@ static void allSlotsInBytecodesDo(J9ROMClass* romClass, J9ROMMethod* method, J9R
 			case JBinvokeinterface:
 			case JBnew:
 #if defined(J9VM_OPT_VALHALLA_VALUE_TYPES)
-			case JBdefaultvalue:
-#endif
+			case JBaconst_init:
+#endif /* defined(J9VM_OPT_VALHALLA_VALUE_TYPES) */
 			case JBnewdup:
 			case JBanewarray:
 			case JBcheckcast:

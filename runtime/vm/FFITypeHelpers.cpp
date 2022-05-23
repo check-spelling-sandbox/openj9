@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2001, 2017 IBM Corp. and others
+ * Copyright (c) 2001, 2022 IBM Corp. and others
  *
  * This program and the accompanying materials are made available under
  * the terms of the Eclipse Public License 2.0 which accompanies this
@@ -97,7 +97,7 @@ FFITypeHelpers::getStructFFITypeElements(char **layout, bool inPtr)
 		}
 		default: /* primitive */
 			if (!localInPtr) {
-				elements[nElements] = getPrimativeFFITypeElement(symb);
+				elements[nElements] = getPrimitiveFFITypeElement(symb);
 				nElements++;
 			} else if (!inPtr) {
 				localInPtr = false;

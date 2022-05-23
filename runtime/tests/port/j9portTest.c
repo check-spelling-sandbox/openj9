@@ -107,7 +107,7 @@ setupVersionInformation(struct J9PortLibraryVersion *version, U_16 majorVersionN
  * matches the expected value.
  * 
  * @param[in] portLibrary The port used for displaying messages etc.
- * @param[in] testNmae The test requesting the verification
+ * @param[in] testName The test requesting the verification
  * @param[in] fakePortLibrary The port library under test
  * @param[in] expectedVersion The expected version information
  * @param[in] fields Which fields to verify
@@ -868,7 +868,7 @@ j9port_test8(struct J9PortLibrary *portLibrary)
 		outputErrorMessage(PORTTEST_ERROR_ARGS, "j9port_isCompatible() returned %d expected 1\n", rc);
 	}
 
-	/* Pass, don't require all capabiliteis supported */
+	/* Pass, don't require all capabilities supported */
 	J9PORT_SET_VERSION(&version, J9PORT_CAPABILITY_MASK);	
 	version.capabilities = 0;
 	rc = j9port_isCompatible(&version);

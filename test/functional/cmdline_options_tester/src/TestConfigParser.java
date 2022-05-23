@@ -110,7 +110,7 @@ class TestConfigParser {
 		/* Output case currently being processed */
 		private Output _currentOutput;
 		/* exec case currently being processed */
-		private CommandExecuter _currentExec; 
+		private CommandExecutor _currentExec; 
 		/* The relevant non-element character data being spit out by the SAX parser */
 		private StringBuffer _data = new StringBuffer();
 		/* This is a single-iteration TestIterator which will run all the things given to it exactly once */
@@ -237,7 +237,7 @@ class TestConfigParser {
 					String captureVarStdout = (String)attributes.get("capture");
 					String captureVarStderr = (String)attributes.get("captureStderr");
 					String returnVar = (String)attributes.get("return");
-					_currentExec = new CommandExecuter(command, background, captureVarStdout, captureVarStderr, returnVar);
+					_currentExec = new CommandExecutor(command, background, captureVarStdout, captureVarStderr, returnVar);
 				}
 			} else if (elementName.equalsIgnoreCase("delay")) {
 				_iterator.addCommand( new Delay( (String)attributes.get("length") ) );

@@ -86,7 +86,7 @@ public class DumpAPITriggerTests extends TestCase {
 	
 	public void testTriggerDumpSystemNoOpts() {
 		if( isZOS() ) {
-			System.err.printf("Skipping %s, z/OS system dumps currently inaccessable in Java 8, see CMVC 193090\n", this.getName());
+			System.err.printf("Skipping %s, z/OS system dumps currently inaccessible in Java 8, see CMVC 193090\n", this.getName());
 			return;
 		}
 		doTestTriggerDumpNoOpts("system", DumpType.SYSTEM_TYPE);
@@ -132,7 +132,7 @@ public class DumpAPITriggerTests extends TestCase {
 	
 	public void testTriggerDumpSystemToFile() {
 		if( isZOS() ) {
-			System.err.printf("Skipping %s, z/OS system dumps currently inaccessable in Java 8, see CMVC 193090\n", this.getName());
+			System.err.printf("Skipping %s, z/OS system dumps currently inaccessible in Java 8, see CMVC 193090\n", this.getName());
 			return;
 		}
 		doTestTriggerDumpWithFile("system", "system." + getName() + "." + uid + ".dmp", DumpType.SYSTEM_TYPE);
@@ -186,7 +186,7 @@ public class DumpAPITriggerTests extends TestCase {
 
 	public void testTriggerDumpSystemNoFile() {
 		if( isZOS() ) {
-			System.err.printf("Skipping %s, z/OS system dumps currently inaccessable in Java 8, see CMVC 193090\n", this.getName());
+			System.err.printf("Skipping %s, z/OS system dumps currently inaccessible in Java 8, see CMVC 193090\n", this.getName());
 			return;
 		}
 		InvalidDumpOptionException e = doTestTriggerBadDumpX("system:label=");

@@ -98,7 +98,7 @@ class TR_NewInitialization : public TR::Optimization
    bool     findNewCandidatesInBlock(TR::TreeTop *startTree, TR::TreeTop *endTree);
    bool     findAllocationNode(TR::TreeTop *treeTop, TR::Node *node);
    bool     sniffCall(TR::TreeTop *callTree);
-   TR::ResolvedMethodSymbol *findInlinableMethod(TR::TreeTop *callTree);
+   TR::ResolvedMethodSymbol *findInlineableMethod(TR::TreeTop *callTree);
 
    TR::Node *resolveNode(TR::Node *node);
    bool     matchLocalLoad(TR::Node *node, Candidate *c);

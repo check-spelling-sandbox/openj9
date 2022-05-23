@@ -30,7 +30,7 @@ public class fw001 {
 	public static int numExpectedReports = 5;
 	public static int numTimeouts = 10;
 
-	// Native methods to perform any initalization before running the test.
+	// Native methods to perform any initialization before running the test.
 	public native boolean endTest(String name);
 	public native boolean startTest(String name);
 

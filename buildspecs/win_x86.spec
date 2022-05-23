@@ -65,7 +65,7 @@ SPDX-License-Identifier: EPL-2.0 OR Apache-2.0 OR GPL-2.0 WITH Classpath-excepti
 		<property name="graph_req.build2" value="{$common.req.build.java8$}"/>
 		<property name="graph_req.machine" value=""/>
 		<property name="graph_req.machine.test" value="{$spec.property.graph_req.machine$}"/>
-		<property name="graph_req.os" value="{$machine_mapping.win$}"/>
+		<property name="graph_req.os" value="os:win"/>
 		<property name="graph_req.os.build" value="os:win"/>
 		<property name="graph_req.os.perf" value="{$spec.property.graph_req.os$}"/>
 		<property name="graph_se_classlib.java5" value="jcl_se.zip"/>
@@ -226,7 +226,6 @@ SPDX-License-Identifier: EPL-2.0 OR Apache-2.0 OR GPL-2.0 WITH Classpath-excepti
 		<flag id="module_shared_servicetest" value="true"/>
 		<flag id="module_shared_test" value="true"/>
 		<flag id="module_shared_util" value="true"/>
-		<flag id="module_thrtrace" value="true"/>
 		<flag id="module_verbose" value="true"/>
 		<flag id="module_zip" value="true"/>
 		<flag id="module_zlib" value="true"/>
@@ -259,8 +258,6 @@ SPDX-License-Identifier: EPL-2.0 OR Apache-2.0 OR GPL-2.0 WITH Classpath-excepti
 		<flag id="port_omrsigSupport" value="true"/>
 		<flag id="port_signalSupport" value="true"/>
 		<flag id="prof_eventReporting" value="true"/>
-		<flag id="ras_dumpAgents" value="true"/>
-		<flag id="ras_eyecatchers" value="true"/>
 		<flag id="size_optimizeSendTargets" value="true"/>
 		<flag id="test_cunit" value="true"/>
 		<flag id="test_jvmti" value="true"/>

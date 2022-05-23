@@ -116,7 +116,7 @@ public class MethodHandleAPI_loop {
 		MethodHandle mhFini = MethodHandles.identity(int.class);
 		MethodHandle[][] clauses = new MethodHandle[][]{{mhInit, mhStep, mhPred, mhFini}};
 		MethodHandle mhLoop = MethodHandles.loop(clauses);
-		Assert.fail("The test case failed to detect the inconsistent return types between the intializer handle and the step handle");
+		Assert.fail("The test case failed to detect the inconsistent return types between the initializer handle and the step handle");
 	}
 	
 	/**
@@ -169,7 +169,7 @@ public class MethodHandleAPI_loop {
 		MethodHandle[] clause1 = new MethodHandle[]{null, mhStep};
 		MethodHandle[] clause2 = new MethodHandle[]{mhInit, mhStep, mhPred, mhFini};
 		MethodHandle mhLoop = MethodHandles.loop(clause1, clause2);
-		Assert.fail("The test case failed to detect non-init handles with inconsistent suffix of paramter types");
+		Assert.fail("The test case failed to detect non-init handles with inconsistent suffix of parameter types");
 	}
 	
 	/**

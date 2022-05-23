@@ -33,7 +33,7 @@ public class TestMethodReferences {
 	 * Helper interface used by unbound method reference tests 
 	 */
 	interface MethodReferenceInterface {
-		public int evalutateString(String string);
+		public int evaluateString(String string);
 	}
 	
 	/**
@@ -44,7 +44,7 @@ public class TestMethodReferences {
 		
 		MethodReferenceInterface sam = String::length;
 		
-		int length = sam.evalutateString(testString);
+		int length = sam.evaluateString(testString);
 		
 		AssertJUnit.assertTrue("sam.evaluateString() did not return the length of the test string." +
 				"\n\tExpected: " + testString.length()
@@ -61,7 +61,7 @@ public class TestMethodReferences {
 		
 		MethodReferenceInterface sam = Integer::valueOf;
 		
-		int result = sam.evalutateString(oneString);
+		int result = sam.evaluateString(oneString);
 		
 		AssertJUnit.assertTrue("sam.evaluateString(oneString) did not return the expected value." +
 				"\n\tExpected: " + ONE

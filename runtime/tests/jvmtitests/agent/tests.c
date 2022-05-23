@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2001, 2020 IBM Corp. and others
+ * Copyright (c) 2001, 2021 IBM Corp. and others
  *
  * This program and the accompanying materials are made available under
  * the terms of the Eclipse Public License 2.0 which accompanies this
@@ -42,7 +42,7 @@ static jvmtiTest jvmtiTestList[] =
 	{ "evmoa001", evmoa001, "com.ibm.jvmti.tests.eventVMObjectAllocation.evmoa001", "EventVMObjectAllocate - tests based around object allocation events" },
 	{ "emeng001", emeng001, "com.ibm.jvmti.tests.eventMethodEntryGrow.emeng001", "EventMethodEntryGrow - check growing the stack during MethodEntry event of a native method" },
 	{ "emex001", emex001, "com.ibm.jvmti.tests.eventMethodExit.emex001", "EventMethodExit - check firing of Method Exit events" },
-	{ "fer001", fer001, "com.ibm.jvmti.tests.forceEarlyReturn.fer001", "ForceEarlyReturn - check return values - depracated in favour of fer003" },
+	{ "fer001", fer001, "com.ibm.jvmti.tests.forceEarlyReturn.fer001", "ForceEarlyReturn - check return values - deprecated in favour of fer003" },
 	{ "fer002", fer002, "com.ibm.jvmti.tests.forceEarlyReturn.fer002", "ForceEarlyReturn - check method exit event and return value passed through it" },
 	{ "fer003", fer003, "com.ibm.jvmti.tests.forceEarlyReturn.fer003", "ForceEarlyReturn - check return values" },
 	{ "ioioc001", ioioc001, "com.ibm.jvmti.tests.iterateOverInstancesOfClass.ioioc001", "IterateOverInstancesOfClass " },
@@ -95,6 +95,7 @@ static jvmtiTest jvmtiTestList[] =
 	{ "rc019a", rc019a, "com.ibm.jvmti.tests.redefineClasses.rc019a", "RedefineClasses" },
 	{ "rc019b", rc019b, "com.ibm.jvmti.tests.redefineClasses.rc019b", "RedefineClasses" },
 	{ "rc020", rc020, "com.ibm.jvmti.tests.redefineClasses.rc020", "RedefineClasses" },
+	{ "rc021", rc021, "com.ibm.jvmti.tests.redefineClasses.rc021", "RedefineClasses" },
 	{ "gtgc001", gtgc001, "com.ibm.jvmti.tests.getThreadGroupChildren.gtgc001", "GetThreadGroupChildren" },
 	{ "gtgc002", gtgc002, "com.ibm.jvmti.tests.getThreadGroupChildren.gtgc002", "3 bytes name buffer overflow" },
 	{ "gts001", gts001, "com.ibm.jvmti.tests.getThreadState.gts001", "GetThreadState" },
@@ -104,7 +105,7 @@ static jvmtiTest jvmtiTestList[] =
 	{ "ts002",       ts002,   "com.ibm.jvmti.tests.traceSubscription.ts002",                  "Register a tracepoint subscriber" },
 	{ "gmcpn001", gmcpn001,   "com.ibm.jvmti.tests.getMethodAndClassNames.gmcpn001",          "Get Class, Method and Package names for a set of ram method pointers" },
 	{ "decomp001", decomp001, "com.ibm.jvmti.tests.decompResolveFrame.decomp001",             "Decompile method resolve frame with stacked args" },
-	{ "decomp002", decomp002, "com.ibm.jvmti.tests.decompResolveFrame.decomp002",             "Intermittent single stepping throught some code" },
+	{ "decomp002", decomp002, "com.ibm.jvmti.tests.decompResolveFrame.decomp002",             "Intermittent single stepping through some code" },
 	{ "decomp003", decomp003, "com.ibm.jvmti.tests.decompResolveFrame.decomp003",             "Decompile at exception catch at various levels of inlining" },
 	{ "decomp004", decomp004, "com.ibm.jvmti.tests.decompResolveFrame.decomp004",             "Decompile a synchronized method" },
 	{ "decomp005", decomp005, "com.ibm.jvmti.tests.decompResolveFrame.decomp005",             "Decompile at exception catch with an inlined synchronized method" },
@@ -140,6 +141,7 @@ static jvmtiTest jvmtiTestList[] =
 #endif /* JAVA_SPEC_VERSION >= 11 */
 	{ "gsp001", gsp001, "com.ibm.jvmti.tests.getSystemProperty.gsp001", "Ensure JVMTI GetSystemProperty can retrieve certain system properties at early phrase" },
 	{ "ee001", ee001, "com.ibm.jvmti.tests.eventException.ee001", "Ensure only single JVMTI Exception event gets generated with JNI frame before handler" },
+	{ "vmstart001", vmstart001, "com.ibm.jvmti.tests.eventVMStart.vmstart001", "EventVMStart - check for VMStart event with can_generate_early_vmstart (Java 11+)" },
 	{ NULL, NULL, NULL, NULL }
 };
 

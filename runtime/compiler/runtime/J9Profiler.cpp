@@ -449,7 +449,7 @@ void TR_ValueProfiler::modifyTrees()
                TR::Method *interfaceMethod = methodSymbol->getMethod();
                int32_t         cpIndex      = methodSymRef->getCPIndex();
                int32_t len = interfaceMethod->classNameLength();
-               char * s = classNameToSignature(interfaceMethod->classNameChars(), len, comp());
+               char * s = TR::Compiler->cls.classNameToSignature(interfaceMethod->classNameChars(), len, comp());
                TR_OpaqueClassBlock *thisClass = comp()->fe()->getClassFromSignature(s, len, methodSymRef->getOwningMethod(comp()));
                if (thisClass)
                   {
@@ -542,9 +542,9 @@ void TR_ValueProfiler::modifyTrees()
              !methodSymRef->isUnresolved() && !methodSymbol->isHelper() /* && !firstChild->getByteCodeInfo().doNotProfile() */)
             {
             TR::ResolvedMethodSymbol *method = firstChild->getSymbol()->getResolvedMethodSymbol();
-            if ((method->getRecognizedMethod() == TR::java_math_BigDecimal_add) ||
+            if (method && ((method->getRecognizedMethod() == TR::java_math_BigDecimal_add) ||
                 (method->getRecognizedMethod() == TR::java_math_BigDecimal_subtract) ||
-                (method->getRecognizedMethod() == TR::java_math_BigDecimal_multiply))
+                (method->getRecognizedMethod() == TR::java_math_BigDecimal_multiply)))
                {
                if (!firstChild->getByteCodeInfo().doNotProfile())
                   addProfilingTrees(firstChild, tt, 0, BigDecimalInfo);
@@ -1715,11 +1715,34 @@ TR_BlockFrequencyInfo::getFrequencyInfo(
       bool normalizeForCallers,
       bool trace)
    {
-   int64_t maxCount = normalizeForCallers ? getMaxRawCount() : getMaxRawCount(bci.getCallerIndex());
    int32_t callerIndex = bci.getCallerIndex();
-   int32_t frequency = getRawCount(callerIndex < 0 ? comp->getMethodSymbol() : comp->getInlinedResolvedMethodSymbol(callerIndex), bci, _callSiteInfo, maxCount, comp);
+   int32_t queriedCallerIndex = callerIndex;
+   // Check if the callchain associated with bci matches the call chain from
+   // the persistent call site info stored in block frequency info.
+   bool isMatchingBCI = true;
+   if (callerIndex > -1)
+      {
+      // To make sure we are looking into the correct frequency data,
+      // Compute the effective caller index by preparing the callStack using the callSiteInfo from
+      // current compilation and see if we have a same callchain in the blockfrequency information.
+      TR_ByteCodeInfo bciCheck = bci;
+      TR::list<std::pair<TR_OpaqueMethodBlock*, TR_ByteCodeInfo> > callStackInfo(comp->allocator());
+      while (bciCheck.getCallerIndex() > -1)
+         {
+         TR_InlinedCallSite *callSite = &comp->getInlinedCallSite(bciCheck.getCallerIndex());
+         callStackInfo.push_back(std::make_pair(comp->fe()->getInlinedCallSiteMethod(callSite), bciCheck));
+         bciCheck = callSite->_byteCodeInfo;
+         }
+      isMatchingBCI = _callSiteInfo->computeEffectiveCallerIndex(comp, callStackInfo, queriedCallerIndex);
+      }
+   TR_ByteCodeInfo bciCheck(bci);
+   bciCheck.setCallerIndex(queriedCallerIndex);
+
+   int64_t maxCount = normalizeForCallers ? getMaxRawCount() : getMaxRawCount(queriedCallerIndex);
+
+   int32_t frequency = isMatchingBCI ? getRawCount(callerIndex < 0 ? comp->getMethodSymbol() : comp->getInlinedResolvedMethodSymbol(callerIndex), bciCheck, _callSiteInfo, maxCount, comp) : -1;
    if (trace)
-      traceMsg(comp,"raw frequency on outter level was %d for bci %d:%d\n", frequency, bci.getCallerIndex(), bci.getByteCodeIndex());
+      traceMsg(comp,"raw frequency on outer level was %d for bci %d:%d\n", frequency, bci.getCallerIndex(), bci.getByteCodeIndex());
    if (frequency > -1 || _counterDerivationInfo == NULL)
       return frequency;
 
@@ -1744,8 +1767,8 @@ TR_BlockFrequencyInfo::getFrequencyInfo(
       // step 2 - find the level at which the inlining has begun to differ for the previous compile
       // eg find the point where the current profiling info has no profiling data for the given bci
       TR_ByteCodeInfo lastProfiledBCI = bciToCheck;
-      int64_t outterProfiledFrequency = getRawCount(comp->getMethodSymbol(), bciToCheck, _callSiteInfo, maxCount, comp);
-      if (outterProfiledFrequency == 0)
+      int64_t outerProfiledFrequency = getRawCount(comp->getMethodSymbol(), bciToCheck, _callSiteInfo, maxCount, comp);
+      if (outerProfiledFrequency == 0)
          return 0;
 
       while (!callStack.empty())
@@ -1761,7 +1784,7 @@ TR_BlockFrequencyInfo::getFrequencyInfo(
          if (callerFrequency < 0)
             {
             if (trace)
-               traceMsg(comp, "  found frame for %s with no outter profiling info\n", resolvedMethodSymbol->signature(comp->trMemory()));
+               traceMsg(comp, "  found frame for %s with no outer profiling info\n", resolvedMethodSymbol->signature(comp->trMemory()));
             // has this method been compiled so we might have had a chance to profile it?
             if (!resolvedMethod->isInterpretedForHeuristics()
                 && !resolvedMethod->isNative()
@@ -1802,7 +1825,7 @@ TR_BlockFrequencyInfo::getFrequencyInfo(
                         if (computedFrequency > -1)
                            {
                            traceMsg(comp, " effective caller %s gave frequency %d\n", resolvedMethodSymbol->signature(comp->trMemory()), computedFrequency);
-                           frequency = (int32_t)((outterProfiledFrequency * computedFrequency) / innerFrequencyScale);
+                           frequency = (int32_t)((outerProfiledFrequency * computedFrequency) / innerFrequencyScale);
                            break;
                            }
                         }
@@ -1853,7 +1876,7 @@ TR_BlockFrequencyInfo::getFrequencyInfo(
                      {
                      //if (TR::Options::isAnyVerboseOptionSet())
                      //   TR_VerboseLog::writeLineLocked(TR_Vlog_INFO, " BFINFO: %s [%s:%d] - from IProfiler", comp->signature(), (bci.getCallerIndex() < 0 ? comp->getMethodSymbol() : comp->getInlinedResolvedMethodSymbol(bci.getCallerIndex()))->signature(comp->trMemory()), bci.getByteCodeIndex());
-                     frequency = (int32_t)((outterProfiledFrequency * computedFrequency) / (innerFrequencyScale * entryFrequency));
+                     frequency = (int32_t)((outerProfiledFrequency * computedFrequency) / (innerFrequencyScale * entryFrequency));
                      break;
                      }
                   }
@@ -1864,7 +1887,7 @@ TR_BlockFrequencyInfo::getFrequencyInfo(
          else
             {
             lastProfiledBCI = bciToCheck;
-            outterProfiledFrequency = callerFrequency;
+            outerProfiledFrequency = callerFrequency;
             }
          }
       }
@@ -1922,7 +1945,7 @@ TR_BlockFrequencyInfo::getOriginalBlockNumberToGetRawCount(TR_ByteCodeInfo &bci,
       }
    return -1;
    }
-/**   \brief Using stored static blocl frequency counters creates a node that calculates the raw count of block in which passed node belongs to
+/**   \brief Using stored static block frequency counters creates a node that calculates the raw count of block in which passed node belongs to
  *    \param comp Current compilation object
  *    \return root A node that loads/adds/subtracts the static block counter to calculate raw frequency of corresponding block
  */
@@ -2435,10 +2458,10 @@ TR_CallSiteInfo::hasSameBytecodeInfo(
       if (persistentCallSiteByteCodeIndex != currentCallSiteByteCodeIndex)
          break;
 
-      TR_OpaqueMethodBlock *persitentCallSiteMethod = comp->fe()->getInlinedCallSiteMethod(&persistentCallSiteInfo);
+      TR_OpaqueMethodBlock *persistentCallSiteMethod = comp->fe()->getInlinedCallSiteMethod(&persistentCallSiteInfo);
       TR_OpaqueMethodBlock *currentCallSiteMethod = comp->fe()->getInlinedCallSiteMethod(&currentCallSiteInfo);
 
-      if (persitentCallSiteMethod != currentCallSiteMethod)
+      if (persistentCallSiteMethod != currentCallSiteMethod)
          break;
 
       persistentCallSite = persistentCallSiteInfo._byteCodeInfo.getCallerIndex();

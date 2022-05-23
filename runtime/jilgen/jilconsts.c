@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 1991, 2021 IBM Corp. and others
+ * Copyright (c) 1991, 2022 IBM Corp. and others
  *
  * This program and the accompanying materials are made available under
  * the terms of the Eclipse Public License 2.0 which accompanies this
@@ -388,6 +388,7 @@ writeConstants(OMRPortLibrary *OMRPORTLIB, IDATA fd)
 			writeConstant(OMRPORTLIB, fd, "J9TR_cframe_machineBP", offsetof(J9CInterpreterStackFrame, machineBP)) |
 			writeConstant(OMRPORTLIB, fd, "J9TR_cframe_jitGPRs", offsetof(J9CInterpreterStackFrame, jitGPRs)) |
 			writeConstant(OMRPORTLIB, fd, "J9TR_cframe_jitFPRs", offsetof(J9CInterpreterStackFrame, jitFPRs)) |
+			writeConstant(OMRPORTLIB, fd, "J9TR_cframe_maskRegisters", offsetof(J9CInterpreterStackFrame, maskRegisters)) |
 			writeConstant(OMRPORTLIB, fd, "J9TR_cframe_rax", offsetof(J9CInterpreterStackFrame, jitGPRs.named.rax)) |
 			writeConstant(OMRPORTLIB, fd, "J9TR_cframe_rbx", offsetof(J9CInterpreterStackFrame, jitGPRs.named.rbx)) |
 			writeConstant(OMRPORTLIB, fd, "J9TR_cframe_rcx", offsetof(J9CInterpreterStackFrame, jitGPRs.named.rcx)) |
@@ -566,6 +567,9 @@ writeConstants(OMRPortLibrary *OMRPORTLIB, IDATA fd)
 			writeConstant(OMRPORTLIB, fd, "J9TR_JitConfig_old_fast_jitInstanceOf", offsetof(J9JITConfig, old_fast_jitInstanceOf)) |
 			writeConstant(OMRPORTLIB, fd, "J9TR_JitConfig_old_fast_jitLookupInterfaceMethod", offsetof(J9JITConfig, old_fast_jitLookupInterfaceMethod)) |
 			writeConstant(OMRPORTLIB, fd, "J9TR_JitConfig_old_slow_jitLookupInterfaceMethod", offsetof(J9JITConfig, old_slow_jitLookupInterfaceMethod)) |
+			writeConstant(OMRPORTLIB, fd, "J9TR_JitConfig_old_fast_jitLookupDynamicInterfaceMethod", offsetof(J9JITConfig, old_fast_jitLookupDynamicInterfaceMethod)) |
+			writeConstant(OMRPORTLIB, fd, "J9TR_JitConfig_old_fast_jitLookupDynamicPublicInterfaceMethod", offsetof(J9JITConfig, old_fast_jitLookupDynamicPublicInterfaceMethod)) |
+			writeConstant(OMRPORTLIB, fd, "J9TR_JitConfig_old_slow_jitLookupDynamicPublicInterfaceMethod", offsetof(J9JITConfig, old_slow_jitLookupDynamicPublicInterfaceMethod)) |
 			writeConstant(OMRPORTLIB, fd, "J9TR_JitConfig_old_fast_jitMethodIsNative", offsetof(J9JITConfig, old_fast_jitMethodIsNative)) |
 			writeConstant(OMRPORTLIB, fd, "J9TR_JitConfig_old_fast_jitMethodIsSync", offsetof(J9JITConfig, old_fast_jitMethodIsSync)) |
 			writeConstant(OMRPORTLIB, fd, "J9TR_JitConfig_old_fast_jitMethodMonitorEntry", offsetof(J9JITConfig, old_fast_jitMethodMonitorEntry)) |
@@ -655,7 +659,8 @@ writeConstants(OMRPortLibrary *OMRPORTLIB, IDATA fd)
 			writeConstant(OMRPORTLIB, fd, "J9TR_JitConfig_old_fast_jitPutFlattenableStaticField", offsetof(J9JITConfig, old_fast_jitPutFlattenableStaticField)) |
 			writeConstant(OMRPORTLIB, fd, "J9TR_JitConfig_old_fast_jitLoadFlattenableArrayElement", offsetof(J9JITConfig, old_fast_jitLoadFlattenableArrayElement)) |
 			writeConstant(OMRPORTLIB, fd, "J9TR_JitConfig_old_fast_jitStoreFlattenableArrayElement", offsetof(J9JITConfig, old_fast_jitStoreFlattenableArrayElement)) |
-			writeConstant(OMRPORTLIB, fd, "J9TR_JitConfig_old_fast_jitAcmpHelper", offsetof(J9JITConfig, old_fast_jitAcmpHelper)) |
+			writeConstant(OMRPORTLIB, fd, "J9TR_JitConfig_old_fast_jitAcmpeqHelper", offsetof(J9JITConfig, old_fast_jitAcmpeqHelper)) |
+			writeConstant(OMRPORTLIB, fd, "J9TR_JitConfig_old_fast_jitAcmpneHelper", offsetof(J9JITConfig, old_fast_jitAcmpneHelper)) |
 			writeConstant(OMRPORTLIB, fd, "J9TR_JitConfig_fast_jitNewValue", offsetof(J9JITConfig, fast_jitNewValue)) |
 			writeConstant(OMRPORTLIB, fd, "J9TR_JitConfig_fast_jitNewValueNoZeroInit", offsetof(J9JITConfig, fast_jitNewValueNoZeroInit)) |
 			writeConstant(OMRPORTLIB, fd, "J9TR_JitConfig_fast_jitNewObject", offsetof(J9JITConfig, fast_jitNewObject)) |
@@ -746,6 +751,7 @@ writeConstants(OMRPortLibrary *OMRPORTLIB, IDATA fd)
 			writeConstant(OMRPORTLIB, fd, "J9TR_ELSSize", sizeof(J9VMEntryLocalStorage)) |
 			writeConstant(OMRPORTLIB, fd, "J9TR_J9_EXTENDED_RUNTIME_DEBUG_MODE", J9_EXTENDED_RUNTIME_DEBUG_MODE) |
 			writeConstant(OMRPORTLIB, fd, "J9TR_J9_EXTENDED_RUNTIME_USE_VECTOR_REGISTERS", J9_EXTENDED_RUNTIME_USE_VECTOR_REGISTERS) |
+			writeConstant(OMRPORTLIB, fd, "J9TR_J9_EXTENDED_RUNTIME_USE_EXTENDED_VECTOR_REGISTERS", J9_EXTENDED_RUNTIME_USE_EXTENDED_VECTOR_REGISTERS) |
 			writeConstant(OMRPORTLIB, fd, "J9TR_J9_EXTENDED_RUNTIME2_COMPRESS_OBJECT_REFERENCES", J9_EXTENDED_RUNTIME2_COMPRESS_OBJECT_REFERENCES) |
 			writeConstant(OMRPORTLIB, fd, "J9TR_J9_INLINE_JNI_MAX_ARG_COUNT", J9_INLINE_JNI_MAX_ARG_COUNT) |
 

@@ -1,6 +1,6 @@
-/*[INCLUDE-IF Sidecar16 & !Sidecar19-SE]*/
+/*[INCLUDE-IF JAVA_SPEC_VERSION == 8]*/
 /*******************************************************************************
- * Copyright (c) 1998, 2021 IBM Corp. and others
+ * Copyright (c) 1998, 2022 IBM Corp. and others
  *
  * This program and the accompanying materials are made available under
  * the terms of the Eclipse Public License 2.0 which accompanies this
@@ -23,10 +23,10 @@
 package java.lang;
 
 import java.io.IOException;
-import java.io.InvalidObjectException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.Serializable;
+import java.io.StreamCorruptedException;
 import java.util.Arrays;
 import java.util.Properties;
 
@@ -120,7 +120,7 @@ public StringBuffer(int capacity) {
 	 * NegativeArraySizeException is thrown if capacity argument is less than 0.
 	 */
 	if (capacity < 0) {
-		throw new NegativeArraySizeException();
+		throw new NegativeArraySizeException(String.valueOf(capacity));
 	}
 	int arraySize = capacity;
 	
@@ -1819,42 +1819,30 @@ private synchronized void writeObject(ObjectOutputStream stream) throws IOExcept
 
 private void readObject(ObjectInputStream stream) throws IOException, ClassNotFoundException {
 	ObjectInputStream.GetField gf = stream.readFields();
-	
 	int streamCount = gf.get("count", 0); //$NON-NLS-1$
-
 	char[] streamValue = (char[]) gf.get("value", null); //$NON-NLS-1$
-	
-	if (streamCount > streamValue.length) {
-		throw new InvalidObjectException(com.ibm.oti.util.Msg.getString("K0199")); //$NON-NLS-1$
-	} 
-	
+
+	if ((streamCount < 0) || (streamCount > streamValue.length)) {
+		/*[MSG "K0199", "count value invalid"]*/
+		throw new StreamCorruptedException(com.ibm.oti.util.Msg.getString("K0199")); //$NON-NLS-1$
+	}
 	if (String.COMPACT_STRINGS) {
 		if (String.canEncodeAsLatin1(streamValue, 0, streamValue.length)) {
 			value = new char[(streamValue.length + 1) >>> 1];
-			
 			String.compress(streamValue, 0, value, 0, streamValue.length);
-			
 			count = streamCount;
-			
 			capacity = streamValue.length;
 		} else {
 			value = new char[streamValue.length];
-			
 			System.arraycopy(streamValue, 0, value, 0, streamValue.length);
-			
 			count = streamCount | uncompressedBit;
-
 			capacity = streamValue.length;
-			
 			String.initCompressionFlag();
 		}
 	} else {
 		value = new char[streamValue.length];
-		
 		System.arraycopy(streamValue, 0, value, 0, streamValue.length);
-		
 		count = streamCount;
-		
 		capacity = streamValue.length;
 	}
 }
@@ -2462,17 +2450,17 @@ public synchronized StringBuffer insert(int index, CharSequence sequence) {
 				}
 			}
 		} else {
-			int sequneceLength = sequence.length();
+			int sequenceLength = sequence.length();
 			
-			if (sequneceLength > 0) {
-				move(sequneceLength, index);
+			if (sequenceLength > 0) {
+				move(sequenceLength, index);
 				
-				int newLength = currentLength + sequneceLength;
+				int newLength = currentLength + sequenceLength;
 				
 				if (String.COMPACT_STRINGS) {
 					boolean isCompressed = true;
 					
-					for (int i = 0; i < sequneceLength; ++i) {
+					for (int i = 0; i < sequenceLength; ++i) {
 						if (sequence.charAt(i) > 255) {
 							isCompressed = false;
 							
@@ -2482,7 +2470,7 @@ public synchronized StringBuffer insert(int index, CharSequence sequence) {
 					
 					// Check if the StringBuffer is compressed
 					if (count >= 0 && isCompressed) {
-						for (int i = 0; i < sequneceLength; ++i) {
+						for (int i = 0; i < sequenceLength; ++i) {
 							helpers.putByteInArrayByIndex(value, index + i, (byte) sequence.charAt(i));
 						}
 						
@@ -2495,14 +2483,14 @@ public synchronized StringBuffer insert(int index, CharSequence sequence) {
 							decompress(value.length);
 						}
 						
-						for (int i = 0; i < sequneceLength; ++i) {
+						for (int i = 0; i < sequenceLength; ++i) {
 							value[index + i] = sequence.charAt(i);
 						}
 						
 						count = newLength | uncompressedBit;
 					}
 				} else {
-					for (int i = 0; i < sequneceLength; ++i) {
+					for (int i = 0; i < sequenceLength; ++i) {
 						value[index + i] = sequence.charAt(i);
 					}
 					

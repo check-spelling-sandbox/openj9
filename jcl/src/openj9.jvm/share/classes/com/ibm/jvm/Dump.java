@@ -117,7 +117,7 @@ public class Dump {
 	 * @throws SecurityException if there is a security manager and it doesn't allow the checks required to trigger this dump
 	 */
 	public static void JavaDump() {
-		checkLegacySecurityPermssion();
+		checkLegacySecurityPermission();
 		JavaDumpImpl();
 	}
 
@@ -133,7 +133,7 @@ public class Dump {
 	 * @throws SecurityException if there is a security manager and it doesn't allow the checks required to trigger this dump
 	 */
 	public static void HeapDump() {
-		checkLegacySecurityPermssion();
+		checkLegacySecurityPermission();
 		HeapDumpImpl();
 	}
 
@@ -150,7 +150,7 @@ public class Dump {
 	 * @throws SecurityException if there is a security manager and it doesn't allow the checks required to trigger this dump
 	 */
 	public static void SystemDump() {
-		checkLegacySecurityPermssion();
+		checkLegacySecurityPermission();
 		SystemDumpImpl();
 	}
 
@@ -174,7 +174,7 @@ public class Dump {
 	 * @throws SecurityException if there is a security manager and it doesn't allow the checks required to trigger this dump
 	 */
 	public static void SnapDump() {
-		checkLegacySecurityPermssion();
+		checkLegacySecurityPermission();
 		SnapDumpImpl();
 	}
 
@@ -494,7 +494,7 @@ public class Dump {
 		}
 	}
 
-	private static void checkDumpSecurityPermssion() throws SecurityException {
+	private static void checkDumpSecurityPermission() throws SecurityException {
 		/* Check the caller has DumpPermission. */
 		@SuppressWarnings("removal")
 		SecurityManager manager = System.getSecurityManager();
@@ -503,7 +503,7 @@ public class Dump {
 		}
 	}
 
-	private static void checkToolSecurityPermssion() throws SecurityException {
+	private static void checkToolSecurityPermission() throws SecurityException {
 		/* Check the caller has DumpPermission. */
 		@SuppressWarnings("removal")
 		SecurityManager manager = System.getSecurityManager();
@@ -512,10 +512,10 @@ public class Dump {
 		}
 	}
 
-	private static void checkLegacySecurityPermssion() throws SecurityException {
+	private static void checkLegacySecurityPermission() throws SecurityException {
 		if (!("false".equalsIgnoreCase(com.ibm.oti.vm.VM.getVMLangAccess()	//$NON-NLS-1$
 			.internalGetProperties().getProperty(LEGACY_DUMP_PERMISSION_PROPERTY)))) {
-			checkDumpSecurityPermssion();
+			checkDumpSecurityPermission();
 		}
 	}
 
@@ -559,7 +559,7 @@ public class Dump {
 		}
 		// All the other permissions will be checked in triggerDump(dumpSettings, event);
 		if (isToolDump(dumpOptions)) {
-			checkToolSecurityPermssion();
+			checkToolSecurityPermission();
 		}
 		return triggerDump(dumpOptions, "triggerDump"); //$NON-NLS-1$
 	}
@@ -567,7 +567,7 @@ public class Dump {
 	private static String triggerDump(String dumpSettings, String event) throws InvalidDumpOptionException {
 
 		/* Check the caller is allowed to trigger a dump. */
-		checkDumpSecurityPermssion();
+		checkDumpSecurityPermission();
 
 		try {
 			return triggerDumpsImpl(dumpSettings, event);
@@ -602,10 +602,10 @@ public class Dump {
 	public static void setDumpOptions(String dumpOptions) throws InvalidDumpOptionException, DumpConfigurationUnavailableException {
 
 		/* Check the caller is allowed to trigger a dump. */
-		checkDumpSecurityPermssion();
+		checkDumpSecurityPermission();
 
 		if (isToolDump(dumpOptions)) {
-			checkToolSecurityPermssion();
+			checkToolSecurityPermission();
 		}
 
 		if( dumpOptions == null ) {
@@ -642,7 +642,7 @@ public class Dump {
 	 */
 	public static String[] queryDumpOptions() {
 		/* Check the caller is allowed to query dump settings. */
-		checkDumpSecurityPermssion();
+		checkDumpSecurityPermission();
 
 		String options = queryDumpOptionsImpl();
 		if( options != null ) {
@@ -675,7 +675,7 @@ public class Dump {
 	public static void resetDumpOptions() throws DumpConfigurationUnavailableException {
 
 		/* Check the caller is allowed to reset dump settings. */
-		checkDumpSecurityPermssion();
+		checkDumpSecurityPermission();
 
 		/* Synchronised to prevent two Java threads trying to update dump settings at once.
 		 * setDumpOptions is also synchronised in this way.

@@ -47,13 +47,13 @@ public class CancelTest {
 		Thread thr = new Thread() {
 			public void run() {
 				synchronized (object) {
-					System.out.println("Succesfully cancelled monitor reservation");
+					System.out.println("Successfully cancelled monitor reservation");
 				}
 			}
 		};
 		
 		synchronized (object) {
-			System.out.println("Succesfully entered monitor before reservation cancelled by another thread");
+			System.out.println("Successfully entered monitor before reservation cancelled by another thread");
 		}
 
 		thr.start();
@@ -61,7 +61,7 @@ public class CancelTest {
 		thr.join();
 
 		synchronized (object) {
-			System.out.println("Succesfully entered monitor after reservation cancelled by another thread");
+			System.out.println("Successfully entered monitor after reservation cancelled by another thread");
 		}
 		
 	}

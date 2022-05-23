@@ -234,9 +234,9 @@ public class StackWalkerTest {
 	public void testClassLoaderName() {
 		ClassLoader myLoaderInstance = new MyLoader(TEST_MYLOADER_INSTANCE, ClassLoader.getSystemClassLoader());
 		try {
-			Class<?> klasse = Class.forName(getClass().getPackageName()+".MyRunnable", true,	myLoaderInstance);
+			Class<?> klass = Class.forName(getClass().getPackageName()+".MyRunnable", true,	myLoaderInstance);
 			assertEquals(myLoaderInstance.getName(), TEST_MYLOADER_INSTANCE, "incorrect classLoader name");
-			Runnable r = (Runnable) klasse.newInstance();
+			Runnable r = (Runnable) klass.newInstance();
 			r.run();
 		} catch (ClassNotFoundException | IllegalAccessException | InstantiationException e) {
 			fail("unexpected exception", e);

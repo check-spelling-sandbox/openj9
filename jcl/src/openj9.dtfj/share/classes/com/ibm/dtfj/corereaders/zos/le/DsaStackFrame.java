@@ -32,7 +32,7 @@ import com.ibm.dtfj.corereaders.zos.mvs.RegisterSet;
 /**
  * This class represents a single LE stack frame (aka DSA). Use {@link #getParentFrame} to
  * get the stack frame that called this one. 
- * XXX see ceekdmdr
+ * XXX see CEEKDMDR
  *
  * @has - - - com.ibm.dtfj.corereaders.zos.le.Function
  */

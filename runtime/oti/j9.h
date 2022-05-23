@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 1991, 2021 IBM Corp. and others
+ * Copyright (c) 1991, 2022 IBM Corp. and others
  *
  * This program and the accompanying materials are made available under
  * the terms of the Eclipse Public License 2.0 which accompanies this
@@ -28,12 +28,6 @@
 
 #include "j9cfg.h"
 #include "j9comp.h"
-#if defined(J9ZOS390)
-/* This is the contents of the old zvarmaps.h - delete this once the builder symbols are gone */
-#pragma variable( native2JITExitBCTable, NORENT )
-#pragma variable( returnFromJ2IBytecodes, NORENT )
-#endif /* J9ZOS390 */
-
 #include "j9port.h"
 #include "j9argscan.h"
 #include "omrthread.h"
@@ -62,6 +56,9 @@
 #include "j9thread.h"
 #include "j2sever.h"
 #include "j9relationship.h"
+
+/* Function used to map object fields during clone */
+typedef j9object_t (*MM_objectMapFunction)(struct J9VMThread *currentThread, j9object_t obj, void *objectMapData);
 
 typedef struct J9JNIRedirectionBlock {
 	struct J9JNIRedirectionBlock* next;
@@ -97,7 +94,7 @@ typedef struct J9ClassLoaderWalkState {
 /* temporary define to allow JIT work to promote and be enabled at the same time as the vm side */
 #define NEW_FANIN_INFRA
 
-/* -------------- Add C-level global definitions below this point ------------------ */ 
+/* -------------- Add C-level global definitions below this point ------------------ */
 
 /*
  * Simultaneously check if the flags field has the sign bit set and the valueOffset is non-zero.
@@ -130,37 +127,52 @@ typedef struct J9ClassLoaderWalkState {
 
 #define IS_STRING_COMPRESSION_ENABLED_VM(javaVM) (FALSE != (javaVM)->strCompEnabled)
 
+#if JAVA_SPEC_VERSION >= 11
+
 #define IS_STRING_COMPRESSED(vmThread, object) \
 	(IS_STRING_COMPRESSION_ENABLED(vmThread) ? \
-		(J2SE_VERSION((vmThread)->javaVM) >= J2SE_V11 ? \
-			(((I_32) J9VMJAVALANGSTRING_CODER(vmThread, object)) == 0) : \
-			(((I_32) J9VMJAVALANGSTRING_COUNT(vmThread, object)) >= 0)) : \
+		(((I_32) J9VMJAVALANGSTRING_CODER(vmThread, object)) == 0) : \
 		FALSE)
 
 #define IS_STRING_COMPRESSED_VM(javaVM, object) \
 	(IS_STRING_COMPRESSION_ENABLED_VM(javaVM) ? \
-		(J2SE_VERSION(javaVM) >= J2SE_V11 ? \
-			(((I_32) J9VMJAVALANGSTRING_CODER_VM(javaVM, object)) == 0) : \
-			(((I_32) J9VMJAVALANGSTRING_COUNT_VM(javaVM, object)) >= 0)) : \
+		(((I_32) J9VMJAVALANGSTRING_CODER_VM(javaVM, object)) == 0) : \
 		FALSE)
 
 #define J9VMJAVALANGSTRING_LENGTH(vmThread, object) \
 	(IS_STRING_COMPRESSION_ENABLED(vmThread) ? \
-		(J2SE_VERSION((vmThread)->javaVM) >= J2SE_V11 ? \
-			(J9INDEXABLEOBJECT_SIZE(vmThread, J9VMJAVALANGSTRING_VALUE(vmThread, object)) >> ((I_32) J9VMJAVALANGSTRING_CODER(vmThread, object))) : \
-			(J9VMJAVALANGSTRING_COUNT(vmThread, object) & 0x7FFFFFFF)) : \
-		(J2SE_VERSION((vmThread)->javaVM) >= J2SE_V11 ? \
-			(J9INDEXABLEOBJECT_SIZE(vmThread, J9VMJAVALANGSTRING_VALUE(vmThread, object)) >> 1) : \
-			(J9VMJAVALANGSTRING_COUNT(vmThread, object))))
+		(J9INDEXABLEOBJECT_SIZE(vmThread, J9VMJAVALANGSTRING_VALUE(vmThread, object)) >> ((I_32) J9VMJAVALANGSTRING_CODER(vmThread, object))) : \
+		(J9INDEXABLEOBJECT_SIZE(vmThread, J9VMJAVALANGSTRING_VALUE(vmThread, object)) >> 1))
 
 #define J9VMJAVALANGSTRING_LENGTH_VM(javaVM, object) \
 	(IS_STRING_COMPRESSION_ENABLED_VM(javaVM) ? \
-		(J2SE_VERSION(javaVM) >= J2SE_V11 ? \
-			(J9INDEXABLEOBJECT_SIZE_VM(javaVM, J9VMJAVALANGSTRING_VALUE_VM(javaVM, object)) >> ((I_32) J9VMJAVALANGSTRING_CODER_VM(javaVM, object))) : \
-			(J9VMJAVALANGSTRING_COUNT_VM(javaVM, object) & 0x7FFFFFFF)) : \
-		(J2SE_VERSION(javaVM) >= J2SE_V11 ? \
-			(J9INDEXABLEOBJECT_SIZE_VM(javaVM, J9VMJAVALANGSTRING_VALUE_VM(javaVM, object)) >> 1) : \
-			(J9VMJAVALANGSTRING_COUNT_VM(javaVM, object))))
+		(J9INDEXABLEOBJECT_SIZE_VM(javaVM, J9VMJAVALANGSTRING_VALUE_VM(javaVM, object)) >> ((I_32) J9VMJAVALANGSTRING_CODER_VM(javaVM, object))) : \
+		(J9INDEXABLEOBJECT_SIZE_VM(javaVM, J9VMJAVALANGSTRING_VALUE_VM(javaVM, object)) >> 1))
+
+#else /* JAVA_SPEC_VERSION >= 11 */
+
+#define IS_STRING_COMPRESSED(vmThread, object) \
+	(IS_STRING_COMPRESSION_ENABLED(vmThread) ? \
+		(((I_32) J9VMJAVALANGSTRING_COUNT(vmThread, object)) >= 0) : \
+		FALSE)
+
+#define IS_STRING_COMPRESSED_VM(javaVM, object) \
+	(IS_STRING_COMPRESSION_ENABLED_VM(javaVM) ? \
+		(((I_32) J9VMJAVALANGSTRING_COUNT_VM(javaVM, object)) >= 0) : \
+		FALSE)
+
+#define J9VMJAVALANGSTRING_LENGTH(vmThread, object) \
+	(IS_STRING_COMPRESSION_ENABLED(vmThread) ? \
+		(J9VMJAVALANGSTRING_COUNT(vmThread, object) & 0x7FFFFFFF) : \
+		(J9VMJAVALANGSTRING_COUNT(vmThread, object)))
+
+#define J9VMJAVALANGSTRING_LENGTH_VM(javaVM, object) \
+	(IS_STRING_COMPRESSION_ENABLED_VM(javaVM) ? \
+		(J9VMJAVALANGSTRING_COUNT_VM(javaVM, object) & 0x7FFFFFFF) : \
+		(J9VMJAVALANGSTRING_COUNT_VM(javaVM, object)))
+
+#endif /* JAVA_SPEC_VERSION >= 11 */
+
 
 /* UTF8 access macros - all access to J9UTF8 fields should be done through these macros */
 
@@ -177,6 +189,9 @@ typedef struct J9ClassLoaderWalkState {
  * E.g.: LITERAL_STRLEN("lib") == 3
  */
 #define LITERAL_STRLEN(string_literal) ((IDATA)(sizeof(string_literal) - 1))
+
+#define ROUND_UP_TO(granularity, number) ((((number) % (granularity)) ? ((number) + (granularity) - ((number) % (granularity))) : (number)))
+#define ROUND_DOWN_TO(granularity, number) ((number) - ((number) % (granularity)))
 
 #define ROUND_UP_TO_POWEROF2(value, powerof2) (((value) + ((powerof2) - 1)) & (UDATA)~((powerof2) - 1))
 #undef ROUND_DOWN_TO_POWEROF2
@@ -311,10 +326,10 @@ static const struct { \
 #ifdef J9VM_OPT_VALHALLA_VALUE_TYPES
 #define J9CLASS_UNPADDED_INSTANCE_SIZE(clazz) J9_VALUETYPE_FLATTENED_SIZE(clazz)
 #define J9_IS_J9CLASS_VALUETYPE(clazz) J9_ARE_ALL_BITS_SET((clazz)->classFlags, J9ClassIsValueType)
+#define J9_IS_J9CLASS_PRIMITIVE_VALUETYPE(clazz) J9_ARE_ALL_BITS_SET((clazz)->classFlags, J9ClassIsPrimitiveValueType)
 #define J9_IS_J9CLASS_FLATTENED(clazz) J9_ARE_ALL_BITS_SET((clazz)->classFlags, J9ClassIsFlattened)
 /**
  * Disable flattening of volatile field that is > 8 bytes for now, as the current implementation of copyObjectFields() will tear this field.
- * Flattening of atomic valueType that is > 8 bytes is also disabled. J9ClassIsFlattened is not set on such valueTypes.
  */
 #define J9_IS_FIELD_FLATTENED(fieldClazz, romFieldShape) \
 	(J9_IS_J9CLASS_FLATTENED(fieldClazz) && \
@@ -325,12 +340,21 @@ static const struct { \
 #else /* J9VM_OPT_VALHALLA_VALUE_TYPES */
 #define J9CLASS_UNPADDED_INSTANCE_SIZE(clazz) ((clazz)->totalInstanceSize)
 #define J9_IS_J9CLASS_VALUETYPE(clazz) FALSE
+#define J9_IS_J9CLASS_PRIMITIVE_VALUETYPE(clazz) FALSE
 #define J9_IS_J9CLASS_FLATTENED(clazz) FALSE
 #define J9_IS_FIELD_FLATTENED(fieldClazz, romFieldShape) FALSE
 #define J9_VALUETYPE_FLATTENED_SIZE(clazz)((UDATA) 0) /* It is not possible for this macro to be used since we always check J9_IS_J9CLASS_FLATTENED before ever using it. */
 #define IS_REF_OR_VAL_SIGNATURE(firstChar) ('L' == (firstChar))
 #define IS_QTYPE(firstChar) FALSE
 #endif /* J9VM_OPT_VALHALLA_VALUE_TYPES */
+#define IS_LTYPE(firstChar) ('L' == (firstChar))
+
+#define J9_IS_STRING_DESCRIPTOR(str, strLen) (((strLen) > 2) && (IS_REF_OR_VAL_SIGNATURE(*(str))) && (';' == *((str) + (strLen) - 1)))
+
+#define J9_IS_SINGLE_THREAD_MODE(vm) (J9_ARE_ALL_BITS_SET((vm)->extendedRuntimeFlags2, J9_EXTENDED_RUNTIME2_CRIU_SINGLE_THREAD_MODE))
+
+#define J9_IS_HIDDEN_METHOD(method) \
+	((NULL != (method)) && (J9ROMCLASS_IS_ANON_OR_HIDDEN(J9_CLASS_FROM_METHOD((method))->romClass) || J9_ARE_ANY_BITS_SET(J9_ROM_METHOD_FROM_RAM_METHOD((method))->modifiers, J9AccMethodFrameIteratorSkip)))
 
 #if defined(OPENJ9_BUILD)
 #define J9_SHARED_CACHE_DEFAULT_BOOT_SHARING(vm) TRUE

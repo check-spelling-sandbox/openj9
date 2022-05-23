@@ -152,10 +152,10 @@ public class TestSharedClassesExt extends DDRExtTesterBase {
 					Constants.SHRC_CP, cpAddr });
 			if (getJavaVersion() > 8) {
 				assertTrue(validate(cpOutput, Constants.SHRC_CP_SUCCESS_KEY_JAVA9,
-						Constants.SHRC_CP_FAILIRE_KEY, true));
+						Constants.SHRC_CP_FAILURE_KEY, true));
 			} else {
 				assertTrue(validate(cpOutput, Constants.SHRC_CP_SUCCESS_KEY,
-						Constants.SHRC_CP_FAILIRE_KEY, true));
+						Constants.SHRC_CP_FAILURE_KEY, true));
 			}
 		}
 	}

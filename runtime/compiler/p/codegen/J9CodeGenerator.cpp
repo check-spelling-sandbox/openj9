@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2000, 2021 IBM Corp. and others
+ * Copyright (c) 2000, 2022 IBM Corp. and others
  *
  * This program and the accompanying materials are made available under
  * the terms of the Eclipse Public License 2.0 which accompanies this
@@ -84,7 +84,7 @@ J9::Power::CodeGenerator::initialize()
       comp->setOption(TR_EnableMonitorCacheLookup);
 
    cg->setSupportsPartialInlineOfMethodHooks();
-   cg->setSupportsInliningOfTypeCoersionMethods();
+   cg->setSupportsInliningOfTypeCoercionMethods();
 
    if (comp->target().cpu.isAtLeast(OMR_PROCESSOR_PPC_P8) && comp->target().cpu.supportsFeature(OMR_FEATURE_PPC_HAS_VSX) &&
       comp->target().is64Bit() && !comp->getOption(TR_DisableFastStringIndexOf) &&
@@ -140,7 +140,7 @@ J9::Power::CodeGenerator::canEmitDataForExternallyRelocatableInstructions()
    // On Power, data cannot be emitted inside instructions that will be associated with an
    // external relocation record (ex. AOT or Remote compiles in OpenJ9). This is because when the
    // relocation is applied when a method is loaded, the new data in the instruction is OR'ed in (The reason
-   // for OR'ing is that sometimes usefule information such as flags and hints can be stored during compilation in these data fields).
+   // for OR'ing is that sometimes useful information such as flags and hints can be stored during compilation in these data fields).
    // Hence, for the relocation to be applied correctly, we must ensure that the data fields inside the instruction
    // initially are zero.
 #ifdef J9VM_OPT_JITSERVER
@@ -622,8 +622,7 @@ J9::Power::CodeGenerator::insertPrefetchIfNecessary(TR::Node *node, TR::Register
             if (!(firstChild &&
                 firstChild->getOpCodeValue() == TR::aiadd &&
                 firstChild->isInternalPointer() &&
-                (strstr(comp->fe()->sampleSignature(node->getOwningMethod(), 0, 0, self()->trMemory()),"java/util/TreeMap$UnboundedValueIterator.next()")
-                || strstr(comp->fe()->sampleSignature(node->getOwningMethod(), 0, 0, self()->trMemory()),"java/util/ArrayList$Itr.next()"))
+                strstr(comp->fe()->sampleSignature(node->getOwningMethod(), 0, 0, self()->trMemory()),"java/util/ArrayList$Itr.next()")
                ))
                {
                optDisabled = true;
@@ -635,8 +634,7 @@ J9::Power::CodeGenerator::insertPrefetchIfNecessary(TR::Node *node, TR::Register
             if (!(firstChild &&
                 firstChild->getOpCodeValue() == TR::aladd &&
                 firstChild->isInternalPointer() &&
-                (strstr(comp->fe()->sampleSignature(node->getOwningMethod(), 0, 0, self()->trMemory()),"java/util/TreeMap$UnboundedValueIterator.next()")
-                || strstr(comp->fe()->sampleSignature(node->getOwningMethod(), 0, 0, self()->trMemory()),"java/util/ArrayList$Itr.next()"))
+                strstr(comp->fe()->sampleSignature(node->getOwningMethod(), 0, 0, self()->trMemory()),"java/util/ArrayList$Itr.next()")
                ))
                {
                optDisabled = true;
@@ -749,7 +747,7 @@ J9::Power::CodeGenerator::deriveCallingLinkage(TR::Node *node, bool isIndirect)
    static char * disableDirectNativeCall = feGetEnv("TR_DisableDirectNativeCall");
 
    // Clean-up: the fej9 checking seemed unnecessary
-   if (!isIndirect && callee->isJNI() && fej9->canRelocateDirectNativeCalls() &&
+   if (!isIndirect && callee->isJNI() &&
        (node->isPreparedForDirectJNI() ||
         (disableDirectNativeCall == NULL && callee->getResolvedMethodSymbol()->canDirectNativeCall())))
       return self()->getLinkage(TR_J9JNILinkage);

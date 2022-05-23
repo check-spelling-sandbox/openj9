@@ -19,16 +19,18 @@
  *
  * SPDX-License-Identifier: EPL-2.0 OR Apache-2.0 OR GPL-2.0 WITH Classpath-exception-2.0 OR LicenseRef-GPL-2.0 WITH Assembly-exception
  *******************************************************************************/
-
 package org.openj9.test.classtests;
 
 /* The AnonClassAndUnsafeClassTest.class will be used to create the Anonyomus Class and the Unsafe Class */
 
 public class AnonClassAndUnsafeClassTest {
-    public void func() {
-        System.out.println("Test");
-    }
-    public void funcunsafe() {
-        System.out.println("Hello");
-    }
+
+	public void func() {
+		System.out.println("Test");
+	}
+
+	public void funcunsafe() {
+		System.out.println("Hello");
+	}
+
 }

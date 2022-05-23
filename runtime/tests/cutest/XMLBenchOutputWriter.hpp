@@ -86,12 +86,12 @@ public:
 	void endChartSet();
 
 	/**
-	 * This writes out the xml to start the definition of the charts in a chartset
+	 * This writes out the xml to start the definition of the charts in a chartSet
 	 */
 	void startCharts();
 
 	/** 
-	 * This writes out the xml to end the definition of the charts in a chartset
+	 * This writes out the xml to end the definition of the charts in a chartSet
 	 */
 	void endCharts();
 

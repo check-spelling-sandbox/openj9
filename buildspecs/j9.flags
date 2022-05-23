@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-Copyright (c) 2006, 2021 IBM Corp. and others
- 
+Copyright (c) 2006, 2022 IBM Corp. and others
+
 This program and the accompanying materials are made available under
 the terms of the Eclipse Public License 2.0 which accompanies this
 distribution and is available at https://www.eclipse.org/legal/epl-2.0/
@@ -20,7 +20,6 @@ OpenJDK Assembly Exception [2].
 
 SPDX-License-Identifier: EPL-2.0 OR Apache-2.0 OR GPL-2.0 WITH Classpath-exception-2.0 OR LicenseRef-GPL-2.0 WITH Assembly-exception
 -->
-
 <flags xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://www.ibm.com/j9/builder/flags" xsi:schemaLocation="http://www.ibm.com/j9/builder/flags flags-v1.xsd">
 	<flag id="arch_aarch64">
 		<description>This spec targets AArch64 processors.</description>
@@ -351,11 +350,11 @@ Currently only available on linux_x86 and win_x96 32 bit builds.</description>
 		</requires>
 	</flag>
 	<flag id="gc_enableDoubleMap">
-		<description>Set on double map. Allows LINUX systems to double map arrays that are stored as arraylets.
+		<description>Set on double map. Allows Linux systems to double map arrays that are stored as arraylets.
 When enabled, a contiguous block of memory is created for each array which data surpasses the size of a region. This contiguous block represents the array as
 if the data was stored in a contiguous region of memory. All of the array data will be stored at their own region (not with spine); hence, all arraylets
 become discontiguous whenever this flag is enabled. Since there won’t be any empty arraylet leaves, then arrayoid NULL pointers are no longer required since
-all data is stored in their own region. It additionaly reduces footprint, mainly for JNI primitive array critical.</description>
+all data is stored in their own region. It additionally reduces footprint, mainly for JNI primitive array critical.</description>
 		<ifRemoved></ifRemoved>
 		<requires>
 			<require flag="gc_vlhgc"/>
@@ -391,7 +390,7 @@ all data is stored in their own region. It additionaly reduces footprint, mainly
 	</flag>
 	<flag id="gc_debugAsserts">
 		<description>Specialized GC assertions are used instead of standard trace asserts for GC assertions</description>
-		<ifRemoved>GC Assertions during startup may not cause an abort. No messages for GC asserts. </ifRemoved>
+		<ifRemoved>GC Assertions during startup may not cause an abort. No messages for GC asserts.</ifRemoved>
 	</flag>
 	<flag id="gc_dynamicClassUnloading">
 		<description>Dynamic class unloading is supported</description>
@@ -888,7 +887,7 @@ all data is stored in their own region. It additionaly reduces footprint, mainly
 		<ifRemoved>Float and double bytecodes and natives are removed.</ifRemoved>
 	</flag>
 	<flag id="interp_floatmathTracing">
-		<description>TRACING FEATURE.  Determines if the interpreter produces trace information at every math bytecode. </description>
+		<description>TRACING FEATURE.  Determines if the interpreter produces trace information at every math bytecode.</description>
 		<ifRemoved>No math trace available.</ifRemoved>
 		<requires>
 			<require flag="interp_floatSupport"/>
@@ -898,7 +897,7 @@ all data is stored in their own region. It additionaly reduces footprint, mainly
 		</precludes>
 	</flag>
 	<flag id="interp_floatmathlibTracing">
-		<description>TRACING FEATURE.  Determines if the interpreter produces trace information at every math library call. </description>
+		<description>TRACING FEATURE.  Determines if the interpreter produces trace information at every math library call.</description>
 		<ifRemoved>No math lib trace available.</ifRemoved>
 		<requires>
 			<require flag="interp_floatSupport"/>
@@ -967,7 +966,7 @@ all data is stored in their own region. It additionaly reduces footprint, mainly
 		<ifRemoved>NO ROMable AOT Support for TJ Watson</ifRemoved>
 	</flag>
 	<flag id="interp_sigQuitThread">
-		<description>Controls if a separate thread handles SIGQUITsignal.</description>
+		<description>Controls if a separate thread handles SIGQUIT signal.</description>
 		<ifRemoved>platform cannot answer SIGQUIT.</ifRemoved>
 		<requires>
 			<require flag="interp_gpHandler"/>
@@ -1658,10 +1657,6 @@ Only available on zOS</description>
 		<description>Enables compilation of the thread module.</description>
 		<ifRemoved>The module will not be compiled.</ifRemoved>
 	</flag>
-	<flag id="module_thrtrace">
-		<description>Enables compilation of the thrtrace module.</description>
-		<ifRemoved>The module will not be compiled.</ifRemoved>
-	</flag>
 	<flag id="module_util">
 		<description>Enables compilation of the util module.</description>
 		<ifRemoved>The module will not be compiled.</ifRemoved>
@@ -1734,7 +1729,7 @@ Only available on zOS</description>
 		<ifRemoved>No dynamic loading of classes supported.</ifRemoved>
 	</flag>
 	<flag id="opt_fips">
-		<description>Add supports for FIPs</description>
+		<description>Add supports for FIPS</description>
 		<ifRemoved></ifRemoved>
 	</flag>
 	<flag id="opt_fragmentRamClasses">
@@ -1821,10 +1816,10 @@ Only available on zOS</description>
 		<description>Enables New Reality Runtime (NRR) features.</description>
 		<ifRemoved></ifRemoved>
 	</flag>
-        <flag id="opt_openjdkMethodhandle">
-                <description>Enables support for OpenJDK MethodHandles. opt_methodHandle should be disabled.</description>
-                <ifRemoved>Disables support for OpenJDK MethodHandles.</ifRemoved>
-        </flag>
+	<flag id="opt_openjdkMethodhandle">
+		<description>Enables support for OpenJDK MethodHandles. opt_methodHandle should be disabled.</description>
+		<ifRemoved>Disables support for OpenJDK MethodHandles.</ifRemoved>
+	</flag>
 	<flag id="opt_packed">
 		<description>Enables support for @Packed types (Structs)</description>
 		<ifRemoved>No support for @Packed types (Structs)</ifRemoved>
@@ -1832,6 +1827,14 @@ Only available on zOS</description>
 	<flag id="opt_panama">
 		<description>Enables support for Project Panama features such as native method handles</description>
 		<ifRemoved>No support for Project Panama features such as native method handles</ifRemoved>
+	</flag>
+	<flag id="opt_openjdkFfi">
+		<description>Enables support for Foreign Linker API (part of Project Panama) such as native invocations to ffi_call</description>
+		<ifRemoved>No support for Foreign Linker API</ifRemoved>
+	</flag>
+	<flag id="opt_openjdkThreadSupport">
+		<description>Enables OpenJDK Thread support for Project Loom</description>
+		<ifRemoved>No OpenJDK Thread support for Project Loom</ifRemoved>
 	</flag>
 	<flag id="opt_valhallaValueTypes">
 		<description>Enables support for Project Valhalla L-World Value Types</description>
@@ -1942,7 +1945,7 @@ Only available on zOS</description>
 	<flag id="port_zosCEEHDLRSupport">
 		<description>If set, j9sig_protect will include support for registering a handler using CEEHDLR.
 
-Pass J9PORT_SIG_OPTIONS_ZOS_USE_CEEHDLR into j9sig_set_options()  before the first call to j9sig_protect() to turn on the use of CEEHDLR at runtime.</description>
+Pass J9PORT_SIG_OPTIONS_ZOS_USE_CEEHDLR into j9sig_set_options() before the first call to j9sig_protect() to turn on the use of CEEHDLR at runtime.</description>
 		<ifRemoved>If removed j9sig_protect will not include support for CEEHDLR.</ifRemoved>
 		<requires>
 			<require flag="port_signalSupport"/>
@@ -1963,18 +1966,6 @@ Pass J9PORT_SIG_OPTIONS_ZOS_USE_CEEHDLR into j9sig_set_options()  before the fir
 			<require flag="interp_jniSupport"/>
 			<require flag="prof_eventReporting"/>
 		</requires>
-	</flag>
-	<flag id="ras_dumpAgents">
-		<description>Support multiple dump agents</description>
-		<ifRemoved>Standard console dump</ifRemoved>
-	</flag>
-	<flag id="ras_eyecatchers">
-		<description>Add eyecatcher blocks to key structures</description>
-		<ifRemoved>No eyecatchers</ifRemoved>
-	</flag>
-	<flag id="ras_fatalAssert">
-		<description>Make assertion tracepoints fatal by default.</description>
-		<ifRemoved>Assertion tracepoints are not fatal by default - can be enabled via command-line.</ifRemoved>
 	</flag>
 	<flag id="size_optimizeSendTargets">
 		<description>Determines if extra optimized send targets will be generated.</description>
@@ -2065,7 +2056,7 @@ Pass J9PORT_SIG_OPTIONS_ZOS_USE_CEEHDLR into j9sig_set_options()  before the fir
 		<description></description>
 		<ifRemoved></ifRemoved>
 	</flag>
-	<flag id="uma_supportsIpv6">
+	<flag id="uma_supportsIPv6">
 		<description>Supports IPv6</description>
 		<ifRemoved>No IPv6 support (NOTE: this is note universal, only need in CE/Linux specs)</ifRemoved>
 	</flag>

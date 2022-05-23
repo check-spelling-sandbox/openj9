@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2000, 2021 IBM Corp. and others
+ * Copyright (c) 2000, 2022 IBM Corp. and others
  *
  * This program and the accompanying materials are made available under
  * the terms of the Eclipse Public License 2.0 which accompanies this
@@ -224,21 +224,26 @@ static VMINLINE TR_StackMapTable * initializeMapTable(J9JavaVM * javaVM, J9TR_Me
    return mapTable;
    }
 
-static VMINLINE TR_StackMapTable * findOrCreateMapTable(J9JavaVM * javaVM, J9TR_MethodMetaData * metaData, UDATA fourByteOffsets)
+static VMINLINE TR_StackMapTable * findOrCreateMapTable(J9VMThread * currentThread, J9JavaVM * javaVM, J9TR_MethodMetaData * metaData, UDATA fourByteOffsets)
    {
    TR_StackMapTable * mapTablePtr = 0;
    assert(metaData);
 
-   if (metaData->bodyInfo &&
-       (javaVM->phase == J9VM_PHASE_NOT_STARTUP || 0 == (javaVM->jitConfig->runtimeFlags & J9JIT_QUICKSTART))) // save footprint during startup in Xquickstart mode
+   // In a signal handler, do not use or create the map tables. The tables may be in an inconsistent
+   // state when interrupted by the signal, and malloc must not be called from a signal handler.
+   if ((NULL != currentThread) && J9_ARE_NO_BITS_SET(currentThread->privateFlags2, J9_PRIVATE_FLAGS2_ASYNC_GET_CALL_TRACE))
       {
-      mapTablePtr = ((TR_PersistentJittedBodyInfo *)metaData->bodyInfo)->_mapTable; /* cache it */
-      if (mapTablePtr == (TR_StackMapTable *)-1) /* if nobody wrote to it yet */
-        { mapTablePtr = initializeMapTable(javaVM, metaData, fourByteOffsets); }
+      if (metaData->bodyInfo &&
+          (javaVM->phase == J9VM_PHASE_NOT_STARTUP || 0 == (javaVM->jitConfig->runtimeFlags & J9JIT_QUICKSTART))) // save footprint during startup in Xquickstart mode
+         {
+         mapTablePtr = ((TR_PersistentJittedBodyInfo *)metaData->bodyInfo)->_mapTable; /* cache it */
+         if (mapTablePtr == (TR_StackMapTable *)-1) /* if nobody wrote to it yet */
+           { mapTablePtr = initializeMapTable(javaVM, metaData, fourByteOffsets); }
 #if defined(TR_HOST_64BIT)
-      if (((U_32)((UDATA)mapTablePtr) == (U_32)-1) || ((U_32)((UDATA)mapTablePtr >> 32) == (U_32)-1)) /* check upper and lower word */
-         { mapTablePtr = 0; } /* give up the optimization */
+         if (((U_32)((UDATA)mapTablePtr) == (U_32)-1) || ((U_32)((UDATA)mapTablePtr >> 32) == (U_32)-1)) /* check upper and lower word */
+            { mapTablePtr = 0; } /* give up the optimization */
 #endif
+         }
       }
 
    return mapTablePtr;
@@ -398,7 +403,7 @@ static void fastwalkDebug(J9TR_MethodMetaData * methodMetaData, UDATA offsetPC, 
    }
 #endif /* defined(DEBUG) */
 
-void jitGetMapsFromPC(J9JavaVM * javaVM, J9TR_MethodMetaData * methodMetaData, UDATA jitPC, void * * stackMap, void * * inlineMap)
+void jitGetMapsFromPC(J9VMThread * currentThread, J9JavaVM * vm, J9TR_MethodMetaData * methodMetaData, UDATA jitPC, void * * stackMap, void * * inlineMap)
    {
    TR_MapIterator i;
    TR_StackMapTable * stackMapTable = 0;
@@ -429,7 +434,7 @@ void jitGetMapsFromPC(J9JavaVM * javaVM, J9TR_MethodMetaData * methodMetaData, U
 
 #ifdef FASTWALK
 
-   stackMapTable = findOrCreateMapTable(javaVM, methodMetaData, fourByteOffsets);
+   stackMapTable = findOrCreateMapTable(currentThread, vm, methodMetaData, fourByteOffsets);
 
    if (stackMapTable)
       {
@@ -519,23 +524,23 @@ void jitGetMapsFromPC(J9JavaVM * javaVM, J9TR_MethodMetaData * methodMetaData, U
       }
    }
 
-void * jitGetInlinerMapFromPC(J9JavaVM * javaVM, J9TR_MethodMetaData * methodMetaData, UDATA jitPC)
+void * jitGetInlinerMapFromPC(J9VMThread * currentThread, J9JavaVM * vm, J9TR_MethodMetaData * methodMetaData, UDATA jitPC)
    {
    void * stackMap, * inlineMap;
-   jitGetMapsFromPC(javaVM, methodMetaData, jitPC, &stackMap, &inlineMap);
+   jitGetMapsFromPC(currentThread, vm, methodMetaData, jitPC, &stackMap, &inlineMap);
    return inlineMap;
    }
 
-void * getStackMapFromJitPC(J9JavaVM * javaVM, J9TR_MethodMetaData * methodMetaData, UDATA jitPC)
+void * getStackMapFromJitPC(J9VMThread * currentThread, J9JavaVM * vm, J9TR_MethodMetaData * methodMetaData, UDATA jitPC)
    {
    void * stackMap, * inlineMap;
-   jitGetMapsFromPC(javaVM, methodMetaData, jitPC, &stackMap, &inlineMap);
+   jitGetMapsFromPC(currentThread, vm, methodMetaData, jitPC, &stackMap, &inlineMap);
    return stackMap;
    }
 
 
 
-void * getStackAllocMapFromJitPC(J9JavaVM * javaVM, J9TR_MethodMetaData * methodMetaData, UDATA jitPC, void *curStackMap)
+void * getStackAllocMapFromJitPC(J9VMThread * currentThread, J9TR_MethodMetaData * methodMetaData, UDATA jitPC, void *curStackMap)
    {
    void * stackMap, ** stackAllocMap;
 
@@ -545,7 +550,7 @@ void * getStackAllocMapFromJitPC(J9JavaVM * javaVM, J9TR_MethodMetaData * method
    if (curStackMap)
       stackMap = curStackMap;
    else
-      stackMap = getStackMapFromJitPC(javaVM, methodMetaData, jitPC);
+      stackMap = getStackMapFromJitPC(currentThread, currentThread->javaVM, methodMetaData, jitPC);
 
    stackAllocMap = (void **)((J9JITStackAtlas *) methodMetaData->gcStackAtlas)->stackAllocMap;
    if (stackAllocMap)
@@ -717,14 +722,14 @@ typedef struct TR_jitExceptionHandlerCache
 #define JIT_EXCEPTION_HANDLER_CACHE_DIMENSION 8
 #ifdef TR_TARGET_64BIT
 #define JIT_EXCEPTION_HANDLER_CACHE_HASH_VALUE 17446744073709553729U
-#define BIT_IN_INTERGER 64
+#define BIT_IN_INTEGER 64
 #else
 #define JIT_EXCEPTION_HANDLER_CACHE_HASH_VALUE 4102541685U
-#define BIT_IN_INTERGER 32
+#define BIT_IN_INTEGER 32
 #endif
 
 #define JIT_EXCEPTION_HANDLER_CACHE_HASH_RESULT(key) \
-        ((key*JIT_EXCEPTION_HANDLER_CACHE_HASH_VALUE) >> (BIT_IN_INTERGER-JIT_EXCEPTION_HANDLER_CACHE_DIMENSION))
+        ((key*JIT_EXCEPTION_HANDLER_CACHE_HASH_VALUE) >> (BIT_IN_INTEGER-JIT_EXCEPTION_HANDLER_CACHE_DIMENSION))
 
 
 void static VMINLINE setJitExceptionHandlerCache(TR_jitExceptionHandlerCache* jitExceptionHandlerCache, UDATA pc, J9Class * thrownClass)
@@ -938,10 +943,10 @@ void aotWideExceptionEntriesFixEndian(J9JITExceptionTable * methodMetaData)
        ((U_8 *)j9dst_priv)[3] = ((U_8 *)&j9src_priv)[0]; \
        }
 
-    UDATA numExcptionRanges = ((UDATA)methodMetaData->numExcptionRanges) & ~(J9_JIT_METADATA_WIDE_EXCEPTIONS | J9_JIT_METADATA_HAS_BYTECODE_PC);
+    UDATA numExceptionRanges = ((UDATA)methodMetaData->numExceptionRanges) & ~(J9_JIT_METADATA_WIDE_EXCEPTIONS | J9_JIT_METADATA_HAS_BYTECODE_PC);
     J9JIT32BitExceptionTableEntry *excptEntry32 = get32BitFirstExceptionDataField(methodMetaData);
 
-    while(numExcptionRanges > 0)
+    while(numExceptionRanges > 0)
        {
        UDATA hasBytecodePC;
        J9_AOT_FIX_ENDIAN(excptEntry32->startPC)
@@ -949,14 +954,14 @@ void aotWideExceptionEntriesFixEndian(J9JITExceptionTable * methodMetaData)
        J9_AOT_FIX_ENDIAN(excptEntry32->handlerPC)
        J9_AOT_FIX_ENDIAN(excptEntry32->catchType)
        J9_AOT_FIX_ENDIAN(excptEntry32->ramMethod)
-       hasBytecodePC = ((UDATA)methodMetaData->numExcptionRanges) & J9_JIT_METADATA_HAS_BYTECODE_PC;
-       if (hasBytecodePC)/*((UDATA)methodMetaData->numExcptionRanges) & J9_JIT_METADATA_HAS_BYTECODE_PC )*/
+       hasBytecodePC = ((UDATA)methodMetaData->numExceptionRanges) & J9_JIT_METADATA_HAS_BYTECODE_PC;
+       if (hasBytecodePC)/*((UDATA)methodMetaData->numExceptionRanges) & J9_JIT_METADATA_HAS_BYTECODE_PC )*/
           {
           J9_AOT_FIX_ENDIAN_INDIRECT(get32BitByteCodeIndexFromExceptionTable(methodMetaData))/*excptEntry32)*/
   /*        excptEntry32 = (J9JIT32BitExceptionTableEntry *) (((U_8 *) excptEntry32) + sizeof(U_32));*/
           }
        excptEntry32 = get32BitNextExceptionTableEntryFSD(excptEntry32, hasBytecodePC);
-       numExcptionRanges--;
+       numExceptionRanges--;
        }
 #undef J9_AOT_FIX_ENDIAN
 #undef J9_AOT_FIX_ENDIAN_INDIRECT
@@ -983,11 +988,11 @@ void aot2ByteExceptionEntriesFixEndian(J9JITExceptionTable * methodMetaData)
        ((U_8 *)j9dst_priv)[2] = ((U_8 *)&j9src_priv)[1]; \
        ((U_8 *)j9dst_priv)[3] = ((U_8 *)&j9src_priv)[0]; \
        }
-    UDATA numExcptionRanges = ((UDATA)methodMetaData->numExcptionRanges) & ~(J9_JIT_METADATA_WIDE_EXCEPTIONS | J9_JIT_METADATA_HAS_BYTECODE_PC);
+    UDATA numExceptionRanges = ((UDATA)methodMetaData->numExceptionRanges) & ~(J9_JIT_METADATA_WIDE_EXCEPTIONS | J9_JIT_METADATA_HAS_BYTECODE_PC);
     J9JIT16BitExceptionTableEntry *excptEntry16 = get16BitFirstExceptionDataField(methodMetaData); /*(J9JIT16BitExceptionTableEntry *)(methodMetaData + 1);*/
 
 
-    while(numExcptionRanges > 0)
+    while(numExceptionRanges > 0)
        {
        UDATA hasBytecodePC;
        J9_AOT_FIX_ENDIAN_HALF(excptEntry16->startPC)
@@ -995,14 +1000,14 @@ void aot2ByteExceptionEntriesFixEndian(J9JITExceptionTable * methodMetaData)
        J9_AOT_FIX_ENDIAN_HALF(excptEntry16->handlerPC)
        J9_AOT_FIX_ENDIAN_HALF(excptEntry16->catchType)
 /*     ++excptEntry16;*/
-       hasBytecodePC = ((UDATA)methodMetaData->numExcptionRanges) & J9_JIT_METADATA_HAS_BYTECODE_PC;
-       if (hasBytecodePC) /*((UDATA)methodMetaData->numExcptionRanges) & J9_JIT_METADATA_HAS_BYTECODE_PC ) */
+       hasBytecodePC = ((UDATA)methodMetaData->numExceptionRanges) & J9_JIT_METADATA_HAS_BYTECODE_PC;
+       if (hasBytecodePC) /*((UDATA)methodMetaData->numExceptionRanges) & J9_JIT_METADATA_HAS_BYTECODE_PC ) */
           {
           J9_AOT_FIX_ENDIAN_INDIRECT(get16BitByteCodeIndexFromExceptionTable(methodMetaData));/*excptEntry16);*/
 /*         excptEntry16 = (J9JIT16BitExceptionTableEntry *) (((U_8 *) excptEntry16) + sizeof(U_32));*/
           }
        excptEntry16 = get16BitNextExceptionTableEntryFSD(excptEntry16, hasBytecodePC);
-       numExcptionRanges--;
+       numExceptionRanges--;
        }
 #undef J9_AOT_FIX_ENDIAN_HALF
 #undef J9_AOT_FIX_ENDIAN_INDIRECT
@@ -1038,14 +1043,14 @@ void aotExceptionEntryFixEndian(J9JITExceptionTable * methodMetaData)
     }
 
 
-   if (methodMetaData->numExcptionRanges)
+   if (methodMetaData->numExceptionRanges)
       {
-      UDATA numExcptionRanges = ((UDATA)methodMetaData->numExcptionRanges) & ~(J9_JIT_METADATA_WIDE_EXCEPTIONS | J9_JIT_METADATA_HAS_BYTECODE_PC);
-      if ( ((UDATA)methodMetaData->numExcptionRanges) & J9_JIT_METADATA_WIDE_EXCEPTIONS )
+      UDATA numExceptionRanges = ((UDATA)methodMetaData->numExceptionRanges) & ~(J9_JIT_METADATA_WIDE_EXCEPTIONS | J9_JIT_METADATA_HAS_BYTECODE_PC);
+      if ( ((UDATA)methodMetaData->numExceptionRanges) & J9_JIT_METADATA_WIDE_EXCEPTIONS )
          {
          /* 4 byte exception range entries */
          J9JIT32BitExceptionTableEntry *excptEntry32 = (J9JIT32BitExceptionTableEntry *)(methodMetaData + 1);
-         while(numExcptionRanges > 0)
+         while(numExceptionRanges > 0)
             {
             J9_AOT_FIX_ENDIAN(excptEntry32->startPC)
             J9_AOT_FIX_ENDIAN(excptEntry32->endPC)
@@ -1053,31 +1058,31 @@ void aotExceptionEntryFixEndian(J9JITExceptionTable * methodMetaData)
             J9_AOT_FIX_ENDIAN(excptEntry32->catchType)
             J9_AOT_FIX_ENDIAN(excptEntry32->ramMethod)
             ++excptEntry32;
-            if ( ((UDATA)methodMetaData->numExcptionRanges) & J9_JIT_METADATA_HAS_BYTECODE_PC )
+            if ( ((UDATA)methodMetaData->numExceptionRanges) & J9_JIT_METADATA_HAS_BYTECODE_PC )
                {
                J9_AOT_FIX_ENDIAN_INDIRECT(excptEntry32);
                excptEntry32 = (J9JIT32BitExceptionTableEntry *) (((U_8 *) excptEntry32) + sizeof(U_32));
                }
-            numExcptionRanges--;
+            numExceptionRanges--;
             }
          }
       else
          {
          /* 2 byte exception range entries */
          J9JIT16BitExceptionTableEntry *excptEntry16 = (J9JIT16BitExceptionTableEntry *)(methodMetaData + 1);
-         while(numExcptionRanges > 0)
+         while(numExceptionRanges > 0)
             {
             J9_AOT_FIX_ENDIAN_HALF(excptEntry16->startPC)
             J9_AOT_FIX_ENDIAN_HALF(excptEntry16->endPC)
             J9_AOT_FIX_ENDIAN_HALF(excptEntry16->handlerPC)
             J9_AOT_FIX_ENDIAN_HALF(excptEntry16->catchType)
             ++excptEntry16;
-            if ( ((UDATA)methodMetaData->numExcptionRanges) & J9_JIT_METADATA_HAS_BYTECODE_PC )
+            if ( ((UDATA)methodMetaData->numExceptionRanges) & J9_JIT_METADATA_HAS_BYTECODE_PC )
                {
                J9_AOT_FIX_ENDIAN_INDIRECT(excptEntry16);
                excptEntry16 = (J9JIT16BitExceptionTableEntry *) (((U_8 *) excptEntry16) + sizeof(U_32));
                }
-            numExcptionRanges--;
+            numExceptionRanges--;
             }
          }
       }
@@ -1090,8 +1095,8 @@ void aotExceptionEntryFixEndian(J9JITExceptionTable * methodMetaData)
 U_32 getNumInlinedCallSites(J9JITExceptionTable * methodMetaData)
    {
    U_32 sizeOfInlinedCallSites, numInlinedCallSites = 0;
-   U_32 numExceptionRanges = methodMetaData->numExcptionRanges & 0x3FFF;
-   U_32 fourByteExceptionRanges = methodMetaData->numExcptionRanges & 0x8000;
+   U_32 numExceptionRanges = methodMetaData->numExceptionRanges & 0x3FFF;
+   U_32 fourByteExceptionRanges = methodMetaData->numExceptionRanges & 0x8000;
 
    if (methodMetaData->inlinedCalls)
       {
@@ -1271,7 +1276,7 @@ void aotMethodMetaDataFixEndian(J9JITExceptionTable * methodMetaData)
    J9_AOT_FIX_ENDIAN_HALF(methodMetaData->objectTempSlots)
    J9_AOT_FIX_ENDIAN_HALF(methodMetaData->prologuePushes)
    J9_AOT_FIX_ENDIAN_HALF(methodMetaData->tempOffset)
-   J9_AOT_FIX_ENDIAN_HALF(methodMetaData->numExcptionRanges)
+   J9_AOT_FIX_ENDIAN_HALF(methodMetaData->numExceptionRanges)
    J9_AOT_FIX_ENDIAN(methodMetaData->size)
    J9_AOT_FIX_ENDIAN(methodMetaData->registerSaveDescription)
    J9_AOT_FIX_ENDIAN(methodMetaData->gcStackAtlas)
@@ -1673,7 +1678,7 @@ U_8 * getJitStackSlots(J9TR_MethodMetaData * metaData, void * stackMap)
    return cursor;
    }
 
-U_8 * getNextDecriptionCursor(J9TR_MethodMetaData * metaData, void * stackMap, U_8 * jitDescriptionCursor)
+U_8 * getNextDescriptionCursor(J9TR_MethodMetaData * metaData, void * stackMap, U_8 * jitDescriptionCursor)
    {
    return getJitStackSlots(metaData, stackMap); /* deprecated ... use getJitStackSlots */
    }
@@ -1871,7 +1876,7 @@ static VMINLINE I_16 getJitTempOffset(J9TR_MethodMetaData * md)
 
 static VMINLINE U_16 getJitNumberOfExceptionRanges(J9TR_MethodMetaData * md)
    {
-   return md->numExcptionRanges;
+   return md->numExceptionRanges;
    }
 
 static VMINLINE I_32 getJitExceptionTableSize(J9TR_MethodMetaData * md)
@@ -1965,12 +1970,12 @@ static VMINLINE U_16 getJit16BitTableEntryCatchType(J9JIT16BitExceptionTableEntr
 
 static VMINLINE UDATA hasBytecodePC(J9TR_MethodMetaData * md)
    {
-   return md->numExcptionRanges & J9_JIT_METADATA_HAS_BYTECODE_PC;
+   return md->numExceptionRanges & J9_JIT_METADATA_HAS_BYTECODE_PC;
    }
 
 static VMINLINE UDATA hasWideExceptions(J9TR_MethodMetaData * md)
    {
-   return md->numExcptionRanges & J9_JIT_METADATA_WIDE_EXCEPTIONS;
+   return md->numExceptionRanges & J9_JIT_METADATA_WIDE_EXCEPTIONS;
    }
 
 UDATA hasFourByteOffset(J9TR_MethodMetaData * md)
@@ -2135,7 +2140,7 @@ UDATA getCurrentByteCodeIndexAndIsSameReceiver(J9TR_MethodMetaData * methodMetaD
 
 UDATA getJitPCOffsetFromExceptionHandler(J9TR_MethodMetaData * methodMetaData, void *jitPC)
    {
-   UDATA numberOfRanges = methodMetaData->numExcptionRanges;
+   UDATA numberOfRanges = methodMetaData->numExceptionRanges;
    UDATA relativePC = (UDATA) jitPC - methodMetaData->startPC;
 
    if (numberOfRanges & J9_JIT_METADATA_WIDE_EXCEPTIONS)
@@ -2441,7 +2446,7 @@ void* preOSR(J9VMThread* currentThread, J9JITExceptionTable *metaData, void *pc)
    assert(metaData);
    assert(metaData->osrInfo);
 
-   jitGetMapsFromPC(currentThread->javaVM, metaData, (UDATA) pc, &stackMap, &inlineMap);
+   jitGetMapsFromPC(currentThread, currentThread->javaVM, metaData, (UDATA) pc, &stackMap, &inlineMap);
    bcInfo = (TR_ByteCodeInfo*) getByteCodeInfoFromStackMap(metaData, inlineMap);
 /*
    printf("offset=%08X bytecode.caller=%d bytecode.index=%x\n",

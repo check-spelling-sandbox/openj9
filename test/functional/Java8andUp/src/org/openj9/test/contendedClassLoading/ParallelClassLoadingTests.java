@@ -180,7 +180,7 @@ public class ParallelClassLoadingTests {
 			count = 0;
 			for (StackTraceElement t : trc) {
 				if (t.getMethodName().equals("forName")) { /* ensure it's trying to do the class load */
-					logger.debug("lt2 is trying to do the class loasing and the count is " + count++);
+					logger.debug("lt2 is trying to do the class loading and the count is " + count++);
 					lt2InForNameImpl = true;
 					break;
 				}

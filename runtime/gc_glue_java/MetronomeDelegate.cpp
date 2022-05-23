@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2019, 2021 IBM Corp. and others
+ * Copyright (c) 2019, 2022 IBM Corp. and others
  *
  * This program and the accompanying materials are made available under
  * the terms of the Eclipse Public License 2.0 which accompanies this
@@ -414,7 +414,7 @@ MM_MetronomeDelegate::processDyingClasses(MM_EnvironmentRealtime *env, UDATA* cl
 	/*
 	 * Verify that boolean array class has been marked. Assertion is done to ensure correctness
 	 * of an optimization in ClassIteratorClassSlots that only checks booleanArrayClass Interfaces
-	 * since all array claseses share the same ITable.
+	 * since all array classes share the same ITable.
 	 */
 	Assert_MM_true(_markingScheme->isMarked(_javaVM->booleanArrayClass->classObject));
 
@@ -795,7 +795,7 @@ MM_MetronomeDelegate::reportSyncGCEnd(MM_EnvironmentBase *env)
 	UDATA packetOverflowCount = _extensions->globalGCStats.metronomeStats.getWorkPacketOverflowCount();
 	UDATA objectOverflowCount = _extensions->globalGCStats.metronomeStats.getObjectOverflowCount();
 			
-	Trc_MM_SynchGCEnd(env->getLanguageVMThread(),
+	Trc_MM_SyncGCEnd(env->getLanguageVMThread(),
 		approximateFreeMemorySize,
 		0,
 		classLoaderUnloadCount,
@@ -1000,6 +1000,10 @@ MM_MetronomeDelegate::doClassTracing(MM_EnvironmentRealtime *env)
 							didWork |= _markingScheme->markObject(env, module->moduleName);
 							didWork |= _markingScheme->markObject(env, module->version);
 							modulePtr = (J9Module**)hashTableNextDo(&walkState);
+						}
+
+						if (classLoader == _javaVM->systemClassLoader) {
+							didWork |= _markingScheme->markObject(env, _javaVM->unamedModuleForSystemLoader->moduleObject);
 						}
 					}
 				}

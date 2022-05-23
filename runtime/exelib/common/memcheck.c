@@ -256,7 +256,7 @@ static void memoryCheck_update_callSites_free (J9MEMAVLTreeNode *node, UDATA byt
 static void memoryCheck_null_mem_free_memory(OMRPortLibrary *portLib, void *memoryPointer);
 static BOOLEAN memoryCheck_describe_freed_block(OMRPortLibrary *portLib, char const *operationName, J9MemoryCheckHeader *blockHeader);
 static void OMRNORETURN memoryCheck_abort(OMRPortLibrary *portLib);
-static UDATA memoryCheck_filter_nonVM_unFreed_Blcoks(OMRPortLibrary *portLib);
+static UDATA memoryCheck_filter_nonVM_unFreed_Blocks(OMRPortLibrary *portLib);
 static void memoryCheck_print_summary(OMRPortLibrary *portLib, I_32 shutdownMode);
 static void memoryCheck_shutdown_internal(OMRPortLibrary *portLib, I_32 shutdownMode);
 static void memoryCheck_print_stats(OMRPortLibrary *portLib);
@@ -356,7 +356,7 @@ memoryCheck_initialize(J9PortLibrary *j9portLibrary, char const *modeStr, char *
 	}
 
 	/* check to see if we have legal options */
-	/* noscan is only supported with callsite, callsitesmall, failat, and zero */
+	/* noscan is only supported with callsite, callsite_small, failat, and zero */
 	if (0 != (mode & J9_MCMODE_NO_SCAN)) {
 		/* disable full scan and pad blocks (which are set by default) */
 		mode = mode & ~(J9_MCMODE_PAD_BLOCKS | J9_MCMODE_FULL_SCANS);
@@ -364,7 +364,7 @@ memoryCheck_initialize(J9PortLibrary *j9portLibrary, char const *modeStr, char *
 		if (0 != (mode&(~J9_MCMODE_PRINT_CALLSITES_SMALL)&(~J9_MCMODE_PRINT_CALLSITES)&(~J9_MCMODE_ZERO)
 					&(~J9_MCMODE_NO_SCAN)&(~J9_MCMODE_SUB_ALLOCATOR)&(~J9_MCMODE_FAIL_AT))) {
 			/* TODO - this should be an NLS message */
-			portLib->tty_err_printf(portLib, "-Xcheck:memory:noscan is only supported with 'callsitesmall', 'callsite', 'failat' and 'zero'. Calling exit(3)\n", mode);
+			portLib->tty_err_printf(portLib, "-Xcheck:memory:noscan is only supported with 'callsite_small', 'callsite', 'failat' and 'zero'. Calling exit(3)\n", mode);
 			exit(3);		
 		}
 	}
@@ -515,7 +515,7 @@ static BOOLEAN memoryCheck_parseOption(OMRPortLibrary *portLib, char const *opti
 	size_t optLenTopDown = strlen(optTopDown);
 	char const *optStrCallPrint = "callsite=";
 	size_t optLenCallPrint = strlen(optStrCallPrint);
-	char const *optStrCallPrintSmall = "callsitesmall=";
+	char const *optStrCallPrintSmall = "callsite_small=";
 	size_t optLenCallPrintSmall = strlen(optStrCallPrintSmall);
 	char const *optStrZero = "zero";
 	size_t optLenZero = strlen(optStrZero);
@@ -1139,7 +1139,7 @@ memoryCheck_lockAllBlocks(OMRPortLibrary *portLib, J9MemoryCheckHeader *listHead
  *
  * @precondition The global variable "J9HashTable vmemIDTable" must be already initialized.
  * @param[in] portLib	An initialized OMRPortLibrary structure with its original functions
- * @param[in] memcheckHeader	An initialized J9MemoryCheckheader.
+ * @param[in] memcheckHeader	An initialized J9MemoryCheckHeader.
  * @param[in] requestedMode	The flags to apply to the guardPages.  This should be either lockMode or unlockMode;
  * @return 0 on Success, -1 on failure
  */
@@ -2619,7 +2619,7 @@ memoryCheck_exit_shutdown_and_exit(OMRPortLibrary *portLib, I_32 exitCode)
  */
 
 static UDATA
-memoryCheck_filter_nonVM_unFreed_Blcoks(OMRPortLibrary *portLib)
+memoryCheck_filter_nonVM_unFreed_Blocks(OMRPortLibrary *portLib)
 {
 	UDATA result = 0;
 	J9MemoryCheckHeader *blockHeader, *previous, *next;
@@ -2718,7 +2718,7 @@ memoryCheck_print_summary(OMRPortLibrary *portLib, I_32 shutdownMode)
 	if ( (shutdownMode == J9_MEMCHECK_SHUTDOWN_NORMAL) && (mostRecentBlock)) {
 		UDATA unfreedBlocks = memStats.totalBlocksAllocated - memStats.totalBlocksFreed;
 		portLib->tty_printf(portLib, "WARNING: %d unfreed blocks remaining at shutdown!\n", unfreedBlocks);
-		ignored = memoryCheck_filter_nonVM_unFreed_Blcoks(portLib);
+		ignored = memoryCheck_filter_nonVM_unFreed_Blocks(portLib);
 		if (unfreedBlocks > J9_MEMCHECK_MAX_DUMP_LEAKED_BLOCKS) {
 			unfreedBlocks = J9_MEMCHECK_MAX_DUMP_LEAKED_BLOCKS;
 			portLib->tty_printf(portLib, "WARNING: only %d most recent leaked blocks will be described\n",
@@ -2745,10 +2745,10 @@ memoryCheck_print_summary(OMRPortLibrary *portLib, I_32 shutdownMode)
 	/* If an AVL Tree was created free the memory for the tree */
 	if(avl_tree) {
 		if (mode & J9_MCMODE_PRINT_CALLSITES) {
-			/* Report callsite informtation */
+			/* Report callsite information */
 			memoryCheck_dump_callSites(portLib, avl_tree);
 		} else if (mode & J9_MCMODE_PRINT_CALLSITES_SMALL) {
-			/* Report callsite informtation */
+			/* Report callsite information */
 			memoryCheck_dump_callSites_small(portLib, avl_tree);
 		}
 		/* Free the avl tree and nodes*/
@@ -2984,7 +2984,7 @@ memoryCheck_insertion_Compare(J9AVLTree *tree, J9AVLTreeNode *insertNode, J9AVLT
 
 
 /*
- * This function prints the deatils of the callSite
+ * This function prints the details of the callSite
  *
  * @param portLib OMRPortLibrary used to handle printing
  * @param node The node to print the stats for
@@ -3148,7 +3148,7 @@ memoryCheck_set_AVLTree_prevStats(J9MEMAVLTreeNode *node)
 
 
 /*
- * This function prints the deatils of the callSite.  This only 
+ * This function prints the details of the callSite.  This only 
  * prints the total/delta alloc/free information.
  *
  * @param portLib OMRPortLibrary used to handle printing
@@ -3405,7 +3405,7 @@ subAllocator_audit(OMRPortLibrary *portLib, UDATA mask)
 #endif
 
 /**
- * Initialize the heap, providng a pointer to the heap space and the size of the heap
+ * Initialize the heap, providing a pointer to the heap space and the size of the heap
  * These two values can be hard coded at this point, if desired.
  * @param[in] void* memptr -- pointer to block of memory used as a heap, or arbitrary size
  * @param[in] UDATA size -- size of heap block, in number of words

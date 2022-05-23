@@ -1,6 +1,6 @@
 /*[INCLUDE-IF JAVA_SPEC_VERSION >= 8]*/
 /*******************************************************************************
- * Copyright (c) 2007, 2021 IBM Corp. and others
+ * Copyright (c) 2007, 2022 IBM Corp. and others
  *
  * This program and the accompanying materials are made available under
  * the terms of the Eclipse Public License 2.0 which accompanies this
@@ -421,9 +421,9 @@ final class Access implements JavaLangAccess {
 
 	/**
 	 * Returns the classData stored in the class.
-	 * 
+	 *
 	 * @param the class from where to retrieve the classData.
-	 * 
+	 *
 	 * @return the classData (Object).
 	 */
 	public Object classData(Class<?> clazz) {
@@ -458,19 +458,8 @@ final class Access implements JavaLangAccess {
 /*[ENDIF] JAVA_SPEC_VERSION >= 16 */
 
 /*[IF JAVA_SPEC_VERSION >= 17]*/
-	// This implementation can be replaced with invoking of String.decodeASCII() after switching to RI String.
 	public int decodeASCII(byte[] srcBytes, int srcPos, char[] dstChars, int dstPos, int length) {
-		int numDecoded = 0;
-		while (numDecoded < length) {
-			byte srcByte = srcBytes[srcPos++];
-			if (srcByte >= 0) {
-				dstChars[dstPos++] = (char) srcByte;
-				numDecoded += 1;
-				continue;
-			}
-			break;
-		}
-		return numDecoded;
+		return String.decodeASCII(srcBytes, srcPos, dstChars, dstPos, length);
 	}
 
 	public void inflateBytesToChars(byte[] srcBytes, int srcOffset, char[] dstChars, int dstOffset, int length) {
@@ -483,25 +472,22 @@ final class Access implements JavaLangAccess {
 		return VMAccess.findClassOrNull(name, ClassLoader.bootstrapClassLoader);
 	}
 
-	/*[IF OPENJDK_METHODHANDLES]*/
-	// This JPP flag is used to workaround the issue that latest 
-	// String update hasn't been promoted into openj9 branch. 
 	public String join(String prefix, String suffix, String delimiter, String[] elements, int size) {
 		return String.join(prefix, suffix, delimiter, elements, size);
 	}
-	
+
 	public boolean isEnableNativeAccess(Module mod) {
 		return mod.implIsEnableNativeAccess();
 	}
-	
+
 	public void addEnableNativeAccessAllUnnamed() {
 		Module.implAddEnableNativeAccessAllUnnamed();
 	}
-	
+
 	public Module addEnableNativeAccess(Module mod) {
 		return mod.implAddEnableNativeAccess();
 	}
-	
+
 	public long findNative(ClassLoader loader, String entryName) {
 		return ClassLoader.findNative(loader, entryName);
 	}
@@ -511,7 +497,9 @@ final class Access implements JavaLangAccess {
 		Shutdown.exit(status);
 	}
 
-	/*[ENDIF] OPENJDK_METHODHANDLES*/
+	public int encodeASCII(char[] sa, int sp, byte[] da, int dp, int len) {
+		return StringCoding.implEncodeAsciiArray(sa, sp, da, dp, len);
+	}
 /*[ENDIF] JAVA_SPEC_VERSION >= 17 */
 
 /*[ENDIF] Sidecar19-SE */

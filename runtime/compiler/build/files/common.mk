@@ -1,4 +1,4 @@
-# Copyright (c) 2000, 2021 IBM Corp. and others
+# Copyright (c) 2000, 2022 IBM Corp. and others
 #
 # This program and the accompanying materials are made available under
 # the terms of the Eclipse Public License 2.0 which accompanies this
@@ -68,6 +68,7 @@ JIT_PRODUCT_BACKEND_SOURCES+=\
     compiler/optimizer/UnsafeFastPath.cpp \
     compiler/optimizer/VarHandleTransformer.cpp \
     compiler/optimizer/MethodHandleTransformer.cpp \
+    compiler/optimizer/VectorAPIExpansion.cpp \
     compiler/optimizer/VPBCDConstraint.cpp \
     compiler/optimizer/TreeLowering.cpp \
     omr/compiler/codegen/Analyser.cpp \
@@ -161,6 +162,7 @@ JIT_PRODUCT_BACKEND_SOURCES+=\
     omr/compiler/infra/OMRMonitorTable.cpp \
     omr/compiler/infra/Random.cpp \
     omr/compiler/infra/SimpleRegex.cpp \
+    omr/compiler/infra/String.cpp \
     omr/compiler/infra/Timer.cpp \
     omr/compiler/infra/TreeServices.cpp \
     omr/compiler/optimizer/AsyncCheckInsertion.cpp \
@@ -401,6 +403,7 @@ JIT_PRODUCT_SOURCE_FILES+=\
     compiler/net/LoadSSLLibs.cpp \
     compiler/net/MessageBuffer.cpp \
     compiler/net/Message.cpp \
+    compiler/net/MessageTypes.cpp \
     compiler/net/ServerStream.cpp \
     compiler/runtime/CompileService.cpp \
     compiler/runtime/JITClientSession.cpp \
@@ -410,7 +413,8 @@ JIT_PRODUCT_SOURCE_FILES+=\
     compiler/runtime/JITServerROMClassHash.cpp \
     compiler/runtime/JITServerSharedROMClassCache.cpp \
     compiler/runtime/JITServerStatisticsThread.cpp \
-    compiler/runtime/Listener.cpp
+    compiler/runtime/Listener.cpp \
+    compiler/runtime/MetricsServer.cpp
 endif
 
 -include $(JIT_MAKE_DIR)/files/extra.mk

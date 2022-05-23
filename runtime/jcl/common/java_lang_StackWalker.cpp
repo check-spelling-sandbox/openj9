@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2017, 2020 IBM Corp. and others
+ * Copyright (c) 2017, 2022 IBM Corp. and others
  *
  * This program and the accompanying materials are made available under
  * the terms of the Eclipse Public License 2.0 which accompanies this
@@ -67,9 +67,6 @@ stackFrameFilter(J9VMThread * currentThread, J9StackWalkState * walkState)
 	) {
 		/* skip reflection/MethodHandleInvoke frames */
 		result = J9_STACKWALK_KEEP_ITERATING;
-	} else if (J9_ARE_NO_BITS_SET((UDATA) (walkState->userData1), SHOW_HIDDEN_FRAMES) && VM_VMHelpers::isHiddenMethod(walkState->method)
-	) {
-			result = J9_STACKWALK_KEEP_ITERATING;
 	} else {
 		result = J9_STACKWALK_STOP_ITERATING;
 	}
@@ -93,6 +90,12 @@ Java_java_lang_StackWalker_walkWrapperImpl(JNIEnv *env, jclass clazz, jint flags
 	walkState->walkThread = vmThread;
 	walkState->flags = J9_STACKWALK_ITERATE_FRAMES | J9_STACKWALK_WALK_TRANSLATE_PC
 			|  J9_STACKWALK_INCLUDE_NATIVES | J9_STACKWALK_VISIBLE_ONLY;
+	/* If -XX:+ShowHiddenFrames and StackWalker.SHOW_HIDDEN_FRAMES option has not been set, skip hidden method frames */
+	if (J9_ARE_NO_BITS_SET(vm->runtimeFlags, J9_RUNTIME_SHOW_HIDDEN_FRAMES)
+	&& J9_ARE_NO_BITS_SET((UDATA)flags, SHOW_HIDDEN_FRAMES)
+	) {
+		walkState->flags |= J9_STACKWALK_SKIP_HIDDEN_FRAMES;
+	}
 	walkState->frameWalkFunction = stackFrameFilter;
 	const char * walkerMethodChars = env->GetStringUTFChars(stackWalkerMethod, NULL);
 	if (NULL == walkerMethodChars) { /* native out of memory exception pending */
@@ -124,23 +127,13 @@ Java_java_lang_StackWalker_walkWrapperImpl(JNIEnv *env, jclass clazz, jint flags
 	return result;
 }
 
-static j9object_t 
-utfToStringObject(JNIEnv *env, J9UTF8 *utf, UDATA flags) {
-	j9object_t result = NULL;
-	if (NULL != utf) {
-		J9VMThread *vmThread = (J9VMThread *) env;
-		J9JavaVM *vm = vmThread->javaVM;
-		result = vm->memoryManagerFunctions->j9gc_createJavaLangString(vmThread, J9UTF8_DATA(utf), (U_32) J9UTF8_LENGTH(utf), flags);
-	}
-	return result;
-}
-
 jobject JNICALL
 Java_java_lang_StackWalker_getImpl(JNIEnv *env, jobject clazz, jlong walkStateP)
 {
 	J9VMThread *vmThread = (J9VMThread *) env;
 	J9JavaVM *vm = vmThread->javaVM;
-	J9InternalVMFunctions *vmFuncs = vm->internalVMFunctions;
+	J9InternalVMFunctions const * const vmFuncs = vm->internalVMFunctions;
+	J9MemoryManagerFunctions const * const mmFuncs = vm->memoryManagerFunctions;
 	J9StackWalkState *walkState = (J9StackWalkState *) ((UDATA) walkStateP);
 	jobject result = NULL;
 
@@ -159,7 +152,7 @@ Java_java_lang_StackWalker_getImpl(JNIEnv *env, jobject clazz, jlong walkStateP)
 
 	if (J9SF_FRAME_TYPE_END_OF_STACK != walkState->pc) {
 		J9Class * frameClass = J9VMJAVALANGSTACKWALKERSTACKFRAMEIMPL_OR_NULL(vm);
-		j9object_t frame = vm->memoryManagerFunctions->J9AllocateObject(vmThread, frameClass, J9_GC_ALLOCATE_OBJECT_NON_INSTRUMENTABLE);
+		j9object_t frame = mmFuncs->J9AllocateObject(vmThread, frameClass, J9_GC_ALLOCATE_OBJECT_NON_INSTRUMENTABLE);
 		if (NULL == frame) {
 			vmFuncs->setHeapOutOfMemoryError(vmThread);
 		} else {
@@ -199,43 +192,35 @@ Java_java_lang_StackWalker_getImpl(JNIEnv *env, jobject clazz, jlong walkStateP)
 				J9VMJAVALANGSTACKWALKERSTACKFRAMEIMPL_SET_FRAMEMODULE(vmThread, frame, module->moduleObject);
 			}
 
-			stringObject = J9VMJAVALANGCLASS_CLASSNAMESTRING(vmThread, J9VM_J9CLASS_TO_HEAPCLASS(ramClass));
-			if (stringObject == NULL) {
-				UDATA flags = J9_STR_XLAT;
-				if (J9_ARE_ANY_BITS_SET(romClass->extraModifiers, J9AccClassAnonClass | J9AccClassHidden)) {
-					flags |= J9_STR_ANON_CLASS_NAME;
-				}
-				J9UTF8 *nameUTF = J9ROMCLASS_CLASSNAME(romClass);
-				stringObject = utfToStringObject(env, nameUTF, flags);
-				if (VM_VMHelpers::exceptionPending(vmThread)) {
-					goto _pop_frame;
-				}
-				/* Class name was interned so it's safe to write it back to the Class Object */
-				Assert_JCL_false(J9CLASS_IS_ARRAY(ramClass));
-				J9VMJAVALANGCLASS_SET_CLASSNAMESTRING(vmThread, J9VM_J9CLASS_TO_HEAPCLASS(ramClass), stringObject);
+			stringObject = VM_VMHelpers::getClassNameString(vmThread, J9VM_J9CLASS_TO_HEAPCLASS(ramClass), JNI_TRUE);
+			if (VM_VMHelpers::exceptionPending(vmThread)) {
+				goto _pop_frame;
 			}
 			J9VMJAVALANGSTACKWALKERSTACKFRAMEIMPL_SET_CLASSNAME(vmThread, PEEK_OBJECT_IN_SPECIAL_FRAME(vmThread, 0), stringObject);
 
-			stringObject = utfToStringObject(env, J9ROMMETHOD_NAME(romMethod), J9_STR_INTERN);
+			stringObject = mmFuncs->j9gc_createJavaLangStringWithUTFCache(vmThread, J9ROMMETHOD_NAME(romMethod));
 			if (VM_VMHelpers::exceptionPending(vmThread)) {
 				goto _pop_frame;
 			}
 			J9VMJAVALANGSTACKWALKERSTACKFRAMEIMPL_SET_METHODNAME(vmThread, PEEK_OBJECT_IN_SPECIAL_FRAME(vmThread, 0), stringObject);
 
-			stringObject = utfToStringObject(env, J9ROMMETHOD_SIGNATURE(romMethod), J9_STR_INTERN);
+			stringObject = mmFuncs->j9gc_createJavaLangStringWithUTFCache(vmThread, J9ROMMETHOD_SIGNATURE(romMethod));
 			if (VM_VMHelpers::exceptionPending(vmThread)) {
 				goto _pop_frame;
 			}
 			J9VMJAVALANGSTACKWALKERSTACKFRAMEIMPL_SET_METHODSIGNATURE(vmThread, PEEK_OBJECT_IN_SPECIAL_FRAME(vmThread, 0), stringObject);
 
 			stringObject = J9VMJAVALANGCLASS_FILENAMESTRING(vmThread, J9VM_J9CLASS_TO_HEAPCLASS(ramClass));
-			if (stringObject == NULL) {
-				stringObject = utfToStringObject(env, getSourceFileNameForROMClass(vm, classLoader, romClass), J9_STR_INTERN);
-				if (VM_VMHelpers::exceptionPending(vmThread)) {
-					goto _pop_frame;
+			if (NULL == stringObject) {
+				J9UTF8 *fileName = getSourceFileNameForROMClass(vm, classLoader, romClass);
+				if (NULL != fileName) {
+					stringObject = mmFuncs->j9gc_createJavaLangString(vmThread, J9UTF8_DATA(fileName), J9UTF8_LENGTH(fileName), J9_STR_TENURE);
+					if (VM_VMHelpers::exceptionPending(vmThread)) {
+						goto _pop_frame;
+					}
+					/* Update the cached fileNameString on the class so subsequent calls will find it */
+					J9VMJAVALANGCLASS_SET_FILENAMESTRING(vmThread, J9VM_J9CLASS_TO_HEAPCLASS(ramClass), stringObject);
 				}
-				/* Update the cached fileNameString on the class so subsequent calls will find it */
-				J9VMJAVALANGCLASS_SET_FILENAMESTRING(vmThread, J9VM_J9CLASS_TO_HEAPCLASS(ramClass), stringObject);
 			}
 			J9VMJAVALANGSTACKWALKERSTACKFRAMEIMPL_SET_FILENAME(vmThread, PEEK_OBJECT_IN_SPECIAL_FRAME(vmThread, 0), stringObject);
 
@@ -252,4 +237,5 @@ _done:
 
 	return result;
 }
-}
+
+} /* extern "C" */

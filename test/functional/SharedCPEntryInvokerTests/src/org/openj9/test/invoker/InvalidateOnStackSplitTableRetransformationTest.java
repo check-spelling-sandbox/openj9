@@ -124,10 +124,10 @@ public class InvalidateOnStackSplitTableRetransformationTest {
 		}
 	}
 
-	public void testSpeciaSplitInvalidateOnStack() throws Exception {
+	public void testSpecialSplitInvalidateOnStack() throws Exception {
 		String expectedBefore = null;
 		String expectedAfter = null;
-		String testName = "testSpeciaSplitInvalidateOnStack";
+		String testName = "testSpecialSplitInvalidateOnStack";
 		Class<?> dummyClass = null;
 		Class<?> intfClass = null;
 		Method method = null;

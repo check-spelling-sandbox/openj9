@@ -215,11 +215,11 @@ class TR_PatchNOPedGuardSiteOnMethodBreakPoint : public TR::PatchNOPedGuardSite
                        uint8_t *location, uint8_t *destination)
       : TR::PatchNOPedGuardSite(pm, (uintptr_t)j9method, RuntimeAssumptionOnMethodBreakPoint, location, destination) {}
 
-   public: 
+   public:
    static TR_PatchNOPedGuardSiteOnMethodBreakPoint *make(
       TR_FrontEnd *fe, TR_PersistentMemory * pm, TR_OpaqueMethodBlock *j9method, uint8_t *location, uint8_t *destination,
       OMR::RuntimeAssumption **sentinel);
- 
+
    virtual TR_RuntimeAssumptionKind getAssumptionKind() { return RuntimeAssumptionOnMethodBreakPoint; }
    };
 
@@ -407,6 +407,8 @@ class TR_CHTable
 
    void cleanupNewlyExtendedInfo(TR::Compilation *comp);
 
+   bool canSkipCommit(TR::Compilation *comp);
+
    // Commit the CHTable into the persistent table.  This method must be called
    // with the class table mutex in hand.
    // If an unrecoverable problem has occurred - this method will return false
@@ -446,7 +448,7 @@ class TR_CHTable
 // The class table mutex must be acquired before accessing the following datastructures
 //
 // During compilation, any class hierarchy assumptions are added into the TR_CHTable.
-// As the last step at codegen time, TR_CHTable locks the classtable, commits all the information
+// As the last step at codegen time, TR_CHTable locks the class table, commits all the information
 // into the Persistent table.
 //
 // At runtime, whenever a class is extended, or method is overridden, one of the methods:
@@ -749,7 +751,7 @@ class TR_ClassQueries
    static void    getSubClasses            (TR_PersistentClassInfo *clazz,
                                             TR_ScratchList<TR_PersistentClassInfo> &list,
                                             TR_FrontEnd *vm, bool locked = false);
-   static int32_t collectImplementorsCapped(TR_PersistentClassInfo *clazz,
+   static int32_t collectImplementersCapped(TR_PersistentClassInfo *clazz,
                                             TR_ResolvedMethod **implArray,
                                             int32_t maxCount,
                                             int32_t slotOrIndex,
@@ -757,7 +759,7 @@ class TR_ClassQueries
                                             TR::Compilation *comp,
                                             bool locked = false,
                                             TR_YesNoMaybe useGetResolvedInterfaceMethod = TR_maybe);
-   static int32_t collectCompiledImplementorsCapped(TR_PersistentClassInfo *clazz,
+   static int32_t collectCompiledImplementersCapped(TR_PersistentClassInfo *clazz,
                                             TR_ResolvedMethod **implArray,
                                             int32_t maxCount,
                                             int32_t slotOrIndex,

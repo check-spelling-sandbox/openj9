@@ -43,20 +43,20 @@ public class NestedJarFileTest {
 		if (args[0].equals("load3Classes")) {
 			/* TestA1 is from VM_Test.jar!/InvalidClasspathResource1.jar */
 			Class.forName("TestA1", true, loader);
-			System.err.println("\n" + MSG_PREFIX + "loadded TestA1");
+			System.err.println("\n" + MSG_PREFIX + "loaded TestA1");
 			
 			/* TestA2 is from VM_Test.jar!/InvalidClasspathResource1.jar */
 			Class.forName("TestA2", true, loader);
-			System.err.println("\n" + MSG_PREFIX + "loadded TestA2");
+			System.err.println("\n" + MSG_PREFIX + "loaded TestA2");
 		
 			/* TestC1 is from VM_Test.jar!/InvalidClasspathResource3.jar */
 			Class.forName("TestC1", true, loader);
-			System.err.println("\n" + MSG_PREFIX + "loadded TestC1");
+			System.err.println("\n" + MSG_PREFIX + "loaded TestC1");
 		}
 		if (args[0].equals("load1Class")) {
 			/* TestC1 is from VM_Test.jar!/InvalidClasspathResource2.jar */
 			Class.forName("TestB1", true, loader);
-			System.err.println("\n" + MSG_PREFIX + "loadded TestB1");
+			System.err.println("\n" + MSG_PREFIX + "loaded TestB1");
 		}
 	}
 }

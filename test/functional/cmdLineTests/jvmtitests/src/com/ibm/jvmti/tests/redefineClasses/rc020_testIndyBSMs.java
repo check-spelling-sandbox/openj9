@@ -37,7 +37,7 @@ public class rc020_testIndyBSMs {
 		MethodType type = MethodType.methodType(void.class);
 		MethodHandle handle = lookup.findStatic(lookup.lookupClass(), "testMethod", type);
 
-		/* Incremement bootstrap call counter */
+		/* Increment bootstrap call counter */
 		bsmCount++;
 		
 		return new ConstantCallSite(handle);
@@ -48,7 +48,7 @@ public class rc020_testIndyBSMs {
 		MethodType type = MethodType.methodType(void.class);
 		MethodHandle handle = lookup.findStatic(lookup.lookupClass(), "testMethod", type);
 
-		/* Incremement bootstrap call counter */
+		/* Increment bootstrap call counter */
 		bsmCount++;
 		
 		return new ConstantCallSite(handle);
@@ -59,7 +59,7 @@ public class rc020_testIndyBSMs {
 		MethodType type = MethodType.methodType(void.class);
 		MethodHandle handle = lookup.findStatic(lookup.lookupClass(), "testMethod", type);
 
-		/* Incremement bootstrap call counter */
+		/* Increment bootstrap call counter */
 		bsmCount++;
 		
 		return new ConstantCallSite(handle);
@@ -70,7 +70,7 @@ public class rc020_testIndyBSMs {
 		MethodType type = MethodType.methodType(void.class);
 		MethodHandle handle = lookup.findStatic(lookup.lookupClass(), "testMethod", type);
 
-		/* Incremement bootstrap call counter */
+		/* Increment bootstrap call counter */
 		bsmCount++;
 		
 		return new ConstantCallSite(handle);
@@ -81,7 +81,7 @@ public class rc020_testIndyBSMs {
 		MethodType type = MethodType.methodType(void.class);
 		MethodHandle handle = lookup.findStatic(lookup.lookupClass(), "testMethod", type);
 
-		/* Incremement bootstrap call counter */
+		/* Increment bootstrap call counter */
 		bsmCount++;
 		
 		return new ConstantCallSite(handle);
@@ -92,7 +92,7 @@ public class rc020_testIndyBSMs {
 		MethodType type = MethodType.methodType(void.class);
 		MethodHandle handle = lookup.findStatic(lookup.lookupClass(), "testMethod", type);
 
-		/* Incremement bootstrap call counter */
+		/* Increment bootstrap call counter */
 		bsmCount++;
 		
 		return new ConstantCallSite(handle);

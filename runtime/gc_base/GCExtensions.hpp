@@ -1,6 +1,6 @@
 
 /*******************************************************************************
- * Copyright (c) 1991, 2021 IBM Corp. and others
+ * Copyright (c) 1991, 2022 IBM Corp. and others
  *
  * This program and the accompanying materials are made available under
  * the terms of the Eclipse Public License 2.0 which accompanies this
@@ -156,8 +156,6 @@ public:
 	UDATA deadClassLoaderCacheSize;
 #endif /*defined(J9VM_GC_DYNAMIC_CLASS_UNLOADING) */
 
-
-
 	MM_UnfinalizedObjectList* unfinalizedObjectLists; /**< The global linked list of unfinalized object lists. */
 	
 	UDATA objectListFragmentCount; /**< the size of Local Object Buffer(per gc thread), used by referenceObjectBuffer, UnfinalizedObjectBuffer and OwnableSynchronizerObjectBuffer */
@@ -172,7 +170,7 @@ public:
 
 	/**
 	 * Values for com.ibm.oti.vm.VM.J9_JIT_STRING_DEDUP_POLICY
-	 * must hava the same values as J9_JIT_STRING_DEDUP_POLICY_DISABLED, J9_JIT_STRING_DEDUP_POLICY_FAVOUR_LOWER and J9_JIT_STRING_DEDUP_POLICY_FAVOUR_HIGHER.
+	 * must have the same values as J9_JIT_STRING_DEDUP_POLICY_DISABLED, J9_JIT_STRING_DEDUP_POLICY_FAVOUR_LOWER and J9_JIT_STRING_DEDUP_POLICY_FAVOUR_HIGHER.
 	 */
 	enum JitStringDeDupPolicy {
 		J9_JIT_STRING_DEDUP_POLICY_DISABLED = 0,
@@ -195,6 +193,8 @@ public:
 	double initialRAMPercent; /**< Value of -XX:InitialRAMPercentage specified by the user */
 	UDATA minimumFreeSizeForSurvivor; /**< minimum free size can be reused by collector as survivor, for balanced GC only */
 	UDATA freeSizeThresholdForSurvivor; /**< if average freeSize(freeSize/freeCount) of the region is smaller than the Threshold, the region would not be reused by collector as survivor, for balanced GC only */
+	bool  recycleRemainders; /**< true if need to recycle TLHRemainders at the end of PGC, for balanced GC only */
+
 protected:
 private:
 protected:
@@ -327,6 +327,7 @@ public:
 		, initialRAMPercent(0.0) /* this would get overwritten by user specified value */
 		, minimumFreeSizeForSurvivor(DEFAULT_SURVIVOR_MINIMUM_FREESIZE)
 		, freeSizeThresholdForSurvivor(DEFAULT_SURVIVOR_THRESHOLD)
+		, recycleRemainders(true)
 	{
 		_typeId = __FUNCTION__;
 	}

@@ -1932,9 +1932,9 @@ public final class PackedDecimal {
 	        }
         }
         int destinationEnd = destinationOffset + destinationLength - 1;
-        boolean isDestionationEvenPrecision = destinationPrecision % 2 == 0 ? true : false;
+        boolean isDestinationEvenPrecision = destinationPrecision % 2 == 0 ? true : false;
         // Mask top Nibble
-        if (isDestionationEvenPrecision)
+        if (isDestinationEvenPrecision)
             destination[destinationOffset] = (byte) (destination[destinationOffset] & CommonData.LOWER_NIBBLE_MASK);
         // Put sign in proper position
         
@@ -1945,7 +1945,7 @@ public final class PackedDecimal {
         	destination[destinationEnd] = (byte) (sign | destination[destinationEnd]);
         	//checkOverflow will generate pdshlOverflow, which will cause it to reset sign. pdshl will not
         	if (checkOverflow) 
-        		checkIfZero(destination, destinationOffset, destinationEnd, destinationPrecision, isDestionationEvenPrecision);
+        		checkIfZero(destination, destinationOffset, destinationEnd, destinationPrecision, isDestinationEvenPrecision);
         }
     }
 

@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2001, 2020 IBM Corp. and others
+ * Copyright (c) 2001, 2021 IBM Corp. and others
  *
  * This program and the accompanying materials are made available under
  * the terms of the Eclipse Public License 2.0 which accompanies this
@@ -734,7 +734,8 @@ IDATA
 CorruptCacheTest::findDummyROMClass(J9JavaVM *vm, const char *romClassName)
 {
 	SH_CacheMap *cacheMap;
-	J9ClassPathEntry cpEntry;
+	J9ClassPathEntry cpEntry = {0};
+	J9ClassPathEntry* cpEntryPtr = &cpEntry;
 	ClasspathItem *cpi;
 	const char *currentDir = ".";
 	IDATA rc = PASS;
@@ -749,7 +750,7 @@ CorruptCacheTest::findDummyROMClass(J9JavaVM *vm, const char *romClassName)
 
 	cacheMap = (SH_CacheMap *)vm->sharedClassConfig->sharedClassCache;
 	cacheMap->enterLocalMutex(vm->mainThread, vm->classMemorySegments->segmentMutex, "class segment mutex", "findDummyROMClass");
-	cpi = createClasspath(vm->mainThread, &cpEntry, 1, 0, CP_TYPE_CLASSPATH, 0);
+	cpi = createClasspath(vm->mainThread, NULL, &cpEntryPtr, 1, 0, CP_TYPE_CLASSPATH, 0);
 	cacheMap->exitLocalMutex(vm->mainThread, vm->classMemorySegments->segmentMutex, "class segment mutex", "findDummyROMClass");
 	if (NULL == cpi) {
 		j9tty_printf(PORTLIB, "testCorruptCache: failed to create dummy classpath\n");
@@ -777,9 +778,9 @@ zeroOutCache(J9JavaVM *vm, I_32 cacheType)
 	U_32 flags = J9SHMEM_GETDIR_APPEND_BASEDIR;
 	PORT_ACCESS_FROM_JAVAVM(vm);
 
-#if defined(OPENJ9_BUILD)
+#if defined(OPENJ9_BUILD) && !defined(J9ZOS390)
 	flags |= J9SHMEM_GETDIR_USE_USERHOME;
-#endif /* defined(OPENJ9_BUILD) */
+#endif /* defined(OPENJ9_BUILD) && !defined(J9ZOS390) */
 
 	rc = j9shmem_getDir(NULL, flags, baseDir, J9SH_MAXPATH);
 	if (rc < 0) {
@@ -843,9 +844,9 @@ truncateCache(J9JavaVM *vm, I_32 cacheType)
 	U_32 flags = J9SHMEM_GETDIR_APPEND_BASEDIR;
 	PORT_ACCESS_FROM_JAVAVM(vm);
 
-#if defined(OPENJ9_BUILD)
+#if defined(OPENJ9_BUILD) && !defined(J9ZOS390)
 	flags |= J9SHMEM_GETDIR_USE_USERHOME;
-#endif /* defined(OPENJ9_BUILD) */
+#endif /* defined(OPENJ9_BUILD) && !defined(J9ZOS390) */
 
 	rc = j9shmem_getDir(NULL, flags, baseDir, J9SH_MAXPATH);
 	if (rc < 0) {

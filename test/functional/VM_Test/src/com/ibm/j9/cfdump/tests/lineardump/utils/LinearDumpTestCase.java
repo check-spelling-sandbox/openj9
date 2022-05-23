@@ -53,7 +53,7 @@ public abstract class LinearDumpTestCase extends TestCase {
 	 * @throws IOException
 	 * @throws InterruptedException
 	 */
-	public static List<Field> parseLinearRomClassDumperOuput(Process cfdump) throws IOException, InterruptedException {
+	public static List<Field> parseLinearRomClassDumperOutput(Process cfdump) throws IOException, InterruptedException {
 		List<Field> fields = new ArrayList<>();
 
 		try (BufferedReader in = Utils.getBufferedErrorStreamOnly(cfdump)) {

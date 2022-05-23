@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2000, 2021 IBM Corp. and others
+ * Copyright (c) 2000, 2022 IBM Corp. and others
  *
  * This program and the accompanying materials are made available under
  * the terms of the Eclipse Public License 2.0 which accompanies this
@@ -49,7 +49,7 @@ bool TR::X86PicDataSnippet::shouldEmitJ2IThunkPointer()
       return unresolvedDispatch(); // invokevirtual could be private
 
    // invokeinterface
-   if (forceUnresolvedDispatch())
+   if (cg()->comp()->compileRelocatableCode())
       return true; // forced to assume it could be private/Object
 
    // Since interface method symrefs are always unresolved, check to see
@@ -182,9 +182,9 @@ uint8_t *TR::X86PicDataSnippet::emitSnippetBody()
       //
       _dispatchSymRef = cg()->symRefTab()->findOrCreateRuntimeHelper(TR_X86IPicLookupDispatch);
 
-      *cursor++ = 0xe8;  // CALL
-      disp32 = cg()->branchDisplacementToHelperOrTrampoline(cursor+4, _dispatchSymRef);
-      *(int32_t *)cursor = disp32;
+      *cursor = 0xe8;  // CALL
+      disp32 = cg()->branchDisplacementToHelperOrTrampoline(cursor, _dispatchSymRef);
+      *(int32_t *)(++cursor) = disp32;
 
       cg()->addExternalRelocation(new (cg()->trHeapMemory())
          TR::ExternalRelocation(cursor,
@@ -358,9 +358,9 @@ uint8_t *TR::X86PicDataSnippet::emitSnippetBody()
                  "Mis-aligned VPIC snippet");
          }
 
-      *cursor++ = 0xe8;  // CALL
-      disp32 = cg()->branchDisplacementToHelperOrTrampoline(cursor+4, _dispatchSymRef);
-      *(int32_t *)cursor = disp32;
+      *cursor = 0xe8;  // CALL
+      disp32 = cg()->branchDisplacementToHelperOrTrampoline(cursor, _dispatchSymRef);
+      *(int32_t *)(++cursor) = disp32;
 
       cg()->addExternalRelocation(new (cg()->trHeapMemory())
          TR::ExternalRelocation(cursor,
@@ -422,9 +422,9 @@ uint8_t *TR::X86PicDataSnippet::emitSnippetBody()
 
       // Patch first slot test with call to resolution helper.
       //
-      *picSlotCursor++ = 0xe8;    // CALL
-      disp32 = cg()->branchDisplacementToHelperOrTrampoline(picSlotCursor+4, resolveSlotHelperSymRef);
-      *(int32_t *)picSlotCursor = disp32;
+      *picSlotCursor = 0xe8;    // CALL
+      disp32 = cg()->branchDisplacementToHelperOrTrampoline(picSlotCursor, resolveSlotHelperSymRef);
+      *(int32_t *)(++picSlotCursor) = disp32;
 
       cg()->addExternalRelocation(new (cg()->trHeapMemory())
          TR::ExternalRelocation(picSlotCursor,
@@ -438,9 +438,9 @@ uint8_t *TR::X86PicDataSnippet::emitSnippetBody()
          //
          while (--numPicSlots)
             {
-            *picSlotCursor++ = 0xe8;    // CALL
-            disp32 = cg()->branchDisplacementToHelperOrTrampoline(picSlotCursor+4, populateSlotHelperSymRef);
-            *(int32_t *)picSlotCursor = disp32;
+            *picSlotCursor = 0xe8;    // CALL
+            disp32 = cg()->branchDisplacementToHelperOrTrampoline(picSlotCursor, populateSlotHelperSymRef);
+            *(int32_t *)(++picSlotCursor) = disp32;
 
             cg()->addExternalRelocation(new (cg()->trHeapMemory())
                TR::ExternalRelocation(picSlotCursor,
@@ -508,7 +508,7 @@ TR_Debug::print(TR::FILE *pOutFile, TR::X86PicDataSnippet *snippet)
       printLabelInstruction(pOutFile, "jmp", snippet->getDoneLabel());
       bufferPos += 5;
 
-      if (methodSymRef->isUnresolved() || fej9->forceUnresolvedDispatch())
+      if (methodSymRef->isUnresolved())
          {
          const char *op = (sizeof(uintptr_t) == 4) ? "DD" : "DQ";
 
@@ -813,10 +813,7 @@ uint8_t *TR::X86CallSnippet::emitSnippetBody()
          }
       }
 
-   bool forceUnresolvedDispatch = fej9->forceUnresolvedDispatch();
-   if (comp->getOption(TR_UseSymbolValidationManager))
-      forceUnresolvedDispatch = false;
-
+   bool forceUnresolvedDispatch = !fej9->isResolvedDirectDispatchGuaranteed(comp);
    if (methodSymRef->isUnresolved() || forceUnresolvedDispatch)
       {
       // Unresolved interpreted dispatch snippet shape:
@@ -863,8 +860,9 @@ uint8_t *TR::X86CallSnippet::emitSnippetBody()
 
       TR::SymbolReference *helperSymRef = cg()->symRefTab()->findOrCreateRuntimeHelper(resolutionHelper);
 
-      *cursor++ = 0xe8;    // CALL
-      *(int32_t *)cursor = cg()->branchDisplacementToHelperOrTrampoline(cursor + 4, helperSymRef);
+      *cursor = 0xe8;    // CALL
+      int32_t disp32 = cg()->branchDisplacementToHelperOrTrampoline(cursor, helperSymRef);
+      *(int32_t *)(++cursor) = disp32;
 
       cg()->addExternalRelocation(new (cg()->trHeapMemory()) TR::ExternalRelocation(cursor,
                                                                                     (uint8_t *)helperSymRef,
@@ -892,8 +890,9 @@ uint8_t *TR::X86CallSnippet::emitSnippetBody()
       //
       helperSymRef = cg()->symRefTab()->findOrCreateRuntimeHelper(TR_X86interpreterStaticAndSpecialGlue);
 
-      *cursor++ = 0xe9;    // JMP
-      *(int32_t *)cursor = cg()->branchDisplacementToHelperOrTrampoline(cursor + 4, helperSymRef);
+      *cursor = 0xe9;    // JMP
+      disp32 = cg()->branchDisplacementToHelperOrTrampoline(cursor, helperSymRef);
+      *(int32_t *)(++cursor) = disp32;
 
       cg()->addExternalRelocation(new (cg()->trHeapMemory()) TR::ExternalRelocation(cursor,
                                                                                     (uint8_t*)helperSymRef,
@@ -995,13 +994,14 @@ uint8_t *TR::X86CallSnippet::emitSnippetBody()
 
       // JMP interpreterStaticAndSpecialGlue
       //
-      *cursor++ = 0xe9;
+      *cursor = 0xe9;
 
       TR::SymbolReference* dispatchSymRef =
           methodSymbol->isHelper() && methodSymRef->isOSRInductionHelper() ? methodSymRef :
                                                                              cg()->symRefTab()->findOrCreateRuntimeHelper(TR_X86interpreterStaticAndSpecialGlue);
 
-      *(int32_t *)cursor = cg()->branchDisplacementToHelperOrTrampoline(cursor + 4, dispatchSymRef);
+      int32_t disp32 = cg()->branchDisplacementToHelperOrTrampoline(cursor, dispatchSymRef);
+      *(int32_t *)(++cursor) = disp32;
 
       cg()->addExternalRelocation(new (cg()->trHeapMemory()) TR::ExternalRelocation(cursor,
                                                                                     (uint8_t *)dispatchSymRef,
@@ -1033,10 +1033,7 @@ uint32_t TR::X86CallSnippet::getLength(int32_t estimatedSnippetStart)
       length += codeSize;
       }
 
-   bool forceUnresolvedDispatch = fej9->forceUnresolvedDispatch();
-   if (comp->getOption(TR_UseSymbolValidationManager))
-      forceUnresolvedDispatch = false;
-
+   bool forceUnresolvedDispatch = !fej9->isResolvedDirectDispatchGuaranteed(comp);
    if (methodSymRef->isUnresolved() || forceUnresolvedDispatch)
       {
       // +7 accounts for maximum length alignment padding.

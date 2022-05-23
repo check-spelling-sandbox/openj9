@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2000, 2020 IBM Corp. and others
+ * Copyright (c) 2000, 2021 IBM Corp. and others
  *
  * This program and the accompanying materials are made available under
  * the terms of the Eclipse Public License 2.0 which accompanies this
@@ -36,7 +36,8 @@
 
 J9::KnownObjectTable::KnownObjectTable(TR::Compilation *comp) :
       OMR::KnownObjectTableConnector(comp),
-   _references(comp->trMemory())
+      _references(comp->trMemory()),
+      _stableArrayRanks(comp->trMemory())
    {
    _references.add(NULL); // Reserve index zero for NULL
    }
@@ -112,7 +113,6 @@ J9::KnownObjectTable::getOrCreateIndex(uintptr_t objectPointer)
 
    return nextIndex;
    }
-
 
 TR::KnownObjectTable::Index
 J9::KnownObjectTable::getOrCreateIndex(uintptr_t objectPointer, bool isArrayWithConstantElements)
@@ -300,6 +300,7 @@ J9::KnownObjectTable::dumpObjectTo(TR::FILE *file, Index i, const char *fieldNam
       int32_t offs = simpleNameOffset(className, len);
       trfprintf(file, "%*s%s%sobj%d @ %p hash %8x %.*s", indent, "", fieldName, sep, i, *ref, hashCode, len-offs, className+offs);
 
+#if defined(J9VM_OPT_METHOD_HANDLE)
       if (len == 29 && !strncmp("java/lang/invoke/DirectHandle", className, 29))
          {
          J9Method *j9method  = (J9Method*)J9VMJAVALANGINVOKEPRIMITIVEHANDLE_VMSLOT(j9fe->vmThread(), (J9Object*)(*ref));
@@ -310,6 +311,7 @@ J9::KnownObjectTable::dumpObjectTo(TR::FILE *file, Index i, const char *fieldNam
             J9UTF8_LENGTH(className)-offs, utf8Data(className)+offs,
             J9UTF8_LENGTH(methName),       utf8Data(methName));
          }
+#endif /* defined(J9VM_OPT_METHOD_HANDLE) */
 
       TR_VMFieldsInfo *fieldsInfo = fieldsInfoByIndex[i];
       if (fieldsInfo)
@@ -450,7 +452,8 @@ J9::KnownObjectTable::dumpTo(TR::FILE *file, TR::Compilation *comp)
                uintptr_t *ref = self()->getPointerLocation(i);
                int32_t len; char *className = TR::Compiler->cls.classNameChars(comp, j9fe->getObjectClass(*ref), len);
                int32_t hashCode = mmf->j9gc_objaccess_getObjectHashCode(jitConfig->javaVM, (J9Object*)(*ref));
-               trfprintf(file, "   %p   %p %8x   %.*s\n", ref, *ref, hashCode, len, className);
+               trfprintf(file, "   %p   %p %8x   %.*s %s\n", ref, *ref, hashCode, len, className,
+                         isArrayWithStableElements(i) ? "(stable array)" : "");
                }
             }
          trfprintf(file, "</knownObjectTable>\n");
@@ -514,4 +517,26 @@ J9::KnownObjectTable::dumpTo(TR::FILE *file, TR::Compilation *comp)
          trfprintf(file, "<knownObjectTable size=\"%d\"/> // unable to acquire VM access to print table contents\n", endIndex);
          }
       }
+   }
+
+void
+J9::KnownObjectTable::addStableArray(Index index, int32_t stableArrayRank)
+   {
+   uintptr_t    object = self()->getPointer(index);
+   TR_J9VMBase *j9fe = (TR_J9VMBase*)self()->fe();
+   J9Class      *clazz  = (J9Class*)j9fe->getObjectClass(object);
+   TR_ASSERT_FATAL((clazz->romClass->modifiers & J9AccClassArray), "addStableArray can only be called for arrays\n");
+
+   if (_stableArrayRanks[index] < stableArrayRank)
+      {
+      _stableArrayRanks[index] = stableArrayRank;
+      }
+   }
+
+bool
+J9::KnownObjectTable::isArrayWithStableElements(Index index)
+   {
+   TR_ASSERT_FATAL(index != UNKNOWN && 0 <= index && index < self()->getEndIndex(), "isArrayWithStableElements(%d): index must be in range 0..%d", index, self()->getEndIndex());
+
+   return (index < _stableArrayRanks.size() && _stableArrayRanks[index] > 0);
    }

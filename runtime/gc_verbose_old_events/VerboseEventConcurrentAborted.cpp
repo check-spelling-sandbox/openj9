@@ -76,7 +76,7 @@ MM_VerboseEventConcurrentAborted::getReasonAsString()
 	const char *result;
 
 	switch((CollectionAbortReason)_reason) {
-	case ABORT_COLLECTION_INSUFFICENT_PROGRESS:
+	case ABORT_COLLECTION_INSUFFICIENT_PROGRESS:
 		result = "insufficient progress made";
 		break;
 	case ABORT_COLLECTION_REMEMBERSET_OVERFLOW:

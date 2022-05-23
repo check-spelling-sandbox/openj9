@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2012, 2021 IBM Corp. and others
+ * Copyright (c) 2012, 2022 IBM Corp. and others
  *
  * This program and the accompanying materials are made available under
  * the terms of the Eclipse Public License 2.0 which accompanies this
@@ -38,9 +38,6 @@
 #include "VMAccess.hpp"
 
 extern "C" {
-
-static bool isAccessibleToAllModulesViaReflection(J9VMThread *currentThread, J9Class *clazz, bool javaBaseLoaded);
-
 
 UDATA
 pushReflectArguments(J9VMThread *currentThread, j9object_t parameterTypes, j9object_t arguments)
@@ -256,22 +253,30 @@ foundITable:
 	return method;
 }
 
-static VMINLINE void
+static VMINLINE UDATA
 javaOffloadSwitchOn(J9VMThread *currentThread)
 {
 #if defined(J9VM_OPT_JAVA_OFFLOAD_SUPPORT)
 	J9JavaVM *vm = currentThread->javaVM;
 	if (NULL != vm->javaOffloadSwitchOnWithReasonFunc) {
-		if (0 == currentThread->javaOffloadState) {
+		bool isOffloadWithSubtasks = J9_ARE_ANY_BITS_SET(currentThread->javaOffloadState, J9_JNI_OFFLOAD_WITH_SUBTASKS_FLAG);
+		if (isOffloadWithSubtasks) {
+			/* keep offload enabled but turn off allowing created subtasks to offload */
+			vm->javaOffloadSwitchOnDisableSubtasksWithReasonFunc(currentThread, J9_JNI_OFFLOAD_SWITCH_INTERPRETER);
+			currentThread->javaOffloadState &= ~J9_JNI_OFFLOAD_WITH_SUBTASKS_FLAG;
+		} else if (0 == currentThread->javaOffloadState) {
 			vm->javaOffloadSwitchOnWithReasonFunc(currentThread, J9_JNI_OFFLOAD_SWITCH_INTERPRETER);
 		}
+		Assert_VM_unequal(currentThread->javaOffloadState & J9_JNI_OFFLOAD_MAX_VALUE, J9_JNI_OFFLOAD_MAX_VALUE);
 		currentThread->javaOffloadState += 1;
+		return isOffloadWithSubtasks ? J9_SSF_JNI_OFFLOAD_WAS_WITH_SUBTASKS : 0;
 	}
 #endif /* J9VM_OPT_JAVA_OFFLOAD_SUPPORT */
+	return 0;
 }
 
 static VMINLINE void
-javaOffloadSwitchOff(J9VMThread *currentThread)
+javaOffloadSwitchOff(J9VMThread *currentThread, UDATA frameFlags)
 {
 #if defined(J9VM_OPT_JAVA_OFFLOAD_SUPPORT)
 	J9JavaVM *vm = currentThread->javaVM;
@@ -279,6 +284,10 @@ javaOffloadSwitchOff(J9VMThread *currentThread)
 		currentThread->javaOffloadState -= 1;
 		if (0 == currentThread->javaOffloadState) {
 			vm->javaOffloadSwitchOffWithReasonFunc(currentThread, J9_JNI_OFFLOAD_SWITCH_INTERPRETER);
+		} else if (J9_ARE_ANY_BITS_SET(frameFlags, J9_SSF_JNI_OFFLOAD_WAS_WITH_SUBTASKS)) {
+			/* allow created subtasks to offload */
+			vm->javaOffloadSwitchOnAllowSubtasksWithReasonFunc(currentThread, J9_JNI_OFFLOAD_SWITCH_INTERPRETER);
+			currentThread->javaOffloadState |= J9_JNI_OFFLOAD_WITH_SUBTASKS_FLAG;
 		}
 	}
 #endif /* J9VM_OPT_JAVA_OFFLOAD_SUPPORT */
@@ -290,9 +299,8 @@ buildCallInStackFrame(J9VMThread *currentThread, J9VMEntryLocalStorage *newELS, 
 	Assert_VM_mustHaveVMAccess(currentThread);
 	bool success = true;
 	J9VMEntryLocalStorage *oldELS = currentThread->entryLocalStorage;
-	UDATA flags = 0;
 	J9SFJNICallInFrame *frame = ((J9SFJNICallInFrame*)currentThread->sp) - 1;
-	javaOffloadSwitchOn(currentThread);
+	UDATA flags = javaOffloadSwitchOn(currentThread);
 	if (NULL != oldELS) {
 		/* Assuming oldELS > newELS, bytes used is (oldELS - newELS) */
 		UDATA freeBytes = currentThread->currentOSStackFree;
@@ -307,7 +315,7 @@ buildCallInStackFrame(J9VMThread *currentThread, J9VMEntryLocalStorage *newELS, 
 				setCurrentExceptionNLS(currentThread, J9VMCONSTANTPOOL_JAVALANGSTACKOVERFLOWERROR, J9NLS_VM_OS_STACK_OVERFLOW);
 				currentThread->currentOSStackFree += usedBytes;
 				success = false;
-				javaOffloadSwitchOff(currentThread);
+				javaOffloadSwitchOff(currentThread, flags);
 				goto done;
 			}
 		}
@@ -400,7 +408,7 @@ restoreCallInFrame(J9VMThread *currentThread)
 	}
 #endif /* J9VM_PORT_ZOS_CEEHDLRSUPPORT */
 	currentThread->entryLocalStorage = oldELS;
-	javaOffloadSwitchOff(currentThread);
+	javaOffloadSwitchOff(currentThread, flags);
 }
 
 void JNICALL
@@ -740,8 +748,10 @@ sendCompleteInitialization(J9VMThread *currentThread)
 	Trc_VM_sendCompleteInitialization_Exit(currentThread);
 }
 
+#if JAVA_SPEC_VERSION >= 11
 static bool
-isAccessibleToAllModulesViaReflection(J9VMThread *currentThread, J9Class *clazz, bool javaBaseLoaded) {
+isAccessibleToAllModulesViaReflection(J9VMThread *currentThread, J9Class *clazz, bool javaBaseLoaded)
+{
 	J9JavaVM *vm = currentThread->javaVM;
 	bool isAccessible = true;
 	J9Module *module = clazz->module;
@@ -767,11 +777,11 @@ isAccessibleToAllModulesViaReflection(J9VMThread *currentThread, J9Class *clazz,
 		} else {
 			isAccessible = false;
 		}
-
 	}
 
 	return isAccessible;
 }
+#endif /* JAVA_SPEC_VERSION >= 11 */
 
 void JNICALL
 sendInit(J9VMThread *currentThread, j9object_t object, J9Class *senderClass, UDATA lookupOptions)
@@ -789,7 +799,11 @@ sendInit(J9VMThread *currentThread, j9object_t object, J9Class *senderClass, UDA
 				bool javaBaseLoaded = J9_ARE_ALL_BITS_SET(vm->runtimeFlags, J9_RUNTIME_JAVA_BASE_MODULE_CREATED);
 				if (J9_ARE_ANY_BITS_SET(clazz->romClass->modifiers, J9AccPublic)) {
 					if (J9_ARE_ANY_BITS_SET(J9_ROM_METHOD_FROM_RAM_METHOD(method)->modifiers, J9AccPublic)) {
-						if (!J9_ARE_MODULES_ENABLED(vm) || isAccessibleToAllModulesViaReflection(currentThread, clazz, javaBaseLoaded)) {
+						if (!J9_ARE_MODULES_ENABLED(vm)
+#if JAVA_SPEC_VERSION >= 11
+						|| isAccessibleToAllModulesViaReflection(currentThread, clazz, javaBaseLoaded)
+#endif /* JAVA_SPEC_VERSION >= 11 */
+						) {
 							clazz->initializerCache = method;
 						} else if (javaBaseLoaded) {
 							/* remember that this class is not accessible to all. We can only set this
@@ -930,6 +944,7 @@ sendResolveMethodHandle(J9VMThread *currentThread, UDATA cpIndex, J9ConstantPool
 void JNICALL
 sendForGenericInvoke(J9VMThread *currentThread, j9object_t methodHandle, j9object_t methodType, UDATA dropFirstArg)
 {
+#if defined(J9VM_OPT_METHOD_HANDLE)
 	Trc_VM_sendForGenericInvoke_Entry(currentThread);
 	J9VMEntryLocalStorage newELS;
 	if (buildCallInStackFrame(currentThread, &newELS, true, false)) {
@@ -943,6 +958,9 @@ sendForGenericInvoke(J9VMThread *currentThread, j9object_t methodHandle, j9objec
 		restoreCallInFrame(currentThread);
 	}
 	Trc_VM_sendForGenericInvoke_Exit(currentThread);
+#else /* defined(J9VM_OPT_OPENJDK_METHODHANDLE) */
+	Assert_VM_unreachable();
+#endif /* defined(J9VM_OPT_METHOD_HANDLE) */
 }
 
 void JNICALL
@@ -982,6 +1000,7 @@ sendResolveOpenJDKInvokeHandle(J9VMThread *currentThread, J9ConstantPool *ramCP,
 #endif /* defined(J9VM_OPT_OPENJDK_METHODHANDLE) */
 }
 
+#if JAVA_SPEC_VERSION >= 11
 void JNICALL
 sendResolveConstantDynamic(J9VMThread *currentThread, J9ConstantPool *ramCP, UDATA cpIndex, J9ROMNameAndSignature *nameAndSig, U_16 *bsmData)
 {
@@ -1028,6 +1047,7 @@ sendResolveConstantDynamic(J9VMThread *currentThread, J9ConstantPool *ramCP, UDA
 	}
 	Trc_VM_sendResolveConstantDynamic_Exit(currentThread);
 }
+#endif /* JAVA_SPEC_VERSION >= 11 */
 
 void JNICALL
 sendResolveInvokeDynamic(J9VMThread *currentThread, J9ConstantPool *ramCP, UDATA callSiteIndex, J9ROMNameAndSignature *nameAndSig, U_16 *bsmData)
@@ -1128,7 +1148,7 @@ restore:
 }
 
 void JNICALL
-sidecarInvokeReflectMethodImpl(J9VMThread *currentThread, jobject methodRef, jobject recevierRef, jobjectArray argsRef)
+sidecarInvokeReflectMethodImpl(J9VMThread *currentThread, jobject methodRef, jobject receiverRef, jobjectArray argsRef)
 {
 	Trc_VM_sidecarInvokeReflectMethod_Entry(currentThread);
 	J9VMEntryLocalStorage newELS;
@@ -1148,8 +1168,8 @@ sidecarInvokeReflectMethodImpl(J9VMThread *currentThread, jobject methodRef, job
 			}
 		} else {
 			j9object_t receiverObject = NULL;
-			if (NULL != recevierRef) {
-				receiverObject = J9_JNI_UNWRAP_REFERENCE(recevierRef);
+			if (NULL != receiverRef) {
+				receiverObject = J9_JNI_UNWRAP_REFERENCE(receiverRef);
 			}
 			if (NULL == receiverObject) {
 				setCurrentException(currentThread, J9VMCONSTANTPOOL_JAVALANGNULLPOINTEREXCEPTION, NULL);
@@ -1253,15 +1273,15 @@ done:
 }
 
 void JNICALL
-sidecarInvokeReflectConstructorImpl(J9VMThread *currentThread, jobject constructorRef, jobject recevierRef, jobjectArray argsRef)
+sidecarInvokeReflectConstructorImpl(J9VMThread *currentThread, jobject constructorRef, jobject receiverRef, jobjectArray argsRef)
 {
 	Trc_VM_sidecarInvokeReflectConstructor_Entry(currentThread);
 	J9VMEntryLocalStorage newELS;
 	if (buildCallInStackFrame(currentThread, &newELS, false, true)) {
 		j9object_t constructorObject = J9_JNI_UNWRAP_REFERENCE(constructorRef);
 		j9object_t receiverObject = NULL;
-		if (NULL != recevierRef) {
-			receiverObject = J9_JNI_UNWRAP_REFERENCE(recevierRef);
+		if (NULL != receiverRef) {
+			receiverObject = J9_JNI_UNWRAP_REFERENCE(receiverRef);
 		}
 		if (NULL == receiverObject) {
 			setCurrentException(currentThread, J9VMCONSTANTPOOL_JAVALANGNULLPOINTEREXCEPTION, NULL);
@@ -1327,18 +1347,18 @@ initializeAttachedThread(J9VMThread *currentThread, const char *name, j9object_t
 }
 
 void JNICALL
-sidecarInvokeReflectMethod(J9VMThread *currentThread, jobject methodRef, jobject recevierRef, jobjectArray argsRef)
+sidecarInvokeReflectMethod(J9VMThread *currentThread, jobject methodRef, jobject receiverRef, jobjectArray argsRef)
 {
 	VM_VMAccess::inlineEnterVMFromJNI(currentThread);
-	sidecarInvokeReflectMethodImpl(currentThread, methodRef, recevierRef, argsRef);
+	sidecarInvokeReflectMethodImpl(currentThread, methodRef, receiverRef, argsRef);
 	VM_VMAccess::inlineExitVMToJNI(currentThread);
 }
 
 void JNICALL
-sidecarInvokeReflectConstructor(J9VMThread *currentThread, jobject constructorRef, jobject recevierRef, jobjectArray argsRef)
+sidecarInvokeReflectConstructor(J9VMThread *currentThread, jobject constructorRef, jobject receiverRef, jobjectArray argsRef)
 {
 	VM_VMAccess::inlineEnterVMFromJNI(currentThread);
-	sidecarInvokeReflectConstructorImpl(currentThread, constructorRef, recevierRef, argsRef);
+	sidecarInvokeReflectConstructorImpl(currentThread, constructorRef, receiverRef, argsRef);
 	VM_VMAccess::inlineExitVMToJNI(currentThread);
 }
 

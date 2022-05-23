@@ -619,7 +619,7 @@ public void test_getClasses2() {
 			combine = true;
 			return new java.security.ProtectionDomain[0];
 		}
-		public boolean isPriviledged() {
+		public boolean isPrivileged() {
 			combine = false;
 			try {
 				java.security.AccessController.checkPermission(privCheckPermission);
@@ -646,7 +646,7 @@ public void test_getClasses2() {
 			checkPackageAccess = 0;
 		}
 		public void checkPermission(java.security.Permission perm) {
-			if (combiner.isPriviledged())
+			if (combiner.isPrivileged())
 				return;
 			checkPermission++;
 		}
@@ -654,7 +654,7 @@ public void test_getClasses2() {
 			if (packageName.startsWith("java.") || packageName.startsWith("org.openj9.test.java.lang")) {
 				return;
 			}
-			if (combiner.isPriviledged())
+			if (combiner.isPrivileged())
 				return;
 			checkPackageAccess++;
 			String name = checkClass.getName();
@@ -791,7 +791,7 @@ public void test_getConstructor() {
 		}
 		AssertJUnit.assertTrue("Found private Constructor", false);
 	} catch (NoSuchMethodException e) {
-		AssertJUnit.assertTrue("Exception during getConstructoy test", false);
+		AssertJUnit.assertTrue("Exception during getConstructor test", false);
 	}
 }
 
@@ -877,26 +877,26 @@ public void test_getDeclaredFieldLjava_lang_String() {
 	// This JCL workitem added (and registerFieldsToFilter) field j.l.Class.classLoader.
 	try {
 		java.lang.reflect.Field f = Class.class.getDeclaredField("classLoader");
-		fail("java.lang.Class.classLoader shoud NOT be accessible via reflection");
+		fail("java.lang.Class.classLoader should NOT be accessible via reflection");
 	} catch (NoSuchFieldException e) {
 	}
 */
 
 	try {
 		java.lang.reflect.Field f = System.class.getDeclaredField("security");
-		Assert.fail("java.lang.System.security shoud NOT be accessible via reflection");
+		Assert.fail("java.lang.System.security should NOT be accessible via reflection");
 	} catch (NoSuchFieldException e) {
 	}
 
 	try {
 		java.lang.reflect.Field f = sun.reflect.Reflection.class.getDeclaredField("fieldFilterMap");
-		Assert.fail("sun.reflect.Reflection.fieldFilterMap shoud NOT be accessible via reflection");
+		Assert.fail("sun.reflect.Reflection.fieldFilterMap should NOT be accessible via reflection");
 	} catch (NoSuchFieldException e) {
 	}
 
 	try {
 		java.lang.reflect.Field f = sun.reflect.Reflection.class.getDeclaredField("methodFilterMap");
-		Assert.fail("sun.reflect.Reflection.methodFilterMap shoud NOT be accessible via reflection");
+		Assert.fail("sun.reflect.Reflection.methodFilterMap should NOT be accessible via reflection");
 	} catch (NoSuchFieldException e) {
 	}
 }
@@ -978,7 +978,7 @@ public void test_getField() {
 		//Correct
 		return;
 		}
-		AssertJUnit.assertTrue("Private field access failed to throw exceprion", false);
+		AssertJUnit.assertTrue("Private field access failed to throw exception", false);
 	} catch (Exception e) {
 		AssertJUnit.assertTrue("Exception getting fields: " + e.toString(), false);
 	}
@@ -1717,14 +1717,14 @@ public void test_getEnclosingMethod2() throws Throwable {
 		enclosingMethodTestFunc3.equals(method));
 
 	// Test scenario #3: enclosing method is an interface default method, enclosing constructor should be null
-	Constructor<?> construtor = Class.forName("org.openj9.test.java.lang.Test_Class$TestInterface$1LocalClass").getEnclosingConstructor();
-	AssertJUnit.assertTrue("org.openj9.test.java.lang.Test_Class$TestInterface$1LocalClass enclosing constructor expected: <null>, received: <"  + construtor + ">",
-		null == construtor);
+	Constructor<?> constructor = Class.forName("org.openj9.test.java.lang.Test_Class$TestInterface$1LocalClass").getEnclosingConstructor();
+	AssertJUnit.assertTrue("org.openj9.test.java.lang.Test_Class$TestInterface$1LocalClass enclosing constructor expected: <null>, received: <"  + constructor + ">",
+		null == constructor);
 
 	// Test scenario #4: enclosing method is an interface static method, enclosing constructor should be null
-	construtor = Class.forName("org.openj9.test.java.lang.Test_Class$TestInterface$2LocalClass").getEnclosingConstructor();
-	AssertJUnit.assertTrue("org.openj9.test.java.lang.Test_Class$TestInterface$2LocalClass enclosing constructor expected: <null>, received: <"  + construtor + ">",
-		null == construtor);
+	constructor = Class.forName("org.openj9.test.java.lang.Test_Class$TestInterface$2LocalClass").getEnclosingConstructor();
+	AssertJUnit.assertTrue("org.openj9.test.java.lang.Test_Class$TestInterface$2LocalClass enclosing constructor expected: <null>, received: <"  + constructor + ">",
+		null == constructor);
 }
 
 /**
@@ -1802,11 +1802,11 @@ public void test_getCanonicalName(){
 		if (result != null && i != 5) {
 			result = packageName + result;
 		}
-		AssertJUnit.assertTrue(i + ") unexpected canonial name " + canonicalName, canonicalName == null ?
+		AssertJUnit.assertTrue(i + ") unexpected canonical name " + canonicalName, canonicalName == null ?
 				canonicalName == results[i] : canonicalName.equals(result));
 		Class arrayClass = java.lang.reflect.Array.newInstance(classes[i], 0).getClass();
 		canonicalName = arrayClass.getCanonicalName();
-		AssertJUnit.assertTrue(i + ") unexpected canonial name " + canonicalName, canonicalName == null ?
+		AssertJUnit.assertTrue(i + ") unexpected canonical name " + canonicalName, canonicalName == null ?
 				canonicalName == results[i] : canonicalName.equals(result + "[]"));
 	}
 }
@@ -2893,7 +2893,7 @@ static Class<?> innerClassFromMethod() {
 static class Helper {
 	private static final String CLASS_SYNTHETIC = "SyntheticClass";
 	private static final String OUTER_CLASS = "OuterClass";
-	private static final String INNER_CLASS_DIFFERENT_MODIFIERS = "InnerClassDifferentModifers";
+	private static final String INNER_CLASS_DIFFERENT_MODIFIERS = "InnerClassDifferentModifiers";
 
 	static ClassLoader cl;
 	static Class<?> syntheticClass;
@@ -2962,7 +2962,7 @@ static class Helper {
             }
 
             /*
-             * Returns an outer class for InnerClassDifferentModifers.
+             * Returns an outer class for InnerClassDifferentModifiers.
              */
             private byte[] getOuterClass() {
             	ClassWriter cw = new ClassWriter(ClassWriter.COMPUTE_FRAMES | ClassWriter.COMPUTE_MAXS);

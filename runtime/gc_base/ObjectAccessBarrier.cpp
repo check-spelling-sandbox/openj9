@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 1991, 2021 IBM Corp. and others
+ * Copyright (c) 1991, 2022 IBM Corp. and others
  *
  * This program and the accompanying materials are made available under
  * the terms of the Eclipse Public License 2.0 which accompanies this
@@ -49,7 +49,12 @@ MM_ObjectAccessBarrier::initialize(MM_EnvironmentBase *env)
 	_heap = _extensions->heap;
 	J9JavaVM *vm = (J9JavaVM*)env->getOmrVM()->_language_vm;
 	OMR_VM *omrVM = env->getOmrVM();
-	
+	char *refSignature = (char*) "I";
+
+	if (sizeof(U_64) == J9JAVAVM_REFERENCE_SIZE(vm)) {
+		refSignature = (char *) "J";
+	}
+
 #if defined(OMR_GC_COMPRESSED_POINTERS)
 	if (env->compressObjectReferences()) {
 
@@ -80,11 +85,11 @@ MM_ObjectAccessBarrier::initialize(MM_EnvironmentBase *env)
 	vm->objectAlignmentShift = omrVM->_objectAlignmentShift;
 
 	/* request an extra slot in java/lang/ref/Reference which we will use to maintain linked lists of reference objects */
-	if (0 != vm->internalVMFunctions->addHiddenInstanceField(vm, "java/lang/ref/Reference", "gcLink", "Ljava/lang/ref/Reference;", &_referenceLinkOffset)) {
+	if (0 != vm->internalVMFunctions->addHiddenInstanceField(vm, "java/lang/ref/Reference", "gcLink", refSignature, &_referenceLinkOffset)) {
 		return false;
 	}
 	/* request an extra slot in java/util/concurrent/locks/AbstractOwnableSynchronizer which we will use to maintain linked lists of ownable synchronizer objects */
-	if (0 != vm->internalVMFunctions->addHiddenInstanceField(vm, "java/util/concurrent/locks/AbstractOwnableSynchronizer", "ownableSynchronizerLink", "Ljava/util/concurrent/locks/AbstractOwnableSynchronizer;", &_ownableSynchronizerLinkOffset)) {
+	if (0 != vm->internalVMFunctions->addHiddenInstanceField(vm, "java/util/concurrent/locks/AbstractOwnableSynchronizer", "ownableSynchronizerLink", refSignature, &_ownableSynchronizerLinkOffset)) {
 		return false;
 	}
 	
@@ -1135,7 +1140,7 @@ MM_ObjectAccessBarrier::copyObjectFieldsToFlattenedArrayElement(J9VMThread *vmTh
 	U_8 *elementAddress = (U_8*)indexableEffectiveAddress(vmThread, arrayRef, index, J9ARRAYCLASS_GET_STRIDE((J9Class *) arrayClazz));
 	IDATA elementOffset = (elementAddress - (U_8*)arrayRef);
 	J9Class *elementClazz = J9GC_J9OBJECT_CLAZZ_THREAD(srcObject, vmThread);
-	Assert_MM_true(J9_IS_J9CLASS_VALUETYPE(elementClazz));
+	Assert_MM_true(J9_IS_J9CLASS_PRIMITIVE_VALUETYPE(elementClazz));
 	Assert_MM_true(elementClazz == arrayClazz->leafComponentType);
 
 	elementStartOffset += J9CLASS_PREPADDING_SIZE(elementClazz);
@@ -1159,7 +1164,7 @@ MM_ObjectAccessBarrier::copyObjectFieldsFromFlattenedArrayElement(J9VMThread *vm
 	U_8 *elementAddress = (U_8*)indexableEffectiveAddress(vmThread, arrayRef, index, J9ARRAYCLASS_GET_STRIDE((J9Class *) arrayClazz));
 	IDATA elementOffset = (elementAddress - (U_8*)arrayRef);
 	J9Class *elementClazz = J9GC_J9OBJECT_CLAZZ_THREAD(destObject, vmThread);
-	Assert_MM_true(J9_IS_J9CLASS_VALUETYPE(elementClazz));
+	Assert_MM_true(J9_IS_J9CLASS_PRIMITIVE_VALUETYPE(elementClazz));
 	Assert_MM_true(elementClazz == arrayClazz->leafComponentType);
 
 	elementStartOffset += J9CLASS_PREPADDING_SIZE(elementClazz);
@@ -1410,7 +1415,7 @@ MM_ObjectAccessBarrier::structuralCompareFlattenedObjects(J9VMThread *vmThread, 
 	UDATA limit = J9CLASS_UNPADDED_INSTANCE_SIZE(valueClass);
 	UDATA offset = 0;
 
-	Assert_MM_true(J9_IS_J9CLASS_VALUETYPE(valueClass));
+	Assert_MM_true(J9_IS_J9CLASS_PRIMITIVE_VALUETYPE(valueClass));
 
 	if (hasReferences) {
 		UDATA descriptionIndex = J9_OBJECT_DESCRIPTION_SIZE - 1;
@@ -1471,14 +1476,17 @@ MM_ObjectAccessBarrier::structuralCompareFlattenedObjects(J9VMThread *vmThread, 
  * not include pre-padding.
  * @TODO This does not currently check if the fields that it is reading are volatile.
  *
- * @oaram objectClass The j9class.
+ * @param objectClass The j9class.
  * @param srcObject The object containing the value class instance fields being copied.
  * @param srcOffset The offset of the value class instance fields in srcObject.
  * @param destValue The object containing the value class instance fields being copied to.
  * @param destOffset The offset of the value class instance fields in destObject.
+ * @param objectMapFunction Function to allow replacement of object fields
+ * @param objectMapData Data to pass to objectMapFunction
+ * @param initializeLockWord true to initialize inline lockword, false to copy it
  */
 void
-MM_ObjectAccessBarrier::copyObjectFields(J9VMThread *vmThread, J9Class *objectClass, J9Object *srcObject, UDATA srcOffset, J9Object *destObject, UDATA destOffset)
+MM_ObjectAccessBarrier::copyObjectFields(J9VMThread *vmThread, J9Class *objectClass, J9Object *srcObject, UDATA srcOffset, J9Object *destObject, UDATA destOffset, MM_objectMapFunction objectMapFunction, void *objectMapData, bool initializeLockWord)
 {
 	/* For valueTypes we currently do not make a distinction between values that only contain
 	 * primitives and values that may contain a reference (ie. value vs mixed-value
@@ -1523,6 +1531,9 @@ MM_ObjectAccessBarrier::copyObjectFields(J9VMThread *vmThread, J9Class *objectCl
 			/* Determine if the slot contains an object pointer or not */
 			if (descriptionBits & 1) {
 				J9Object *objectPtr = mixedObjectReadObject(vmThread, srcObject, srcOffset + offset, false);
+				if (NULL != objectMapFunction) {
+					objectPtr = objectMapFunction(vmThread, objectPtr, objectMapData);
+				}
 				mixedObjectStoreObject(vmThread, destObject, destOffset + offset, objectPtr, false);
 			} else {
 				UDATA srcAddress = (UDATA)srcObject + srcOffset + offset;
@@ -1596,11 +1607,13 @@ MM_ObjectAccessBarrier::copyObjectFields(J9VMThread *vmThread, J9Class *objectCl
 			}
 		}
 
-		/* initialize lockword, if present */
-		lockwordAddress = getLockwordAddress(vmThread, destObject);
-		if (NULL != lockwordAddress) {
-			j9objectmonitor_t lwValue = VM_ObjectMonitor::getInitialLockword(vmThread->javaVM, objectClass);
-			J9_STORE_LOCKWORD(vmThread, lockwordAddress, lwValue);
+		if (initializeLockWord) {
+			/* initialize lockword, if present */
+			lockwordAddress = getLockwordAddress(vmThread, destObject);
+			if (NULL != lockwordAddress) {
+				j9objectmonitor_t lwValue = VM_ObjectMonitor::getInitialLockword(vmThread->javaVM, objectClass);
+				J9_STORE_LOCKWORD(vmThread, lockwordAddress, lwValue);
+			}
 		}
 	}
 }
@@ -1611,9 +1624,8 @@ MM_ObjectAccessBarrier::copyObjectFields(J9VMThread *vmThread, J9Class *objectCl
  * @TODO This does not currently check if the fields that it is reading are volatile.
  */
 void 
-MM_ObjectAccessBarrier::cloneIndexableObject(J9VMThread *vmThread, J9IndexableObject *srcObject, J9IndexableObject *destObject)
+MM_ObjectAccessBarrier::cloneIndexableObject(J9VMThread *vmThread, J9IndexableObject *srcObject, J9IndexableObject *destObject, MM_objectMapFunction objectMapFunction, void *objectMapData)
 {
-	j9objectmonitor_t *lockwordAddress = NULL;
 	bool isObjectArray = _extensions->objectModel.isObjectArray(srcObject);
 
 	if (_extensions->objectModel.hasBeenHashed((J9Object*)destObject)) {
@@ -1625,21 +1637,15 @@ MM_ObjectAccessBarrier::cloneIndexableObject(J9VMThread *vmThread, J9IndexableOb
 		I_32 size = (I_32)_extensions->indexableObjectModel.getSizeInElements(srcObject);
 		for (I_32 i = 0; i < size; i++) {
 			J9Object *objectPtr = J9JAVAARRAYOFOBJECT_LOAD(vmThread, srcObject, i);
+			if (NULL != objectMapFunction) {
+				objectPtr = objectMapFunction(vmThread, objectPtr, objectMapData);
+			}
 			J9JAVAARRAYOFOBJECT_STORE(vmThread, destObject, i, objectPtr);
 		}
 	} else {
 		_extensions->indexableObjectModel.memcpyArray(destObject, srcObject);
 	}
 
-	/* initialize lockword, if present */
-	J9Class *objectClass = J9GC_J9OBJECT_CLAZZ_THREAD(destObject, vmThread);
-	lockwordAddress = getLockwordAddress(vmThread, (J9Object*) destObject);
-	if (NULL != lockwordAddress) {
-		j9objectmonitor_t lwValue = VM_ObjectMonitor::getInitialLockword(vmThread->javaVM, objectClass);
-		J9_STORE_LOCKWORD(vmThread, lockwordAddress, lwValue);
-	}
-
-	return;
 }
 
 
@@ -2047,7 +2053,7 @@ MM_ObjectAccessBarrier::postObjectStore(J9VMThread *vmThread, J9Object **destAdd
  * TODO: This should probably be postBatchObjectStore, not pre-.
  */
 bool
-MM_ObjectAccessBarrier::preBatchObjectStore(J9VMThread *vmThread, J9Object *destObject, bool isVolatile)
+MM_ObjectAccessBarrier::postBatchObjectStore(J9VMThread *vmThread, J9Object *destObject, bool isVolatile)
 {
 #if defined(J9VM_GC_COMBINATION_SPEC)
 	/* (assert here to verify that we aren't defaulting to this implementation through some unknown path - delete once combination is stable) */
@@ -2057,7 +2063,7 @@ MM_ObjectAccessBarrier::preBatchObjectStore(J9VMThread *vmThread, J9Object *dest
 }
 
 bool
-MM_ObjectAccessBarrier::preBatchObjectStore(J9VMThread *vmThread, J9Class *destClass, bool isVolatile)
+MM_ObjectAccessBarrier::postBatchObjectStore(J9VMThread *vmThread, J9Class *destClass, bool isVolatile)
 {
 #if defined(J9VM_GC_COMBINATION_SPEC)
 	/* (assert here to verify that we aren't defaulting to this implementation through some unknown path - delete once combination is stable) */

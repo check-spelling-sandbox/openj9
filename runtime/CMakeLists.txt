@@ -1,5 +1,5 @@
 ################################################################################
-# Copyright (c) 2017, 2021 IBM Corp. and others
+# Copyright (c) 2017, 2022 IBM Corp. and others
 #
 # This program and the accompanying materials are made available under
 # the terms of the Eclipse Public License 2.0 which accompanies this
@@ -19,8 +19,6 @@
 #
 # SPDX-License-Identifier: EPL-2.0 OR Apache-2.0 OR GPL-2.0 WITH Classpath-exception-2.0 OR LicenseRef-GPL-2.0 WITH Assembly-exception
 ################################################################################
-
-cmake_minimum_required(VERSION 3.4 FATAL_ERROR)
 
 ###
 ### Basic housekeeping stuff
@@ -55,13 +53,19 @@ include(cmake/J9vmTargetSupport.cmake)
 include(OmrTracegen)
 include(OmrDDRSupport)
 include(cmake/build_tags.cmake)
-include(cmake/compiler_config.cmake)
 include(cmake/J9vmGenAsm.cmake)
 
 ###
 ### Various configuration
 ### all configuration that does not need to proceed J9vmPlatform
 ###
+
+# Set up an interface library to keep track of the various compiler defines
+# used by the jit components.
+# TODO should probably rename to j9vm_jit_defines for less ambiguity
+
+j9vm_add_library(j9vm_compiler_defines INTERFACE)
+target_compile_definitions(j9vm_compiler_defines INTERFACE ${TR_COMPILE_DEFINITIONS})
 
 # Build everything with -fPIC (or equivalent).
 # We do this to ensure that our static libraries get built with -fPIC
@@ -142,7 +146,6 @@ add_custom_target(j9vm_nlsgen
 set(J9VM_INCLUDE_DIR "${CMAKE_CURRENT_BINARY_DIR}/include")
 file(MAKE_DIRECTORY "${J9VM_INCLUDE_DIR}")
 
-
 # Note: the following does not appear to be needed anymore. It is left here in case we need it in the future.
 # On z/OS, some generated files must be converted to EBCDIC for consistency.
 # This macro is intended to be used as a replacement for add_custom_command
@@ -195,12 +198,32 @@ add_custom_ascii_command(OUTPUT "${J9VM_INCLUDE_DIR}/jvmti.h"
 	WORKING_DIRECTORY "${J9VM_INCLUDE_DIR}"
 )
 
+# Generate zOS 31/64-bit interoperability compatible jni.h and copy other dependent headers.
+if(J9VM_ZOS_3164_INTEROPERABILITY)
+	set(J9VM_INCLUDE31_DIR "${CMAKE_CURRENT_BINARY_DIR}/include31")
+	file(MAKE_DIRECTORY "${J9VM_INCLUDE31_DIR}")
+	file(INSTALL "${CMAKE_CURRENT_SOURCE_DIR}/include/jni_convert.h" "${CMAKE_CURRENT_SOURCE_DIR}/include/jniport.h"
+		DESTINATION "${J9VM_INCLUDE31_DIR}")
+
+	add_custom_ascii_command(OUTPUT "${J9VM_INCLUDE31_DIR}/jni.h"
+		DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/include/jni.h.m4"
+		COMMAND m4 -D "J9_ZOS_3164_INTEROPERABILITY=1" -D "JAVA_SPEC_VERSION=${JAVA_SPEC_VERSION}" "${CMAKE_CURRENT_SOURCE_DIR}/include/jni.h.m4" ${ASCII_TO_NATIVE} > "jni.h"
+		VERBATIM
+		WORKING_DIRECTORY "${J9VM_INCLUDE31_DIR}"
+	)
+
+	add_custom_target(j9vm31_m4gen
+		DEPENDS
+			"${J9VM_INCLUDE31_DIR}/jni.h"
+	)
+endif()
+
 # Note we do this here rather than in the redirector directory to work around
 # issues in cmake. If we did it there each target which consumed generated.c would need
 # its own rule to create it, which leads race conditions when building in parallel.
 
 add_custom_ascii_command(OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/redirector/generated.c"
-	DEPENDS oti/helpers.m4 redirector/generated.c.m4
+	DEPENDS oti/helpers.m4 redirector/forwarders.m4 redirector/generated.c.m4
 	COMMAND m4 -I "${CMAKE_CURRENT_SOURCE_DIR}/oti" -I "${CMAKE_CURRENT_SOURCE_DIR}/redirector" "${CMAKE_CURRENT_SOURCE_DIR}/redirector/generated.c.m4" > generated.c
 	VERBATIM
 	WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/redirector"
@@ -244,7 +267,7 @@ target_include_directories(j9vm_interface
 		${CMAKE_BINARY_DIR}
 )
 # Inject copyright file if building a shared library or executable
-set(is_executable "$<STREQUAL:$<TARGET_PROPERTY:TYPE>,EXECUTRABLE>")
+set(is_executable "$<STREQUAL:$<TARGET_PROPERTY:TYPE>,EXECUTABLE>")
 set(is_shlib "$<STREQUAL:$<TARGET_PROPERTY:TYPE>,SHARED_LIBRARY>")
 target_sources(j9vm_interface
 	INTERFACE
@@ -490,6 +513,9 @@ endif()
 if(J9VM_MODULE_J9VM)
 	add_subdirectory(j9vm)
 endif()
+if(J9VM_ZOS_3164_INTEROPERABILITY)
+	add_subdirectory(j9vm31)
+endif()
 # NOTE this is not conditional in the UMA module.xml
 add_subdirectory(jcl)
 if(J9VM_MODULE_JEXTRACTNATIVES)
@@ -547,10 +573,7 @@ endif()
 if(J9VM_MODULE_THREAD)
 	add_subdirectory(thread)
 endif()
-if(J9VM_MODULE_THRTRACE)
-	add_subdirectory(thrtrace)
-endif()
-if(J9VM_INTERP_NATIVE_SUPPORT)
+if(J9VM_INTERP_NATIVE_SUPPORT AND NOT OMR_ARCH_RISCV)
 	add_subdirectory(compiler)
 endif()
 if(J9VM_MODULE_UTIL)

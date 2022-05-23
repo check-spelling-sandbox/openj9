@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2000, 2021 IBM Corp. and others
+ * Copyright (c) 2000, 2022 IBM Corp. and others
  *
  * This program and the accompanying materials are made available under
  * the terms of the Eclipse Public License 2.0 which accompanies this
@@ -420,7 +420,7 @@ TR_J9ByteCodeIlGenerator::genILFromByteCodes()
          // Disable inlining to compile fast and avoid the bug with not profiling on the fast path
          comp()->getOptions()->setDisabled(OMR::inlining, true);
          }
-      else // Canot profile or there is nothing to profile; take corrective actions
+      else // Cannot profile or there is nothing to profile; take corrective actions
          {
          // Disable the samplingJProfiling opt
          comp()->getOptions()->setDisabled(OMR::samplingJProfiling, true);
@@ -556,9 +556,10 @@ TR_J9ByteCodeIlGenerator::genILFromByteCodes()
       if (currNode->getOpCodeValue() == TR::checkcast
           && currNode->getSecondChild()->getOpCodeValue() == TR::loadaddr
           && currNode->getSecondChild()->getSymbolReference()->isUnresolved()
-          && // check whether the checkcast class is valuetype. Expansion is only needed for checkcast to reference type.
+          && // check whether the checkcast class is primitive valuetype. Expansion is only needed for checkcast to reference type.
             (!TR::Compiler->om.areValueTypesEnabled()
-            || !TR::Compiler->cls.isClassRefValueType(comp(), method()->classOfMethod(), currNode->getSecondChild()->getSymbolReference()->getCPIndex())))
+            || !TR::Compiler->cls.isClassRefPrimitiveValueType(comp(), method()->classOfMethod(),
+                                        currNode->getSecondChild()->getSymbolReference()->getCPIndex())))
           {
           unresolvedCheckcastTopsNeedingNullGuard.add(currTree);
           }
@@ -826,7 +827,7 @@ TR_J9ByteCodeIlGenerator::genExceptionHandlers(TR::Block * lastBlock)
             cfg()->insertBefore(blocks(firstIndex),cfg()->getEnd()->asBlock());
             }
          lastBlock=handlerInfo._lastBlock;
-         //ok what I'm trying here is saying that my first block, last block and catchblock in my catcher are all the same (the one block)
+         //ok what I'm trying here is saying that my first block, last block and catch block in my catcher are all the same (the one block)
 
          handlerInfo._catchBlock->setHandlerInfo(handlerInfo._catchType, (uint8_t)comp()->getInlineDepth(), handlerInfoIter - _tryCatchInfo.begin(), method(), comp());
          continue;
@@ -1062,17 +1063,10 @@ TR_J9ByteCodeIlGenerator::prependEntryCode(TR::Block * firstBlock)
       TR::Node * firstChild = pop();
       TR::SymbolReference * monEnterSymRef = symRefTab()->findOrCreateMethodMonitorEntrySymbolRef(_methodSymbol);
 
-      if (TR::Compiler->cls.classesOnHeap())
+      if (firstChild->getOpCodeValue() == TR::loadaddr && firstChild->getSymbol()->isClassObject())
          {
-         if (firstChild->getOpCodeValue() == TR::loadaddr && firstChild->getSymbol()->isClassObject())
-            {
-            monitorEnter = TR::Node::createWithSymRef(TR::aloadi, 1, 1, firstChild, symRefTab()->findOrCreateJavaLangClassFromClassSymbolRef());
-            monitorEnter = TR::Node::createWithSymRef(TR::monent, 1, 1, monitorEnter, monEnterSymRef);
-            }
-         else
-            {
-            monitorEnter = TR::Node::createWithSymRef(TR::monent, 1, 1, firstChild, monEnterSymRef);
-            }
+         monitorEnter = TR::Node::createWithSymRef(TR::aloadi, 1, 1, firstChild, symRefTab()->findOrCreateJavaLangClassFromClassSymbolRef());
+         monitorEnter = TR::Node::createWithSymRef(TR::monent, 1, 1, monitorEnter, monEnterSymRef);
          }
       else
          {
@@ -1546,12 +1540,9 @@ TR_J9ByteCodeIlGenerator::genNewInstanceImplThunk()
       //the call to findOrCreateClassSymbol is safe even though we pass CPI of -1 since it is guarded by !isAOT check in createResolvedMethodWithSignature
       loadSymbol(TR::loadaddr, symRefTab()->findOrCreateClassSymbol(_methodSymbol, -1, classId)); // This Class
 
-      if (TR::Compiler->cls.classesOnHeap())
-         {
-         TR::Node* node = pop();
-         node = TR::Node::createWithSymRef(TR::aloadi, 1, 1, node, symRefTab()->findOrCreateJavaLangClassFromClassSymbolRef());
-         push(node);
-         }
+      TR::Node* node = pop();
+      node = TR::Node::createWithSymRef(TR::aloadi, 1, 1, node, symRefTab()->findOrCreateJavaLangClassFromClassSymbolRef());
+      push(node);
 
       genTreeTop(genNodeAndPopChildren(TR::call, 3, accessCheckSymRef));
       }
@@ -1583,30 +1574,16 @@ TR_J9ByteCodeIlGenerator::genNewInstanceImplCall(TR::Node *classNode)
    TR_ResolvedMethod *caller = method()->owningMethod(); // the caller of Class.newInstance()
    TR_ASSERT(caller, "should only be transforming newInstanceImpl call if newInstance is being inlined");
 
-   TR::Node *callNode;
-   if (TR::Compiler->cls.classesOnHeap())
-      {
-      TR::Node *classNodeAsClass = TR::Node::createWithSymRef(TR::aloadi, 1, 1, classNode, symRefTab()->findOrCreateClassFromJavaLangClassSymbolRef());
-      //the call to findOrCreateClassSymbol is safe even though we pass CPI of -1 since we check for !compileRelocatableCode() in the caller
-      TR::Node *node         = TR::Node::createWithSymRef(TR::loadaddr, 0, symRefTab()->findOrCreateClassSymbol(_methodSymbol, -1, caller->classOfMethod()));
-      TR::Node *nodeAsObject = TR::Node::createWithSymRef(TR::aloadi, 1, 1, node, symRefTab()->findOrCreateJavaLangClassFromClassSymbolRef());
+   TR::Node *classNodeAsClass = TR::Node::createWithSymRef(TR::aloadi, 1, 1, classNode, symRefTab()->findOrCreateClassFromJavaLangClassSymbolRef());
+   //the call to findOrCreateClassSymbol is safe even though we pass CPI of -1 since we check for !compileRelocatableCode() in the caller
+   TR::Node *node         = TR::Node::createWithSymRef(TR::loadaddr, 0, symRefTab()->findOrCreateClassSymbol(_methodSymbol, -1, caller->classOfMethod()));
+   TR::Node *nodeAsObject = TR::Node::createWithSymRef(TR::aloadi, 1, 1, node, symRefTab()->findOrCreateJavaLangClassFromClassSymbolRef());
 
-      callNode = TR::Node::createWithSymRef(TR::acalli, 3, 3,
-                      classNodeAsClass,
-                      classNode,
-                      nodeAsObject,
-                      symRefTab()->findOrCreateObjectNewInstanceImplSymbol(_methodSymbol));
-      }
-   else
-      {
-      //the call to findOrCreateClassSymbol is safe even though we pass CPI of -1 since we check for !compileRelocatableCode() in the caller
-      callNode = TR::Node::createWithSymRef(TR::acalli, 3, 3,
-                      classNode,
-                      classNode,
-                      TR::Node::createWithSymRef(TR::loadaddr, 0,
-                                      symRefTab()->findOrCreateClassSymbol(_methodSymbol, -1, caller->classOfMethod())),
-                      symRefTab()->findOrCreateObjectNewInstanceImplSymbol(_methodSymbol));
-      }
+   TR::Node *callNode = TR::Node::createWithSymRef(TR::acalli, 3, 3,
+                     classNodeAsClass,
+                     classNode,
+                     nodeAsObject,
+                     symRefTab()->findOrCreateObjectNewInstanceImplSymbol(_methodSymbol));
 
    return callNode;
    }

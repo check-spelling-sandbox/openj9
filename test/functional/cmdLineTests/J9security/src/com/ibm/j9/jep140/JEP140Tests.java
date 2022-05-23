@@ -1334,11 +1334,11 @@ public class JEP140Tests {
 	void testLimitedPrivilegedMixedRevertOrder(final CodeTrusted ct) {
 		AccessControlContext	lastContext = null;
 		
-		System.out.println("Test: getProppertydoPrivilegedLimitedMixedRevertOrder " +
+		System.out.println("Test: getPropertydoPrivilegedLimitedMixedRevertOrder " +
 				"Inner doPrivileged(PrivilegedAction<T> action, AccessControlContext context)" +
 				"Outer doPrivileged(PrivilegedAction<T> action, AccessControlContext context, Permission... perms)");
 		try {
-			ct.getProppertydoPrivilegedLimitedMixedRevertOrder(PROP_JAVA_HOME, ACC_READ_PROP_USER_DIR, ACC_READ_PROP_JAVA_HOME, READ_PROP_USER_DIR);
+			ct.getPropertydoPrivilegedLimitedMixedRevertOrder(PROP_JAVA_HOME, ACC_READ_PROP_USER_DIR, ACC_READ_PROP_JAVA_HOME, READ_PROP_USER_DIR);
 			System.out.println("	FAILED at line (" + currentLineNumber() + "): Security Exception expected! ");
 		} catch (AccessControlException ace) {
 			System.out.println("	PASS: Security Exception thrown as expected!");
@@ -1357,20 +1357,20 @@ public class JEP140Tests {
 			System.out.println("	PASS: Security Exception thrown as expected!");
 		}
 		try {
-			ct.getProppertydoPrivilegedLimitedMixedRevertOrder(PROP_JAVA_HOME, lastContext, ACC_READ_PROP_JAVA_HOME, READ_PROP_JAVA_HOME);
+			ct.getPropertydoPrivilegedLimitedMixedRevertOrder(PROP_JAVA_HOME, lastContext, ACC_READ_PROP_JAVA_HOME, READ_PROP_JAVA_HOME);
 			System.out.println("	FAILED at line (" + currentLineNumber() + "): Security Exception expected! ");
 		} catch (AccessControlException ace) {
 			System.out.println("	PASS: Security Exception thrown as expected!");
 		}
 		try {
-			ct.getProppertydoPrivilegedLimitedMixedRevertOrder(PROP_JAVA_HOME, ACC_READ_PROP_USER_DIR, lastContext, READ_PROP_JAVA_HOME);
+			ct.getPropertydoPrivilegedLimitedMixedRevertOrder(PROP_JAVA_HOME, ACC_READ_PROP_USER_DIR, lastContext, READ_PROP_JAVA_HOME);
 			System.out.println("	FAILED at line (" + currentLineNumber() + "): Security Exception expected! ");
 		} catch (AccessControlException ace) {
 			System.out.println("	PASS: Security Exception thrown as expected!");
 		}
 
 		try {
-			ct.getProppertydoPrivilegedLimitedMixedRevertOrder(PROP_JAVA_HOME, ACC_READ_PROP_USER_DIR, ACC_READ_PROP_JAVA_HOME);
+			ct.getPropertydoPrivilegedLimitedMixedRevertOrder(PROP_JAVA_HOME, ACC_READ_PROP_USER_DIR, ACC_READ_PROP_JAVA_HOME);
 			System.out.println("	FAILED at line (" + currentLineNumber() + "): Security Exception expected! ");
 		} catch (AccessControlException ace) {
 			System.out.println("	PASS: Security Exception thrown as expected!");
@@ -1389,20 +1389,20 @@ public class JEP140Tests {
 			System.out.println("	PASS: Security Exception thrown as expected!");
 		}
 		try {
-			ct.getProppertydoPrivilegedLimitedMixedRevertOrder(PROP_JAVA_HOME, lastContext, ACC_READ_PROP_JAVA_HOME);
+			ct.getPropertydoPrivilegedLimitedMixedRevertOrder(PROP_JAVA_HOME, lastContext, ACC_READ_PROP_JAVA_HOME);
 			System.out.println("	FAILED at line (" + currentLineNumber() + "): Security Exception expected! ");
 		} catch (AccessControlException ace) {
 			System.out.println("	PASS: Security Exception thrown as expected!");
 		}
 		try {
-			ct.getProppertydoPrivilegedLimitedMixedRevertOrder(PROP_JAVA_HOME, ACC_READ_PROP_USER_DIR, lastContext);
+			ct.getPropertydoPrivilegedLimitedMixedRevertOrder(PROP_JAVA_HOME, ACC_READ_PROP_USER_DIR, lastContext);
 			System.out.println("	FAILED at line (" + currentLineNumber() + "): Security Exception expected! ");
 		} catch (AccessControlException ace) {
 			System.out.println("	PASS: Security Exception thrown as expected!");
 		}
 		
 		try {
-			ct.getProppertydoPrivilegedLimitedMixedRevertOrder(PROP_JAVA_HOME, ACC_READ_PROP_USER_DIR, ACC_READ_PROP_JAVA_HOME, READ_PROP_JAVA_HOME);
+			ct.getPropertydoPrivilegedLimitedMixedRevertOrder(PROP_JAVA_HOME, ACC_READ_PROP_USER_DIR, ACC_READ_PROP_JAVA_HOME, READ_PROP_JAVA_HOME);
 			System.out.println("	FAILED at line (" + currentLineNumber() + "): Security Exception expected! ");
 		} catch (AccessControlException ace) {
 			System.out.println("	PASS: Security Exception thrown as expected!");
@@ -1421,20 +1421,20 @@ public class JEP140Tests {
 			System.out.println("	PASS: Security Exception thrown as expected!");
 		}
 		try {
-			ct.getProppertydoPrivilegedLimitedMixedRevertOrder(PROP_JAVA_HOME, lastContext, ACC_READ_PROP_JAVA_HOME, READ_PROP_JAVA_HOME);
+			ct.getPropertydoPrivilegedLimitedMixedRevertOrder(PROP_JAVA_HOME, lastContext, ACC_READ_PROP_JAVA_HOME, READ_PROP_JAVA_HOME);
 			System.out.println("	FAILED at line (" + currentLineNumber() + "): Security Exception expected! ");
 		} catch (AccessControlException ace) {
 			System.out.println("	PASS: Security Exception thrown as expected!");
 		}
 		try {
-			ct.getProppertydoPrivilegedLimitedMixedRevertOrder(PROP_JAVA_HOME, ACC_READ_PROP_USER_DIR, lastContext, READ_PROP_JAVA_HOME);
+			ct.getPropertydoPrivilegedLimitedMixedRevertOrder(PROP_JAVA_HOME, ACC_READ_PROP_USER_DIR, lastContext, READ_PROP_JAVA_HOME);
 			System.out.println("	FAILED at line (" + currentLineNumber() + "): Security Exception expected! ");
 		} catch (AccessControlException ace) {
 			System.out.println("	PASS: Security Exception thrown as expected!");
 		}
 		
 		try {
-			ct.getProppertydoPrivilegedLimitedMixedRevertOrder(PROP_JAVA_HOME, ACC_READ_PROP_JAVA_HOME, ACC_READ_PROP_USER_DIR, READ_PROP_USER_DIR);
+			ct.getPropertydoPrivilegedLimitedMixedRevertOrder(PROP_JAVA_HOME, ACC_READ_PROP_JAVA_HOME, ACC_READ_PROP_USER_DIR, READ_PROP_USER_DIR);
 			System.out.println("	PASS: property value returned!");
 		} catch (AccessControlException ace) {
 			System.out.println("	FAILED at line (" + currentLineNumber() + "): Security Exception NOT expected! ");
@@ -1456,14 +1456,14 @@ public class JEP140Tests {
 			ace.printStackTrace();
 		}
 		try {
-			ct.getProppertydoPrivilegedLimitedMixedRevertOrder(PROP_JAVA_HOME, lastContext, ACC_READ_PROP_USER_DIR, READ_PROP_USER_DIR);
+			ct.getPropertydoPrivilegedLimitedMixedRevertOrder(PROP_JAVA_HOME, lastContext, ACC_READ_PROP_USER_DIR, READ_PROP_USER_DIR);
 			System.out.println("	PASS: property value returned!");
 		} catch (AccessControlException ace) {
 			System.out.println("	FAILED at line (" + currentLineNumber() + "): Security Exception NOT expected! ");
 			ace.printStackTrace();
 		}
 		try {
-			ct.getProppertydoPrivilegedLimitedMixedRevertOrder(PROP_JAVA_HOME, ACC_READ_PROP_JAVA_HOME, lastContext, READ_PROP_USER_DIR);
+			ct.getPropertydoPrivilegedLimitedMixedRevertOrder(PROP_JAVA_HOME, ACC_READ_PROP_JAVA_HOME, lastContext, READ_PROP_USER_DIR);
 			System.out.println("	PASS: property value returned!");
 		} catch (AccessControlException ace) {
 			System.out.println("	FAILED at line (" + currentLineNumber() + "): Security Exception NOT expected! ");
@@ -1471,7 +1471,7 @@ public class JEP140Tests {
 		}
 		
 		try {
-			ct.getProppertydoPrivilegedLimitedMixedRevertOrder(PROP_JAVA_HOME, ACC_READ_PROP_JAVA_HOME, ACC_READ_PROP_USER_DIR);
+			ct.getPropertydoPrivilegedLimitedMixedRevertOrder(PROP_JAVA_HOME, ACC_READ_PROP_JAVA_HOME, ACC_READ_PROP_USER_DIR);
 			System.out.println("	PASS: property value returned!");
 		} catch (AccessControlException ace) {
 			System.out.println("	FAILED at line (" + currentLineNumber() + "): Security Exception NOT expected! ");
@@ -1493,14 +1493,14 @@ public class JEP140Tests {
 			ace.printStackTrace();
 		}
 		try {
-			ct.getProppertydoPrivilegedLimitedMixedRevertOrder(PROP_JAVA_HOME, lastContext, ACC_READ_PROP_USER_DIR);
+			ct.getPropertydoPrivilegedLimitedMixedRevertOrder(PROP_JAVA_HOME, lastContext, ACC_READ_PROP_USER_DIR);
 			System.out.println("	PASS: property value returned!");
 		} catch (AccessControlException ace) {
 			System.out.println("	FAILED at line (" + currentLineNumber() + "): Security Exception NOT expected! ");
 			ace.printStackTrace();
 		}
 		try {
-			ct.getProppertydoPrivilegedLimitedMixedRevertOrder(PROP_JAVA_HOME, ACC_READ_PROP_JAVA_HOME, lastContext);
+			ct.getPropertydoPrivilegedLimitedMixedRevertOrder(PROP_JAVA_HOME, ACC_READ_PROP_JAVA_HOME, lastContext);
 			System.out.println("	PASS: property value returned!");
 		} catch (AccessControlException ace) {
 			System.out.println("	FAILED at line (" + currentLineNumber() + "): Security Exception NOT expected! ");
@@ -1508,7 +1508,7 @@ public class JEP140Tests {
 		}
 		
 		try {
-			ct.getProppertydoPrivilegedLimitedMixedRevertOrder(PROP_JAVA_HOME, ACC_READ_PROP_JAVA_HOME, ACC_READ_PROP_USER_DIR, READ_PROP_JAVA_HOME);
+			ct.getPropertydoPrivilegedLimitedMixedRevertOrder(PROP_JAVA_HOME, ACC_READ_PROP_JAVA_HOME, ACC_READ_PROP_USER_DIR, READ_PROP_JAVA_HOME);
 			System.out.println("	PASS: property value returned!");
 		} catch (AccessControlException ace) {
 			System.out.println("	FAILED at line (" + currentLineNumber() + "): Security Exception NOT expected! ");
@@ -1530,14 +1530,14 @@ public class JEP140Tests {
 			ace.printStackTrace();
 		}
 		try {
-			ct.getProppertydoPrivilegedLimitedMixedRevertOrder(PROP_JAVA_HOME, lastContext, ACC_READ_PROP_USER_DIR, READ_PROP_JAVA_HOME);
+			ct.getPropertydoPrivilegedLimitedMixedRevertOrder(PROP_JAVA_HOME, lastContext, ACC_READ_PROP_USER_DIR, READ_PROP_JAVA_HOME);
 			System.out.println("	PASS: property value returned!");
 		} catch (AccessControlException ace) {
 			System.out.println("	FAILED at line (" + currentLineNumber() + "): Security Exception NOT expected! ");
 			ace.printStackTrace();
 		}
 		try {
-			ct.getProppertydoPrivilegedLimitedMixedRevertOrder(PROP_JAVA_HOME, ACC_READ_PROP_JAVA_HOME, lastContext, READ_PROP_JAVA_HOME);
+			ct.getPropertydoPrivilegedLimitedMixedRevertOrder(PROP_JAVA_HOME, ACC_READ_PROP_JAVA_HOME, lastContext, READ_PROP_JAVA_HOME);
 			System.out.println("	PASS: property value returned!");
 		} catch (AccessControlException ace) {
 			System.out.println("	FAILED at line (" + currentLineNumber() + "): Security Exception NOT expected! ");
@@ -1545,7 +1545,7 @@ public class JEP140Tests {
 		}
 		
 		try {
-			ct.getProppertydoPrivilegedLimitedMixedRevertOrder(PROP_JAVA_HOME, ACC_READ_PROP_JAVA_HOME, ACC_READ_PROP_JAVA_HOME, READ_PROP_JAVA_HOME);
+			ct.getPropertydoPrivilegedLimitedMixedRevertOrder(PROP_JAVA_HOME, ACC_READ_PROP_JAVA_HOME, ACC_READ_PROP_JAVA_HOME, READ_PROP_JAVA_HOME);
 			System.out.println("	PASS: property value returned!");
 		} catch (AccessControlException ace) {
 			System.out.println("	FAILED at line (" + currentLineNumber() + "): Security Exception NOT expected! ");
@@ -1567,14 +1567,14 @@ public class JEP140Tests {
 			ace.printStackTrace();
 		}
 		try {
-			ct.getProppertydoPrivilegedLimitedMixedRevertOrder(PROP_JAVA_HOME, lastContext, ACC_READ_PROP_JAVA_HOME, READ_PROP_JAVA_HOME);
+			ct.getPropertydoPrivilegedLimitedMixedRevertOrder(PROP_JAVA_HOME, lastContext, ACC_READ_PROP_JAVA_HOME, READ_PROP_JAVA_HOME);
 			System.out.println("	PASS: property value returned!");
 		} catch (AccessControlException ace) {
 			System.out.println("	FAILED at line (" + currentLineNumber() + "): Security Exception NOT expected! ");
 			ace.printStackTrace();
 		}
 		try {
-			ct.getProppertydoPrivilegedLimitedMixedRevertOrder(PROP_JAVA_HOME, ACC_READ_PROP_JAVA_HOME, lastContext, READ_PROP_JAVA_HOME);
+			ct.getPropertydoPrivilegedLimitedMixedRevertOrder(PROP_JAVA_HOME, ACC_READ_PROP_JAVA_HOME, lastContext, READ_PROP_JAVA_HOME);
 			System.out.println("	PASS: property value returned!");
 		} catch (AccessControlException ace) {
 			System.out.println("	FAILED at line (" + currentLineNumber() + "): Security Exception NOT expected! ");
@@ -1582,7 +1582,7 @@ public class JEP140Tests {
 		}
 
 		try {
-			ct.getProppertydoPrivilegedLimitedMixedRevertOrder(PROP_JAVA_HOME, ACC_READ_PROP_JAVA_HOME, ACC_READ_PROP_JAVA_HOME);
+			ct.getPropertydoPrivilegedLimitedMixedRevertOrder(PROP_JAVA_HOME, ACC_READ_PROP_JAVA_HOME, ACC_READ_PROP_JAVA_HOME);
 			System.out.println("	PASS: property value returned!");
 		} catch (AccessControlException ace) {
 			System.out.println("	FAILED at line (" + currentLineNumber() + "): Security Exception NOT expected! ");
@@ -1604,14 +1604,14 @@ public class JEP140Tests {
 			ace.printStackTrace();
 		}
 		try {
-			ct.getProppertydoPrivilegedLimitedMixedRevertOrder(PROP_JAVA_HOME, lastContext, ACC_READ_PROP_JAVA_HOME);
+			ct.getPropertydoPrivilegedLimitedMixedRevertOrder(PROP_JAVA_HOME, lastContext, ACC_READ_PROP_JAVA_HOME);
 			System.out.println("	PASS: property value returned!");
 		} catch (AccessControlException ace) {
 			System.out.println("	FAILED at line (" + currentLineNumber() + "): Security Exception NOT expected! ");
 			ace.printStackTrace();
 		}
 		try {
-			ct.getProppertydoPrivilegedLimitedMixedRevertOrder(PROP_JAVA_HOME, ACC_READ_PROP_JAVA_HOME, lastContext);
+			ct.getPropertydoPrivilegedLimitedMixedRevertOrder(PROP_JAVA_HOME, ACC_READ_PROP_JAVA_HOME, lastContext);
 			System.out.println("	PASS: property value returned!");
 		} catch (AccessControlException ace) {
 			System.out.println("	FAILED at line (" + currentLineNumber() + "): Security Exception NOT expected! ");
@@ -1619,7 +1619,7 @@ public class JEP140Tests {
 		}
 		
 		try {
-			ct.getProppertydoPrivilegedLimitedMixedRevertOrder(PROP_JAVA_HOME, ACC_READ_PROP_JAVA_HOME, ACC_READ_PROP_JAVA_HOME, READ_PROP_USER_DIR);
+			ct.getPropertydoPrivilegedLimitedMixedRevertOrder(PROP_JAVA_HOME, ACC_READ_PROP_JAVA_HOME, ACC_READ_PROP_JAVA_HOME, READ_PROP_USER_DIR);
 			System.out.println("	PASS: property value returned!");
 		} catch (AccessControlException ace) {
 			System.out.println("	FAILED at line (" + currentLineNumber() + "): Security Exception NOT expected! ");
@@ -1641,14 +1641,14 @@ public class JEP140Tests {
 			ace.printStackTrace();
 		}
 		try {
-			ct.getProppertydoPrivilegedLimitedMixedRevertOrder(PROP_JAVA_HOME, lastContext, ACC_READ_PROP_JAVA_HOME, READ_PROP_USER_DIR);
+			ct.getPropertydoPrivilegedLimitedMixedRevertOrder(PROP_JAVA_HOME, lastContext, ACC_READ_PROP_JAVA_HOME, READ_PROP_USER_DIR);
 			System.out.println("	PASS: property value returned!");
 		} catch (AccessControlException ace) {
 			System.out.println("	FAILED at line (" + currentLineNumber() + "): Security Exception NOT expected! ");
 			ace.printStackTrace();
 		}
 		try {
-			ct.getProppertydoPrivilegedLimitedMixedRevertOrder(PROP_JAVA_HOME, ACC_READ_PROP_JAVA_HOME, lastContext, READ_PROP_USER_DIR);
+			ct.getPropertydoPrivilegedLimitedMixedRevertOrder(PROP_JAVA_HOME, ACC_READ_PROP_JAVA_HOME, lastContext, READ_PROP_USER_DIR);
 			System.out.println("	PASS: property value returned!");
 		} catch (AccessControlException ace) {
 			System.out.println("	FAILED at line (" + currentLineNumber() + "): Security Exception NOT expected! ");

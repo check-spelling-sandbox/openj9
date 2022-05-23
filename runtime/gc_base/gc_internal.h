@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 1991, 2021 IBM Corp. and others
+ * Copyright (c) 1991, 2022 IBM Corp. and others
  *
  * This program and the accompanying materials are made available under
  * the terms of the Eclipse Public License 2.0 which accompanies this
@@ -100,7 +100,7 @@ extern J9_CFUNC uint32_t j9gc_max_hot_field_list_length(J9JavaVM *javaVM);
 extern J9_CFUNC void j9gc_objaccess_indexableStoreAddress(J9VMThread *vmThread, J9IndexableObject *destObject, I_32 index, void *value, UDATA isVolatile);
 extern J9_CFUNC void j9gc_objaccess_mixedObjectStoreAddress(J9VMThread *vmThread, j9object_t destObject, UDATA offset, void *value, UDATA isVolatile);
 extern J9_CFUNC void j9gc_objaccess_cloneObject(J9VMThread *vmThread, j9object_t srcObject, j9object_t destObject);
-extern J9_CFUNC void j9gc_objaccess_copyObjectFields(J9VMThread *vmThread, J9Class *valueClass, J9Object *srcObject, UDATA srcOffset, J9Object *destObject, UDATA destOffset);
+extern J9_CFUNC void j9gc_objaccess_copyObjectFields(J9VMThread *vmThread, J9Class *valueClass, J9Object *srcObject, UDATA srcOffset, J9Object *destObject, UDATA destOffset, MM_objectMapFunction objectMapFunction, void *objectMapData, UDATA initializeLockWord);
 extern J9_CFUNC void j9gc_objaccess_copyObjectFieldsToFlattenedArrayElement(J9VMThread *vmThread, J9ArrayClass *arrayClazz, j9object_t srcObject, J9IndexableObject *arrayRef, I_32 index);
 extern J9_CFUNC void j9gc_objaccess_copyObjectFieldsFromFlattenedArrayElement(J9VMThread *vmThread, J9ArrayClass *arrayClazz, j9object_t destObject, J9IndexableObject *arrayRef, I_32 index);
 extern J9_CFUNC BOOLEAN j9gc_objaccess_structuralCompareFlattenedObjects(J9VMThread *vmThread, J9Class *valueClass, j9object_t lhsObject, j9object_t rhsObject, UDATA startOffset);
@@ -203,7 +203,7 @@ extern J9_CFUNC j9object_t j9gc_weakRoot_readObjectVM(J9JavaVM *vm, j9object_t *
 extern J9_CFUNC UDATA isStaticObjectAllocateFlags(J9JavaVM *javaVM);
 extern J9_CFUNC void J9FlushThreadLocalHeap(J9VMThread *vmContext);
 extern J9_CFUNC jvmtiIterationControl j9mm_iterate_region_objects(J9JavaVM *vm, J9PortLibrary *portLibrary, struct J9MM_IterateRegionDescriptor *region, UDATA flags, jvmtiIterationControl(*func)(J9JavaVM *vm, struct J9MM_IterateObjectDescriptor *objectDesc, void *userData), void *userData);
-extern J9_CFUNC void j9gc_objaccess_cloneIndexableObject(J9VMThread *vmThread, J9IndexableObject *srcObject, J9IndexableObject *destObject);
+extern J9_CFUNC void j9gc_objaccess_cloneIndexableObject(J9VMThread *vmThread, J9IndexableObject *srcObject, J9IndexableObject *destObject, MM_objectMapFunction objectMapFunction, void *objectMapData);
 extern J9_CFUNC I_32 referenceArrayCopyIndex(J9VMThread *vmThread, J9IndexableObject *srcObject, J9IndexableObject *destObject, I_32 srcIndex, I_32 destIndex, I_32 lengthInSlots);
 extern J9_CFUNC I_64 j9gc_objaccess_staticReadI64(J9VMThread *vmThread, J9Class *clazz, I_64 *srcSlot, UDATA isVolatile);
 extern J9_CFUNC jvmtiIterationControl j9mm_iterate_object_slots(J9JavaVM *javaVM, J9PortLibrary *portLibrary, struct J9MM_IterateObjectDescriptor *object, UDATA flags, jvmtiIterationControl(*func)(J9JavaVM *javaVM, struct J9MM_IterateObjectDescriptor *objectDesc, struct J9MM_IterateObjectRefDescriptor *refDesc, void *userData), void *userData);
@@ -255,6 +255,7 @@ extern J9_CFUNC void j9gc_objaccess_jniReleaseStringCritical(J9VMThread* vmThrea
 extern J9_CFUNC UDATA j9gc_arraylet_getLeafSize(J9JavaVM* javaVM);
 extern J9_CFUNC UDATA j9gc_arraylet_getLeafLogSize(J9JavaVM* javaVM);
 extern J9_CFUNC void j9gc_get_CPU_times(J9JavaVM *javaVM, U_64* mainCpuMillis, U_64* workerCpuMillis, U_32* maxThreads, U_32* currentThreads);
+extern J9_CFUNC void j9gc_ensureLockedSynchronizersIntegrity(J9VMThread *vmThread);
 
 
 /* J9VMFinalizeSupport*/
@@ -275,6 +276,7 @@ void j9mm_get_guaranteed_nursery_range(J9JavaVM* javaVM, void** start, void** en
 
 /* StringTable.cpp */
 extern J9_CFUNC j9object_t j9gc_createJavaLangString(J9VMThread *vmThread, U_8 *data, UDATA length, UDATA stringFlags);
+extern J9_CFUNC j9object_t j9gc_createJavaLangStringWithUTFCache(J9VMThread *vmThread, J9UTF8 *utf);
 extern J9_CFUNC j9object_t j9gc_internString(J9VMThread *vmThread, j9object_t sourceString);
 extern UDATA j9gc_stringHashFn (void *key, void *userData);
 extern BOOLEAN j9gc_stringHashEqualFn (void *leftKey, void *rightKey, void *userData);

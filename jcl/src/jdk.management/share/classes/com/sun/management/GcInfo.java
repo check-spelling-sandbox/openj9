@@ -1,6 +1,6 @@
 /*[INCLUDE-IF Sidecar18-SE]*/
 /*******************************************************************************
- * Copyright (c) 2016, 2021 IBM Corp. and others
+ * Copyright (c) 2016, 2022 IBM Corp. and others
  *
  * This program and the accompanying materials are made available under
  * the terms of the Eclipse Public License 2.0 which accompanies this
@@ -48,8 +48,8 @@ import com.sun.management.internal.GcInfoUtil;
  *   <li>Memory usage after the collection ends</li>
  * </ul>
  * </blockquote>
- * 
- * @since   1.9
+ *
+ * @since 9
  */
 public class GcInfo implements CompositeData, CompositeDataView {
 
@@ -59,52 +59,52 @@ public class GcInfo implements CompositeData, CompositeDataView {
 	private final long index;
 
 	/**
-     * Comment for <code>startTime</code>
-     */
+	 * Comment for <code>startTime</code>
+	 */
 	private final long startTime;
-	
-    /**
-     * Comment for <code>endTime</code>
-     */
+
+	/**
+	 * Comment for <code>endTime</code>
+	 */
 	private final long endTime;
-	
-    /**
-     * Comment for <code>usageBeforeGc</code>
-     */
+
+	/**
+	 * Comment for <code>usageBeforeGc</code>
+	 */
 	private final Map<String, MemoryUsage> usageBeforeGc;
-	
-    /**
-     * Comment for <code>usageAfterGc</code>
-     */
+
+	/**
+	 * Comment for <code>usageAfterGc</code>
+	 */
 	private final Map<String, MemoryUsage> usageAfterGc;
 
 	private CompositeData cdata;
-	
+
 	private CompositeData getCompositeData() {
 		if (null == cdata) {
 			cdata = GcInfoUtil.toCompositeData(this);
 		}
 		return cdata;
 	}
-	
+
 	private void setCompositeData(CompositeData cd) {
 		cdata = cd;
 	}
-    /**
-     * Creates a new <code>GcInfo</code> instance.
-     * 
-     * @param index
-     * 			  the identifier of this garbage collection which is the number of collections that this collector has done
-     * @param startTime
-     * 			  the start time of the collection in milliseconds since the Java virtual machine was started.
-     * @param endTime
-     * 			  the end time of the collection in milliseconds since the Java virtual machine was started.
-     * @param usageBeforeGc
-     * 			  the memory usage of all memory pools at the beginning of this GC.
-     * @param usageAfterGc
-     * 			  the memory usage of all memory pools at the end of this GC.
-     * 
-     */
+
+	/**
+	 * Creates a new <code>GcInfo</code> instance.
+	 *
+	 * @param index
+	 * 			  the identifier of this garbage collection which is the number of collections that this collector has done
+	 * @param startTime
+	 * 			  the start time of the collection in milliseconds since the Java virtual machine was started.
+	 * @param endTime
+	 * 			  the end time of the collection in milliseconds since the Java virtual machine was started.
+	 * @param usageBeforeGc
+	 * 			  the memory usage of all memory pools at the beginning of this GC.
+	 * @param usageAfterGc
+	 * 			  the memory usage of all memory pools at the end of this GC.
+	 */
 	private GcInfo(long index, long startTime, long endTime, Map<String, MemoryUsage> usageBeforeGc, Map<String, MemoryUsage> usageAfterGc) {
 		super();
 		this.index = index;
@@ -113,7 +113,7 @@ public class GcInfo implements CompositeData, CompositeDataView {
 		this.usageBeforeGc = usageBeforeGc;
 		this.usageAfterGc = usageAfterGc;
 	}
-	
+
 	/**
 	 *  @return the identifier of this garbage collection which is
 	 *  the number of collections that this collector has done.
@@ -149,7 +149,6 @@ public class GcInfo implements CompositeData, CompositeDataView {
 	 */
 	public long getDuration() {
 		return this.endTime - this.startTime;
-
 	}
 
 	/**
@@ -230,16 +229,16 @@ public class GcInfo implements CompositeData, CompositeDataView {
 		GcInfo result = null;
 
 		if (cd != null) {
-            // Does cd meet the necessary criteria to create a new GcInfo?
-            // If not then exit on an IllegalArgumentException.
-            ManagementUtils.verifyFieldNumber(cd, 5);
-            String[] attributeNames = { "index", "startTime", "endTime", "usageBeforeGc", "usageAfterGc" }; //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$ //$NON-NLS-4$ //$NON-NLS-5$
-            ManagementUtils.verifyFieldNames(cd, attributeNames);
+			// Does cd meet the necessary criteria to create a new GcInfo?
+			// If not then exit on an IllegalArgumentException.
+			ManagementUtils.verifyFieldNumber(cd, 5);
+			String[] attributeNames = { "index", "startTime", "endTime", "usageBeforeGc", "usageAfterGc" }; //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$ //$NON-NLS-4$ //$NON-NLS-5$
+			ManagementUtils.verifyFieldNames(cd, attributeNames);
 			String[] attributeTypes = { "java.lang.Long", //$NON-NLS-1$
-										"java.lang.Long", //$NON-NLS-1$
-										"java.lang.Long", //$NON-NLS-1$
-										TabularData.class.getName(),
-            							TabularData.class.getName()};
+					"java.lang.Long", //$NON-NLS-1$
+					"java.lang.Long", //$NON-NLS-1$
+					TabularData.class.getName(),
+					TabularData.class.getName()};
 			ManagementUtils.verifyFieldTypes(cd, attributeNames, attributeTypes);
 
 			// Extract the values of the attributes and use them to construct a new GcInfo.
@@ -260,7 +259,8 @@ public class GcInfo implements CompositeData, CompositeDataView {
 	private static Map<String, MemoryUsage> convertTabularDataToMemoryUsageMap(TabularData td) {
 		Map<String, MemoryUsage> result = new HashMap<>();
 
-		for (CompositeData row : (Collection<CompositeData>) td.values()) {
+		for (Object value : (Collection<?>) td.values()) {
+			CompositeData row = (CompositeData) value;
 			String keyVal = (String) row.get("key"); //$NON-NLS-1$
 			MemoryUsage usageVal = MemoryUsage.from((CompositeData) row.get("value")); //$NON-NLS-1$
 			result.put(keyVal, usageVal);
@@ -270,7 +270,7 @@ public class GcInfo implements CompositeData, CompositeDataView {
 	}
 
 	/* Implementation of the CompositeData interface */
-	
+
 	/**
 	 * {@inheritDoc}
 	 */
@@ -318,7 +318,7 @@ public class GcInfo implements CompositeData, CompositeDataView {
 	public CompositeType getCompositeType() {
 		return getCompositeData().getCompositeType();
 	}
- 
+
 	/**
 	 * {@inheritDoc}
 	 */
@@ -326,7 +326,7 @@ public class GcInfo implements CompositeData, CompositeDataView {
 	public int hashCode() {
 		return getCompositeData().hashCode();
 	}
- 
+
 	/**
 	 * {@inheritDoc}
 	 */
@@ -344,7 +344,7 @@ public class GcInfo implements CompositeData, CompositeDataView {
 	}
 
 	/* Implementation of the CompositeDataView interface */
-	
+
 	/**
 	 * <p>Return the {@code CompositeData} representation of this
 	 * {@code GcInfo}, including any GC-specific attributes.  The
@@ -356,7 +356,7 @@ public class GcInfo implements CompositeData, CompositeDataView {
 	 * This parameter is ignored and can be null.
 	 *
 	 * @return the {@code CompositeData} representation.
-	*/
+	 */
 	@Override
 	public CompositeData toCompositeData(CompositeType ct) {
 		return getCompositeData();

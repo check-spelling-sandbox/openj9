@@ -36,7 +36,7 @@ import com.ibm.j9ddr.vm29.types.UDATA;
 public class FindPatternCommand extends Command 
 {
 	
-	private final static int PATTERN_LENGHT = 1024;
+	private final static int PATTERN_LENGTH = 1024;
 	
 	/**
 	 * Constructor
@@ -112,9 +112,9 @@ public class FindPatternCommand extends Command
 			}
 			
 			length = hexstring.length() / 2; 
-			if( length > PATTERN_LENGHT) {
-				CommandUtils.dbgPrint(out, String.format("Pattern is too long. Truncating to %d bytes\n", PATTERN_LENGHT));
-				length = PATTERN_LENGHT;				
+			if( length > PATTERN_LENGTH) {
+				CommandUtils.dbgPrint(out, String.format("Pattern is too long. Truncating to %d bytes\n", PATTERN_LENGTH));
+				length = PATTERN_LENGTH;				
 			}
 			
 			pattern = new byte[length];

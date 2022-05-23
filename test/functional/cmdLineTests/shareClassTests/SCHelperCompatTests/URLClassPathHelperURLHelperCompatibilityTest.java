@@ -39,7 +39,7 @@ public class URLClassPathHelperURLHelperCompatibilityTest {
 	
 		if(args.length != 2){
 			System.out.println("\n Incorrect usage");
-			System.out.println("\n Please specifiy -testfile <filename>");
+			System.out.println("\n Please specify -testfile <filename>");
 		}
 		
 		URLClassPathHelperURLHelperCompatibilityTest test = new URLClassPathHelperURLHelperCompatibilityTest();

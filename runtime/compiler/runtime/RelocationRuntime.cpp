@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2000, 2021 IBM Corp. and others
+ * Copyright (c) 2000, 2022 IBM Corp. and others
  *
  * This program and the accompanying materials are made available under
  * the terms of the Eclipse Public License 2.0 which accompanies this
@@ -77,6 +77,75 @@
 #if defined(J9VM_OPT_JITSERVER)
 #include "control/CompilationThread.hpp"
 #endif /* defined(J9VM_OPT_JITSERVER) */
+
+#include "exceptions/AOTFailure.hpp"
+
+char *TR_RelocationRuntime::_reloErrorCodeNames[] =
+   {
+   "relocationOK",                                     // 0
+
+   "outOfMemory",                                      // 1
+   "reloActionFailCompile",                            // 2
+   "unknownRelocation",                                // 3
+   "unknownReloAction",                                // 4
+   "invalidRelocation",                                // 5
+   "exceptionThrown"                                   // 6
+
+   "methodEnterValidationFailure",                     // 7
+   "methodExitValidationFailure",                      // 8
+   "exceptionHookValidationFailure",                   // 9
+   "stringCompressionValidationFailure",               // 10
+   "tmValidationFailure",                              // 11
+   "osrValidationFailure",                             // 12
+   "instanceFieldValidationFailure",                   // 13
+   "staticFieldValidationFailure",                     // 14
+   "classValidationFailure",                           // 15
+   "arbitraryClassValidationFailure",                  // 16
+   "classByNameValidationFailure",                     // 17
+   "profiledClassValidationFailure",                   // 18
+   "classFromCPValidationFailure",                     // 19
+   "definingClassFromCPValidationFailure",             // 20
+   "staticClassFromCPValidationFailure",               // 21
+   "arrayClassFromComponentClassValidationFailure",    // 22
+   "superClassFromClassValidationFailure",             // 23
+   "classInstanceOfClassValidationFailure",            // 24
+   "systemClassByNameValidationFailure",               // 25
+   "classFromITableIndexCPValidationFailure",          // 26
+   "declaringClassFromFieldOrStaticValidationFailure", // 27
+   "concreteSubclassFromClassValidationFailure",       // 28
+   "classChainValidationFailure",                      // 29
+   "methodFromClassValidationFailure",                 // 30
+   "staticMethodFromCPValidationFailure",              // 31
+   "specialMethodFromCPValidationFailure",             // 32
+   "virtualMethodFromCPValidationFailure",             // 33
+   "virtualMethodFromOffsetValidationFailure",         // 34
+   "interfaceMethodFromCPValidationFailure",           // 35
+   "improperInterfaceMethodFromCPValidationFailure",   // 36
+   "methodFromClassAndSigValidationFailure",           // 37
+   "stackWalkerMaySkipFramesValidationFailure",        // 38
+   "classInfoIsInitializedValidationFailure",          // 39
+   "methodFromSingleImplValidationFailure",            // 40
+   "methodFromSingleInterfaceImplValidationFailure",   // 41
+   "methodFromSingleAbstractImplValidationFailure",    // 42
+   "j2iThunkFromMethodValidationFailure",              // 43
+   "svmValidationFailure",                             // 44
+   "wkcValidationFailure",                             // 45
+
+   "classAddressRelocationFailure",                    // 46
+   "inlinedMethodRelocationFailure",                   // 47
+   "symbolFromManagerRelocationFailure",               // 48
+   "thunkRelocationFailure",                           // 49
+   "trampolineRelocationFailure",                      // 50
+   "picTrampolineRelocationFailure",                   // 51
+   "cacheFullRelocationFailure",                       // 52
+   "blockFrequencyRelocationFailure",                  // 53
+   "recompQueuedFlagRelocationFailure",                // 54
+   "debugCounterRelocationFailure",                    // 55
+   "directJNICallRelocationFailure",                   // 56
+   "ramMethodConstRelocationFailure",                  // 57
+
+   "maxRelocationError"                                // 58
+   };
 
 TR_RelocationRuntime::TR_RelocationRuntime(J9JITConfig *jitCfg)
    {
@@ -180,6 +249,7 @@ TR_RelocationRuntime::prepareRelocateAOTCodeAndData(J9VMThread* vmThread,
    _relocationStatus = RelocationNoError;
    _haveReservedCodeCache = false; // MCT
    _returnCode = 0;
+   _reloErrorCode = TR_RelocationErrorCode::relocationOK;
 
    _comp = comp;
    _trMemory = comp->trMemory();
@@ -206,21 +276,24 @@ TR_RelocationRuntime::prepareRelocateAOTCodeAndData(J9VMThread* vmThread,
       &&
        (_aotMethodHeaderEntry->flags & TR_AOTMethodHeader_IsNotCapableOfMethodExitTracing))
       {
-      setReturnCode(compilationAotValidateMethodExitFailure);
+      setReloErrorCode(TR_RelocationErrorCode::methodExitValidationFailure);
+      setReturnCode(compilationRelocationFailure);
       return NULL; // fail
       }
    if ((fej9->isMethodTracingEnabled((TR_OpaqueMethodBlock*)theMethod) || fej9->canMethodEnterEventBeHooked())
       &&
        (_aotMethodHeaderEntry->flags & TR_AOTMethodHeader_IsNotCapableOfMethodEnterTracing))
       {
-      setReturnCode(compilationAotValidateMethodEnterFailure);
+      setReloErrorCode(TR_RelocationErrorCode::methodEnterValidationFailure);
+      setReturnCode(compilationRelocationFailure);
       return NULL; // fail
       }
 
    if (fej9->canExceptionEventBeHooked()
        && (_aotMethodHeaderEntry->flags & TR_AOTMethodHeader_IsNotCapableOfExceptionHook))
       {
-      setReturnCode(compilationAotValidateExceptionHookFailure);
+      setReloErrorCode(TR_RelocationErrorCode::exceptionHookValidationFailure);
+      setReturnCode(compilationRelocationFailure);
       return NULL;
       }
 
@@ -244,7 +317,8 @@ TR_RelocationRuntime::prepareRelocateAOTCodeAndData(J9VMThread* vmThread,
          }
       if (conflict)
          {
-         setReturnCode(compilationAotValidateStringCompressionFailure);
+         setReloErrorCode(TR_RelocationErrorCode::stringCompressionValidationFailure);
+         setReturnCode(compilationRelocationFailure);
          return NULL;
          }
       }
@@ -255,7 +329,8 @@ TR_RelocationRuntime::prepareRelocateAOTCodeAndData(J9VMThread* vmThread,
 
    if ((_aotMethodHeaderEntry->flags & TR_AOTMethodHeader_TMDisabled) && !comp->getOption(TR_DisableTM))
       {
-      setReturnCode(compilationAOTValidateTMFailure);
+      setReloErrorCode(TR_RelocationErrorCode::tmValidationFailure);
+      setReturnCode(compilationRelocationFailure);
       return NULL;
       }
 
@@ -268,7 +343,8 @@ TR_RelocationRuntime::prepareRelocateAOTCodeAndData(J9VMThread* vmThread,
                                      _aotMethodHeaderEntry->_osrBufferInfo._scratchBufferSizeInBytes,
                                      _aotMethodHeaderEntry->_osrBufferInfo._stackFrameSizeInBytes))
          {
-         setReturnCode(compilationAOTValidateOSRFailure);
+         setReloErrorCode(TR_RelocationErrorCode::osrValidationFailure);
+         setReturnCode(compilationRelocationFailure);
          return NULL;
          }
       }
@@ -353,10 +429,16 @@ TR_RelocationRuntime::prepareRelocateAOTCodeAndData(J9VMThread* vmThread,
                // Before copying, memorize the real size of the block returned by the code cache manager
                // and fix it later
                U_32 blockSize = ((OMR::CodeCacheMethodHeader*)newCodeStart)->_size;
+#if defined(OSX) && defined(AARCH64)
+               pthread_jit_write_protect_np(0);
+#endif
                memcpy(newCodeStart, tempCodeStart, codeSize);  // the real size may have been overwritten
                ((OMR::CodeCacheMethodHeader*)newCodeStart)->_size = blockSize; // fix it
                // Must fix the pointer to the metadata which is stored in the OMR::CodeCacheMethodHeader
                ((OMR::CodeCacheMethodHeader*)newCodeStart)->_metaData = _exceptionTable;
+#if defined(OSX) && defined(AARCH64)
+               pthread_jit_write_protect_np(1);
+#endif
                }
             else
                {
@@ -506,14 +588,43 @@ TR_RelocationRuntime::relocateAOTCodeAndData(U_8 *tempDataStart,
 
          try
             {
-            _returnCode = reloGroup.applyRelocations(this, reloTarget(), newMethodCodeStart() + codeCacheDelta());
+            TR_RelocationErrorCode errorCode = reloGroup.applyRelocations(this, reloTarget(), newMethodCodeStart() + codeCacheDelta());
+            setReloErrorCode(errorCode);
+            switch (errorCode)
+               {
+               case TR_RelocationErrorCode::relocationOK:
+                  setReturnCode(compilationOK);
+                  break;
+               case TR_RelocationErrorCode::trampolineRelocationFailure:
+                  setReturnCode(compilationAotTrampolineReloFailure);
+                  break;
+               case TR_RelocationErrorCode::picTrampolineRelocationFailure:
+                  setReturnCode(compilationAotPicTrampolineReloFailure);
+                  break;
+               case TR_RelocationErrorCode::cacheFullRelocationFailure:
+                  setReturnCode(compilationAotCacheFullReloFailure);
+                  break;
+               default:
+                  setReturnCode(compilationRelocationFailure);
+               }
+            }
+         catch (const std::bad_alloc &e)
+            {
+            setReloErrorCode(TR_RelocationErrorCode::outOfMemory);
+            setReturnCode(compilationHeapLimitExceeded);
+            }
+         catch (const J9::AOTSymbolValidationManagerFailure &e)
+            {
+            setReloErrorCode(TR_RelocationErrorCode::svmValidationFailure);
+            setReturnCode(compilationSymbolValidationManagerFailure);
             }
          catch (...)
             {
-            _returnCode = compilationAotClassReloFailure;
+            setReloErrorCode(TR_RelocationErrorCode::exceptionThrown);
+            setReturnCode(compilationRelocationFailure);
             }
 
-         RELO_LOG(reloLogger(), 6, "relocateAOTCodeAndData: return code %d\n", _returnCode);
+         RELO_LOG(reloLogger(), 6, "relocateAOTCodeAndData: return code %d\n", returnCode());
 
 #if defined(DEBUG) || defined(PROD_WITH_ASSUMES)
          // Detect some potential incorrectness that could otherwise be missed
@@ -537,7 +648,7 @@ TR_RelocationRuntime::relocateAOTCodeAndData(U_8 *tempDataStart,
             }
 #endif
 
-         if (_returnCode != 0)
+         if (getReloErrorCode() != TR_RelocationErrorCode::relocationOK)
             {
             //clean up code cache
             _relocationStatus = RelocationFailure;
@@ -550,17 +661,17 @@ TR_RelocationRuntime::relocateAOTCodeAndData(U_8 *tempDataStart,
       // replace this with meta-data relocations above when we implement it
 
       /* Fix up inlined exception table ram method entries if wide */
-      if (((UDATA)_exceptionTable->numExcptionRanges) & J9_JIT_METADATA_WIDE_EXCEPTIONS)
+      if (((UDATA)_exceptionTable->numExceptionRanges) & J9_JIT_METADATA_WIDE_EXCEPTIONS)
          {
          // Highest 2 bits indicate wide exceptions and FSD, unset them and extract
          // the number of exception ranges
-         uint16_t numExcptionRanges =
-               _exceptionTable->numExcptionRanges
+         uint16_t numExceptionRanges =
+               _exceptionTable->numExceptionRanges
                & ~(J9_JIT_METADATA_WIDE_EXCEPTIONS | J9_JIT_METADATA_HAS_BYTECODE_PC);
 
          /* 4 byte exception range entries */
          J9JIT32BitExceptionTableEntry *excptEntry32 = (J9JIT32BitExceptionTableEntry *)(_exceptionTable + 1);
-         while (numExcptionRanges > 0)
+         while (numExceptionRanges > 0)
             {
             J9Method *actualMethod = _method;
             UDATA inlinedSiteIndex = (UDATA)excptEntry32->ramMethod;
@@ -575,7 +686,7 @@ TR_RelocationRuntime::relocateAOTCodeAndData(U_8 *tempDataStart,
             if (_comp->getOption(TR_FullSpeedDebug))
                excptEntry32 = (J9JIT32BitExceptionTableEntry *) ((uint8_t *) excptEntry32 + 4);
 
-            numExcptionRanges--;
+            numExceptionRanges--;
             }
          }
 
@@ -755,22 +866,36 @@ TR_RelocationRuntime::aotMethodHeaderVersionsMatch()
 bool
 TR_RelocationRuntime::storeAOTHeader(TR_FrontEnd *fe, J9VMThread *curThread)
    {
-   TR_ASSERT(0, "Error: storeAOTHeader not supported in this relocation runtime");
+   TR_ASSERT_FATAL(false, "Error: storeAOTHeader not supported in this relocation runtime");
    return false;
+   }
+
+const TR_AOTHeader *
+TR_RelocationRuntime::getStoredAOTHeader(J9VMThread *curThread)
+   {
+   TR_ASSERT_FATAL(false, "Error: getStoredAOTHeader not supported in this relocation runtime");
+   return NULL;
    }
 
 TR_AOTHeader *
 TR_RelocationRuntime::createAOTHeader(TR_FrontEnd *fe)
    {
-   TR_ASSERT(0, "Error: createAOTHeader not supported in this relocation runtime");
+   TR_ASSERT_FATAL(false, "Error: createAOTHeader not supported in this relocation runtime");
    return NULL;
    }
 
 bool
 TR_RelocationRuntime::validateAOTHeader(TR_FrontEnd *fe, J9VMThread *curThread)
    {
-   TR_ASSERT(0, "Error: validateAOTHeader not supported in this relocation runtime");
+   TR_ASSERT_FATAL(false, "Error: validateAOTHeader not supported in this relocation runtime");
    return false;
+   }
+
+OMRProcessorDesc
+TR_RelocationRuntime::getProcessorDescriptionFromSCC(J9VMThread *curThread)
+   {
+   TR_ASSERT_FATAL(false, "Error: getProcessorDescriptionFromSCC not supported in this relocation runtime");
+   return OMRProcessorDesc();
    }
 
 #if defined(J9VM_OPT_JITSERVER)
@@ -923,7 +1048,7 @@ TR_SharedCacheRelocationRuntime::generateError(U_32 module_name, U_32 reason, ch
    }
 
 void
-TR_SharedCacheRelocationRuntime::checkAOTHeaderFlags(TR_AOTHeader *hdrInCache, intptr_t featureFlags)
+TR_SharedCacheRelocationRuntime::checkAOTHeaderFlags(const TR_AOTHeader *hdrInCache, intptr_t featureFlags)
    {
    bool defaultMessage = true;
 
@@ -965,7 +1090,7 @@ TR_SharedCacheRelocationRuntime::checkAOTHeaderFlags(TR_AOTHeader *hdrInCache, i
       defaultMessage = generateError(J9NLS_RELOCATABLE_CODE_HEADER_END_SANITY_BIT_MANGLED, "AOT header validation failed: Trailing sanity bit mismatch.");
 
    if (defaultMessage)
-      generateError(J9NLS_RELOCATABLE_CODE_UNKNOWN_PROBLEM, "AOT header validation failed: Unkown problem with processor features.");
+      generateError(J9NLS_RELOCATABLE_CODE_UNKNOWN_PROBLEM, "AOT header validation failed: Unknown problem with processor features.");
    }
 
 // The method CS::Hash_FNV is being used to compute the hash value
@@ -985,26 +1110,15 @@ TR_SharedCacheRelocationRuntime::getCurrentLockwordOptionHashValue(J9JavaVM *vm)
    }
 
 OMRProcessorDesc
-TR_SharedCacheRelocationRuntime::getProcessorDescriptionFromSCC(TR_FrontEnd *fe, J9VMThread *curThread)
+TR_SharedCacheRelocationRuntime::getProcessorDescriptionFromSCC(J9VMThread *curThread)
    {
-   TR_J9VMBase *fej9 = (TR_J9VMBase *)fe;
-   J9SharedDataDescriptor firstDescriptor;
-   firstDescriptor.address = NULL;
-   javaVM()->sharedClassConfig->findSharedData(curThread,
-                                             aotHeaderKey,
-                                             aotHeaderKeyLength,
-                                             J9SHR_DATA_TYPE_AOTHEADER,
-                                             FALSE,
-                                             &firstDescriptor,
-                                             NULL);
-
-   const void* result = firstDescriptor.address;
-   TR_ASSERT_FATAL(result, "No Shared Class Cache available for Processor Description\n");
-   TR_AOTHeader * hdrInCache = (TR_AOTHeader *)result;
+   const TR_AOTHeader *hdrInCache = getStoredAOTHeader(curThread);
+   TR_ASSERT_FATAL(hdrInCache, "No Shared Class Cache available for Processor Description\n");
    return hdrInCache->processorDescription;
    }
 
-static void setAOTHeaderInvalid(TR_JitPrivateConfig *privateConfig)
+static void
+setAOTHeaderInvalid(TR_JitPrivateConfig *privateConfig)
    {
    TR::Options::getAOTCmdLineOptions()->setOption(TR_NoStoreAOT);
    TR::Options::getAOTCmdLineOptions()->setOption(TR_NoLoadAOT);
@@ -1045,23 +1159,10 @@ TR_SharedCacheRelocationRuntime::validateAOTHeader(TR_FrontEnd *fe, J9VMThread *
       }
 
    /* Look for an AOT header in the cache and see if this JVM is compatible */
-
-   J9SharedDataDescriptor firstDescriptor;
-   firstDescriptor.address = NULL;
-   javaVM()->sharedClassConfig->findSharedData(curThread,
-                                             aotHeaderKey,
-                                             aotHeaderKeyLength,
-                                             J9SHR_DATA_TYPE_AOTHEADER,
-                                             FALSE,
-                                             &firstDescriptor,
-                                             NULL);
-
-   const void* result = firstDescriptor.address;
-   if (result)
+   const TR_AOTHeader *hdrInCache = getStoredAOTHeader(curThread);
+   if (hdrInCache)
       {
       /* check compatibility */
-      TR_AOTHeader * hdrInCache = (TR_AOTHeader * )result;
-
       intptr_t featureFlags = generateFeatureFlags(fe);
 
       TR_Version currentVersion;
@@ -1127,6 +1228,22 @@ TR_SharedCacheRelocationRuntime::validateAOTHeader(TR_FrontEnd *fe, J9VMThread *
       // static_cast<TR_JitPrivateConfig *>(jitConfig()->privateConfig)->aotValidHeader = TR_maybe;
       return false;
       }
+   }
+
+const TR_AOTHeader *
+TR_SharedCacheRelocationRuntime::getStoredAOTHeaderWithConfig(J9SharedClassConfig *sharedClassConfig, J9VMThread *curThread)
+   {
+   J9SharedDataDescriptor firstDescriptor;
+   firstDescriptor.address = NULL;
+   sharedClassConfig->findSharedData(curThread, aotHeaderKey, aotHeaderKeyLength,
+                                     J9SHR_DATA_TYPE_AOTHEADER, FALSE, &firstDescriptor, NULL);
+   return (const TR_AOTHeader *)firstDescriptor.address;
+   }
+
+const TR_AOTHeader *
+TR_SharedCacheRelocationRuntime::getStoredAOTHeader(J9VMThread *curThread)
+   {
+   return getStoredAOTHeaderWithConfig(javaVM()->sharedClassConfig, curThread);
    }
 
 TR_AOTHeader *
@@ -1434,7 +1551,7 @@ TR_JITServerRelocationRuntime::copyDataToCodeCache(const void *startAddress, siz
 /**
  * @brief Generate the processor feature string which is stored inside TR_AOTHeader of the SCC
  * @param[in] aotHeaderAddress : the start address of TR_AOTHeader
- * @param[out] buff : store the generated processor feautre string in this buff
+ * @param[out] buff : store the generated processor feature string in this buff
  * @param[in] BUFF_SIZE : the upper limit length of the buffer
  * @return void
  */

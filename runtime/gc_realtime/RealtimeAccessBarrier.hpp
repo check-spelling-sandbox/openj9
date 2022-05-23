@@ -57,7 +57,7 @@ protected:
 	MM_RealtimeGC *_realtimeGC;
 
 private:
-	bool _doubleBarrierActive; /**< Global indicator that the double barrier is active. New threads will be set to double barrier mode if this falg is true. */
+	bool _doubleBarrierActive; /**< Global indicator that the double barrier is active. New threads will be set to double barrier mode if this flag is true. */
 
 /* Methods */
 public:
@@ -123,7 +123,7 @@ private:
 	MMINLINE bool isBarrierActive(MM_EnvironmentBase* env)
 	{
 		MM_GCExtensions* extensions = MM_GCExtensions::getExtensions(env);
-		return !extensions->sATBBarrierRememberedSet->isGlobalFragmentIndexPreserved(env);
+		return !extensions->sATBBarrierRememberedSet->isGlobalFragmentIndexPreserved();
 	}
 
 	MMINLINE bool isDoubleBarrierActiveOnThread(J9VMThread *vmThread)

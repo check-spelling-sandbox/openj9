@@ -55,8 +55,8 @@ template <> struct RawTypeConvert<uint32_t>
    {
    static inline uint32_t onRecv(Message::DataDescriptor *desc) 
       {
-      TR_ASSERT(desc->getDataType() == Message::DataDescriptor::DataType::UINT32, "onRecv type missmatch UINT32");
-      TR_ASSERT(desc->getPayloadSize() == sizeof(uint32_t), "onRecv size missmatch");
+      TR_ASSERT(desc->getDataType() == Message::DataDescriptor::DataType::UINT32, "onRecv type mismatch UINT32");
+      TR_ASSERT(desc->getPayloadSize() == sizeof(uint32_t), "onRecv size mismatch");
       return *static_cast<uint32_t *>(desc->getDataStart()); 
       }
    static inline uint32_t onSend(Message &msg, const uint32_t &val)
@@ -68,8 +68,8 @@ template <> struct RawTypeConvert<uint64_t>
    {
    static inline uint64_t onRecv(Message::DataDescriptor *desc) 
       {
-      TR_ASSERT(desc->getDataType() == Message::DataDescriptor::DataType::UINT64, "onRecv type missmatch UINT64");
-      TR_ASSERT(desc->getPayloadSize() == sizeof(uint64_t), "onRecv size missmatch");
+      TR_ASSERT(desc->getDataType() == Message::DataDescriptor::DataType::UINT64, "onRecv type mismatch UINT64");
+      TR_ASSERT(desc->getPayloadSize() == sizeof(uint64_t), "onRecv size mismatch");
       return *static_cast<uint64_t *>(desc->getDataStart()); 
       }
    static inline uint32_t onSend(Message &msg, const uint64_t &val)
@@ -81,8 +81,8 @@ template <> struct RawTypeConvert<int32_t>
    {
    static inline int32_t onRecv(Message::DataDescriptor *desc) 
       {
-      TR_ASSERT(desc->getDataType() == Message::DataDescriptor::DataType::INT32, "onRecv type missmatch INT32");
-      TR_ASSERT(desc->getPayloadSize() == sizeof(int32_t), "onRecv size missmatch");
+      TR_ASSERT(desc->getDataType() == Message::DataDescriptor::DataType::INT32, "onRecv type mismatch INT32");
+      TR_ASSERT(desc->getPayloadSize() == sizeof(int32_t), "onRecv size mismatch");
       return *static_cast<int32_t *>(desc->getDataStart()); 
       }
    static inline uint32_t onSend(Message &msg, const int32_t &val)
@@ -94,8 +94,8 @@ template <> struct RawTypeConvert<int64_t>
    {
    static inline int64_t onRecv(Message::DataDescriptor *desc) 
       {
-      TR_ASSERT(desc->getDataType() == Message::DataDescriptor::DataType::INT64, "onRecv type missmatch INT64");
-      TR_ASSERT(desc->getPayloadSize() == sizeof(int64_t), "onRecv size missmatch");
+      TR_ASSERT(desc->getDataType() == Message::DataDescriptor::DataType::INT64, "onRecv type mismatch INT64");
+      TR_ASSERT(desc->getPayloadSize() == sizeof(int64_t), "onRecv size mismatch");
       return *static_cast<int64_t *>(desc->getDataStart()); 
       }
    static inline uint32_t onSend(Message &msg, const int64_t &val)
@@ -107,8 +107,8 @@ template <> struct RawTypeConvert<bool>
    {
    static inline bool onRecv(Message::DataDescriptor *desc) 
       {
-      TR_ASSERT(desc->getDataType() == Message::DataDescriptor::DataType::BOOL, "onRecv type missmatch BOOL");
-      TR_ASSERT(desc->getTotalSize() == 4 && desc->getPaddingSize() == 3, "onRecv size missmatch");
+      TR_ASSERT(desc->getDataType() == Message::DataDescriptor::DataType::BOOL, "onRecv type mismatch BOOL");
+      TR_ASSERT(desc->getTotalSize() == 4 && desc->getPaddingSize() == 3, "onRecv size mismatch");
       return *static_cast<bool *>(desc->getDataStart()); 
       }
    static inline uint32_t onSend(Message &msg, const bool &val)
@@ -120,7 +120,7 @@ template <> struct RawTypeConvert<const std::string>
    {
    static inline std::string onRecv(Message::DataDescriptor *desc)
       {
-      TR_ASSERT(desc->getDataType() == Message::DataDescriptor::DataType::STRING, "onRecv type missmatch STRING");
+      TR_ASSERT(desc->getDataType() == Message::DataDescriptor::DataType::STRING, "onRecv type mismatch STRING");
       return std::string(static_cast<char *>(desc->getDataStart()), desc->getPayloadSize());
       }
    static inline uint32_t onSend(Message &msg, const std::string &value)
@@ -136,7 +136,7 @@ template <typename T> struct RawTypeConvert<T, typename std::enable_if<std::is_t
    {
    static inline T onRecv(Message::DataDescriptor *desc) 
       {
-      TR_ASSERT(desc->getDataType() == Message::DataDescriptor::DataType::OBJECT, "onRecv type missmatch OBJECT");
+      TR_ASSERT(desc->getDataType() == Message::DataDescriptor::DataType::OBJECT, "onRecv type mismatch OBJECT");
       return *static_cast<T *>(desc->getDataStart()); 
       }
    static inline uint32_t onSend(Message &msg, const T &value)
@@ -156,13 +156,13 @@ template <typename T> struct RawTypeConvert<T, typename std::enable_if<std::is_s
          }
       if (desc->getDataType() == Message::DataDescriptor::DataType::SIMPLE_VECTOR)
          {
-         TR_ASSERT(desc->getVectorElementSize() == sizeof(typename T::value_type), "Vector element size missmatch");
+         TR_ASSERT(desc->getVectorElementSize() == sizeof(typename T::value_type), "Vector element size mismatch");
          typename T::value_type *dataStart = static_cast<typename T::value_type *>(desc->getDataStart());
          typename T::value_type *dataEnd = reinterpret_cast<typename T::value_type *>(reinterpret_cast<uintptr_t>(dataStart) + desc->getPayloadSize());
          return T(dataStart, dataEnd);
          }
 
-      TR_ASSERT(desc->getDataType() == Message::DataDescriptor::DataType::VECTOR, "onRecv type missmatch VECTOR");
+      TR_ASSERT(desc->getDataType() == Message::DataDescriptor::DataType::VECTOR, "onRecv type mismatch VECTOR");
       // The first element is another descriptor to represent the number of elements in the vector
       Message::DataDescriptor *sizeDesc = static_cast<Message::DataDescriptor *>(desc->getDataStart());
       uint32_t size = RawTypeConvert<uint32_t>::onRecv(sizeDesc);
@@ -262,7 +262,7 @@ template <typename... T> struct RawTypeConvert<const std::tuple<T...>>
    {
    static inline std::tuple<T...> onRecv(Message::DataDescriptor *desc)
       {
-      TR_ASSERT(desc->getDataType() == Message::DataDescriptor::DataType::TUPLE, "onRecv type missmatch TUPLE");
+      TR_ASSERT(desc->getDataType() == Message::DataDescriptor::DataType::TUPLE, "onRecv type mismatch TUPLE");
       return TupleTypeConvert<0, T...>::onRecvImpl(static_cast<Message::DataDescriptor *>(desc->getDataStart()));
       }
 

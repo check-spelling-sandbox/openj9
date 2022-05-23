@@ -1495,7 +1495,7 @@ void TR::MonitorElimination::transformMonitorsIntoTMRegions()
       TR::Block *tophalfmonitorblock = monitorblock->getEntry()->getPrevTreeTop()->getEnclosingBlock();
       TR::Block *critSectStart = 0;
 
-      debugTrace(tracer(),"After monitor split.getmonitornode = %p  monitor->getMonitorTree() = %p node = %p nexttt = %p nextt node = %p\n",monitor->getMonitorNode(),monitor->getMonitorTree(),monitor->getMonitorTree()->getNode(),monitor->getMonitorTree()->getNextTreeTop(),monitor->getMonitorTree()->getNextTreeTop()->getNode());
+      debugTrace(tracer(),"After monitor split.getmonitornode = %p  monitor->getMonitorTree() = %p node = %p next = %p next node = %p\n",monitor->getMonitorNode(),monitor->getMonitorTree(),monitor->getMonitorTree()->getNode(),monitor->getMonitorTree()->getNextTreeTop(),monitor->getMonitorTree()->getNextTreeTop()->getNode());
       debugTrace(tracer(),"tophalfmonitorblock = %p %d , exit tt = %p node %p\n",tophalfmonitorblock,tophalfmonitorblock->getNumber(),tophalfmonitorblock->getExit(),tophalfmonitorblock->getExit()->getNode());
 
 
@@ -3013,7 +3013,7 @@ void TR::MonitorElimination::coarsenMonitorRanges()
            {
 
         if (trace())
-           traceMsg(comp(),"Coarsening: _multiplyLockedObjects->get(prevLockedObject) = %d _safeValueNumbers[prevLockedObject] = %d _coarsendMonexits->get(blockNum) = %d\n"
+           traceMsg(comp(),"Coarsening: _multiplyLockedObjects->get(prevLockedObject) = %d _safeValueNumbers[prevLockedObject] = %d _coarsenedMonexits->get(blockNum) = %d\n"
                  ,_multiplyLockedObjects->get(prevLockedObject),_safeValueNumbers[prevLockedObject],_coarsenedMonexits->get(blockNum));
 
            if (_multiplyLockedObjects->get(prevLockedObject) &&
@@ -5309,7 +5309,7 @@ bool TR::CoarseningInterProceduralAnalyzer::analyzeNode(TR::Node *node, vcount_t
                 if (originalMethod)
                    {
                    classnameLength = originalMethod->classNameLength();
-                   className = classNameToSignature(originalMethod->classNameChars(), classnameLength, comp());
+                   className = TR::Compiler->cls.classNameToSignature(originalMethod->classNameChars(), classnameLength, comp());
                    }
                 }
 

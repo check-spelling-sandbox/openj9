@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2000, 2021 IBM Corp. and others
+ * Copyright (c) 2000, 2022 IBM Corp. and others
  *
  * This program and the accompanying materials are made available under
  * the terms of the Eclipse Public License 2.0 which accompanies this
@@ -36,19 +36,107 @@
 #include "runtime/RelocationRuntime.hpp"
 #include "runtime/RelocationRecord.hpp"
 #include "runtime/SymbolValidationManager.hpp"
+#if defined(J9VM_OPT_JITSERVER)
+#include "runtime/JITClientSession.hpp"
+#endif /* defined(J9VM_OPT_JITSERVER) */
+
 
 extern bool isOrderedPair(uint8_t reloType);
 
 uintptr_t
-J9::AheadOfTimeCompile::getClassChainOffset(TR_OpaqueClassBlock *classToRemember)
+J9::AheadOfTimeCompile::getClassChainOffset(TR_OpaqueClassBlock *classToRemember,
+                                            const AOTCacheClassChainRecord *&classChainRecord)
    {
-   TR_J9VMBase *fej9 = (TR_J9VMBase *)(self()->comp()->fe());
-   TR_SharedCache * sharedCache = fej9->sharedCache();
-   void *classChainForInlinedMethod = sharedCache->rememberClass(classToRemember);
-   if (!classChainForInlinedMethod)
-      self()->comp()->failCompilation<J9::ClassChainPersistenceFailure>("classChainForInlinedMethod == NULL");
-   return self()->offsetInSharedCacheFromPointer(sharedCache, classChainForInlinedMethod);
+   TR_J9VMBase *fej9 = (TR_J9VMBase *)self()->comp()->fe();
+   TR_SharedCache *sharedCache = fej9->sharedCache();
+   void *classChain = sharedCache->rememberClass(classToRemember, &classChainRecord);
+   if (!classChain)
+      self()->comp()->failCompilation<J9::ClassChainPersistenceFailure>("classChain == NULL");
+   return self()->offsetInSharedCacheFromPointer(sharedCache, classChain);
    }
+
+#if defined(J9VM_OPT_JITSERVER)
+
+void
+J9::AheadOfTimeCompile::addClassSerializationRecord(const AOTCacheClassChainRecord *classChainRecord,
+                                                    const uintptr_t *romClassOffsetAddr)
+   {
+   const AOTCacheClassRecord *record = classChainRecord ? classChainRecord->rootClassRecord() : NULL;
+   self()->addSerializationRecord(record, romClassOffsetAddr);
+   }
+
+void
+J9::AheadOfTimeCompile::addClassSerializationRecord(TR_OpaqueClassBlock *ramClass, const uintptr_t *romClassOffsetAddr)
+   {
+   TR::Compilation *comp = self()->comp();
+   if (comp->isAOTCacheStore())
+      {
+      const AOTCacheClassRecord *record = comp->getClientData()->getClassRecord((J9Class *)ramClass, comp->getStream());
+      self()->addSerializationRecord(record, romClassOffsetAddr);
+      }
+   }
+
+void
+J9::AheadOfTimeCompile::addMethodSerializationRecord(J9Method *method, TR_OpaqueClassBlock *definingClass,
+                                                     const uintptr_t *romMethodOffsetAddr)
+   {
+   TR::Compilation *comp = self()->comp();
+   if (comp->isAOTCacheStore())
+      {
+      const AOTCacheMethodRecord *record = comp->getClientData()->getMethodRecord(method, (J9Class *)definingClass,
+                                                                                  comp->getStream());
+      self()->addSerializationRecord(record, romMethodOffsetAddr);
+      }
+   }
+
+void
+J9::AheadOfTimeCompile::addClassChainSerializationRecord(const AOTCacheClassChainRecord *classChainRecord,
+                                                         const uintptr_t *classChainOffsetAddr)
+   {
+   self()->addSerializationRecord(classChainRecord, classChainOffsetAddr);
+   }
+
+void
+J9::AheadOfTimeCompile::addClassLoaderSerializationRecord(const AOTCacheClassChainRecord *classChainRecord,
+                                                          const uintptr_t *loaderChainOffsetAddr)
+   {
+   const AOTCacheClassLoaderRecord *record = classChainRecord ? classChainRecord->rootClassLoaderRecord() : NULL;
+   self()->addSerializationRecord(record, loaderChainOffsetAddr);
+   }
+
+void
+J9::AheadOfTimeCompile::addWellKnownClassesSerializationRecord(const AOTCacheWellKnownClassesRecord *wkcRecord,
+                                                               const uintptr_t *wkcOffsetAddr)
+   {
+   self()->addSerializationRecord(wkcRecord, wkcOffsetAddr);
+   }
+
+void
+J9::AheadOfTimeCompile::addSerializationRecord(const AOTCacheRecord *record, const uintptr_t *sccOffsetAddr)
+   {
+   TR::Compilation *comp = self()->comp();
+   if (comp->isAOTCacheStore())
+      {
+      uint8_t *start = self()->getRelocationData();
+      uint8_t *end = start + *(uintptr_t *)start;// Total size of relocation data is stored in the first word
+      TR_ASSERT_FATAL(((uint8_t *)sccOffsetAddr >= start + sizeof(uintptr_t)) && ((uint8_t *)sccOffsetAddr < end),
+                      "SCC offset address %p not in range %p - %p", sccOffsetAddr, start + sizeof(uintptr_t), end);
+#if defined(DEBUG)
+      if (record && TR::Options::getVerboseOption(TR_VerboseJITServer))
+         {
+         const AOTSerializationRecord *r = record->dataAddr();
+         TR_VerboseLog::writeLineLocked(TR_Vlog_JITServer,
+            "AOT cache %s: Adding record type %u ID %zu for SCC offset %zu at relo data offset %zu in method %s",
+            comp->getClientData()->getAOTCache()->name().c_str(), r->type(), r->id(),
+            *sccOffsetAddr, (uint8_t *)sccOffsetAddr - start, comp->signature()
+         );
+         }
+#endif /* defined(DEBUG) */
+      comp->addSerializationRecord(record, (uint8_t *)sccOffsetAddr - start);
+      }
+   }
+
+#endif /* defined(J9VM_OPT_JITSERVER) */
 
 uintptr_t
 J9::AheadOfTimeCompile::offsetInSharedCacheFromPointer(TR_SharedCache *sharedCache, void *ptr)
@@ -183,7 +271,8 @@ J9::AheadOfTimeCompile::initializeAOTRelocationHeader(TR::IteratedExternalReloca
    reloRecord->setType(reloTarget, static_cast<TR_RelocationRecordType>(targetKind));
    reloRecord->setFlag(reloTarget, wideOffsets);
 
-   self()->initializePlatformSpecificAOTRelocationHeader(relocation, reloTarget, reloRecord, targetKind);
+   if (!self()->initializePlatformSpecificAOTRelocationHeader(relocation, reloTarget, reloRecord, targetKind))
+      self()->initializeCommonAOTRelocationHeader(relocation, reloTarget, reloRecord, targetKind);
 
    cursor += self()->getSizeOfAOTRelocationHeader(static_cast<TR_RelocationRecordType>(targetKind));
    return cursor;
@@ -267,6 +356,28 @@ J9::AheadOfTimeCompile::initializeCommonAOTRelocationHeader(TR::IteratedExternal
       case TR_JNIVirtualTargetAddress:
       case TR_JNIStaticTargetAddress:
       case TR_JNISpecialTargetAddress:
+         {
+         TR_RelocationRecordDirectJNICall *djnicRecord = reinterpret_cast<TR_RelocationRecordDirectJNICall *>(reloRecord);
+         TR_RelocationRecordInformation *recordInfo = reinterpret_cast<TR_RelocationRecordInformation*>(relocation->getTargetAddress());
+
+         uintptr_t offsetToReloLocation = recordInfo->data1;
+         TR_ASSERT_FATAL((offsetToReloLocation & ~0xFF) == 0,
+                         "offsetToReloLocation %" OMR_PRIuPTR " cannot fit in a uint8_t",
+                         offsetToReloLocation);
+
+         TR::SymbolReference *symRef = reinterpret_cast<TR::SymbolReference *>(recordInfo->data2);
+         uintptr_t inlinedSiteIndex = recordInfo->data3;
+
+         void *constantPool = symRef->getOwningMethod(comp)->constantPool();
+         inlinedSiteIndex = self()->findCorrectInlinedSiteIndex(constantPool, inlinedSiteIndex);
+
+         djnicRecord->setInlinedSiteIndex(reloTarget, inlinedSiteIndex);
+         djnicRecord->setConstantPool(reloTarget, reinterpret_cast<uintptr_t>(constantPool));
+         djnicRecord->setCpIndex(reloTarget, symRef->getCPIndex());
+         djnicRecord->setOffsetToReloLocation(reloTarget, static_cast<uint8_t>(offsetToReloLocation));
+         }
+         break;
+
       case TR_StaticRamMethodConst:
       case TR_SpecialRamMethodConst:
       case TR_VirtualRamMethodConst:
@@ -314,7 +425,7 @@ J9::AheadOfTimeCompile::initializeCommonAOTRelocationHeader(TR::IteratedExternal
          if (comp->getOption(TR_UseSymbolValidationManager))
             {
             TR_OpaqueClassBlock *classOfMethod = reinterpret_cast<TR_OpaqueClassBlock *>(recordInfo->data5);
-            uint16_t classID = symValManager->getIDFromSymbol(static_cast<void *>(classOfMethod));
+            uint16_t classID = symValManager->getSymbolIDFromValue(static_cast<void *>(classOfMethod));
             allocRecord->setCpIndex(reloTarget, static_cast<uintptr_t>(classID));
             }
          else
@@ -343,7 +454,7 @@ J9::AheadOfTimeCompile::initializeCommonAOTRelocationHeader(TR::IteratedExternal
          if (comp->getOption(TR_UseSymbolValidationManager))
             {
             TR_OpaqueClassBlock *classOfMethod = reinterpret_cast<TR_OpaqueClassBlock *>(recordInfo->data5);
-            uint16_t classID = symValManager->getIDFromSymbol(static_cast<void *>(classOfMethod));
+            uint16_t classID = symValManager->getSymbolIDFromValue(static_cast<void *>(classOfMethod));
             allocRecord->setCpIndex(reloTarget, static_cast<uintptr_t>(classID));
             }
          else
@@ -357,13 +468,14 @@ J9::AheadOfTimeCompile::initializeCommonAOTRelocationHeader(TR::IteratedExternal
          {
          TR_RelocationRecordValidateInstanceField *fieldRecord = reinterpret_cast<TR_RelocationRecordValidateInstanceField *>(reloRecord);
          uintptr_t inlinedSiteIndex = reinterpret_cast<uintptr_t>(relocation->getTargetAddress());
-         TR::AOTClassInfo *aotCI = reinterpret_cast<TR::AOTClassInfo*>(relocation->getTargetAddress2());
+         TR::AOTClassInfo *aotCI = reinterpret_cast<TR::AOTClassInfo *>(relocation->getTargetAddress2());
          uintptr_t classChainOffsetInSharedCache = self()->offsetInSharedCacheFromPointer(sharedCache, aotCI->_classChain);
 
          fieldRecord->setInlinedSiteIndex(reloTarget, inlinedSiteIndex);
          fieldRecord->setConstantPool(reloTarget, reinterpret_cast<uintptr_t>(aotCI->_constantPool));
          fieldRecord->setCpIndex(reloTarget, static_cast<uintptr_t>(aotCI->_cpIndex));
-         fieldRecord->setClassChainOffsetInSharedCache(reloTarget, classChainOffsetInSharedCache);
+         fieldRecord->setClassChainOffsetInSharedCache(reloTarget, classChainOffsetInSharedCache,
+                                                       self(), aotCI->getAOTCacheClassChainRecord());
          }
          break;
 
@@ -415,8 +527,8 @@ J9::AheadOfTimeCompile::initializeCommonAOTRelocationHeader(TR::IteratedExternal
          if (comp->getOption(TR_UseSymbolValidationManager))
             {
             TR_OpaqueMethodBlock *method = resolvedMethod->getPersistentIdentifier();
-            uint16_t methodID = symValManager->getIDFromSymbol(static_cast<void *>(method));
-            uint16_t receiverClassID = symValManager->getIDFromSymbol(static_cast<void *>(thisClass));
+            uint16_t methodID = symValManager->getSymbolIDFromValue(static_cast<void *>(method));
+            uint16_t receiverClassID = symValManager->getSymbolIDFromValue(static_cast<void *>(thisClass));
 
             cpIndexOrData = (((uintptr_t)receiverClassID << 16) | (uintptr_t)methodID);
             }
@@ -433,7 +545,7 @@ J9::AheadOfTimeCompile::initializeCommonAOTRelocationHeader(TR::IteratedExternal
          imRecord->setInlinedSiteIndex(reloTarget, inlinedSiteIndex);
          imRecord->setConstantPool(reloTarget, reinterpret_cast<uintptr_t>(callSymRef->getOwningMethod(comp)->constantPool()));
          imRecord->setCpIndex(reloTarget, cpIndexOrData);
-         imRecord->setRomClassOffsetInSharedCache(reloTarget, romClassOffsetInSharedCache);
+         imRecord->setRomClassOffsetInSharedCache(reloTarget, romClassOffsetInSharedCache, self(), inlinedMethodClass);
 
          if (kind != TR_InlinedInterfaceMethod
              && kind != TR_InlinedVirtualMethod
@@ -451,7 +563,7 @@ J9::AheadOfTimeCompile::initializeCommonAOTRelocationHeader(TR::IteratedExternal
          TR_RelocationRecordValidateStaticField *vsfRecord = reinterpret_cast<TR_RelocationRecordValidateStaticField *>(reloRecord);
 
          uintptr_t inlinedSiteIndex = reinterpret_cast<uintptr_t>(relocation->getTargetAddress());
-         TR::AOTClassInfo *aotCI = reinterpret_cast<TR::AOTClassInfo*>(relocation->getTargetAddress2());
+         TR::AOTClassInfo *aotCI = reinterpret_cast<TR::AOTClassInfo *>(relocation->getTargetAddress2());
 
          J9ROMClass *romClass = reinterpret_cast<J9ROMClass *>(fej9->getPersistentClassPointerFromClassPointer(aotCI->_clazz));
          uintptr_t romClassOffsetInSharedCache = self()->offsetInSharedCacheFromROMClass(sharedCache, romClass);
@@ -459,7 +571,8 @@ J9::AheadOfTimeCompile::initializeCommonAOTRelocationHeader(TR::IteratedExternal
          vsfRecord->setInlinedSiteIndex(reloTarget, inlinedSiteIndex);
          vsfRecord->setConstantPool(reloTarget, reinterpret_cast<uintptr_t>(aotCI->_constantPool));
          vsfRecord->setCpIndex(reloTarget, aotCI->_cpIndex);
-         vsfRecord->setRomClassOffsetInSharedCache(reloTarget, romClassOffsetInSharedCache);
+         vsfRecord->setRomClassOffsetInSharedCache(reloTarget, romClassOffsetInSharedCache,
+                                                   self(), aotCI->getAOTCacheClassChainRecord());
          }
          break;
 
@@ -468,14 +581,15 @@ J9::AheadOfTimeCompile::initializeCommonAOTRelocationHeader(TR::IteratedExternal
          TR_RelocationRecordValidateClass *vcRecord = reinterpret_cast<TR_RelocationRecordValidateClass *>(reloRecord);
 
          uintptr_t inlinedSiteIndex = reinterpret_cast<uintptr_t>(relocation->getTargetAddress());
-         TR::AOTClassInfo *aotCI = reinterpret_cast<TR::AOTClassInfo*>(relocation->getTargetAddress2());
+         TR::AOTClassInfo *aotCI = reinterpret_cast<TR::AOTClassInfo *>(relocation->getTargetAddress2());
 
          uintptr_t classChainOffsetInSharedCache = self()->offsetInSharedCacheFromPointer(sharedCache, aotCI->_classChain);
 
          vcRecord->setInlinedSiteIndex(reloTarget, inlinedSiteIndex);
          vcRecord->setConstantPool(reloTarget, reinterpret_cast<uintptr_t>(aotCI->_constantPool));
          vcRecord->setCpIndex(reloTarget, aotCI->_cpIndex);
-         vcRecord->setClassChainOffsetInSharedCache(reloTarget, classChainOffsetInSharedCache);
+         vcRecord->setClassChainOffsetInSharedCache(reloTarget, classChainOffsetInSharedCache,
+                                                    self(), aotCI->getAOTCacheClassChainRecord());
          }
          break;
 
@@ -499,9 +613,10 @@ J9::AheadOfTimeCompile::initializeCommonAOTRelocationHeader(TR::IteratedExternal
          uintptr_t romClassOffsetInSharedCache = self()->offsetInSharedCacheFromROMClass(sharedCache, romClass);
          traceMsg(comp, "class is %p, romclass is %p, offset is %llu\n", inlinedCodeClass, romClass, romClassOffsetInSharedCache);
 
-         uintptr_t classChainIdentifyingLoaderOffsetInSharedCache = sharedCache->getClassChainOffsetOfIdentifyingLoaderForClazzInSharedCache(inlinedCodeClass);
+         uintptr_t classChainIdentifyingLoaderOffsetInSharedCache = sharedCache->getClassChainOffsetIdentifyingLoader(inlinedCodeClass);
 
-         uintptr_t classChainOffsetInSharedCache = self()->getClassChainOffset(inlinedCodeClass);
+         const AOTCacheClassChainRecord *classChainRecord = NULL;
+         uintptr_t classChainOffsetInSharedCache = self()->getClassChainOffset(inlinedCodeClass, classChainRecord);
 
          uintptr_t methodIndex = fej9->getMethodIndexInClass(inlinedCodeClass, inlinedMethod->getNonPersistentIdentifier());
 
@@ -509,7 +624,7 @@ J9::AheadOfTimeCompile::initializeCommonAOTRelocationHeader(TR::IteratedExternal
          uintptr_t cpIndexOrData = 0;
          if (comp->getOption(TR_UseSymbolValidationManager))
             {
-            uint16_t inlinedCodeClassID = symValManager->getIDFromSymbol(static_cast<void *>(inlinedCodeClass));
+            uint16_t inlinedCodeClassID = symValManager->getSymbolIDFromValue(static_cast<void *>(inlinedCodeClass));
             cpIndexOrData = static_cast<uintptr_t>(inlinedCodeClassID);
             }
          else
@@ -520,9 +635,10 @@ J9::AheadOfTimeCompile::initializeCommonAOTRelocationHeader(TR::IteratedExternal
          pRecord->setInlinedSiteIndex(reloTarget, inlinedSiteIndex);
          pRecord->setConstantPool(reloTarget, reinterpret_cast<uintptr_t>(owningMethod->constantPool()));
          pRecord->setCpIndex(reloTarget, cpIndexOrData);
-         pRecord->setRomClassOffsetInSharedCache(reloTarget, romClassOffsetInSharedCache);
-         pRecord->setClassChainIdentifyingLoaderOffsetInSharedCache(reloTarget, classChainIdentifyingLoaderOffsetInSharedCache);
-         pRecord->setClassChainForInlinedMethod(reloTarget, classChainOffsetInSharedCache);
+         pRecord->setRomClassOffsetInSharedCache(reloTarget, romClassOffsetInSharedCache, self(), classChainRecord);
+         pRecord->setClassChainIdentifyingLoaderOffsetInSharedCache(reloTarget, classChainIdentifyingLoaderOffsetInSharedCache,
+                                                                    self(), classChainRecord);
+         pRecord->setClassChainForInlinedMethod(reloTarget, classChainOffsetInSharedCache, self(), classChainRecord);
          pRecord->setMethodIndex(reloTarget, methodIndex);
          }
          break;
@@ -540,14 +656,17 @@ J9::AheadOfTimeCompile::initializeCommonAOTRelocationHeader(TR::IteratedExternal
 
          TR_OpaqueClassBlock *j9class = fej9->getClassFromMethodBlock(j9method);
 
-         uintptr_t classChainOffsetOfCLInSharedCache = sharedCache->getClassChainOffsetOfIdentifyingLoaderForClazzInSharedCache(j9class);
-         uintptr_t classChainForInlinedMethodOffsetInSharedCache = self()->getClassChainOffset(j9class);
+         uintptr_t classChainOffsetOfCLInSharedCache = sharedCache->getClassChainOffsetIdentifyingLoader(j9class);
+         const AOTCacheClassChainRecord *classChainRecord = NULL;
+         uintptr_t classChainForInlinedMethodOffsetInSharedCache = self()->getClassChainOffset(j9class, classChainRecord);
 
          uintptr_t vTableOffset = static_cast<uintptr_t>(fej9->getInterpreterVTableSlot(j9method, j9class));
 
          mpRecord->setInlinedSiteIndex(reloTarget, inlinedSiteIndex);
-         mpRecord->setClassChainForInlinedMethod(reloTarget, classChainForInlinedMethodOffsetInSharedCache);
-         mpRecord->setClassChainIdentifyingLoaderOffsetInSharedCache(reloTarget, classChainOffsetOfCLInSharedCache);
+         mpRecord->setClassChainForInlinedMethod(reloTarget, classChainForInlinedMethodOffsetInSharedCache,
+                                                 self(), classChainRecord);
+         mpRecord->setClassChainIdentifyingLoaderOffsetInSharedCache(reloTarget, classChainOffsetOfCLInSharedCache,
+                                                                     self(), classChainRecord);
          mpRecord->setVTableSlot(reloTarget, vTableOffset);
          }
          break;
@@ -580,12 +699,15 @@ J9::AheadOfTimeCompile::initializeCommonAOTRelocationHeader(TR::IteratedExternal
                j9class = reinterpret_cast<TR_OpaqueClassBlock *>(aconstNode->getAddress());
             }
 
-         uintptr_t classChainOffsetOfCLInSharedCache = sharedCache->getClassChainOffsetOfIdentifyingLoaderForClazzInSharedCache(j9class);
-         uintptr_t classChainForInlinedMethodOffsetInSharedCache = self()->getClassChainOffset(j9class);
+         uintptr_t classChainOffsetOfCLInSharedCache = sharedCache->getClassChainOffsetIdentifyingLoader(j9class);
+         const AOTCacheClassChainRecord *classChainRecord = NULL;
+         uintptr_t classChainForInlinedMethodOffsetInSharedCache = self()->getClassChainOffset(j9class, classChainRecord);
 
          cpRecord->setInlinedSiteIndex(reloTarget, inlinedSiteIndex);
-         cpRecord->setClassChainForInlinedMethod(reloTarget, classChainForInlinedMethodOffsetInSharedCache);
-         cpRecord->setClassChainIdentifyingLoaderOffsetInSharedCache(reloTarget, classChainOffsetOfCLInSharedCache);
+         cpRecord->setClassChainForInlinedMethod(reloTarget, classChainForInlinedMethodOffsetInSharedCache,
+                                                 self(), classChainRecord);
+         cpRecord->setClassChainIdentifyingLoaderOffsetInSharedCache(reloTarget, classChainOffsetOfCLInSharedCache,
+                                                                     self(), classChainRecord);
          }
          break;
 
@@ -593,16 +715,18 @@ J9::AheadOfTimeCompile::initializeCommonAOTRelocationHeader(TR::IteratedExternal
          {
          TR_RelocationRecordValidateArbitraryClass *vacRecord = reinterpret_cast<TR_RelocationRecordValidateArbitraryClass *>(reloRecord);
 
-         TR::AOTClassInfo *aotCI = reinterpret_cast<TR::AOTClassInfo*>(relocation->getTargetAddress2());
+         TR::AOTClassInfo *aotCI = reinterpret_cast<TR::AOTClassInfo *>(relocation->getTargetAddress2());
          TR_OpaqueClassBlock *classToValidate = aotCI->_clazz;
 
-         uintptr_t classChainOffsetInSharedCacheForCL = sharedCache->getClassChainOffsetOfIdentifyingLoaderForClazzInSharedCache(classToValidate);
+         uintptr_t classChainOffsetInSharedCacheForCL = sharedCache->getClassChainOffsetIdentifyingLoader(classToValidate);
 
          void *classChainForClassToValidate = aotCI->_classChain;
          uintptr_t classChainOffsetInSharedCache = self()->offsetInSharedCacheFromPointer(sharedCache, classChainForClassToValidate);
 
-         vacRecord->setClassChainIdentifyingLoaderOffset(reloTarget, classChainOffsetInSharedCacheForCL);
-         vacRecord->setClassChainOffsetForClassBeingValidated(reloTarget, classChainOffsetInSharedCache);
+         vacRecord->setClassChainIdentifyingLoaderOffset(reloTarget, classChainOffsetInSharedCacheForCL,
+                                                         self(), aotCI->getAOTCacheClassChainRecord());
+         vacRecord->setClassChainOffsetForClassBeingValidated(reloTarget, classChainOffsetInSharedCache,
+                                                              self(), aotCI->getAOTCacheClassChainRecord());
          }
          break;
 
@@ -626,9 +750,10 @@ J9::AheadOfTimeCompile::initializeCommonAOTRelocationHeader(TR::IteratedExternal
 
          uintptr_t classChainOffsetInSharedCache = self()->offsetInSharedCacheFromPointer(sharedCache, svmRecord->_classChain);
 
-         cbnRecord->setClassID(reloTarget, symValManager->getIDFromSymbol(svmRecord->_class));
-         cbnRecord->setBeholderID(reloTarget, symValManager->getIDFromSymbol(svmRecord->_beholder));
-         cbnRecord->setClassChainOffset(reloTarget, classChainOffsetInSharedCache);
+         cbnRecord->setClassID(reloTarget, symValManager->getSymbolIDFromValue(svmRecord->_class));
+         cbnRecord->setBeholderID(reloTarget, symValManager->getSymbolIDFromValue(svmRecord->_beholder));
+         cbnRecord->setClassChainOffset(reloTarget, classChainOffsetInSharedCache,
+                                        self(), svmRecord->getAOTCacheClassChainRecord());
          }
          break;
 
@@ -641,15 +766,17 @@ J9::AheadOfTimeCompile::initializeCommonAOTRelocationHeader(TR::IteratedExternal
          TR_OpaqueClassBlock *classToValidate = svmRecord->_class;
          void *classChainForClassToValidate = svmRecord->_classChain;
 
-         //store the classchain's offset for the classloader for the class
-         uintptr_t classChainOffsetInSharedCacheForCL = sharedCache->getClassChainOffsetOfIdentifyingLoaderForClazzInSharedCache(classToValidate);
+         //store the ClassChain's offset for the classloader for the class
+         uintptr_t classChainOffsetInSharedCacheForCL = sharedCache->getClassChainOffsetIdentifyingLoader(classToValidate);
 
-         //store the classchain's offset for the class that needs to be validated in the second run
+         //store the ClassChain's offset for the class that needs to be validated in the second run
          uintptr_t classChainOffsetInSharedCache = self()->offsetInSharedCacheFromPointer(sharedCache, classChainForClassToValidate);
 
-         pcRecord->setClassID(reloTarget, symValManager->getIDFromSymbol(classToValidate));
-         pcRecord->setClassChainOffset(reloTarget, classChainOffsetInSharedCache);
-         pcRecord->setClassChainOffsetForClassLoader(reloTarget, classChainOffsetInSharedCacheForCL);
+         pcRecord->setClassID(reloTarget, symValManager->getSymbolIDFromValue(classToValidate));
+         pcRecord->setClassChainOffset(reloTarget, classChainOffsetInSharedCache,
+                                       self(), svmRecord->getAOTCacheClassChainRecord());
+         pcRecord->setClassChainOffsetForClassLoader(reloTarget, classChainOffsetInSharedCacheForCL,
+                                                     self(), svmRecord->getAOTCacheClassChainRecord());
          }
          break;
 
@@ -659,8 +786,8 @@ J9::AheadOfTimeCompile::initializeCommonAOTRelocationHeader(TR::IteratedExternal
 
          TR::ClassFromCPRecord *svmRecord = reinterpret_cast<TR::ClassFromCPRecord *>(relocation->getTargetAddress());
 
-         cpRecord->setClassID(reloTarget, symValManager->getIDFromSymbol(svmRecord->_class));
-         cpRecord->setBeholderID(reloTarget, symValManager->getIDFromSymbol(svmRecord->_beholder));
+         cpRecord->setClassID(reloTarget, symValManager->getSymbolIDFromValue(svmRecord->_class));
+         cpRecord->setBeholderID(reloTarget, symValManager->getSymbolIDFromValue(svmRecord->_beholder));
          cpRecord->setCpIndex(reloTarget, svmRecord->_cpIndex);
          }
          break;
@@ -672,8 +799,8 @@ J9::AheadOfTimeCompile::initializeCommonAOTRelocationHeader(TR::IteratedExternal
          TR::DefiningClassFromCPRecord *svmRecord = reinterpret_cast<TR::DefiningClassFromCPRecord *>(relocation->getTargetAddress());
 
          dcpRecord->setIsStatic(reloTarget, svmRecord->_isStatic);
-         dcpRecord->setClassID(reloTarget, symValManager->getIDFromSymbol(svmRecord->_class));
-         dcpRecord->setBeholderID(reloTarget, symValManager->getIDFromSymbol(svmRecord->_beholder));
+         dcpRecord->setClassID(reloTarget, symValManager->getSymbolIDFromValue(svmRecord->_class));
+         dcpRecord->setBeholderID(reloTarget, symValManager->getSymbolIDFromValue(svmRecord->_beholder));
          dcpRecord->setCpIndex(reloTarget, svmRecord->_cpIndex);
          }
          break;
@@ -684,8 +811,8 @@ J9::AheadOfTimeCompile::initializeCommonAOTRelocationHeader(TR::IteratedExternal
 
          TR::StaticClassFromCPRecord *svmRecord = reinterpret_cast<TR::StaticClassFromCPRecord *>(relocation->getTargetAddress());
 
-         scpRecord->setClassID(reloTarget, symValManager->getIDFromSymbol(svmRecord->_class));
-         scpRecord->setBeholderID(reloTarget, symValManager->getIDFromSymbol(svmRecord->_beholder));
+         scpRecord->setClassID(reloTarget, symValManager->getSymbolIDFromValue(svmRecord->_class));
+         scpRecord->setBeholderID(reloTarget, symValManager->getSymbolIDFromValue(svmRecord->_beholder));
          scpRecord->setCpIndex(reloTarget, svmRecord->_cpIndex);
          }
          break;
@@ -696,8 +823,8 @@ J9::AheadOfTimeCompile::initializeCommonAOTRelocationHeader(TR::IteratedExternal
 
          TR::ArrayClassFromComponentClassRecord *svmRecord = reinterpret_cast<TR::ArrayClassFromComponentClassRecord *>(relocation->getTargetAddress());
 
-         acRecord->setArrayClassID(reloTarget, symValManager->getIDFromSymbol(svmRecord->_arrayClass));
-         acRecord->setComponentClassID(reloTarget, symValManager->getIDFromSymbol(svmRecord->_componentClass));
+         acRecord->setArrayClassID(reloTarget, symValManager->getSymbolIDFromValue(svmRecord->_arrayClass));
+         acRecord->setComponentClassID(reloTarget, symValManager->getSymbolIDFromValue(svmRecord->_componentClass));
          }
          break;
 
@@ -707,8 +834,8 @@ J9::AheadOfTimeCompile::initializeCommonAOTRelocationHeader(TR::IteratedExternal
 
          TR::SuperClassFromClassRecord *svmRecord = reinterpret_cast<TR::SuperClassFromClassRecord *>(relocation->getTargetAddress());
 
-         scRecord->setSuperClassID(reloTarget, symValManager->getIDFromSymbol(svmRecord->_superClass));
-         scRecord->setChildClassID(reloTarget, symValManager->getIDFromSymbol(svmRecord->_childClass));
+         scRecord->setSuperClassID(reloTarget, symValManager->getSymbolIDFromValue(svmRecord->_superClass));
+         scRecord->setChildClassID(reloTarget, symValManager->getSymbolIDFromValue(svmRecord->_childClass));
          }
          break;
 
@@ -721,8 +848,8 @@ J9::AheadOfTimeCompile::initializeCommonAOTRelocationHeader(TR::IteratedExternal
          cicRecord->setObjectTypeIsFixed(reloTarget, svmRecord->_objectTypeIsFixed);
          cicRecord->setCastTypeIsFixed(reloTarget, svmRecord->_castTypeIsFixed);
          cicRecord->setIsInstanceOf(reloTarget, svmRecord->_isInstanceOf);
-         cicRecord->setClassOneID(reloTarget, symValManager->getIDFromSymbol(svmRecord->_classOne));
-         cicRecord->setClassTwoID(reloTarget, symValManager->getIDFromSymbol(svmRecord->_classTwo));
+         cicRecord->setClassOneID(reloTarget, symValManager->getSymbolIDFromValue(svmRecord->_classOne));
+         cicRecord->setClassTwoID(reloTarget, symValManager->getSymbolIDFromValue(svmRecord->_classTwo));
          }
          break;
 
@@ -739,8 +866,9 @@ J9::AheadOfTimeCompile::initializeCommonAOTRelocationHeader(TR::IteratedExternal
          // this record eliminates the need for a separate class chain validation.
          uintptr_t classChainOffsetInSharedCache = self()->offsetInSharedCacheFromPointer(sharedCache, classChainForClassToValidate);
 
-         scmRecord->setSystemClassID(reloTarget, symValManager->getIDFromSymbol(classToValidate));
-         scmRecord->setClassChainOffset(reloTarget, classChainOffsetInSharedCache);
+         scmRecord->setSystemClassID(reloTarget, symValManager->getSymbolIDFromValue(classToValidate));
+         scmRecord->setClassChainOffset(reloTarget, classChainOffsetInSharedCache,
+                                        self(), svmRecord->getAOTCacheClassChainRecord());
          }
          break;
 
@@ -750,8 +878,8 @@ J9::AheadOfTimeCompile::initializeCommonAOTRelocationHeader(TR::IteratedExternal
 
          TR::ClassFromITableIndexCPRecord *svmRecord = reinterpret_cast<TR::ClassFromITableIndexCPRecord *>(relocation->getTargetAddress());
 
-         cfitRecord->setClassID(reloTarget, symValManager->getIDFromSymbol(svmRecord->_class));
-         cfitRecord->setBeholderID(reloTarget, symValManager->getIDFromSymbol(svmRecord->_beholder));
+         cfitRecord->setClassID(reloTarget, symValManager->getSymbolIDFromValue(svmRecord->_class));
+         cfitRecord->setBeholderID(reloTarget, symValManager->getSymbolIDFromValue(svmRecord->_beholder));
          cfitRecord->setCpIndex(reloTarget, svmRecord->_cpIndex);
          }
          break;
@@ -762,8 +890,8 @@ J9::AheadOfTimeCompile::initializeCommonAOTRelocationHeader(TR::IteratedExternal
 
          TR::DeclaringClassFromFieldOrStaticRecord *svmRecord = reinterpret_cast<TR::DeclaringClassFromFieldOrStaticRecord *>(relocation->getTargetAddress());
 
-         dcfsRecord->setClassID(reloTarget, symValManager->getIDFromSymbol(svmRecord->_class));
-         dcfsRecord->setBeholderID(reloTarget, symValManager->getIDFromSymbol(svmRecord->_beholder));
+         dcfsRecord->setClassID(reloTarget, symValManager->getSymbolIDFromValue(svmRecord->_class));
+         dcfsRecord->setBeholderID(reloTarget, symValManager->getSymbolIDFromValue(svmRecord->_beholder));
          dcfsRecord->setCpIndex(reloTarget, svmRecord->_cpIndex);
          }
          break;
@@ -774,8 +902,8 @@ J9::AheadOfTimeCompile::initializeCommonAOTRelocationHeader(TR::IteratedExternal
 
          TR::ConcreteSubClassFromClassRecord *svmRecord = reinterpret_cast<TR::ConcreteSubClassFromClassRecord *>(relocation->getTargetAddress());
 
-         csccRecord->setSuperClassID(reloTarget, symValManager->getIDFromSymbol(svmRecord->_superClass));
-         csccRecord->setChildClassID(reloTarget, symValManager->getIDFromSymbol(svmRecord->_childClass));
+         csccRecord->setSuperClassID(reloTarget, symValManager->getSymbolIDFromValue(svmRecord->_superClass));
+         csccRecord->setChildClassID(reloTarget, symValManager->getSymbolIDFromValue(svmRecord->_childClass));
          }
          break;
 
@@ -792,8 +920,9 @@ J9::AheadOfTimeCompile::initializeCommonAOTRelocationHeader(TR::IteratedExternal
          // this record eliminates the need for a separate class chain validation.
          uintptr_t classChainOffsetInSharedCache = self()->offsetInSharedCacheFromPointer(sharedCache, classChainForClassToValidate);
 
-         ccRecord->setClassID(reloTarget, symValManager->getIDFromSymbol(classToValidate));
-         ccRecord->setClassChainOffset(reloTarget, classChainOffsetInSharedCache);
+         ccRecord->setClassID(reloTarget, symValManager->getSymbolIDFromValue(classToValidate));
+         ccRecord->setClassChainOffset(reloTarget, classChainOffsetInSharedCache,
+                                       self(), svmRecord->getAOTCacheClassChainRecord());
          }
          break;
 
@@ -803,8 +932,8 @@ J9::AheadOfTimeCompile::initializeCommonAOTRelocationHeader(TR::IteratedExternal
 
          TR::MethodFromClassRecord *svmRecord = reinterpret_cast<TR::MethodFromClassRecord *>(relocation->getTargetAddress());
 
-         mfcRecord->setMethodID(reloTarget, symValManager->getIDFromSymbol(svmRecord->_method));
-         mfcRecord->setBeholderID(reloTarget, symValManager->getIDFromSymbol(svmRecord->_beholder));
+         mfcRecord->setMethodID(reloTarget, symValManager->getSymbolIDFromValue(svmRecord->_method));
+         mfcRecord->setBeholderID(reloTarget, symValManager->getSymbolIDFromValue(svmRecord->_beholder));
          mfcRecord->setIndex(reloTarget, svmRecord->_index);
          }
          break;
@@ -822,9 +951,9 @@ J9::AheadOfTimeCompile::initializeCommonAOTRelocationHeader(TR::IteratedExternal
          if ((svmRecord->_cpIndex & J9_STATIC_SPLIT_TABLE_INDEX_FLAG) != 0)
             smfcpRecord->setReloFlags(reloTarget, TR_VALIDATE_STATIC_OR_SPECIAL_METHOD_FROM_CP_IS_SPLIT);
 
-         smfcpRecord->setMethodID(reloTarget, symValManager->getIDFromSymbol(svmRecord->_method));
-         smfcpRecord->setDefiningClassID(reloTarget, symValManager->getIDFromSymbol(svmRecord->_definingClass));
-         smfcpRecord->setBeholderID(reloTarget, symValManager->getIDFromSymbol(svmRecord->_beholder));
+         smfcpRecord->setMethodID(reloTarget, symValManager->getSymbolIDFromValue(svmRecord->_method));
+         smfcpRecord->setDefiningClassID(reloTarget, symValManager->getSymbolIDFromValue(svmRecord->_definingClass));
+         smfcpRecord->setBeholderID(reloTarget, symValManager->getSymbolIDFromValue(svmRecord->_beholder));
          smfcpRecord->setCpIndex(reloTarget, static_cast<uint16_t>(svmRecord->_cpIndex & J9_SPLIT_TABLE_INDEX_MASK));
          }
          break;
@@ -842,9 +971,9 @@ J9::AheadOfTimeCompile::initializeCommonAOTRelocationHeader(TR::IteratedExternal
          if ((svmRecord->_cpIndex & J9_SPECIAL_SPLIT_TABLE_INDEX_FLAG) != 0)
             smfcpRecord->setReloFlags(reloTarget, TR_VALIDATE_STATIC_OR_SPECIAL_METHOD_FROM_CP_IS_SPLIT);
 
-         smfcpRecord->setMethodID(reloTarget, symValManager->getIDFromSymbol(svmRecord->_method));
-         smfcpRecord->setDefiningClassID(reloTarget, symValManager->getIDFromSymbol(svmRecord->_definingClass));
-         smfcpRecord->setBeholderID(reloTarget, symValManager->getIDFromSymbol(svmRecord->_beholder));
+         smfcpRecord->setMethodID(reloTarget, symValManager->getSymbolIDFromValue(svmRecord->_method));
+         smfcpRecord->setDefiningClassID(reloTarget, symValManager->getSymbolIDFromValue(svmRecord->_definingClass));
+         smfcpRecord->setBeholderID(reloTarget, symValManager->getSymbolIDFromValue(svmRecord->_beholder));
          smfcpRecord->setCpIndex(reloTarget, static_cast<uint16_t>(svmRecord->_cpIndex & J9_SPLIT_TABLE_INDEX_MASK));
          }
          break;
@@ -855,9 +984,9 @@ J9::AheadOfTimeCompile::initializeCommonAOTRelocationHeader(TR::IteratedExternal
 
          TR::VirtualMethodFromCPRecord *svmRecord = reinterpret_cast<TR::VirtualMethodFromCPRecord *>(relocation->getTargetAddress());
 
-         vmfcpRecord->setMethodID(reloTarget, symValManager->getIDFromSymbol(svmRecord->_method));
-         vmfcpRecord->setDefiningClassID(reloTarget, symValManager->getIDFromSymbol(svmRecord->_definingClass));
-         vmfcpRecord->setBeholderID(reloTarget, symValManager->getIDFromSymbol(svmRecord->_beholder));
+         vmfcpRecord->setMethodID(reloTarget, symValManager->getSymbolIDFromValue(svmRecord->_method));
+         vmfcpRecord->setDefiningClassID(reloTarget, symValManager->getSymbolIDFromValue(svmRecord->_definingClass));
+         vmfcpRecord->setBeholderID(reloTarget, symValManager->getSymbolIDFromValue(svmRecord->_beholder));
          vmfcpRecord->setCpIndex(reloTarget, static_cast<uint16_t>(svmRecord->_cpIndex));
          }
          break;
@@ -876,9 +1005,9 @@ J9::AheadOfTimeCompile::initializeCommonAOTRelocationHeader(TR::IteratedExternal
          uint16_t ignoreRtResolve = static_cast<uint16_t>(svmRecord->_ignoreRtResolve);
          uint16_t virtualCallOffset = static_cast<uint16_t>(svmRecord->_virtualCallOffset);
 
-         vmfoRecord->setMethodID(reloTarget, symValManager->getIDFromSymbol(svmRecord->_method));
-         vmfoRecord->setDefiningClassID(reloTarget, symValManager->getIDFromSymbol(svmRecord->_definingClass));
-         vmfoRecord->setBeholderID(reloTarget, symValManager->getIDFromSymbol(svmRecord->_beholder));
+         vmfoRecord->setMethodID(reloTarget, symValManager->getSymbolIDFromValue(svmRecord->_method));
+         vmfoRecord->setDefiningClassID(reloTarget, symValManager->getSymbolIDFromValue(svmRecord->_definingClass));
+         vmfoRecord->setBeholderID(reloTarget, symValManager->getSymbolIDFromValue(svmRecord->_beholder));
          vmfoRecord->setVirtualCallOffsetAndIgnoreRtResolve(reloTarget, (virtualCallOffset | ignoreRtResolve));
          }
          break;
@@ -889,10 +1018,10 @@ J9::AheadOfTimeCompile::initializeCommonAOTRelocationHeader(TR::IteratedExternal
 
          TR::InterfaceMethodFromCPRecord *svmRecord = reinterpret_cast<TR::InterfaceMethodFromCPRecord *>(relocation->getTargetAddress());
 
-         imfcpRecord->setMethodID(reloTarget, symValManager->getIDFromSymbol(svmRecord->_method));
-         imfcpRecord->setDefiningClassID(reloTarget, symValManager->getIDFromSymbol(svmRecord->_definingClass));
-         imfcpRecord->setBeholderID(reloTarget, symValManager->getIDFromSymbol(svmRecord->_beholder));
-         imfcpRecord->setLookupID(reloTarget, symValManager->getIDFromSymbol(svmRecord->_lookup));
+         imfcpRecord->setMethodID(reloTarget, symValManager->getSymbolIDFromValue(svmRecord->_method));
+         imfcpRecord->setDefiningClassID(reloTarget, symValManager->getSymbolIDFromValue(svmRecord->_definingClass));
+         imfcpRecord->setBeholderID(reloTarget, symValManager->getSymbolIDFromValue(svmRecord->_beholder));
+         imfcpRecord->setLookupID(reloTarget, symValManager->getSymbolIDFromValue(svmRecord->_lookup));
          imfcpRecord->setCpIndex(reloTarget, static_cast<uint16_t>(svmRecord->_cpIndex));
          }
          break;
@@ -903,9 +1032,9 @@ J9::AheadOfTimeCompile::initializeCommonAOTRelocationHeader(TR::IteratedExternal
 
          TR::ImproperInterfaceMethodFromCPRecord *svmRecord = reinterpret_cast<TR::ImproperInterfaceMethodFromCPRecord *>(relocation->getTargetAddress());
 
-         iimfcpRecord->setMethodID(reloTarget, symValManager->getIDFromSymbol(svmRecord->_method));
-         iimfcpRecord->setDefiningClassID(reloTarget, symValManager->getIDFromSymbol(svmRecord->_definingClass));
-         iimfcpRecord->setBeholderID(reloTarget, symValManager->getIDFromSymbol(svmRecord->_beholder));
+         iimfcpRecord->setMethodID(reloTarget, symValManager->getSymbolIDFromValue(svmRecord->_method));
+         iimfcpRecord->setDefiningClassID(reloTarget, symValManager->getSymbolIDFromValue(svmRecord->_definingClass));
+         iimfcpRecord->setBeholderID(reloTarget, symValManager->getSymbolIDFromValue(svmRecord->_beholder));
          iimfcpRecord->setCpIndex(reloTarget, static_cast<uint16_t>(svmRecord->_cpIndex));
          }
          break;
@@ -921,11 +1050,12 @@ J9::AheadOfTimeCompile::initializeCommonAOTRelocationHeader(TR::IteratedExternal
          J9ROMMethod *romMethod = static_cast<TR_J9VM *>(fej9)->getROMMethodFromRAMMethod(methodToValidate);
          uintptr_t romMethodOffsetInSharedCache = self()->offsetInSharedCacheFromROMMethod(sharedCache, romMethod);
 
-         mfcsRecord->setMethodID(reloTarget, symValManager->getIDFromSymbol(svmRecord->_method));
-         mfcsRecord->setDefiningClassID(reloTarget, symValManager->getIDFromSymbol(svmRecord->_definingClass));
-         mfcsRecord->setBeholderID(reloTarget, symValManager->getIDFromSymbol(svmRecord->_beholder));
-         mfcsRecord->setLookupClassID(reloTarget, symValManager->getIDFromSymbol(svmRecord->_lookupClass));
-         mfcsRecord->setRomMethodOffsetInSCC(reloTarget, romMethodOffsetInSharedCache);
+         mfcsRecord->setMethodID(reloTarget, symValManager->getSymbolIDFromValue(svmRecord->_method));
+         mfcsRecord->setDefiningClassID(reloTarget, symValManager->getSymbolIDFromValue(svmRecord->_definingClass));
+         mfcsRecord->setBeholderID(reloTarget, symValManager->getSymbolIDFromValue(svmRecord->_beholder));
+         mfcsRecord->setLookupClassID(reloTarget, symValManager->getSymbolIDFromValue(svmRecord->_lookupClass));
+         mfcsRecord->setRomMethodOffsetInSCC(reloTarget, romMethodOffsetInSharedCache, self(),
+                                             methodToValidate, svmRecord->_definingClass);
          }
          break;
 
@@ -935,8 +1065,8 @@ J9::AheadOfTimeCompile::initializeCommonAOTRelocationHeader(TR::IteratedExternal
 
          TR::StackWalkerMaySkipFramesRecord *svmRecord = reinterpret_cast<TR::StackWalkerMaySkipFramesRecord *>(relocation->getTargetAddress());
 
-         swmsfRecord->setMethodID(reloTarget, symValManager->getIDFromSymbol(svmRecord->_method));
-         swmsfRecord->setMethodClassID(reloTarget, symValManager->getIDFromSymbol(svmRecord->_methodClass));
+         swmsfRecord->setMethodID(reloTarget, symValManager->getSymbolIDFromValue(svmRecord->_method));
+         swmsfRecord->setMethodClassID(reloTarget, symValManager->getSymbolIDFromValue(svmRecord->_methodClass));
          swmsfRecord->setSkipFrames(reloTarget, svmRecord->_skipFrames);
          }
          break;
@@ -947,7 +1077,7 @@ J9::AheadOfTimeCompile::initializeCommonAOTRelocationHeader(TR::IteratedExternal
 
          TR::ClassInfoIsInitialized *svmRecord = reinterpret_cast<TR::ClassInfoIsInitialized *>(relocation->getTargetAddress());
 
-         ciiiRecord->setClassID(reloTarget, symValManager->getIDFromSymbol(svmRecord->_class));
+         ciiiRecord->setClassID(reloTarget, symValManager->getSymbolIDFromValue(svmRecord->_class));
          ciiiRecord->setIsInitialized(reloTarget, svmRecord->_isInitialized);
          }
          break;
@@ -958,11 +1088,11 @@ J9::AheadOfTimeCompile::initializeCommonAOTRelocationHeader(TR::IteratedExternal
 
          TR::MethodFromSingleImplementer *svmRecord = reinterpret_cast<TR::MethodFromSingleImplementer *>(relocation->getTargetAddress());
 
-         mfsiRecord->setMethodID(reloTarget, symValManager->getIDFromSymbol(svmRecord->_method));
-         mfsiRecord->setDefiningClassID(reloTarget, symValManager->getIDFromSymbol(svmRecord->_definingClass));
-         mfsiRecord->setThisClassID(reloTarget, symValManager->getIDFromSymbol(svmRecord->_thisClass));
+         mfsiRecord->setMethodID(reloTarget, symValManager->getSymbolIDFromValue(svmRecord->_method));
+         mfsiRecord->setDefiningClassID(reloTarget, symValManager->getSymbolIDFromValue(svmRecord->_definingClass));
+         mfsiRecord->setThisClassID(reloTarget, symValManager->getSymbolIDFromValue(svmRecord->_thisClass));
          mfsiRecord->setCpIndexOrVftSlot(reloTarget, svmRecord->_cpIndexOrVftSlot);
-         mfsiRecord->setCallerMethodID(reloTarget, symValManager->getIDFromSymbol(svmRecord->_callerMethod));
+         mfsiRecord->setCallerMethodID(reloTarget, symValManager->getSymbolIDFromValue(svmRecord->_callerMethod));
          mfsiRecord->setUseGetResolvedInterfaceMethod(reloTarget, svmRecord->_useGetResolvedInterfaceMethod);
          }
          break;
@@ -973,10 +1103,10 @@ J9::AheadOfTimeCompile::initializeCommonAOTRelocationHeader(TR::IteratedExternal
 
          TR::MethodFromSingleInterfaceImplementer *svmRecord = reinterpret_cast<TR::MethodFromSingleInterfaceImplementer *>(relocation->getTargetAddress());
 
-         mfsiiRecord->setMethodID(reloTarget, symValManager->getIDFromSymbol(svmRecord->_method));
-         mfsiiRecord->setDefiningClassID(reloTarget, symValManager->getIDFromSymbol(svmRecord->_definingClass));
-         mfsiiRecord->setThisClassID(reloTarget, symValManager->getIDFromSymbol(svmRecord->_thisClass));
-         mfsiiRecord->setCallerMethodID(reloTarget, symValManager->getIDFromSymbol(svmRecord->_callerMethod));
+         mfsiiRecord->setMethodID(reloTarget, symValManager->getSymbolIDFromValue(svmRecord->_method));
+         mfsiiRecord->setDefiningClassID(reloTarget, symValManager->getSymbolIDFromValue(svmRecord->_definingClass));
+         mfsiiRecord->setThisClassID(reloTarget, symValManager->getSymbolIDFromValue(svmRecord->_thisClass));
+         mfsiiRecord->setCallerMethodID(reloTarget, symValManager->getSymbolIDFromValue(svmRecord->_callerMethod));
          mfsiiRecord->setCpIndex(reloTarget, static_cast<uint16_t>(svmRecord->_cpIndex));
          }
          break;
@@ -987,10 +1117,10 @@ J9::AheadOfTimeCompile::initializeCommonAOTRelocationHeader(TR::IteratedExternal
 
          TR::MethodFromSingleAbstractImplementer *svmRecord = reinterpret_cast<TR::MethodFromSingleAbstractImplementer *>(relocation->getTargetAddress());
 
-         mfsaiRecord->setMethodID(reloTarget, symValManager->getIDFromSymbol(svmRecord->_method));
-         mfsaiRecord->setDefiningClassID(reloTarget, symValManager->getIDFromSymbol(svmRecord->_definingClass));
-         mfsaiRecord->setThisClassID(reloTarget, symValManager->getIDFromSymbol(svmRecord->_thisClass));
-         mfsaiRecord->setCallerMethodID(reloTarget, symValManager->getIDFromSymbol(svmRecord->_callerMethod));
+         mfsaiRecord->setMethodID(reloTarget, symValManager->getSymbolIDFromValue(svmRecord->_method));
+         mfsaiRecord->setDefiningClassID(reloTarget, symValManager->getSymbolIDFromValue(svmRecord->_definingClass));
+         mfsaiRecord->setThisClassID(reloTarget, symValManager->getSymbolIDFromValue(svmRecord->_thisClass));
+         mfsaiRecord->setCallerMethodID(reloTarget, symValManager->getSymbolIDFromValue(svmRecord->_callerMethod));
          mfsaiRecord->setVftSlot(reloTarget, svmRecord->_vftSlot);
          }
          break;
@@ -1000,7 +1130,7 @@ J9::AheadOfTimeCompile::initializeCommonAOTRelocationHeader(TR::IteratedExternal
          TR_RelocationRecordSymbolFromManager *sfmRecord = reinterpret_cast<TR_RelocationRecordSymbolFromManager *>(reloRecord);
 
          uint8_t *symbol = relocation->getTargetAddress();
-         uint16_t symbolID = comp->getSymbolValidationManager()->getIDFromSymbol(static_cast<void *>(symbol));
+         uint16_t symbolID = comp->getSymbolValidationManager()->getSymbolIDFromValue(static_cast<void *>(symbol));
 
          uint16_t symbolType = (uint16_t)(uintptr_t)relocation->getTargetAddress2();
 
@@ -1014,7 +1144,7 @@ J9::AheadOfTimeCompile::initializeCommonAOTRelocationHeader(TR::IteratedExternal
          TR_RelocationRecordResolvedTrampolines *rtRecord = reinterpret_cast<TR_RelocationRecordResolvedTrampolines *>(reloRecord);
 
          uint8_t *symbol = relocation->getTargetAddress();
-         uint16_t symbolID = comp->getSymbolValidationManager()->getIDFromSymbol(static_cast<void *>(symbol));
+         uint16_t symbolID = comp->getSymbolValidationManager()->getSymbolIDFromValue(static_cast<void *>(symbol));
 
          rtRecord->setSymbolID(reloTarget, symbolID);
          }
@@ -1074,12 +1204,14 @@ J9::AheadOfTimeCompile::initializeCommonAOTRelocationHeader(TR::IteratedExternal
          void *constantPool = symRef->getOwningMethod(comp)->constantPool();
          inlinedSiteIndex = self()->findCorrectInlinedSiteIndex(constantPool, inlinedSiteIndex);
 
-         uintptr_t classChainIdentifyingLoaderOffsetInSharedCache = sharedCache->getClassChainOffsetOfIdentifyingLoaderForClazzInSharedCache(j9class);
-         uintptr_t classChainOffsetInSharedCache = self()->getClassChainOffset(j9class);
+         uintptr_t classChainIdentifyingLoaderOffsetInSharedCache = sharedCache->getClassChainOffsetIdentifyingLoader(j9class);
+         const AOTCacheClassChainRecord *classChainRecord = NULL;
+         uintptr_t classChainOffsetInSharedCache = self()->getClassChainOffset(j9class, classChainRecord);
 
          acaRecord->setInlinedSiteIndex(reloTarget, inlinedSiteIndex);
-         acaRecord->setClassChainIdentifyingLoaderOffsetInSharedCache(reloTarget, classChainIdentifyingLoaderOffsetInSharedCache);
-         acaRecord->setClassChainForInlinedMethod(reloTarget, classChainOffsetInSharedCache);
+         acaRecord->setClassChainIdentifyingLoaderOffsetInSharedCache(reloTarget, classChainIdentifyingLoaderOffsetInSharedCache,
+                                                                      self(), classChainRecord);
+         acaRecord->setClassChainForInlinedMethod(reloTarget, classChainOffsetInSharedCache, self(), classChainRecord);
          }
          break;
 
@@ -1159,6 +1291,15 @@ J9::AheadOfTimeCompile::initializeCommonAOTRelocationHeader(TR::IteratedExternal
 
          bpgRecord->setInlinedSiteIndex(reloTarget, inlinedSiteIndex);
          bpgRecord->setDestinationAddress(reloTarget, destinationAddress);
+         }
+         break;
+
+      case TR_ValidateJ2IThunkFromMethod:
+         {
+         auto *thunkRecord = reinterpret_cast<TR_RelocationRecordValidateJ2IThunkFromMethod *>(reloRecord);
+         auto *svmRecord = reinterpret_cast<TR::J2IThunkFromMethodRecord *>(relocation->getTargetAddress());
+         thunkRecord->setThunkID(reloTarget, symValManager->getSymbolIDFromValue(svmRecord->_thunk));
+         thunkRecord->setMethodID(reloTarget, symValManager->getSymbolIDFromValue(svmRecord->_method));
          }
          break;
 
@@ -1266,7 +1407,7 @@ J9::AheadOfTimeCompile::dumpRelocationHeaderData(uint8_t *cursor, bool isVerbose
          {
          TR_RelocationRecordMethodCallAddress *mcaRecord = reinterpret_cast<TR_RelocationRecordMethodCallAddress *>(reloRecord);
          traceMsg(self()->comp(), "\n Method Call Address: address=" POINTER_PRINTF_FORMAT, mcaRecord->address(reloTarget));
-         self()->traceRelocationOffsets(cursor, offsetSize, endOfCurrentRecord, orderedPair);
+         self()->traceRelocationOffsets(startOfOffsets, offsetSize, endOfCurrentRecord, orderedPair);
          }
          break;
 
@@ -1277,7 +1418,7 @@ J9::AheadOfTimeCompile::dumpRelocationHeaderData(uint8_t *cursor, bool isVerbose
          uint32_t helperID = ahaRecord->helperID(reloTarget);
 
          traceMsg(self()->comp(), "%-6d", helperID);
-         self()->traceRelocationOffsets(cursor, offsetSize, endOfCurrentRecord, orderedPair);
+         self()->traceRelocationOffsets(startOfOffsets, offsetSize, endOfCurrentRecord, orderedPair);
          if (isVerbose)
             {
             TR::SymbolReference *symRef = self()->comp()->getSymRefTab()->getSymRef(helperID);
@@ -1289,13 +1430,29 @@ J9::AheadOfTimeCompile::dumpRelocationHeaderData(uint8_t *cursor, bool isVerbose
       case TR_JNIVirtualTargetAddress:
       case TR_JNIStaticTargetAddress:
       case TR_JNISpecialTargetAddress:
+         {
+         TR_RelocationRecordDirectJNICall *djnicRecord = reinterpret_cast<TR_RelocationRecordDirectJNICall *>(reloRecord);
+
+         self()->traceRelocationOffsets(startOfOffsets, offsetSize, endOfCurrentRecord, orderedPair);
+         if (isVerbose)
+            {
+            traceMsg(self()->comp(), "\n Direct to JNI Relocation (%s): inlinedIndex = %d, constantPool = %p, CPI = %d, offsetToReloLocation = %d",
+                                     getNameForMethodRelocation(kind),
+                                     djnicRecord->inlinedSiteIndex(reloTarget),
+                                     djnicRecord->constantPool(reloTarget),
+                                     djnicRecord->cpIndex(reloTarget),
+                                     djnicRecord->offsetToReloLocation(reloTarget));
+            }
+         }
+         break;
+
       case TR_StaticRamMethodConst:
       case TR_SpecialRamMethodConst:
       case TR_VirtualRamMethodConst:
          {
          TR_RelocationRecordConstantPoolWithIndex *cpiRecord = reinterpret_cast<TR_RelocationRecordConstantPoolWithIndex *>(reloRecord);
 
-         self()->traceRelocationOffsets(cursor, offsetSize, endOfCurrentRecord, orderedPair);
+         self()->traceRelocationOffsets(startOfOffsets, offsetSize, endOfCurrentRecord, orderedPair);
          if (isVerbose)
             {
             traceMsg(self()->comp(), "\n Address Relocation (%s): inlinedIndex = %d, constantPool = %p, CPI = %d",
@@ -1311,7 +1468,7 @@ J9::AheadOfTimeCompile::dumpRelocationHeaderData(uint8_t *cursor, bool isVerbose
          {
          TR_RelocationRecordConstantPoolWithIndex *cpiRecord = reinterpret_cast<TR_RelocationRecordConstantPoolWithIndex *>(reloRecord);
 
-         self()->traceRelocationOffsets(cursor, offsetSize, endOfCurrentRecord, orderedPair);
+         self()->traceRelocationOffsets(startOfOffsets, offsetSize, endOfCurrentRecord, orderedPair);
          if (isVerbose)
             {
             traceMsg(self()->comp(), "\n Address Relocation (TR_ClassAddress): inlinedIndex = %d, constantPool = %p, CPI = %d, flags = %x",
@@ -1328,7 +1485,7 @@ J9::AheadOfTimeCompile::dumpRelocationHeaderData(uint8_t *cursor, bool isVerbose
          {
          TR_RelocationRecordMethodTracingCheck *mtRecord = reinterpret_cast<TR_RelocationRecordMethodTracingCheck *>(reloRecord);
 
-         self()->traceRelocationOffsets(cursor, offsetSize, endOfCurrentRecord, orderedPair);
+         self()->traceRelocationOffsets(startOfOffsets, offsetSize, endOfCurrentRecord, orderedPair);
          if (isVerbose)
             {
             traceMsg(self()->comp(), "\nDestination address %x", mtRecord->destinationAddress(reloTarget));
@@ -1340,7 +1497,7 @@ J9::AheadOfTimeCompile::dumpRelocationHeaderData(uint8_t *cursor, bool isVerbose
          {
          TR_RelocationRecordVerifyClassObjectForAlloc *allocRecord = reinterpret_cast<TR_RelocationRecordVerifyClassObjectForAlloc *>(reloRecord);
 
-         self()->traceRelocationOffsets(cursor, offsetSize, endOfCurrentRecord, orderedPair);
+         self()->traceRelocationOffsets(startOfOffsets, offsetSize, endOfCurrentRecord, orderedPair);
          if (isVerbose)
             {
             traceMsg(self()->comp(), "\nVerify Class Object for Allocation: InlineCallSite index = %d, Constant pool = %x, index = %d, binaryEncode = %x, size = %d",
@@ -1357,7 +1514,7 @@ J9::AheadOfTimeCompile::dumpRelocationHeaderData(uint8_t *cursor, bool isVerbose
          {
          TR_RelocationRecordVerifyRefArrayForAlloc *allocRecord = reinterpret_cast<TR_RelocationRecordVerifyRefArrayForAlloc *>(reloRecord);
 
-         self()->traceRelocationOffsets(cursor, offsetSize, endOfCurrentRecord, orderedPair);
+         self()->traceRelocationOffsets(startOfOffsets, offsetSize, endOfCurrentRecord, orderedPair);
          if (isVerbose)
             {
             traceMsg(self()->comp(), "\nVerify Class Object for Allocation: InlineCallSite index = %d, Constant pool = %x, index = %d, binaryEncode = %x",
@@ -1373,7 +1530,7 @@ J9::AheadOfTimeCompile::dumpRelocationHeaderData(uint8_t *cursor, bool isVerbose
          {
          TR_RelocationRecordValidateInstanceField *fieldRecord = reinterpret_cast<TR_RelocationRecordValidateInstanceField *>(reloRecord);
 
-         self()->traceRelocationOffsets(cursor, offsetSize, endOfCurrentRecord, orderedPair);
+         self()->traceRelocationOffsets(startOfOffsets, offsetSize, endOfCurrentRecord, orderedPair);
          if (isVerbose)
             {
             traceMsg(self()->comp(), "\nValidation Relocation: InlineCallSite index = %d, Constant pool = %x, cpIndex = %d, Class Chain offset = %x",
@@ -1393,7 +1550,7 @@ J9::AheadOfTimeCompile::dumpRelocationHeaderData(uint8_t *cursor, bool isVerbose
          {
          TR_RelocationRecordNopGuard *inlinedMethod = reinterpret_cast<TR_RelocationRecordNopGuard *>(reloRecord);
 
-         self()->traceRelocationOffsets(cursor, offsetSize, endOfCurrentRecord, orderedPair);
+         self()->traceRelocationOffsets(startOfOffsets, offsetSize, endOfCurrentRecord, orderedPair);
          if (isVerbose)
             {
             traceMsg(self()->comp(), "\nInlined Method: Inlined site index = %d, Constant pool = %x, cpIndex = %x, romClassOffsetInSharedCache=%p, destinationAddress = %p",
@@ -1410,7 +1567,7 @@ J9::AheadOfTimeCompile::dumpRelocationHeaderData(uint8_t *cursor, bool isVerbose
          {
          TR_RelocationRecordValidateStaticField *vsfRecord = reinterpret_cast<TR_RelocationRecordValidateStaticField *>(reloRecord);
 
-         self()->traceRelocationOffsets(cursor, offsetSize, endOfCurrentRecord, orderedPair);
+         self()->traceRelocationOffsets(startOfOffsets, offsetSize, endOfCurrentRecord, orderedPair);
          if (isVerbose)
             {
             traceMsg(self()->comp(), "\nValidation Relocation: InlineCallSite index = %d, Constant pool = %x, cpIndex = %d, ROM Class offset = %x",
@@ -1426,7 +1583,7 @@ J9::AheadOfTimeCompile::dumpRelocationHeaderData(uint8_t *cursor, bool isVerbose
          {
          TR_RelocationRecordValidateClass *vcRecord = reinterpret_cast<TR_RelocationRecordValidateClass *>(reloRecord);
 
-         self()->traceRelocationOffsets(cursor, offsetSize, endOfCurrentRecord, orderedPair);
+         self()->traceRelocationOffsets(startOfOffsets, offsetSize, endOfCurrentRecord, orderedPair);
          if (isVerbose)
             {
             traceMsg(self()->comp(), "\nValidation Relocation: InlineCallSite index = %d, Constant pool = %x, cpIndex = %d, Class Chain offset = %x",
@@ -1444,7 +1601,7 @@ J9::AheadOfTimeCompile::dumpRelocationHeaderData(uint8_t *cursor, bool isVerbose
          {
          TR_RelocationRecordProfiledInlinedMethod *pRecord = reinterpret_cast<TR_RelocationRecordProfiledInlinedMethod *>(reloRecord);
 
-         self()->traceRelocationOffsets(cursor, offsetSize, endOfCurrentRecord, orderedPair);
+         self()->traceRelocationOffsets(startOfOffsets, offsetSize, endOfCurrentRecord, orderedPair);
          if (isVerbose)
             {
             traceMsg(self()->comp(), "\nProfiled Class Guard: Inlined site index = %d, Constant pool = %x, cpIndex = %x, romClassOffsetInSharedCache=%p, classChainIdentifyingLoaderOffsetInSharedCache=%p, classChainForInlinedMethod %p, methodIndex %d",
@@ -1462,7 +1619,7 @@ J9::AheadOfTimeCompile::dumpRelocationHeaderData(uint8_t *cursor, bool isVerbose
          {
          TR_RelocationRecordMethodPointer *mpRecord = reinterpret_cast<TR_RelocationRecordMethodPointer *>(reloRecord);
 
-         self()->traceRelocationOffsets(cursor, offsetSize, endOfCurrentRecord, orderedPair);
+         self()->traceRelocationOffsets(startOfOffsets, offsetSize, endOfCurrentRecord, orderedPair);
          if (isVerbose)
             {
             traceMsg(self()->comp(), "\nMethod Pointer: Inlined site index = %d, classChainIdentifyingLoaderOffsetInSharedCache=%p, classChainForInlinedMethod %p, vTableOffset %x",
@@ -1478,7 +1635,7 @@ J9::AheadOfTimeCompile::dumpRelocationHeaderData(uint8_t *cursor, bool isVerbose
          {
          TR_RelocationRecordInlinedMethodPointer *impRecord = reinterpret_cast<TR_RelocationRecordInlinedMethodPointer *>(reloRecord);
 
-         self()->traceRelocationOffsets(cursor, offsetSize, endOfCurrentRecord, orderedPair);
+         self()->traceRelocationOffsets(startOfOffsets, offsetSize, endOfCurrentRecord, orderedPair);
          if (isVerbose)
             {
             traceMsg(self()->comp(), "\nInlined Method Pointer: Inlined site index = %d", impRecord->inlinedSiteIndex(reloTarget));
@@ -1491,7 +1648,7 @@ J9::AheadOfTimeCompile::dumpRelocationHeaderData(uint8_t *cursor, bool isVerbose
          {
          TR_RelocationRecordClassPointer *cpRecord = reinterpret_cast<TR_RelocationRecordClassPointer *>(reloRecord);
 
-         self()->traceRelocationOffsets(cursor, offsetSize, endOfCurrentRecord, orderedPair);
+         self()->traceRelocationOffsets(startOfOffsets, offsetSize, endOfCurrentRecord, orderedPair);
          if (isVerbose)
             {
             traceMsg(self()->comp(), "\nClass Pointer: Inlined site index = %d, classChainIdentifyingLoaderOffsetInSharedCache=%p, classChainForInlinedMethod %p",
@@ -1506,7 +1663,7 @@ J9::AheadOfTimeCompile::dumpRelocationHeaderData(uint8_t *cursor, bool isVerbose
          {
          TR_RelocationRecordValidateArbitraryClass *vacRecord = reinterpret_cast<TR_RelocationRecordValidateArbitraryClass *>(reloRecord);
 
-         self()->traceRelocationOffsets(cursor, offsetSize, endOfCurrentRecord, orderedPair);
+         self()->traceRelocationOffsets(startOfOffsets, offsetSize, endOfCurrentRecord, orderedPair);
          if (isVerbose)
             {
             traceMsg(self()->comp(), "\nValidateArbitraryClass Relocation: classChainOffsetForClassToValidate = %p, classChainIdentifyingClassLoader = %p",
@@ -1521,7 +1678,7 @@ J9::AheadOfTimeCompile::dumpRelocationHeaderData(uint8_t *cursor, bool isVerbose
          {
          TR_RelocationRecordInlinedMethod *imRecord = reinterpret_cast<TR_RelocationRecordInlinedMethod *>(reloRecord);
 
-         self()->traceRelocationOffsets(cursor, offsetSize, endOfCurrentRecord, orderedPair);
+         self()->traceRelocationOffsets(startOfOffsets, offsetSize, endOfCurrentRecord, orderedPair);
          if (isVerbose)
             {
             traceMsg(self()->comp(), "\n Removed Guard inlined method: Inlined site index = %d, Constant pool = %x, cpIndex = %x, romClassOffsetInSharedCache=%p",
@@ -1537,7 +1694,7 @@ J9::AheadOfTimeCompile::dumpRelocationHeaderData(uint8_t *cursor, bool isVerbose
          {
          TR_RelocationRecordJ2IVirtualThunkPointer *vtpRecord = reinterpret_cast<TR_RelocationRecordJ2IVirtualThunkPointer *>(reloRecord);
 
-         self()->traceRelocationOffsets(cursor, offsetSize, endOfCurrentRecord, orderedPair);
+         self()->traceRelocationOffsets(startOfOffsets, offsetSize, endOfCurrentRecord, orderedPair);
          if (isVerbose)
             {
             traceMsg(self()->comp(), "\nInlined site index %lld, constant pool 0x%llx, offset to j2i thunk pointer 0x%llx",
@@ -1545,14 +1702,14 @@ J9::AheadOfTimeCompile::dumpRelocationHeaderData(uint8_t *cursor, bool isVerbose
                                      vtpRecord->constantPool(reloTarget),
                                      vtpRecord->getOffsetToJ2IVirtualThunkPointer(reloTarget));
             }
-         } 
+         }
          break;
 
       case TR_ValidateClassByName:
          {
          TR_RelocationRecordValidateClassByName *cbnRecord = reinterpret_cast<TR_RelocationRecordValidateClassByName *>(reloRecord);
 
-         self()->traceRelocationOffsets(cursor, offsetSize, endOfCurrentRecord, orderedPair);
+         self()->traceRelocationOffsets(startOfOffsets, offsetSize, endOfCurrentRecord, orderedPair);
          if (isVerbose)
             {
             traceMsg(self()->comp(), "\n Validate Class By Name: classID=%d beholderID=%d classChainOffsetInSCC=%p ",
@@ -1567,7 +1724,7 @@ J9::AheadOfTimeCompile::dumpRelocationHeaderData(uint8_t *cursor, bool isVerbose
          {
          TR_RelocationRecordValidateProfiledClass *pcRecord = reinterpret_cast<TR_RelocationRecordValidateProfiledClass *>(reloRecord);
 
-         self()->traceRelocationOffsets(cursor, offsetSize, endOfCurrentRecord, orderedPair);
+         self()->traceRelocationOffsets(startOfOffsets, offsetSize, endOfCurrentRecord, orderedPair);
          if (isVerbose)
             {
             traceMsg(self()->comp(), "\n Validate Profiled Class: classID=%d classChainOffsetInSCC=%p classChainOffsetForCLInScc=%p ",
@@ -1585,7 +1742,7 @@ J9::AheadOfTimeCompile::dumpRelocationHeaderData(uint8_t *cursor, bool isVerbose
          {
          TR_RelocationRecordValidateClassFromCP *cpRecord = reinterpret_cast<TR_RelocationRecordValidateClassFromCP *>(reloRecord);
 
-         self()->traceRelocationOffsets(cursor, offsetSize, endOfCurrentRecord, orderedPair);
+         self()->traceRelocationOffsets(startOfOffsets, offsetSize, endOfCurrentRecord, orderedPair);
          if (isVerbose)
             {
             const char *recordType;
@@ -1613,7 +1770,7 @@ J9::AheadOfTimeCompile::dumpRelocationHeaderData(uint8_t *cursor, bool isVerbose
          {
          TR_RelocationRecordValidateDefiningClassFromCP *dcpRecord = reinterpret_cast<TR_RelocationRecordValidateDefiningClassFromCP *>(reloRecord);
 
-         self()->traceRelocationOffsets(cursor, offsetSize, endOfCurrentRecord, orderedPair);
+         self()->traceRelocationOffsets(startOfOffsets, offsetSize, endOfCurrentRecord, orderedPair);
          if (isVerbose)
             {
             traceMsg(self()->comp(), "\n Validate Defining Class From CP: classID=%d, beholderID=%d, cpIndex=%d, isStatic=%s ",
@@ -1629,7 +1786,7 @@ J9::AheadOfTimeCompile::dumpRelocationHeaderData(uint8_t *cursor, bool isVerbose
          {
          TR_RelocationRecordValidateArrayClassFromComponentClass *acRecord = reinterpret_cast<TR_RelocationRecordValidateArrayClassFromComponentClass *>(reloRecord);
 
-         self()->traceRelocationOffsets(cursor, offsetSize, endOfCurrentRecord, orderedPair);
+         self()->traceRelocationOffsets(startOfOffsets, offsetSize, endOfCurrentRecord, orderedPair);
          if (isVerbose)
             {
             traceMsg(self()->comp(), "\n Validate Array Class From Component: arrayClassID=%d, componentClassID=%d ",
@@ -1644,7 +1801,7 @@ J9::AheadOfTimeCompile::dumpRelocationHeaderData(uint8_t *cursor, bool isVerbose
          {
          TR_RelocationRecordValidateSuperClassFromClass *scRecord = reinterpret_cast<TR_RelocationRecordValidateSuperClassFromClass *>(reloRecord);
 
-         self()->traceRelocationOffsets(cursor, offsetSize, endOfCurrentRecord, orderedPair);
+         self()->traceRelocationOffsets(startOfOffsets, offsetSize, endOfCurrentRecord, orderedPair);
          if (isVerbose)
             {
             const char *recordType;
@@ -1667,7 +1824,7 @@ J9::AheadOfTimeCompile::dumpRelocationHeaderData(uint8_t *cursor, bool isVerbose
          {
          TR_RelocationRecordValidateClassInstanceOfClass *cicRecord = reinterpret_cast<TR_RelocationRecordValidateClassInstanceOfClass *>(reloRecord);
 
-         self()->traceRelocationOffsets(cursor, offsetSize, endOfCurrentRecord, orderedPair);
+         self()->traceRelocationOffsets(startOfOffsets, offsetSize, endOfCurrentRecord, orderedPair);
          if(isVerbose)
             {
             traceMsg(self()->comp(), "\n Validate Class InstanceOf Class: classOneID=%d, classTwoID=%d, objectTypeIsFixed=%s, castTypeIsFixed=%s, isInstanceOf=%s ",
@@ -1684,7 +1841,7 @@ J9::AheadOfTimeCompile::dumpRelocationHeaderData(uint8_t *cursor, bool isVerbose
          {
          TR_RelocationRecordValidateSystemClassByName *scmRecord = reinterpret_cast<TR_RelocationRecordValidateSystemClassByName *>(reloRecord);
 
-         self()->traceRelocationOffsets(cursor, offsetSize, endOfCurrentRecord, orderedPair);
+         self()->traceRelocationOffsets(startOfOffsets, offsetSize, endOfCurrentRecord, orderedPair);
          if (isVerbose)
             {
             traceMsg(self()->comp(), "\n Validate System Class By Name: systemClassID=%d classChainOffsetInSCC=%p ",
@@ -1698,7 +1855,7 @@ J9::AheadOfTimeCompile::dumpRelocationHeaderData(uint8_t *cursor, bool isVerbose
          {
          TR_RelocationRecordValidateClassChain *ccRecord = reinterpret_cast<TR_RelocationRecordValidateClassChain *>(reloRecord);
 
-         self()->traceRelocationOffsets(cursor, offsetSize, endOfCurrentRecord, orderedPair);
+         self()->traceRelocationOffsets(startOfOffsets, offsetSize, endOfCurrentRecord, orderedPair);
          if (isVerbose)
             {
             traceMsg(self()->comp(), "\n Validate Class Chain: classID=%d classChainOffsetInSCC=%p ",
@@ -1712,7 +1869,7 @@ J9::AheadOfTimeCompile::dumpRelocationHeaderData(uint8_t *cursor, bool isVerbose
          {
          TR_RelocationRecordValidateMethodFromClass *mfcRecord = reinterpret_cast<TR_RelocationRecordValidateMethodFromClass *>(reloRecord);
 
-         self()->traceRelocationOffsets(cursor, offsetSize, endOfCurrentRecord, orderedPair);
+         self()->traceRelocationOffsets(startOfOffsets, offsetSize, endOfCurrentRecord, orderedPair);
          if (isVerbose)
             {
             traceMsg(self()->comp(), "\n Validate Method By Name: methodID=%d, beholderID=%d, index=%d ",
@@ -1730,7 +1887,7 @@ J9::AheadOfTimeCompile::dumpRelocationHeaderData(uint8_t *cursor, bool isVerbose
          {
          TR_RelocationRecordValidateMethodFromCP *mfcpRecord = reinterpret_cast<TR_RelocationRecordValidateMethodFromCP *>(reloRecord);
 
-         self()->traceRelocationOffsets(cursor, offsetSize, endOfCurrentRecord, orderedPair);
+         self()->traceRelocationOffsets(startOfOffsets, offsetSize, endOfCurrentRecord, orderedPair);
          if (isVerbose)
             {
             const char *recordType;
@@ -1759,7 +1916,7 @@ J9::AheadOfTimeCompile::dumpRelocationHeaderData(uint8_t *cursor, bool isVerbose
          {
          TR_RelocationRecordValidateVirtualMethodFromOffset *vmfoRecord = reinterpret_cast<TR_RelocationRecordValidateVirtualMethodFromOffset *>(reloRecord);
 
-         self()->traceRelocationOffsets(cursor, offsetSize, endOfCurrentRecord, orderedPair);
+         self()->traceRelocationOffsets(startOfOffsets, offsetSize, endOfCurrentRecord, orderedPair);
          if (isVerbose)
             {
             traceMsg(self()->comp(), "\n Validate Virtual Method From Offset: methodID=%d, definingClassID=%d, beholderID=%d, virtualCallOffset=%d, ignoreRtResolve=%s ",
@@ -1776,7 +1933,7 @@ J9::AheadOfTimeCompile::dumpRelocationHeaderData(uint8_t *cursor, bool isVerbose
          {
          TR_RelocationRecordValidateInterfaceMethodFromCP *imfcpRecord = reinterpret_cast<TR_RelocationRecordValidateInterfaceMethodFromCP *>(reloRecord);
 
-         self()->traceRelocationOffsets(cursor, offsetSize, endOfCurrentRecord, orderedPair);
+         self()->traceRelocationOffsets(startOfOffsets, offsetSize, endOfCurrentRecord, orderedPair);
          if (isVerbose)
             {
             traceMsg(self()->comp(), "\n Validate Interface Method From CP: methodID=%d, definingClassID=%d, beholderID=%d, lookupID=%d, cpIndex=%d ",
@@ -1793,7 +1950,7 @@ J9::AheadOfTimeCompile::dumpRelocationHeaderData(uint8_t *cursor, bool isVerbose
          {
          TR_RelocationRecordValidateMethodFromClassAndSig *mfcsRecord = reinterpret_cast<TR_RelocationRecordValidateMethodFromClassAndSig *>(reloRecord);
 
-         self()->traceRelocationOffsets(cursor, offsetSize, endOfCurrentRecord, orderedPair);
+         self()->traceRelocationOffsets(startOfOffsets, offsetSize, endOfCurrentRecord, orderedPair);
          if (isVerbose)
             {
             traceMsg(self()->comp(), "\n Validate Method From Class and Sig: methodID=%d, definingClassID=%d, lookupClassID=%d, beholderID=%d, romMethodOffsetInSCC=%p ",
@@ -1810,10 +1967,10 @@ J9::AheadOfTimeCompile::dumpRelocationHeaderData(uint8_t *cursor, bool isVerbose
          {
          TR_RelocationRecordValidateStackWalkerMaySkipFrames *swmsfRecord = reinterpret_cast<TR_RelocationRecordValidateStackWalkerMaySkipFrames *>(reloRecord);
 
-         self()->traceRelocationOffsets(cursor, offsetSize, endOfCurrentRecord, orderedPair);
+         self()->traceRelocationOffsets(startOfOffsets, offsetSize, endOfCurrentRecord, orderedPair);
          if (isVerbose)
             {
-            traceMsg(self()->comp(), "\n Validate Stack Walker May Skip Frames: methodID=%d, methodClassID=%d, beholderID=%d, skipFrames=%s ",
+            traceMsg(self()->comp(), "\n Validate Stack Walker May Skip Frames: methodID=%d, methodClassID=%d, skipFrames=%s ",
                      (uint32_t)swmsfRecord->methodID(reloTarget),
                      (uint32_t)swmsfRecord->methodClassID(reloTarget),
                      swmsfRecord->skipFrames(reloTarget) ? "true" : "false");
@@ -1825,7 +1982,7 @@ J9::AheadOfTimeCompile::dumpRelocationHeaderData(uint8_t *cursor, bool isVerbose
          {
          TR_RelocationRecordValidateClassInfoIsInitialized *ciiiRecord = reinterpret_cast<TR_RelocationRecordValidateClassInfoIsInitialized *>(reloRecord);
 
-         self()->traceRelocationOffsets(cursor, offsetSize, endOfCurrentRecord, orderedPair);
+         self()->traceRelocationOffsets(startOfOffsets, offsetSize, endOfCurrentRecord, orderedPair);
          if (isVerbose)
             {
             traceMsg(self()->comp(), "\n Validate Class Info Is Initialized: classID=%d, isInitialized=%s ",
@@ -1839,10 +1996,10 @@ J9::AheadOfTimeCompile::dumpRelocationHeaderData(uint8_t *cursor, bool isVerbose
          {
          TR_RelocationRecordValidateMethodFromSingleImpl *mfsiRecord = reinterpret_cast<TR_RelocationRecordValidateMethodFromSingleImpl *>(reloRecord);
 
-         self()->traceRelocationOffsets(cursor, offsetSize, endOfCurrentRecord, orderedPair);
+         self()->traceRelocationOffsets(startOfOffsets, offsetSize, endOfCurrentRecord, orderedPair);
          if (isVerbose)
             {
-            traceMsg(self()->comp(), "\n Validate Method From Single Implementor: methodID=%d, definingClassID=%d, thisClassID=%d, cpIndexOrVftSlot=%d, callerMethodID=%d, useGetResolvedInterfaceMethod=%d ",
+            traceMsg(self()->comp(), "\n Validate Method From Single Implementer: methodID=%d, definingClassID=%d, thisClassID=%d, cpIndexOrVftSlot=%d, callerMethodID=%d, useGetResolvedInterfaceMethod=%d ",
                      (uint32_t)mfsiRecord->methodID(reloTarget),
                      (uint32_t)mfsiRecord->definingClassID(reloTarget),
                      (uint32_t)mfsiRecord->thisClassID(reloTarget),
@@ -1857,10 +2014,10 @@ J9::AheadOfTimeCompile::dumpRelocationHeaderData(uint8_t *cursor, bool isVerbose
          {
          TR_RelocationRecordValidateMethodFromSingleInterfaceImpl *mfsiiRecord = reinterpret_cast<TR_RelocationRecordValidateMethodFromSingleInterfaceImpl *>(reloRecord);
 
-         self()->traceRelocationOffsets(cursor, offsetSize, endOfCurrentRecord, orderedPair);
+         self()->traceRelocationOffsets(startOfOffsets, offsetSize, endOfCurrentRecord, orderedPair);
          if (isVerbose)
             {
-            traceMsg(self()->comp(), "\n Validate Method From Single Interface Implementor: methodID=%u, definingClassID=%u, thisClassID=%u, cpIndex=%u, callerMethodID=%u ",
+            traceMsg(self()->comp(), "\n Validate Method From Single Interface Implementer: methodID=%u, definingClassID=%u, thisClassID=%u, cpIndex=%u, callerMethodID=%u ",
                      (uint32_t)mfsiiRecord->methodID(reloTarget),
                      (uint32_t)mfsiiRecord->definingClassID(reloTarget),
                      (uint32_t)mfsiiRecord->thisClassID(reloTarget),
@@ -1874,10 +2031,10 @@ J9::AheadOfTimeCompile::dumpRelocationHeaderData(uint8_t *cursor, bool isVerbose
          {
          TR_RelocationRecordValidateMethodFromSingleAbstractImpl *mfsaiRecord = reinterpret_cast<TR_RelocationRecordValidateMethodFromSingleAbstractImpl *>(reloRecord);
 
-         self()->traceRelocationOffsets(cursor, offsetSize, endOfCurrentRecord, orderedPair);
+         self()->traceRelocationOffsets(startOfOffsets, offsetSize, endOfCurrentRecord, orderedPair);
          if (isVerbose)
             {
-            traceMsg(self()->comp(), "\n Validate Method From Single Abstract Implementor: methodID=%d, definingClassID=%d, thisClassID=%d, vftSlot=%d, callerMethodID=%d ",
+            traceMsg(self()->comp(), "\n Validate Method From Single Abstract Implementer: methodID=%d, definingClassID=%d, thisClassID=%d, vftSlot=%d, callerMethodID=%d ",
                      (uint32_t)mfsaiRecord->methodID(reloTarget),
                      (uint32_t)mfsaiRecord->definingClassID(reloTarget),
                      (uint32_t)mfsaiRecord->thisClassID(reloTarget),
@@ -1892,7 +2049,7 @@ J9::AheadOfTimeCompile::dumpRelocationHeaderData(uint8_t *cursor, bool isVerbose
          {
          TR_RelocationRecordSymbolFromManager *sfmRecord = reinterpret_cast<TR_RelocationRecordSymbolFromManager *>(reloRecord);
 
-         self()->traceRelocationOffsets(cursor, offsetSize, endOfCurrentRecord, orderedPair);
+         self()->traceRelocationOffsets(startOfOffsets, offsetSize, endOfCurrentRecord, orderedPair);
          if (isVerbose)
             {
             traceMsg(self()->comp(), "\n %sSymbol From Manager: symbolID=%d symbolType=%d flags=%x",
@@ -1908,7 +2065,7 @@ J9::AheadOfTimeCompile::dumpRelocationHeaderData(uint8_t *cursor, bool isVerbose
          {
          TR_RelocationRecordResolvedTrampolines *rtRecord = reinterpret_cast<TR_RelocationRecordResolvedTrampolines *>(reloRecord);
 
-         self()->traceRelocationOffsets(cursor, offsetSize, endOfCurrentRecord, orderedPair);
+         self()->traceRelocationOffsets(startOfOffsets, offsetSize, endOfCurrentRecord, orderedPair);
          if (isVerbose)
             {
             traceMsg(self()->comp(), "\n Resolved Trampoline: symbolID=%u ",
@@ -1921,7 +2078,7 @@ J9::AheadOfTimeCompile::dumpRelocationHeaderData(uint8_t *cursor, bool isVerbose
          {
          TR_RelocationRecordDataAddress *daRecord = reinterpret_cast<TR_RelocationRecordDataAddress *>(reloRecord);
 
-         self()->traceRelocationOffsets(cursor, offsetSize, endOfCurrentRecord, orderedPair);
+         self()->traceRelocationOffsets(startOfOffsets, offsetSize, endOfCurrentRecord, orderedPair);
          if (isVerbose)
             {
             traceMsg(self()->comp(), "\nTR_DataAddress: InlinedCallSite index = %d, Constant pool = %x, cpIndex = %d, offset = %x, flags = %x",
@@ -1942,7 +2099,7 @@ J9::AheadOfTimeCompile::dumpRelocationHeaderData(uint8_t *cursor, bool isVerbose
          {
          TR_RelocationRecordWithOffset *rwoRecord = reinterpret_cast<TR_RelocationRecordWithOffset *>(reloRecord);
 
-         self()->traceRelocationOffsets(cursor, offsetSize, endOfCurrentRecord, orderedPair);
+         self()->traceRelocationOffsets(startOfOffsets, offsetSize, endOfCurrentRecord, orderedPair);
          if (isVerbose)
             {
             const char *recordType;
@@ -1968,7 +2125,7 @@ J9::AheadOfTimeCompile::dumpRelocationHeaderData(uint8_t *cursor, bool isVerbose
          {
          TR_RelocationRecordEmitClass *ecRecord = reinterpret_cast<TR_RelocationRecordEmitClass *>(reloRecord);
 
-         self()->traceRelocationOffsets(cursor, offsetSize, endOfCurrentRecord, orderedPair);
+         self()->traceRelocationOffsets(startOfOffsets, offsetSize, endOfCurrentRecord, orderedPair);
          if (isVerbose)
             {
             traceMsg(self()->comp(), "\nTR_EmitClass: InlinedCallSite index = %d, bcIndex = %d",
@@ -1982,7 +2139,7 @@ J9::AheadOfTimeCompile::dumpRelocationHeaderData(uint8_t *cursor, bool isVerbose
          {
          TR_RelocationRecordPicTrampolines *ptRecord = reinterpret_cast<TR_RelocationRecordPicTrampolines *>(reloRecord);
 
-         self()->traceRelocationOffsets(cursor, offsetSize, endOfCurrentRecord, orderedPair);
+         self()->traceRelocationOffsets(startOfOffsets, offsetSize, endOfCurrentRecord, orderedPair);
          if (isVerbose)
             {
             traceMsg(self()->comp(), "\nTR_PicTrampolines: num trampolines = %d", ptRecord->numTrampolines(reloTarget));
@@ -1994,7 +2151,7 @@ J9::AheadOfTimeCompile::dumpRelocationHeaderData(uint8_t *cursor, bool isVerbose
          {
          TR_RelocationRecordDebugCounter *dcRecord = reinterpret_cast<TR_RelocationRecordDebugCounter *>(reloRecord);
 
-         self()->traceRelocationOffsets(cursor, offsetSize, endOfCurrentRecord, orderedPair);
+         self()->traceRelocationOffsets(startOfOffsets, offsetSize, endOfCurrentRecord, orderedPair);
          if (isVerbose)
             {
             traceMsg(self()->comp(), "\n Debug Counter: Inlined site index = %d, bcIndex = %d, delta = %d, fidelity = %d, staticDelta = %d, offsetOfNameString = %p",
@@ -2012,7 +2169,7 @@ J9::AheadOfTimeCompile::dumpRelocationHeaderData(uint8_t *cursor, bool isVerbose
          {
          TR_RelocationRecordBlockFrequency *bfRecord = reinterpret_cast<TR_RelocationRecordBlockFrequency *>(reloRecord);
 
-         self()->traceRelocationOffsets(cursor, offsetSize, endOfCurrentRecord, orderedPair);
+         self()->traceRelocationOffsets(startOfOffsets, offsetSize, endOfCurrentRecord, orderedPair);
          if (isVerbose)
             {
             traceMsg(self()->comp(), "\n Frequency offset %lld", bfRecord->frequencyOffset(reloTarget));
@@ -2024,7 +2181,7 @@ J9::AheadOfTimeCompile::dumpRelocationHeaderData(uint8_t *cursor, bool isVerbose
          {
          TR_RelocationRecordBreakpointGuard *bpgRecord = reinterpret_cast<TR_RelocationRecordBreakpointGuard *>(reloRecord);
 
-         self()->traceRelocationOffsets(cursor, offsetSize, endOfCurrentRecord, orderedPair);
+         self()->traceRelocationOffsets(startOfOffsets, offsetSize, endOfCurrentRecord, orderedPair);
          if (isVerbose)
             {
             traceMsg(self()->comp(), "\n Breakpoint Guard: Inlined site index = %d, destinationAddress = %p",
@@ -2034,8 +2191,24 @@ J9::AheadOfTimeCompile::dumpRelocationHeaderData(uint8_t *cursor, bool isVerbose
          }
          break;
 
+      case TR_ValidateJ2IThunkFromMethod:
+         {
+         auto *thunkRecord = reinterpret_cast<TR_RelocationRecordValidateJ2IThunkFromMethod *>(reloRecord);
+
+         self()->traceRelocationOffsets(startOfOffsets, offsetSize, endOfCurrentRecord, orderedPair);
+         if (isVerbose)
+            {
+            traceMsg(
+               self()->comp(),
+               "\n Validate J2I Thunk From Method: thunkID=%d, methodID=%d",
+               thunkRecord->thunkID(reloTarget),
+               thunkRecord->methodID(reloTarget));
+            }
+         }
+         break;
+
       default:
-         return cursor;
+         TR_ASSERT_FATAL(false, "dumpRelocationHeaderData: unknown relo kind %d\n", kind);
       }
 
    traceMsg(self()->comp(), "\n");
@@ -2168,6 +2341,71 @@ void J9::AheadOfTimeCompile::interceptAOTRelocation(TR::ExternalRelocation *relo
          {
          relocation->setTargetKind(TR_InlinedMethodPointer);
          relocation->setTargetAddress(reinterpret_cast<uint8_t *>(inlinedSiteIndex));
+         }
+      }
+   }
+
+void J9::AheadOfTimeCompile::processRelocations()
+   {
+   TR::Compilation *comp = self()->comp();
+   TR::CodeGenerator *cg = comp->cg();
+   TR_J9VMBase *fej9 = (TR_J9VMBase *)(comp->fe());
+
+   for (auto aotIterator = cg->getExternalRelocationList().begin(); aotIterator != cg->getExternalRelocationList().end(); ++aotIterator)
+      {
+      (*aotIterator)->addExternalRelocation(cg);
+      }
+
+   for (TR::IteratedExternalRelocation *r = self()->getAOTRelocationTargets().getFirst();
+        r != NULL;
+        r = r->getNext())
+      {
+      self()->addToSizeOfAOTRelocations(r->getSizeOfRelocationData());
+      }
+
+   // Allocate the memory size of all iterated relocations + the header (total length field)
+   //
+   // Note that when using the SymbolValidationManager, the well-known classes
+   // must be checked even if no explicit records were generated, since they
+   // might be responsible for the lack of records.
+   //
+   bool useSVM = comp->getOption(TR_UseSymbolValidationManager);
+   if (self()->getSizeOfAOTRelocations() != 0 || useSVM)
+      {
+      // It would be more straightforward to put the well-known classes offset
+      // in the AOT method header, but that would use space for AOT bodies that
+      // don't use the SVM. TODO: Move it once SVM takes over?
+      //
+      int32_t wellKnownClassesOffsetSize = useSVM ? SIZEPOINTER : 0;
+      uintptr_t reloBufferSize =
+         self()->getSizeOfAOTRelocations() + SIZEPOINTER + wellKnownClassesOffsetSize;
+      uint8_t *relocationDataCursor = self()->setRelocationData(
+         fej9->allocateRelocationData(comp, reloBufferSize));
+
+      // set up the size for the region
+      *(uintptr_t *)relocationDataCursor = reloBufferSize;
+      relocationDataCursor += SIZEPOINTER;
+
+      if (useSVM)
+         {
+         TR::SymbolValidationManager *svm = comp->getSymbolValidationManager();
+         void *offsets = const_cast<void *>(svm->wellKnownClassChainOffsets());
+         uintptr_t *wkcOffsetAddr = (uintptr_t *)relocationDataCursor;
+         *wkcOffsetAddr = self()->offsetInSharedCacheFromPointer(fej9->sharedCache(), offsets);
+#if defined(J9VM_OPT_JITSERVER)
+         self()->addWellKnownClassesSerializationRecord(svm->aotCacheWellKnownClassesRecord(), wkcOffsetAddr);
+#endif /* defined(J9VM_OPT_JITSERVER) */
+         relocationDataCursor += SIZEPOINTER;
+         }
+
+      // set up pointers for each iterated relocation and initialize header
+      for (TR::IteratedExternalRelocation *s = self()->getAOTRelocationTargets().getFirst();
+           s != NULL;
+           s = s->getNext())
+         {
+         s->setRelocationData(relocationDataCursor);
+         s->initializeRelocation(cg);
+         relocationDataCursor += s->getSizeOfRelocationData();
          }
       }
    }

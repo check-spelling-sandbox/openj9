@@ -309,7 +309,7 @@ TR_DataCache* TR_DataCacheManager::allocateNewDataCache(uint32_t minimumSize)
 // Return value:
 //       Pointer to TR_DataCache that can be used exclusively by this thread
 //       or NULL if cannot get any dataCache
-// Side efects:
+// Side effects:
 //       Acquires/releases dataCache mutex internally
 //----------------------------------------------------------------------------
 TR_DataCache* TR_DataCacheManager::reserveAvailableDataCache(J9VMThread *vmThread, uint32_t sizeHint)
@@ -367,7 +367,7 @@ TR_DataCache* TR_DataCacheManager::reserveAvailableDataCache(J9VMThread *vmThrea
 
 //---------------------------- makeDataCacheAvailable ------------------------
 // Put the designated dataCache back into the list of available data caches
-// Side efects:
+// Side effects:
 //       Acquires/releases dataCache mutex internally
 //----------------------------------------------------------------------------
 void TR_DataCacheManager::makeDataCacheAvailable(TR_DataCache *dataCache)
@@ -454,7 +454,7 @@ uint8_t* TR_DataCache::allocateDataCacheSpace(int32_t size)
 //             natural alignment)
 // Ret value:
 //      pointer to allocated space
-// Side efects:
+// Side effects:
 //       Acquires/releases dataCache mutex internally
 //-----------------------------------------------------------------------------
 uint8_t* TR_DataCacheManager::allocateDataCacheSpace(uint32_t size)
@@ -1011,7 +1011,7 @@ TR_InstrumentedDataCacheManager::printStatistics()
    _maxConcurrentWasteEstimate = std::max( _maxConcurrentWasteEstimate, currentWaste);
    fprintf(stderr, "=== Data cache statistics ===\n");
    fprintf(stderr, "Total data cache bytes in use = %zu\n", _totalSegmentMemoryAllocated);
-   fprintf(stderr, "Bytes converted for regluar JIT use = %zu\n", _jitSpace);
+   fprintf(stderr, "Bytes converted for regular JIT use = %zu\n", _jitSpace);
    fprintf(stderr, "Average allocation size = %f\n", static_cast<double>(_bytesAllocated) / static_cast<double>(_numberOfAllocations) );
    fprintf(stderr, "Standard Deviation of allocation size = %f\n", sqrt(_squares) );
    fprintf(stderr, "Average waste per allocation = %f\n", averageWaste );

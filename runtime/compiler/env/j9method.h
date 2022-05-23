@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2000, 2021 IBM Corp. and others
+ * Copyright (c) 2000, 2022 IBM Corp. and others
  *
  * This program and the accompanying materials are made available under
  * the terms of the Eclipse Public License 2.0 which accompanies this
@@ -412,8 +412,10 @@ public:
    virtual void *                  callSiteTableEntryAddress(int32_t callSiteIndex);
    virtual bool                    isUnresolvedMethodTypeTableEntry(int32_t cpIndex);
    virtual void *                  methodTypeTableEntryAddress(int32_t cpIndex);
+#if defined(J9VM_OPT_METHOD_HANDLE)
    virtual bool                    isUnresolvedVarHandleMethodTypeTableEntry(int32_t cpIndex);
    virtual void *                  varHandleMethodTypeTableEntryAddress(int32_t cpIndex);
+#endif /* defined(J9VM_OPT_METHOD_HANDLE) */
 
    virtual bool                    fieldsAreSame(int32_t, TR_ResolvedMethod *, int32_t, bool &sigSame);
    virtual bool                    staticsAreSame(int32_t, TR_ResolvedMethod *, int32_t, bool &sigSame);
@@ -455,8 +457,8 @@ public:
    virtual TR_ResolvedMethod *     getResolvedPossiblyPrivateVirtualMethod( TR::Compilation *, int32_t cpIndex, bool ignoreRtResolve, bool * unresolvedInCP);
    virtual TR_OpaqueClassBlock *   getResolvedInterfaceMethod(int32_t cpIndex, uintptr_t * pITableIndex);
 
-   virtual TR_ResolvedMethod *     getResolvedDynamicMethod( TR::Compilation *, int32_t cpIndex, bool * unresolvedInCP);
-   virtual TR_ResolvedMethod *     getResolvedHandleMethod( TR::Compilation *, int32_t cpIndex, bool * unresolvedInCP);
+   virtual TR_ResolvedMethod *     getResolvedDynamicMethod( TR::Compilation *, int32_t cpIndex, bool * unresolvedInCP, bool * isInvokeCacheAppendixNull = 0);
+   virtual TR_ResolvedMethod *     getResolvedHandleMethod( TR::Compilation *, int32_t cpIndex, bool * unresolvedInCP, bool * isInvokeCacheAppendixNull = 0);
    virtual TR_ResolvedMethod *     getResolvedHandleMethodWithSignature( TR::Compilation *, int32_t cpIndex, char *signature);
 
    virtual uint32_t                getResolvedInterfaceMethodOffset(TR_OpaqueClassBlock * classObject, int32_t cpIndex);
@@ -464,6 +466,11 @@ public:
    virtual TR_ResolvedMethod *     getResolvedInterfaceMethod( TR::Compilation *, TR_OpaqueClassBlock * classObject, int32_t cpIndex);
    virtual TR_ResolvedMethod *     getResolvedVirtualMethod( TR::Compilation *, TR_OpaqueClassBlock * classObject, int32_t virtualCallOffset, bool ignoreRtResolve = true);
 
+protected:
+   TR_ResolvedMethod *             aotMaskResolvedPossiblyPrivateVirtualMethod(TR::Compilation *comp, TR_ResolvedMethod *method);
+   TR_ResolvedMethod *             aotMaskResolvedImproperInterfaceMethod(TR::Compilation *comp, TR_ResolvedMethod *method);
+
+public:
    virtual bool                    virtualMethodIsOverridden();
    virtual void                    setVirtualMethodIsOverridden();
    virtual void *                  addressContainingIsOverriddenBit();

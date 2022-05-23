@@ -133,12 +133,15 @@ private:
 
 
 // Helper template class to avoid duplicating code for class chain records and well-known classes records
+// D is one of: ClassChainSerializationRecord, WellKnownClassesSerializationRecord
+// R is one of: AOTCacheClassRecord, AOTCacheClassChainRecord
 template<class D, class R, typename... Args>
 class AOTCacheListRecord : public AOTCacheRecord
    {
 public:
    const D &data() const { return _data; }
    const AOTSerializationRecord *dataAddr() const override { return &_data; }
+   // Array of record pointers is stored inline after the array of IDs that is stored inline after struct D header
    const R *const *records() const { return (const R *const *)_data.end(); }
 
    void subRecordsDo(const std::function<void(const AOTCacheRecord *)> &f) const override;
@@ -151,8 +154,8 @@ protected:
       return offsetof(AOTCacheListRecord, _data) + D::size(length) + length * sizeof(R *);
       }
 
+   // Layout: struct D header, uintptr_t ids[length], const R *records[length]
    D _data;
-   // Array of record pointers is stored inline after serialization record data
    };
 
 
@@ -160,6 +163,9 @@ class AOTCacheClassChainRecord final : public AOTCacheListRecord<ClassChainSeria
    {
 public:
    static AOTCacheClassChainRecord *create(uintptr_t id, const AOTCacheClassRecord *const *records, size_t length);
+
+   const AOTCacheClassRecord *rootClassRecord() const { return records()[0]; }
+   const AOTCacheClassLoaderRecord *rootClassLoaderRecord() const { return rootClassRecord()->classLoaderRecord(); }
 
 private:
    using AOTCacheListRecord::AOTCacheListRecord;
@@ -277,11 +283,19 @@ public:
    using KnownIdSet = PersistentUnorderedSet<uintptr_t/*recordIdAndType*/>;
 
    // Get serialization records the method refers to, excluding the ones already
-   // present in the knownIds set (i.e. already deseralized and cached at the client).
+   // present in the knownIds set (i.e. already deserialized and cached at the client).
    // The result is sorted in "dependency order": for each record in the resulting list,
    // all the records that it depends on are stored in the list at lower indices.
    Vector<const AOTSerializationRecord *>
    getSerializationRecords(const CachedAOTMethod *method, const KnownIdSet &knownIds, TR_Memory &trMemory) const;
+
+   void incNumCacheBypasses() { ++_numCacheBypasses; }
+   void incNumCacheMisses() { ++_numCacheMisses; }
+   size_t getNumDeserializedMethods() const { return _numDeserializedMethods; }
+   void incNumDeserializedMethods() { ++_numDeserializedMethods; }
+   void incNumDeserializationFailures() { ++_numDeserializationFailures; }
+
+   void printStats(FILE *f) const;
 
 private:
    struct ClassLoaderKey
@@ -369,6 +383,13 @@ private:
 
    PersistentUnorderedMap<CachedMethodKey, CachedAOTMethod *> _cachedMethodMap;
    TR::Monitor *const _cachedMethodMonitor;
+
+   // Statistics
+   size_t _numCacheBypasses;
+   size_t _numCacheHits;
+   size_t _numCacheMisses;
+   size_t _numDeserializedMethods;
+   size_t _numDeserializationFailures;
    };
 
 
@@ -382,6 +403,10 @@ public:
    ~JITServerAOTCacheMap();
 
    JITServerAOTCache *get(const std::string &name, uint64_t clientUID);
+
+   size_t getNumDeserializedMethods() const;
+
+   void printStats(FILE *f) const;
 
 private:
    PersistentUnorderedMap<std::string, JITServerAOTCache *> _map;

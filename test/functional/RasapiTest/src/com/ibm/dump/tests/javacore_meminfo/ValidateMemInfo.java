@@ -126,7 +126,7 @@ public class ValidateMemInfo {
 			while ((line = in1.readLine()) != null ) {
 				if (line.startsWith("1STSEGMENT")) {
 					String[] values = line.split("[ ]+");
-					// Get the start, alloc and end values for this segment. The .substring(2) removes the 0x prfix
+					// Get the start, alloc and end values for this segment. The .substring(2) removes the 0x prefix
 					long start = Long.parseLong(values[2].substring(2), 16);
 					long alloc = Long.parseLong(values[3].substring(2), 16);
 					long end = Long.parseLong(values[4].substring(2), 16);

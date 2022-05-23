@@ -321,7 +321,7 @@ public class Tcb {
                              * last LSE on the chain */
                             lse = linkageStack[0];
                             if (lse.lses1typ7() == Lse.LSED1PC || lse.lses1typ7() == Lse.LSED1BAKR) {
-                                /* Esame PC entry */
+                                /* ESAME PC entry */
                                 regs.setPSW(lse.lses1pswh());
                                 for (int i = 0; i < 16; i++) {
                                     regs.setRegister(i, lse.lses1grs(i));

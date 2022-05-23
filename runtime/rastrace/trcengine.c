@@ -127,7 +127,7 @@ const struct traceOption TRACE_OPTIONS[] =
  */
 static struct RasTriggerAction j9vmTriggerActions[] =
 {
-	{ "jstacktrace", AFTER_TRACEPOINT, doTriggerActionJstacktrace},
+	{ "jstacktrace", AFTER_TRACEPOINT, doTriggerActionJStacktrace},
 	{ "javadump", AFTER_TRACEPOINT, doTriggerActionJavadump},
 	{ "coredump", AFTER_TRACEPOINT, doTriggerActionCoredump},
 	{ "sysdump", AFTER_TRACEPOINT, doTriggerActionCoredump},
@@ -493,7 +493,7 @@ J9VMDllMain(J9JavaVM *vm, IDATA stage, void *reserved)
 			}
 		}
 
-		/* Normal exit - its not safe to free this stuff if we are ab'ending.
+		/* Normal exit - its not safe to free this stuff if we are abending.
 		 * Blank global pointer before freeing struct (safer?)
 		 */
 		if (vm->j9rasGlobalStorage != NULL) {
@@ -1203,11 +1203,9 @@ vaReportJ9VMCommandLineError(J9PortLibrary* portLibrary, const char* detailStr, 
 static void
 doTriggerActionJavadump(OMR_VMThread *thr)
 {
-#if defined(J9VM_RAS_DUMP_AGENTS)
 	J9JavaVM *vm = (J9JavaVM *)thr->_vm->_language_vm;
 
 	vm->j9rasDumpFunctions->triggerOneOffDump(vm, "java", DUMP_CALLER_NAME, NULL, 0);
-#endif
 }
 
 /**************************************************************************
@@ -1219,11 +1217,9 @@ doTriggerActionJavadump(OMR_VMThread *thr)
 static void
 doTriggerActionCoredump(OMR_VMThread *thr)
 {
-#if defined(J9VM_RAS_DUMP_AGENTS)
 	J9JavaVM *vm = (J9JavaVM *)thr->_vm->_language_vm;
 
 	vm->j9rasDumpFunctions->triggerOneOffDump(vm, "system", DUMP_CALLER_NAME, NULL, 0);
-#endif
 }
 
 /**************************************************************************
@@ -1242,12 +1238,10 @@ doTriggerActionCoredump(OMR_VMThread *thr)
 static void
 doTriggerActionAssertDumpEvent(OMR_VMThread *omrThr)
 {
-#if defined(J9VM_RAS_DUMP_AGENTS)
 	J9JavaVM *vm = (J9JavaVM *)omrThr->_vm->_language_vm;
 	J9VMThread *thr = (J9VMThread *)omrThr->_language_vmthread;
 
 	(vm)->j9rasDumpFunctions->triggerDumpAgents(vm, thr, J9RAS_DUMP_ON_TRACE_ASSERT, NULL);
-#endif
 }
 
 /**************************************************************************
@@ -1259,11 +1253,9 @@ doTriggerActionAssertDumpEvent(OMR_VMThread *omrThr)
 static void
 doTriggerActionHeapdump(OMR_VMThread *thr)
 {
-#if defined(J9VM_RAS_DUMP_AGENTS)
 	J9JavaVM *vm = (J9JavaVM *)thr->_vm->_language_vm;
 
 	vm->j9rasDumpFunctions->triggerOneOffDump(vm, "heap", DUMP_CALLER_NAME, NULL, 0);
-#endif
 }
 
 /**************************************************************************
@@ -1288,11 +1280,9 @@ doTriggerActionSnap(OMR_VMThread *thr)
 static void
 doTriggerActionCeedump(OMR_VMThread *thr)
 {
-#if defined(J9VM_RAS_DUMP_AGENTS)
 	J9JavaVM *vm = (J9JavaVM *)thr->_vm->_language_vm;
 
 	vm->j9rasDumpFunctions->triggerOneOffDump(vm, "ceedump", DUMP_CALLER_NAME, NULL, 0);
-#endif
 }
 
 static void

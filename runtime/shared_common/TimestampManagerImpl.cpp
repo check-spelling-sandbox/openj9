@@ -55,7 +55,7 @@ SH_TimestampManagerImpl::checkROMClassTimeStamp(J9VMThread* currentThread, const
 }
 
 /* Returns TIMESTAMP_UNCHANGED, TIMESTAMP_DOES_NOT_EXIST, TIMESTAMP_DISAPPEARED or an actual timestamp.
- * Should ONLY be called to timestamp against cpitems held in cache, not locally
+ * Should ONLY be called to timestamp against cpeitems held in cache, not locally
  * Note: If classname is added, specific classfile is timestamp checked */
 I_64 
 SH_TimestampManagerImpl::localCheckTimeStamp(J9VMThread* currentThread, ClasspathEntryItem* cpei, const char* className, UDATA classNameLen, ROMClassWrapper* rcWrapper)

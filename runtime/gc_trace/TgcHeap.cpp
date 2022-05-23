@@ -286,7 +286,7 @@ tgcShowRegions(OMR_VMThread *omrVMThread, const char *comment)
 	tgcExtensions->printf(">>> free region count %d\n", countFree);
 
 	countTotal += countMultiFree = regionPool->getMultiFreeList()->getTotalRegions();
-	tgcExtensions->printf(">>> mutliFree region count %d\n", countMultiFree);
+	tgcExtensions->printf(">>> multiFree region count %d\n", countMultiFree);
 
 	countTotal += countCoalesce = regionPool->getCoalesceFreeList()->getTotalRegions();
 	tgcExtensions->printf(">>> coalesce region count %d\n", countCoalesce);

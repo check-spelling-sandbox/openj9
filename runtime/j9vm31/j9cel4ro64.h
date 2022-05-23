@@ -55,7 +55,7 @@ typedef struct J9_CEL4RO64_controlBlock {
 	uint32_t functionOffset;     /**< (Input) Offset to RO64_function part from start of RO64_CB. Req'd for DLL query flag. */
 	uint32_t argumentsOffset;    /**< (Input) Offset to RO64_args part from start of RO64_CB. Req'd for function execution flag. */
 	uint64_t dllHandle;          /**< DLL handle of target program (Input) if DLL query flag. (Output) if DLL load flag. */
-	uint64_t functionDescriptor; /**< Function descriptor of target function (Input) if function exection flag. (Output) if DLL query flag. */
+	uint64_t functionDescriptor; /**< Function descriptor of target function (Input) if function execution flag. (Output) if DLL query flag. */
 	uint64_t gpr1ReturnValue;    /**< (Output) Return buffer containing 64-bit GPR1 value of target program after execution. */
 	uint64_t gpr2ReturnValue;    /**< (Output) Return buffer containing 64-bit GPR2 value of target program after execution. */
 	uint64_t gpr3ReturnValue;    /**< (Output) Return buffer containing 64-bit GPR3 value of target program after execution. */

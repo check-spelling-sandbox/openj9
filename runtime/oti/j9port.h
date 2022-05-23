@@ -257,7 +257,7 @@ typedef struct  J9PortShSemParameters {
  	const char* controlFileDir; /* Directory in which to create control files (SysV semaphores only) */
  	uint8_t proj_id; /* parameter used with semName to generate semaphore key */
  	uint32_t deleteBasefile : 1; /* delete the base file (used to generate the semaphore key) when destroying the semaphore */
- 	uint32_t global : 1; /* Windows only: use the global namespace for the sempahore */
+ 	uint32_t global : 1; /* Windows only: use the global namespace for the semaphore */
 } J9PortShSemParameters;
 /**
  * @name Process Handle
@@ -658,14 +658,14 @@ typedef struct J9ProcessorDesc {
 #define J9PORT_X86_FEATURE_HLE				96 + 4	/* Hardware Lock Elison */
 #define J9PORT_X86_FEATURE_AVX2				96 + 5	/* AVX2 support */
 #define J9PORT_X86_FEATURE_FDP_EXCPTN_ONLY	96 + 6	/* x87 FPU data pointer updated only on exceptions */
-#define J9PORT_X86_FEATURE_SMEP				96 + 7	/* Supervsior-Mode Execution Prevention */
+#define J9PORT_X86_FEATURE_SMEP				96 + 7	/* Supervisor-Mode Execution Prevention */
 #define J9PORT_X86_FEATURE_BMI2				96 + 8	/* Bit Manipulation Instructions 2 */
 #define J9PORT_X86_FEATURE_ERMSB			96 + 9	/* Enhanced REP MOVSB/STOSB */
 #define J9PORT_X86_FEATURE_INVPCID			96 + 10	/* Invalidate Process-Context Identifier instruction */
 #define J9PORT_X86_FEATURE_RTM				96 + 11	/* Restricted Transactional Memory */
 #define J9PORT_X86_FEATURE_RDT_M			96 + 12	/* Intel RDT Monitoring */
 #define J9PORT_X86_FEATURE_DEPRECATE_FPUCS	96 + 13	/* Deprecates FPU CS and FPU DS when set */
-#define J9PORT_X86_FEATURE_MPX				96 + 14	/* Intel Memory Protextion Extensions */
+#define J9PORT_X86_FEATURE_MPX				96 + 14	/* Intel Memory Protection Extensions */
 #define J9PORT_X86_FEATURE_RDT_A			96 + 15	/* Intel RDT Allocation */
 #define J9PORT_X86_FEATURE_AVX512F			96 + 16	/* AVX512 Foundation */
 #define J9PORT_X86_FEATURE_AVX512DQ			96 + 17	/* AVX512 Doubleword & Quadword */
@@ -816,8 +816,8 @@ typedef struct J9CacheInfoQuery {
 #define J9PORT_ERROR_SYSINFO_MEMORY_ALLOC_FAILED OMRPORT_ERROR_SYSINFO_MEMORY_ALLOC_FAILED
 #define J9PORT_ERROR_SYSINFO_INSUFFICIENT_PRIVILEGE OMRPORT_ERROR_SYSINFO_INSUFFICIENT_PRIVILEGE
 #define J9PORT_ERROR_SYSINFO_ENV_INIT_CRASHED_COPYING_BUFFER OMRPORT_ERROR_SYSINFO_ENV_INIT_CRASHED_COPYING_BUFFER
-#define J9PORT_ERROR_VMEM_INSUFFICENT_RESOURCES OMRPORT_ERROR_VMEM_INSUFFICENT_RESOURCES
-#define J9PORT_ERROR_VMEM_INSUFFICENT_RESOURCES OMRPORT_ERROR_VMEM_INSUFFICENT_RESOURCES
+#define J9PORT_ERROR_VMEM_INSUFFICIENT_RESOURCES OMRPORT_ERROR_VMEM_INSUFFICIENT_RESOURCES
+#define J9PORT_ERROR_VMEM_INSUFFICIENT_RESOURCES OMRPORT_ERROR_VMEM_INSUFFICIENT_RESOURCES
 #define J9PORT_ERROR_NOT_SUPPORTED_ON_THIS_PLATFORM OMRPORT_ERROR_NOT_SUPPORTED_ON_THIS_PLATFORM
 
 #define J9PORT_TTY_OUT OMRPORT_TTY_OUT

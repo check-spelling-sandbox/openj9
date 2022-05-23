@@ -175,7 +175,7 @@ static String getPackageName(Class<?> theClass)
 	int index;
 
 	/*[PR 126182] Do not intern bootstrap class names when loading */
-	name = VM.getClassNameImpl(theClass);
+	name = VM.getClassNameImpl(theClass, false);
 	if((index = name.lastIndexOf('.')) == -1) return null;
 	return name.substring(0, index);
 }
@@ -326,7 +326,7 @@ public InputStream getResourceAsStream(String resName) {
 						@SuppressWarnings("removal")
 						SecurityManager security = System.getSecurityManager();
 						if (security != null) {
-							initalizePermissions();
+							initializePermissions();
 							if (permissions[i] == null) {
 								setPermissionElement(i, new FilePermission(parsedPath[i], "read")); //$NON-NLS-1$
 							}
@@ -357,7 +357,7 @@ public InputStream getResourceAsStream(String resName) {
 	return null;
 }
 
-private void initalizePermissions() {
+private void initializePermissions() {
 	synchronized(cacheLock) {
 		if (permissions == null) {
 			permissions = new FilePermission[cache.length];

@@ -571,7 +571,7 @@ public class jlm001
 	
 	public String helpCheckEnterCount()
 	{
-		return "Tests the recusive count for a jlm dump";
+		return "Tests the recursive count for a jlm dump";
 	}
 	
 	public boolean testNonRecursiveCount()  
@@ -685,7 +685,7 @@ public class jlm001
 
 	public String helpNonRecursiveCount()
 	{
-		return "Tests the recusive count for a jlm dump";
+		return "Tests the recursive count for a jlm dump";
 	}
 
 

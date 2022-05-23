@@ -31,11 +31,11 @@ public class J9PoolPuddleListOutputParser {
 	
 	/**
 	 * This method finds the value of the field numElements from !j9poolpuddlelist output
-	 * @param j9poolPuddeListOutput
+	 * @param j9poolPuddleListOutput
 	 * @return
 	 */
-	public static String getnumElementsValue(String j9poolPuddeListOutput) {
-		return ParserUtil.getFieldAddressOrValue(FIELDNAME_NUMELEMENTS, null, j9poolPuddeListOutput);
+	public static String getnumElementsValue(String j9poolPuddleListOutput) {
+		return ParserUtil.getFieldAddressOrValue(FIELDNAME_NUMELEMENTS, null, j9poolPuddleListOutput);
 	}
 
 }

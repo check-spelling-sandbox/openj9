@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2019, 2021 IBM Corp. and others
+ * Copyright (c) 2019, 2022 IBM Corp. and others
  *
  * This program and the accompanying materials are made available under
  * the terms of the Eclipse Public License 2.0 which accompanies this
@@ -118,7 +118,7 @@ isNameOrSignatureQtype(J9UTF8 *utfWrapper)
 BOOLEAN
 isClassRefQtype(J9Class *cpContextClass, U_16 cpIndex)
 {
-	return VM_ValueTypeHelpers::isClassRefQtype((J9ConstantPool *) cpContextClass->ramConstantPool, cpIndex);
+	return VM_ValueTypeHelpers::isClassRefQtype(cpContextClass->ramConstantPool, cpIndex);
 }
 
 UDATA
@@ -175,9 +175,12 @@ getFlattenableFieldOffset(J9Class *fieldOwner, J9ROMFieldShape *field)
 BOOLEAN
 isFlattenableFieldFlattened(J9Class *fieldOwner, J9ROMFieldShape *field)
 {
-        Assert_VM_notNull(fieldOwner);
-        Assert_VM_notNull(field);
-        BOOLEAN fieldFlattened = J9_IS_FIELD_FLATTENED(getFlattenableFieldType(fieldOwner, field), field);
+        BOOLEAN fieldFlattened = FALSE;
+        if (NULL != fieldOwner->flattenedClassCache) {
+                Assert_VM_notNull(fieldOwner);
+                Assert_VM_notNull(field);
+                fieldFlattened = J9_IS_FIELD_FLATTENED(getFlattenableFieldType(fieldOwner, field), field);
+        }
 
         return fieldFlattened;
 }
@@ -240,8 +243,23 @@ areValueBasedMonitorChecksEnabled(J9JavaVM *vm)
 BOOLEAN
 areValueTypesEnabled(J9JavaVM *vm)
 {
-	return J9_ARE_ALL_BITS_SET(vm->extendedRuntimeFlags2, J9_EXTENDED_RUNTIME2_ENABLE_VALHALLA);
+#if defined(J9VM_OPT_VALHALLA_VALUE_TYPES)
+	return TRUE;
+#else /* defined(J9VM_OPT_VALHALLA_VALUE_TYPES) */
+	return FALSE;
+#endif /* defined(J9VM_OPT_VALHALLA_VALUE_TYPES) */
 }
 
+#if defined(J9VM_OPT_VALHALLA_VALUE_TYPES)
+j9object_t*
+getDefaultValueSlotAddress(J9Class* clazz)
+{
+	Assert_VM_true(J9_IS_J9CLASS_VALUETYPE(clazz));
+	Assert_VM_true(J9ClassInitSucceeded == clazz->initializeStatus); /* make sure class has been initialized (otherwise defaultValue won't exist) */
+	j9object_t* result = &clazz->flattenedClassCache->defaultValue;
+	Assert_VM_notNull(*result);
+	return result;
+}
+#endif /* #if defined(J9VM_OPT_VALHALLA_VALUE_TYPES) */
 
 } /* extern "C" */

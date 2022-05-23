@@ -315,7 +315,7 @@ MM_ClassLoaderManager::cleanUpClassLoadersStart(MM_EnvironmentBase *env, J9Class
 	/*
 	 * Verify that boolean array class has been marked. Assertion is done to ensure correctness
 	 * of an optimization in ClassIteratorClassSlots that only checks booleanArrayClass Interfaces
-	 * since all array claseses share the same ITable.
+	 * since all array classes share the same ITable.
 	 */
 	Assert_MM_true(markMap->isBitSet(_javaVM->booleanArrayClass->classObject));
 

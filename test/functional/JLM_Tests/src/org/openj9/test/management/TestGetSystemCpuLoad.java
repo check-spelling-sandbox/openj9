@@ -77,14 +77,14 @@ public class TestGetSystemCpuLoad {
 		}
 		delayMillis(MINIMUM_INTERVAL);
 		load = ibmBean.getSystemCpuLoad();
-		validateLoad(load, false, NO_ERROR, "getSystemCpuLoad after the minumum interval");
+		validateLoad(load, false, NO_ERROR, "getSystemCpuLoad after the minimum interval");
 
 		load = ibmBean.getSystemCpuLoad();
 		validateLoad(load, false, NO_ERROR, "getSystemCpuLoad immediately");
 
 		delayMillis(MINIMUM_INTERVAL);
 		load = ibmBean.getSystemCpuLoad();
-		validateLoad(load, false, NO_ERROR, "getSystemCpuLoad after the minumum interval");
+		validateLoad(load, false, NO_ERROR, "getSystemCpuLoad after the minimum interval");
 
 		delayMillis(1000);
 		load = ibmBean.getSystemCpuLoad();

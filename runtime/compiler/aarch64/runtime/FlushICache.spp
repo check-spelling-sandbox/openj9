@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2019, 2019 IBM Corp. and others
+ * Copyright (c) 2019, 2021 IBM Corp. and others
  *
  * This program and the accompanying materials are made available under
  * the terms of the Eclipse Public License 2.0 which accompanies this
@@ -20,7 +20,12 @@
  * SPDX-License-Identifier: EPL-2.0 OR Apache-2.0 OR GPL-2.0 WITH Classpath-exception-2.0 OR LicenseRef-GPL-2.0 WITH Assembly-exception
  *******************************************************************************/
 
+#include "aarch64/runtime/arm64asmdefs.inc"
+
 	.globl	flushICache
+
+	.text
+	.align	2
 
 // in:  x0 = start address to flush
 //      x1 = # of bytes to flush
@@ -37,13 +42,16 @@ flushICache:
 	stp	x12, x13, [sp, #96]
 	stp	x14, x15, [sp, #112]
 	str	x30, [sp, #128]
+#if defined(__clang__) && defined(__APPLE__)
+	// void sys_icache_invalidate(void *start, size_t len);
+	bl	FUNC_LABEL(sys_icache_invalidate)
+#elif defined(__GNUC__)
 	add	x1, x0, x1
-#if defined(__GNUC__)
 	// GCC built-in function in libgcc
 	// void __clear_cache(char *begin, char *end);
-	bl	 __clear_cache
+	bl	FUNC_LABEL(__clear_cache)
 #else
-#error Not supported yet
+#error Unsupported platform
 #endif
 	ldp	x0, x1, [sp, #0] // restore volatile registers
 	ldp	x2, x3, [sp, #16]

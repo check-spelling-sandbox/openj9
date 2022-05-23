@@ -48,7 +48,7 @@
 #define TEST7_NUM_CHILDPROCESSES 30
 
 /* The define FD_BIAS is defined in portpriv.h ... however we can't and shouldn't use this here ... so for now we redefine.
- * In the long run fstat will be implemented in the port librart for test 7 so we don't need this.
+ * In the long run fstat will be implemented in the port library for test 7 so we don't need this.
  */
 #ifdef J9ZOS390
 /*CMVC 99667: Introducing FD-biasing to fix MVS started-tasks and POSIX file-descriptors*/
@@ -79,7 +79,7 @@ verifyShsemStats(J9PortLibrary *portLibrary, j9shsem_handle *handle, J9PortShsem
 	}
 	outputComment(PORTLIB, "owner gid: %zu\n", statbuf->ogid);
 	if (statbuf->ogid != gid) {
-		outputErrorMessage(PORTTEST_ERROR_ARGS, "Expected ownder gid=%zu, owner gid obtained by sem stats=%zu\n", gid, statbuf->ogid);
+		outputErrorMessage(PORTTEST_ERROR_ARGS, "Expected owner gid=%zu, owner gid obtained by sem stats=%zu\n", gid, statbuf->ogid);
 	}
 	outputComment(PORTLIB, "creator gid: %zu\n", statbuf->cgid);
 	if (statbuf->cgid != gid) {
@@ -472,7 +472,7 @@ j9shsem_deprecated_test5(J9PortLibrary *portLibrary)
 
 	rc = j9shsem_deprecated_open(cacheDir, 0, &myhandle1, TESTSEM_NAME, numSems, 0, J9SHSEM_NO_FLAGS, NULL);
 	if(rc == J9PORT_ERROR_SHSEM_OPFAILED || rc == J9PORT_ERROR_SHSEM_WAIT_FOR_CREATION_MUTEX_TIMEDOUT) {
-		outputErrorMessage(PORTTEST_ERROR_ARGS, "Error opening waiting sempahore");
+		outputErrorMessage(PORTTEST_ERROR_ARGS, "Error opening waiting semaphore");
 		goto cleanup;
 	}
 
@@ -542,7 +542,7 @@ j9shsem_deprecated_test6(J9PortLibrary *portLibrary, const char* argv0)
 
 	rc = j9shsem_deprecated_open(cacheDir, 0, &sem0, SEMAPHOREA, SEMAPHORESETSIZE, 0, J9SHSEM_NO_FLAGS, NULL);
 	if(rc<0) {
-		outputErrorMessage(PORTTEST_ERROR_ARGS, "Error opening sempahore");
+		outputErrorMessage(PORTTEST_ERROR_ARGS, "Error opening semaphore");
 		goto cleanup;
 	}
 	

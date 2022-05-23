@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 1991, 2021 IBM Corp. and others
+ * Copyright (c) 1991, 2022 IBM Corp. and others
  *
  * This program and the accompanying materials are made available under
  * the terms of the Eclipse Public License 2.0 which accompanies this
@@ -30,7 +30,8 @@
  * Methods, fields, local variables can not contain: '.', ';', '[' '/'.
  * Methods, other than <init> and <clinit> cannot contain '<' or '>'.
  * Classes can contain '[' only at the front if they are array classes.
- * Classes can end with ';' only if they are array classes or valuetypes.
+ * Classes can end with ';' only if they are array classes for class file major version < 62
+ * 				For class major file version >= 62. They can be array classes or descriptors of form "LClassName;" or "QClassName;".
  * Classes can contain '/'
  * 		if not the first character,
  * 		if not the last character,
@@ -83,11 +84,28 @@ checkNameImpl (J9CfrConstantPoolInfo * info, BOOLEAN isClass, BOOLEAN isMethod, 
 			return -1;
 		case ';':
 			if (isClass) {
-				/* Valid at the end of array classes or for valuetypes */
-				if ((arity || IS_QTYPE(*info->bytes))
-					&& ((c + 1) == end)) {
-					break;
+#if defined(J9VM_OPT_VALHALLA_VALUE_TYPES)
+				if (J9_ARE_ALL_BITS_SET(info->flags1, CFR_CLASS_FILE_VERSION_SUPPORT_VALUE_TYPE)) {
+					/* If CFR_CLASS_FILE_VERSION_SUPPORT_VALUE_TYPE is set (class major file version >= 62)
+					 * Valid at the end of array classes
+					 * or descriptors of form "LClassName;" or "QClassName;".
+					 */
+					if ((arity || IS_REF_OR_VAL_SIGNATURE(*info->bytes))
+						&& ((c + 1) == end)
+					) {
+						break;
+					}
+				} else {
+#endif /* defined(J9VM_OPT_VALHALLA_VALUE_TYPES) */
+					/* Valid at the end of array classes */
+					if ((arity)
+						&& ((c + 1) == end)
+					) {
+						break;
+					}
+#if defined(J9VM_OPT_VALHALLA_VALUE_TYPES)
 				}
+#endif /* defined(J9VM_OPT_VALHALLA_VALUE_TYPES) */
 			}
 			return -1;
 		case '<': /* Fall through */
@@ -117,11 +135,14 @@ checkNameImpl (J9CfrConstantPoolInfo * info, BOOLEAN isClass, BOOLEAN isMethod, 
 
 
 static VMINLINE I_32
-isInitOrClinitImpl (J9CfrConstantPoolInfo * info)
+isInitOrClinitOrNewImpl (J9CfrConstantPoolInfo * info)
 {
 	U_8 *name = info->bytes;
 
 	/* Handle <init>/<clinit> cases */
+#if defined(J9VM_OPT_VALHALLA_VALUE_TYPES)
+	/* TODO <new> is drafted to be introduced for Value Types. */
+#endif /* defined(J9VM_OPT_VALHALLA_VALUE_TYPES) */
 	if (*name == '<') {
 		if (J9UTF8_DATA_EQUALS("<init>", 6, name, info->slot1)) {
 			return CFR_METHOD_NAME_INIT;
@@ -129,33 +150,40 @@ isInitOrClinitImpl (J9CfrConstantPoolInfo * info)
 		if (J9UTF8_DATA_EQUALS("<clinit>", 8, name, info->slot1)) {
 			return CFR_METHOD_NAME_CLINIT;
 		}
+#if defined(J9VM_OPT_VALHALLA_VALUE_TYPES)
+#if defined(J9VM_OPT_VALHALLA_NEW_FACTORY_METHOD)
+		if (J9UTF8_DATA_EQUALS("<new>", 5, name, info->slot1)) {
+			return CFR_METHOD_NAME_NEW;
+		}
+#endif /* #if defined(J9VM_OPT_VALHALLA_NEW_FACTORY_METHOD) */
+#endif /* #if defined(J9VM_OPT_VALHALLA_VALUE_TYPES) */
 		return CFR_METHOD_NAME_INVALID;
 	}
 	return 0; /* not <init> or <clinit> */
 }
 
 /**
- * Determine if this name is either "<init>" or "<clinit>".
+ * Determine if this name is "<init>", "<clinit>", or "<new>".
  *
- * @returns 0 if name is a normal name, 1 if '<init>' and 2 if '<clinit>' , -1 if it starts with '<' but is not a valid class name.
- * @note result is positive if the name is "<init>" or "<clinit>", result is negative if the name is illegal
+ * @returns 0 if name is a normal name, CFR_METHOD_NAME_INIT if '<init>', CFR_METHOD_NAME_CLINIT if '<clinit>', CFR_METHOD_NAME_NEW if '<new>', and -1 if it starts with '<' but is not a valid class name.
+ * @note result is positive if the name is "<init>", "<clinit>", or "<new>", result is negative if the name is illegal
  */
 I_32
-bcvIsInitOrClinit (J9CfrConstantPoolInfo * info)
+bcvIsInitOrClinitOrNew (J9CfrConstantPoolInfo * info)
 {
-	return isInitOrClinitImpl(info);
+	return isInitOrClinitOrNewImpl(info);
 }
 
 /**
  * Determine if this a valid name for Methods.
  *
- * @returns 1 if '<init>' and 2 if '<clinit>', otherwise 0 or positive if a valid name; negative value if class name is invalid
+ * @returns CFR_METHOD_NAME_INIT if '<init>', CFR_METHOD_NAME_CLINIT if '<clinit>', and CFR_METHOD_NAME_NEW if '<new>', otherwise 0 if a valid name; negative value if class name is invalid
  */
 I_32
 bcvCheckMethodName (J9CfrConstantPoolInfo * info)
 {
 	U_8 *c = info->bytes;
-	I_32 nameStatus = isInitOrClinitImpl(info);
+	I_32 nameStatus = isInitOrClinitOrNewImpl(info);
 	if (0 == nameStatus) {
 		nameStatus = checkNameImpl(info, FALSE, TRUE, FALSE);
 	}

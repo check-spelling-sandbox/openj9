@@ -315,7 +315,7 @@ bool TR_DynamicLiteralPool::transformNeeded(TR::Node *grandParent, TR::Node *par
    // is possible is quite complex and if we have it here, it needs
    // be kept in sync with the logic in evaluators.
    // In the worst case, when constant actually needs to go lit pool
-   // the code wiil insert extra LARL pre-loading lit pool entry
+   // the code will insert extra LARL pre-loading lit pool entry
    // The cost of this LARL is negligible considering the cost of MULT or DIV
    if (parentOpCode.isMul() || parentOpCode.isDiv()) return false;
    // If this looks like a pattern that could be evaluated to a test under mask type instruction

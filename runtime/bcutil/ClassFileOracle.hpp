@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2001, 2021 IBM Corp. and others
+ * Copyright (c) 2001, 2022 IBM Corp. and others
  *
  * This program and the accompanying materials are made available under
  * the terms of the Eclipse Public License 2.0 which accompanies this
@@ -856,6 +856,28 @@ class RecordComponentIterator
 		}
 	}
 
+	/*
+	 * Iterate over the constant pool indices corresponding to enclosed inner class names (UTF8s).
+	 */
+	void enclosedInnerClassesDo(ConstantPoolIndexVisitor *visitor)
+	{
+		if (NULL != _innerClasses) {
+			J9CfrClassesEntry *end = _innerClasses->classes + _innerClasses->numberOfClasses;
+			U_16 thisClassUTF8 = UTF8_INDEX_FROM_CLASS_INDEX(_classFile->constantPool, _classFile->thisClass);
+			for (J9CfrClassesEntry *entry = _innerClasses->classes; entry != end; ++entry) {
+				U_16  outerClassUTF8 = UTF8_INDEX_FROM_CLASS_INDEX(_classFile->constantPool, entry->outerClassInfoIndex);
+				U_16  innerClassUTF8 = UTF8_INDEX_FROM_CLASS_INDEX(_classFile->constantPool, entry->innerClassInfoIndex);
+				/* Count all remaining entries in the InnerClass attribute (except the entries covered by innerClassesDo())
+				 * so as to check the InnerClass attribute between the inner classes and the enclosing class.
+				 * See getDeclaringClass() for details.
+				 */
+				if ((thisClassUTF8 != outerClassUTF8) && (thisClassUTF8 != innerClassUTF8)) {
+					visitor->visitConstantPoolIndex(innerClassUTF8);
+				}
+			}
+		}
+	}
+
 #if JAVA_SPEC_VERSION >= 11
 	void nestMembersDo(ConstantPoolIndexVisitor *visitor)
 	{
@@ -913,6 +935,7 @@ class RecordComponentIterator
 	U_16 getDoubleScalarStaticCount() const { return _doubleScalarStaticCount; }
 	U_16 getMemberAccessFlags() const { return _memberAccessFlags; }
 	U_16 getInnerClassCount() const { return _innerClassCount; }
+	U_16 getEnclosedInnerClassCount() const { return _enclosedInnerClassCount; }
 #if JAVA_SPEC_VERSION >= 11
 	U_16 getNestMembersCount() const { return _nestMembersCount; }
 	U_16 getNestHostNameIndex() const { return _nestHost; }
@@ -1030,6 +1053,9 @@ private:
 		FRAMEITERATORSKIP_ANNOTATION,
 		SUN_REFLECT_CALLERSENSITIVE_ANNOTATION,
 		JDK_INTERNAL_REFLECT_CALLERSENSITIVE_ANNOTATION,
+#if JAVA_SPEC_VERSION >= 18
+		JDK_INTERNAL_REFLECT_CALLERSENSITIVEADAPTER_ANNOTATION,
+#endif /* JAVA_SPEC_VERSION >= 18*/
 		JAVA8_CONTENDED_ANNOTATION,
 		CONTENDED_ANNOTATION,
 		UNMODIFIABLE_ANNOTATION,
@@ -1064,6 +1090,7 @@ private:
 	U_16 _doubleScalarStaticCount;
 	U_16 _memberAccessFlags;
 	U_16 _innerClassCount;
+	U_16 _enclosedInnerClassCount;
 #if JAVA_SPEC_VERSION >= 11
 	U_16 _nestMembersCount;
 	U_16 _nestHost;
@@ -1192,7 +1219,7 @@ private:
 	VMINLINE void markClassAsUsedByNew(U_16 classCPIndex);
 
 #if defined(J9VM_OPT_VALHALLA_VALUE_TYPES)
-	VMINLINE void markClassAsUsedByDefaultValue(U_16 classCPIndex);
+	VMINLINE void markClassAsUsedByAconst_init(U_16 classCPIndex);
 	VMINLINE void markFieldRefAsUsedByWithField(U_16 fieldRefCPIndex);
 #endif /* defined(J9VM_OPT_VALHALLA_VALUE_TYPES) */
 

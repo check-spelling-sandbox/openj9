@@ -187,6 +187,7 @@ jint JNICALL rc018(agentEnv * env, char * args);
 jint JNICALL rc019a(agentEnv * env, char * args);
 jint JNICALL rc019b(agentEnv * env, char * args);
 jint JNICALL rc020(agentEnv * env, char * args);
+jint JNICALL rc021(agentEnv * env, char * args);
 jint JNICALL re001(agentEnv * env, char * args);
 jint JNICALL re002(agentEnv * env, char * args);
 jint JNICALL fr001(agentEnv * env, char * args);
@@ -255,5 +256,6 @@ jint JNICALL snmp001(agentEnv * agent_env, char * args);
 jint JNICALL soae001(agentEnv * agent_env, char * args);
 jint JNICALL gsp001(agentEnv *agent_env, char *args);
 jint JNICALL ee001(agentEnv *agent_env, char *args);
+jint JNICALL vmstart001(agentEnv* agent_env, char* args);
 
 #endif /*JVMTI_TEST_H_*/

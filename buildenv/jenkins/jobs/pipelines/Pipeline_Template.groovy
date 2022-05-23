@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2019, 2021 IBM Corp. and others
+ * Copyright (c) 2019, 2022 IBM Corp. and others
  *
  * This program and the accompanying materials are made available under
  * the terms of the Eclipse Public License 2.0 which accompanies this
@@ -106,6 +106,7 @@ pipelineJob("$JOB_NAME") {
         stringParam('SCM_BRANCH', SCM_BRANCH)
         stringParam('SCM_REFSPEC')
         booleanParam('ARCHIVE_JAVADOC', false)
+        booleanParam('CODE_COVERAGE', false)
 
         if (jobType == 'pipeline') {
             stringParam('TESTS_TARGETS')
@@ -116,6 +117,7 @@ pipelineJob("$JOB_NAME") {
             stringParam('RESTART_TIMEOUT_UNITS')
             choiceParam('AUTOMATIC_GENERATION', ['true', 'false'])
             choiceParam('JOB_TYPE', ['pipeline'])
+            booleanParam('USE_TESTENV_PROPERTIES', false)
         } else if (jobType == 'build') {
             stringParam('NODE')
             choiceParam('JOB_TYPE', ['build'])

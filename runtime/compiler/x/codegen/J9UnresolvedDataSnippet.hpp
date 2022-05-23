@@ -132,7 +132,7 @@ class UnresolvedDataSnippet : public J9::UnresolvedDataSnippet
       cpIndex_genStaticMemBarPos     = 0x00000000,
       cpIndex_isFloatStore           = 0x00040000,  // OVERLOADED: 64-BIT only
       cpIndex_isCompressedPointer    = 0x40000000,  // OVERLOADED: multiTenancy perform load/store
-      cpIndex_isOwningObjectNeeded   = 0x00040000,  // OVERLOADED: multiTenancy refrence type store needs owning object register
+      cpIndex_isOwningObjectNeeded   = 0x00040000,  // OVERLOADED: multiTenancy reference type store needs owning object register
       };
 
    bool isFloatData() {return _flags.testAll(TO_MASK32(IsFloatData));}

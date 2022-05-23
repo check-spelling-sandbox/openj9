@@ -118,7 +118,7 @@ public class DumpAPITokensTests extends TestCase {
 		
 		// Check we got the correct name.
 		long beforeTime = System.currentTimeMillis();
-		// The dump timestamp will round down to the nearest millsecond once
+		// The dump timestamp will round down to the nearest millisecond once
 		// parsed. Dumping may take less than a second so we need to make sure
 		// the timestamp will advance.
 		// (We aren't worried about millisecond precision in file timestamps just

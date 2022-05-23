@@ -77,6 +77,8 @@ JIT_HELPER(jitInduceOSRAtCurrentPCAndRecompile);  // asm calling-convention help
 JIT_HELPER(jitInstanceOf);  // asm calling-convention helper
 JIT_HELPER(jitInterpretNewInstanceMethod);  // asm calling-convention helper
 JIT_HELPER(jitLookupInterfaceMethod);  // asm calling-convention helper
+JIT_HELPER(jitLookupDynamicInterfaceMethod);  // asm calling-convention helper
+JIT_HELPER(jitLookupDynamicPublicInterfaceMethod);  // asm calling-convention helper
 JIT_HELPER(jitMethodIsNative);  // asm calling-convention helper
 JIT_HELPER(jitMethodIsSync);  // asm calling-convention helper
 JIT_HELPER(jitMethodMonitorEntry);  // asm calling-convention helper
@@ -94,7 +96,8 @@ JIT_HELPER(jitGetFlattenableStaticField);  // asm calling-convention helper
 JIT_HELPER(jitPutFlattenableStaticField);  // asm calling-convention helper
 JIT_HELPER(jitLoadFlattenableArrayElement);  // asm calling-convention helper
 JIT_HELPER(jitStoreFlattenableArrayElement);  // asm calling-convention helper
-JIT_HELPER(jitAcmpHelper);  // asm calling-convention helper
+JIT_HELPER(jitAcmpeqHelper);  // asm calling-convention helper
+JIT_HELPER(jitAcmpneHelper);  // asm calling-convention helper
 JIT_HELPER(jitNewValue);  // asm calling-convention helper
 JIT_HELPER(jitObjectHashCode);  // asm calling-convention helper
 JIT_HELPER(jitPostJNICallOffloadCheck);  // asm calling-convention helper

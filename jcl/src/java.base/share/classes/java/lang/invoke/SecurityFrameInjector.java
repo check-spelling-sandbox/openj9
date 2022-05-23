@@ -243,9 +243,9 @@ final class SecurityFrameInjector {
 		// 1) VarargsCollectHandle -> AsTypeHandle -> RBH with bound value being an instance of SecurityFrame
 		// 2) AsTypeHandle -> RBH with bound value being an instance of SecurityFrame
 		// 3) RBH with bound value being an instance of SecurityFrame if signature is (Object[])Object
-		boolean mustBeVarags = false;
+		boolean mustBeVarargs = false;
 		if (potentialInjectFrame.kind == MethodHandle.KIND_VARARGSCOLLECT) {
-			mustBeVarags = true;
+			mustBeVarargs = true;
 			potentialInjectFrame = ((VarargsCollectorHandle)potentialInjectFrame).next;
 		}
 		if (potentialInjectFrame.kind == MethodHandle.KIND_ASTYPE) {
@@ -309,7 +309,7 @@ final class SecurityFrameInjector {
 				}
 			}
 			if (target.type == originalMT) {
-				if ((target instanceof PrimitiveHandle) && (Lookup.isVarargs(target.getModifiers()) == mustBeVarags)) {
+				if ((target instanceof PrimitiveHandle) && (Lookup.isVarargs(target.getModifiers()) == mustBeVarargs)) {
 					return target;
 				}
 			}

@@ -26,7 +26,7 @@
 #include "HeapRegionManagerTarok.hpp"
 
 class MM_EnvironmentBase;
-class MM_MemboryHandle;
+class MM_MemoryHandle;
 class MM_HeapMemorySnapshot;
 
 class MM_HeapRegionManagerVLHGC : public MM_HeapRegionManagerTarok

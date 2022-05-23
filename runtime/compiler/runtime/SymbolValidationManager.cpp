@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2000, 2021 IBM Corp. and others
+ * Copyright (c) 2000, 2022 IBM Corp. and others
  *
  * This program and the accompanying materials are made available under
  * the terms of the Eclipse Public License 2.0 which accompanies this
@@ -26,21 +26,19 @@
 #include "env/PersistentCHTable.hpp"
 #include "env/VMAccessCriticalSection.hpp"
 #include "exceptions/AOTFailure.hpp"
-#include "compile/Compilation.hpp"
+#include "compile/J9Compilation.hpp"
 #include "control/CompilationRuntime.hpp"
 #include "control/CompilationThread.hpp"
+#include "infra/String.hpp"
 #include "runtime/RelocationRuntime.hpp"
 #include "runtime/SymbolValidationManager.hpp"
 
 #if defined(J9VM_OPT_JITSERVER)
 #include "runtime/JITClientSession.hpp"
-#endif
+#endif /* defined(J9VM_OPT_JITSERVER) */
 
 #include "j9protos.h"
 
-#if defined (_MSC_VER) && _MSC_VER < 1900
-#define snprintf _snprintf
-#endif
 
 TR::SymbolValidationManager::SystemClassNotWorthRemembering
 TR::SymbolValidationManager::_systemClassesNotWorthRemembering[] = {
@@ -69,19 +67,22 @@ TR::SymbolValidationManager::SymbolValidationManager(TR::Region &region, TR_Reso
         _vmThread->javaVM->jitConfig,
         _vmThread,
 #if defined(J9VM_OPT_JITSERVER)
-        TR::CompilationInfo::get()->getPersistentInfo()->getRemoteCompilationMode() == JITServer::SERVER ? TR_J9VMBase::J9_SERVER_VM : 
-#endif
+        TR::CompilationInfo::get()->getPersistentInfo()->getRemoteCompilationMode() == JITServer::SERVER ? TR_J9VMBase::J9_SERVER_VM :
+#endif /* defined(J9VM_OPT_JITSERVER) */
         TR_J9VMBase::DEFAULT_VM)),
      _trMemory(_comp->trMemory()),
      _chTable(_comp->getPersistentInfo()->getPersistentCHTable()),
      _rootClass(compilee->classOfMethod()),
      _wellKnownClassChainOffsets(NULL),
+#if defined(J9VM_OPT_JITSERVER)
+     _aotCacheWellKnownClassesRecord(NULL),
+#endif /* defined(J9VM_OPT_JITSERVER) */
      _symbolValidationRecords(_region),
      _alreadyGeneratedRecords(LessSymbolValidationRecord(), _region),
      _classesFromAnyCPIndex(LessClassFromAnyCPIndex(), _region),
-     _symbolToIdMap((SymbolToIdComparator()), _region),
-     _idToSymbolTable(_region),
-     _seenSymbolsSet((SeenSymbolsComparator()), _region),
+     _valueToSymbolMap((ValueToSymbolComparator()), _region),
+     _symbolToValueTable(_region),
+     _seenValuesSet((SeenValuesComparator()), _region),
      _wellKnownClasses(_region),
      _loadersOkForWellKnownClasses(_region)
    {
@@ -134,12 +135,12 @@ TR::SymbolValidationManager::populateSystemClassesNotWorthRemembering(ClientSess
 #endif
 
 void
-TR::SymbolValidationManager::defineGuaranteedID(void *symbol, TR::SymbolType type)
+TR::SymbolValidationManager::defineGuaranteedID(void *value, TR::SymbolType type)
    {
    uint16_t id = getNewSymbolID();
-   _symbolToIdMap.insert(std::make_pair(symbol, id));
-   setSymbolOfID(id, symbol, type);
-   _seenSymbolsSet.insert(symbol);
+   _valueToSymbolMap.insert(std::make_pair(value, id));
+   setValueOfSymbolID(id, value, type);
+   _seenValuesSet.insert(value);
    }
 
 bool
@@ -197,8 +198,7 @@ TR::SymbolValidationManager::getSystemClassNotWorthRemembering(int idx)
 void
 TR::SymbolValidationManager::getWellKnownClassesSCCKey(char *buffer, size_t size, unsigned int includedClasses)
    {
-   int len = snprintf(buffer, size, "AOTWellKnownClasses:%x", includedClasses);
-   TR_ASSERT(len <= size, "Buffer too small");
+   TR::snprintfNoTrunc(buffer, size, "AOTWellKnownClasses:%x", includedClasses);
    }
 
 void
@@ -238,6 +238,13 @@ TR::SymbolValidationManager::populateWellKnownClasses()
    uintptr_t *classCount = &classChainOffsets[0];
    uintptr_t *nextClassChainOffset = &classChainOffsets[1];
 
+#if defined(J9VM_OPT_JITSERVER)
+   ClientSessionData *clientData = _comp->getClientData();
+   bool aotCacheStore = _comp->isAOTCacheStore();
+   const AOTCacheClassChainRecord *classChainRecords[WELL_KNOWN_CLASS_COUNT] = {0};
+   bool missingClassChainRecords = false;
+#endif /* defined(J9VM_OPT_JITSERVER) */
+
    for (int i = 0; i < WELL_KNOWN_CLASS_COUNT; i++)
       {
       const char *name = names[i];
@@ -246,11 +253,24 @@ TR::SymbolValidationManager::populateWellKnownClasses()
 
       void *chain = NULL;
       if (wkClass == NULL)
+         {
          traceMsg(_comp, "well-known class %s not found\n", name);
+         }
       else if (!_fej9->isPublicClass(wkClass))
+         {
          traceMsg(_comp, "well-known class %s is not public\n", name);
+         }
       else
+         {
+#if defined(J9VM_OPT_JITSERVER)
+         auto recordPtr = &classChainRecords[_wellKnownClasses.size()];
+         chain = _fej9->sharedCache()->rememberClass(wkClass, recordPtr);
+         if (aotCacheStore && !*recordPtr)
+            missingClassChainRecords = true;
+#else /* defined(J9VM_OPT_JITSERVER) */
          chain = _fej9->sharedCache()->rememberClass(wkClass);
+#endif /* defined(J9VM_OPT_JITSERVER) */
+         }
 
       if (chain == NULL)
          {
@@ -274,12 +294,12 @@ TR::SymbolValidationManager::populateWellKnownClasses()
    *classCount = _wellKnownClasses.size();
 
 #if defined(J9VM_OPT_JITSERVER)
-   ClientSessionData *clientData = _comp->getClientData();
    if (clientData)
       {
       // This is an out-of-process compilation; check the cache in the client session first
       _wellKnownClassChainOffsets = clientData->getCachedWellKnownClassChainOffsets(
-         includedClasses, _wellKnownClasses.size(), classChainOffsets + 1);
+         includedClasses, _wellKnownClasses.size(), classChainOffsets + 1, _aotCacheWellKnownClassesRecord
+      );
       if (_wellKnownClassChainOffsets)
          return;
       }
@@ -305,8 +325,10 @@ TR::SymbolValidationManager::populateWellKnownClasses()
       {
       // This is an out-of process compilation; cache the pointer to the newly created well-known
       // class chain offsets in the client session to avoid sending repeated requests to the client
-      clientData->cacheWellKnownClassChainOffsets(includedClasses, _wellKnownClasses.size(),
-                                                  classChainOffsets + 1, _wellKnownClassChainOffsets);
+      clientData->cacheWellKnownClassChainOffsets(
+         includedClasses, _wellKnownClasses.size(), classChainOffsets + 1, _wellKnownClassChainOffsets,
+         (aotCacheStore && !missingClassChainRecords) ? classChainRecords : NULL, _aotCacheWellKnownClassesRecord
+      );
       }
 #endif /* defined(J9VM_OPT_JITSERVER) */
 
@@ -343,12 +365,12 @@ TR::SymbolValidationManager::validateWellKnownClasses(const uintptr_t *wellKnown
       if (!_fej9->sharedCache()->classMatchesCachedVersion(clazz, classChain))
          return false;
 
-      _seenSymbolsSet.insert(clazz);
+      _seenValuesSet.insert(clazz);
       if (assignNewIDs)
          {
          _wellKnownClasses.push_back(clazz);
          if (clazz != _rootClass)
-            setSymbolOfID(getNewSymbolID(), clazz, TR::SymbolType::typeClass);
+            setValueOfSymbolID(getNewSymbolID(), clazz, TR::SymbolType::typeClass);
          }
       }
 
@@ -414,22 +436,22 @@ TR::SymbolValidationManager::classCanSeeWellKnownClasses(TR_OpaqueClassBlock *be
 bool
 TR::SymbolValidationManager::isDefinedID(uint16_t id)
    {
-   return id < _idToSymbolTable.size() && _idToSymbolTable[id]._hasValue;
+   return id < _symbolToValueTable.size() && _symbolToValueTable[id]._hasValue;
    }
 
 void
-TR::SymbolValidationManager::setSymbolOfID(uint16_t id, void *symbol, TR::SymbolType type)
+TR::SymbolValidationManager::setValueOfSymbolID(uint16_t id, void *value, TR::SymbolType type)
    {
-   if (id >= _idToSymbolTable.size())
+   if (id >= _symbolToValueTable.size())
       {
-      TypedSymbol unused = { NULL, typeOpaque, false };
-      _idToSymbolTable.resize(id + 1, unused);
+      TypedValue unused = { NULL, typeOpaque, false };
+      _symbolToValueTable.resize(id + 1, unused);
       }
 
-   SVM_ASSERT(!_idToSymbolTable[id]._hasValue, "multiple definitions of ID %d", id);
-   _idToSymbolTable[id]._symbol = symbol;
-   _idToSymbolTable[id]._type = type;
-   _idToSymbolTable[id]._hasValue = true;
+   SVM_ASSERT(!_symbolToValueTable[id]._hasValue, "multiple definitions of ID %d", id);
+   _symbolToValueTable[id]._value = value;
+   _symbolToValueTable[id]._type = type;
+   _symbolToValueTable[id]._hasValue = true;
    }
 
 uint16_t
@@ -440,64 +462,64 @@ TR::SymbolValidationManager::getNewSymbolID()
    }
 
 void *
-TR::SymbolValidationManager::getSymbolFromID(uint16_t id, TR::SymbolType type, Presence presence)
+TR::SymbolValidationManager::getValueFromSymbolID(uint16_t id, TR::SymbolType type, Presence presence)
    {
-   TypedSymbol *entry = NULL;
-   if (id < _idToSymbolTable.size())
-      entry = &_idToSymbolTable[id];
+   TypedValue *entry = NULL;
+   if (id < _symbolToValueTable.size())
+      entry = &_symbolToValueTable[id];
 
    SVM_ASSERT(entry != NULL && entry->_hasValue, "Unknown ID %d", id);
-   if (entry->_symbol == NULL)
+   if (entry->_value == NULL)
       SVM_ASSERT(presence != SymRequired, "ID must not map to null");
    else
       SVM_ASSERT(entry->_type == type, "ID has type %d when %d was expected", entry->_type, type);
 
-   return entry->_symbol;
+   return entry->_value;
    }
 
 TR_OpaqueClassBlock *
 TR::SymbolValidationManager::getClassFromID(uint16_t id, Presence presence)
    {
    return static_cast<TR_OpaqueClassBlock*>(
-      getSymbolFromID(id, TR::SymbolType::typeClass, presence));
+      getValueFromSymbolID(id, TR::SymbolType::typeClass, presence));
    }
 
 J9Class *
 TR::SymbolValidationManager::getJ9ClassFromID(uint16_t id, Presence presence)
    {
    return static_cast<J9Class*>(
-      getSymbolFromID(id, TR::SymbolType::typeClass, presence));
+      getValueFromSymbolID(id, TR::SymbolType::typeClass, presence));
    }
 
 TR_OpaqueMethodBlock *
 TR::SymbolValidationManager::getMethodFromID(uint16_t id, Presence presence)
    {
    return static_cast<TR_OpaqueMethodBlock*>(
-      getSymbolFromID(id, TR::SymbolType::typeMethod, presence));
+      getValueFromSymbolID(id, TR::SymbolType::typeMethod, presence));
    }
 
 J9Method *
 TR::SymbolValidationManager::getJ9MethodFromID(uint16_t id, Presence presence)
    {
    return static_cast<J9Method*>(
-      getSymbolFromID(id, TR::SymbolType::typeMethod, presence));
+      getValueFromSymbolID(id, TR::SymbolType::typeMethod, presence));
    }
 
 uint16_t
-TR::SymbolValidationManager::tryGetIDFromSymbol(void *symbol)
+TR::SymbolValidationManager::tryGetSymbolIDFromValue(void *value)
    {
-   SymbolToIdMap::iterator it = _symbolToIdMap.find(symbol);
-   if (it == _symbolToIdMap.end())
+   ValueToSymbolMap::iterator it = _valueToSymbolMap.find(value);
+   if (it == _valueToSymbolMap.end())
       return NO_ID;
    else
       return it->second;
    }
 
 uint16_t
-TR::SymbolValidationManager::getIDFromSymbol(void *symbol)
+TR::SymbolValidationManager::getSymbolIDFromValue(void *value)
    {
-   uint16_t id = tryGetIDFromSymbol(symbol);
-   SVM_ASSERT(id != NO_ID, "Unknown symbol %p\n", symbol);
+   uint16_t id = tryGetSymbolIDFromValue(value);
+   SVM_ASSERT(id != NO_ID, "Unknown value %p\n", value);
    return id;
    }
 
@@ -541,31 +563,31 @@ TR::SymbolValidationManager::anyClassFromCPRecordExists(
    }
 
 void
-TR::SymbolValidationManager::appendNewRecord(void *symbol, TR::SymbolValidationRecord *record)
+TR::SymbolValidationManager::appendNewRecord(void *value, TR::SymbolValidationRecord *record)
    {
    SVM_ASSERT(!inHeuristicRegion(), "Attempted to appendNewRecord in a heuristic region");
    TR_ASSERT(!recordExists(record), "record is not new");
 
-   if (!isAlreadyValidated(symbol))
+   if (!isAlreadyValidated(value))
       {
-      _symbolToIdMap.insert(std::make_pair(symbol, getNewSymbolID()));
+      _valueToSymbolMap.insert(std::make_pair(value, getNewSymbolID()));
       }
    _symbolValidationRecords.push_front(record);
    _alreadyGeneratedRecords.insert(record);
 
    record->printFields();
    traceMsg(_comp, "\tkind=%d\n", record->_kind);
-   traceMsg(_comp, "\tid=%d\n", (uint32_t)getIDFromSymbol(symbol));
+   traceMsg(_comp, "\tid=%d\n", (uint32_t)getSymbolIDFromValue(value));
    traceMsg(_comp, "\n");
    }
 
 void
-TR::SymbolValidationManager::appendRecordIfNew(void *symbol, TR::SymbolValidationRecord *record)
+TR::SymbolValidationManager::appendRecordIfNew(void *value, TR::SymbolValidationRecord *record)
    {
    if (recordExists(record))
       _region.deallocate(record);
    else
-      appendNewRecord(symbol, record);
+      appendNewRecord(value, record);
    }
 
 bool
@@ -583,13 +605,17 @@ TR::SymbolValidationManager::getClassChainInfo(
       {
       // info._baseComponent is a non-array reference type. It can't be a
       // primitive because primitives always satisfy isAlreadyValidated().
+      const AOTCacheClassChainRecord *classChainRecord = NULL;
       info._baseComponentClassChain =
-         _fej9->sharedCache()->rememberClass(info._baseComponent);
+         _fej9->sharedCache()->rememberClass(info._baseComponent, &classChainRecord);
       if (info._baseComponentClassChain == NULL)
          {
          _region.deallocate(record);
          return false;
          }
+#if defined(J9VM_OPT_JITSERVER)
+      info._baseComponentAOTCacheClassChainRecord = classChainRecord;
+#endif /* defined(J9VM_OPT_JITSERVER) */
       }
 
    return true;
@@ -619,17 +645,21 @@ TR::SymbolValidationManager::appendClassChainInfoRecords(
          info._baseComponent,
          new (_region) ClassChainRecord(
             info._baseComponent,
-            info._baseComponentClassChain));
+            info._baseComponentClassChain
+#if defined(J9VM_OPT_JITSERVER)
+            , info._baseComponentAOTCacheClassChainRecord
+#endif /* defined(J9VM_OPT_JITSERVER) */
+         ));
       }
    }
 
 bool
-TR::SymbolValidationManager::addVanillaRecord(void *symbol, TR::SymbolValidationRecord *record)
+TR::SymbolValidationManager::addVanillaRecord(void *value, TR::SymbolValidationRecord *record)
    {
-   if (shouldNotDefineSymbol(symbol))
+   if (shouldNotDefineSymbol(value))
       return abandonRecord(record);
 
-   appendRecordIfNew(symbol, record);
+   appendRecordIfNew(value, record);
    return true;
    }
 
@@ -665,13 +695,17 @@ TR::SymbolValidationManager::addClassRecordWithChain(TR::ClassValidationRecordWi
 
    if (!_fej9->isPrimitiveClass(record->_class))
       {
-      record->_classChain = _fej9->sharedCache()->rememberClass(record->_class);
+      const AOTCacheClassChainRecord *classChainRecord = NULL;
+      record->_classChain = _fej9->sharedCache()->rememberClass(record->_class, &classChainRecord);
       if (record->_classChain == NULL)
          {
          _region.deallocate(record);
          return false;
          }
 
+#if defined(J9VM_OPT_JITSERVER)
+      record->_aotCacheClassChainRecord = classChainRecord;
+#endif /* defined(J9VM_OPT_JITSERVER) */
       appendRecordIfNew(record->_class, record);
       }
 
@@ -765,12 +799,13 @@ TR::SymbolValidationManager::addProfiledClassRecord(TR_OpaqueClassBlock *clazz)
    int32_t arrayDims = 0;
    clazz = getBaseComponentClass(clazz, arrayDims);
 
-   void *classChain = _fej9->sharedCache()->rememberClass(clazz);
+   const AOTCacheClassChainRecord *classChainRecord = NULL;
+   void *classChain = _fej9->sharedCache()->rememberClass(clazz, &classChainRecord);
    if (classChain == NULL)
       return false;
 
    if (!isAlreadyValidated(clazz))
-      appendNewRecord(clazz, new (_region) ProfiledClassRecord(clazz, classChain));
+      appendNewRecord(clazz, new (_region) ProfiledClassRecord(clazz, classChain, classChainRecord));
 
    addMultipleArrayRecords(clazz, arrayDims);
    return true;
@@ -1048,38 +1083,79 @@ TR::SymbolValidationManager::addClassInfoIsInitializedRecord(TR_OpaqueClassBlock
    return addVanillaRecord(clazz, new (_region) ClassInfoIsInitialized(clazz, isInitialized));
    }
 
+// This method doesn't return success/failure because it must succeed.
+// Otherwise, it's not necessarily possible to codegen a resolved virtual call,
+// since the call might not have originated as a regular invokevirtual.
+void
+TR::SymbolValidationManager::addJ2IThunkFromMethodRecord(void *thunk, TR_OpaqueMethodBlock *method)
+   {
+   SVM_ASSERT(thunk != NULL, "addJ2IThunkFromMethodRecord: no thunk");
+   SVM_ASSERT_ALREADY_VALIDATED(this, method);
+   if (isAlreadyValidated(thunk))
+      {
+      // We've already seen this thunk defined by an earlier J2IThunkFromMethod
+      // record given some previous method M. Call the `method` currently under
+      // consideration N. Then the signatures of M and N are compatible for the
+      // purposes of J2I thunk sharing.
+      //
+      // If we reach this point in the validation at load time, there are
+      // corresponding methods M' and N' with signatures identical to those of
+      // M and N, respectively. In particular, M' and N' will share a single
+      // J2I thunk. Furthermore, that J2I thunk is already guaranteed to exist
+      // because it has been ensured for M' by the earlier J2IThunkFromMethod
+      // record. Therefore, there is no need for a second record.
+      //
+      // Well either that or we're in a heuristic region, but in that case we
+      // should still return without creating any new records.
+      //
+      return;
+      }
+
+   TR::SymbolValidationRecord *record =
+      new (_region) J2IThunkFromMethodRecord(thunk, method);
+
+   SVM_ASSERT(
+      !recordExists(record),
+      "J2IThunkFromMethod record (thunk %p, method %p) already exists, "
+      "but the thunk has not been assigned an ID",
+      thunk,
+      method);
+
+   appendNewRecord(thunk, record);
+   }
+
 
 
 bool
-TR::SymbolValidationManager::validateSymbol(uint16_t idToBeValidated, void *validSymbol, TR::SymbolType type)
+TR::SymbolValidationManager::validateSymbol(uint16_t idToBeValidated, void *validValue, TR::SymbolType type)
    {
    bool valid = false;
-   TypedSymbol *entry = NULL;
-   if (idToBeValidated < _idToSymbolTable.size())
-      entry = &_idToSymbolTable[idToBeValidated];
+   TypedValue *entry = NULL;
+   if (idToBeValidated < _symbolToValueTable.size())
+      entry = &_symbolToValueTable[idToBeValidated];
 
    if (entry == NULL || !entry->_hasValue)
       {
-      if (_seenSymbolsSet.find(validSymbol) == _seenSymbolsSet.end())
+      if (_seenValuesSet.find(validValue) == _seenValuesSet.end())
          {
          valid = true;
          if (type == TR::SymbolType::typeClass)
             {
             valid = classCanSeeWellKnownClasses(
-               reinterpret_cast<TR_OpaqueClassBlock*>(validSymbol));
+               reinterpret_cast<TR_OpaqueClassBlock*>(validValue));
             }
 
          if (valid)
             {
-            setSymbolOfID(idToBeValidated, validSymbol, type);
-            _seenSymbolsSet.insert(validSymbol);
+            setValueOfSymbolID(idToBeValidated, validValue, type);
+            _seenValuesSet.insert(validValue);
             }
          }
       }
    else
       {
-      valid = validSymbol == entry->_symbol
-         && (validSymbol == NULL || entry->_type == type);
+      valid = validValue == entry->_value
+         && (validValue == NULL || entry->_type == type);
       }
 
    return valid;
@@ -1147,14 +1223,6 @@ TR::SymbolValidationManager::validateClassFromCPRecord(uint16_t classID,  uint16
 bool
 TR::SymbolValidationManager::validateDefiningClassFromCPRecord(uint16_t classID, uint16_t beholderID, uint32_t cpIndex, bool isStatic)
    {
-   TR::CompilationInfo *compInfo = TR::CompilationInfo::get(_fej9->_jitConfig);
-   TR::CompilationInfoPerThreadBase *compInfoPerThreadBase = compInfo->getCompInfoForCompOnAppThread();
-   TR_RelocationRuntime *reloRuntime;
-   if (compInfoPerThreadBase)
-      reloRuntime = compInfoPerThreadBase->reloRuntime();
-   else
-      reloRuntime = compInfo->getCompInfoForThread(_vmThread)->reloRuntime();
-
    J9Class *beholder = getJ9ClassFromID(beholderID);
    J9ConstantPool *beholderCP = J9_CP_FROM_CLASS(beholder);
    return validateSymbol(classID, TR_ResolvedJ9Method::definingClassFromCPFieldRef(_comp, beholderCP, cpIndex, isStatic));
@@ -1496,6 +1564,12 @@ TR::SymbolValidationManager::validateClassInfoIsInitializedRecord(uint16_t class
    }
 
 bool
+TR::SymbolValidationManager::validateJ2IThunkFromMethodRecord(uint16_t thunkID, void *thunk)
+   {
+   return validateSymbol(thunkID, thunk, TR::SymbolType::typeOpaque);
+   }
+
+bool
 TR::SymbolValidationManager::assertionsAreFatal()
    {
    // Look for the env var even in debug builds so that it's always acknowledged.
@@ -1519,35 +1593,35 @@ static void printClass(TR_OpaqueClassBlock *clazz)
 
 #if defined(J9VM_OPT_JITSERVER)
 std::string
-TR::SymbolValidationManager::serializeSymbolToIDMap()
+TR::SymbolValidationManager::serializeValueToSymbolMap()
    {
-   int32_t entrySize = sizeof(SymbolToIdMap::key_type) + sizeof(SymbolToIdMap::mapped_type);
-   std::string symbolToIdStr(entrySize * _symbolToIdMap.size(), '\0');
+   int32_t entrySize = sizeof(ValueToSymbolMap::key_type) + sizeof(ValueToSymbolMap::mapped_type);
+   std::string valueToSymbolStr(entrySize * _valueToSymbolMap.size(), '\0');
    uint16_t idx = 0;
-   for (auto it : _symbolToIdMap)
+   for (auto it : _valueToSymbolMap)
       {
-      SymbolToIdMap::key_type symbol = it.first;
-      SymbolToIdMap::mapped_type id = it.second;
-      memcpy(&symbolToIdStr[idx * entrySize], &symbol, sizeof(symbol));
-      memcpy(&symbolToIdStr[idx * entrySize + sizeof(symbol)], &id, sizeof(id));
+      ValueToSymbolMap::key_type symbol = it.first;
+      ValueToSymbolMap::mapped_type id = it.second;
+      memcpy(&valueToSymbolStr[idx * entrySize], &symbol, sizeof(symbol));
+      memcpy(&valueToSymbolStr[idx * entrySize + sizeof(symbol)], &id, sizeof(id));
       ++idx;
       }
-   return symbolToIdStr;
+   return valueToSymbolStr;
    }
 
 void
-TR::SymbolValidationManager::deserializeSymbolToIDMap(const std::string &symbolToIdStr)
+TR::SymbolValidationManager::deserializeValueToSymbolMap(const std::string &valueToSymbolStr)
    {
-   _symbolToIdMap.clear();
+   _valueToSymbolMap.clear();
 
-   int32_t entrySize = sizeof(SymbolToIdMap::key_type) + sizeof(SymbolToIdMap::mapped_type);
-   int32_t numEntries = symbolToIdStr.length() / entrySize;
+   int32_t entrySize = sizeof(ValueToSymbolMap::key_type) + sizeof(ValueToSymbolMap::mapped_type);
+   int32_t numEntries = valueToSymbolStr.length() / entrySize;
    for (int32_t idx = 0; idx < numEntries; idx++)
       {
-      SymbolToIdMap::key_type symbol;
-      memcpy(&symbol, &symbolToIdStr[idx * entrySize], sizeof(symbol));
-      SymbolToIdMap::mapped_type id = (uint16_t) symbolToIdStr[idx * entrySize + sizeof(symbol)];
-      _symbolToIdMap.insert(std::make_pair(symbol, id));
+      ValueToSymbolMap::key_type symbol;
+      memcpy(&symbol, &valueToSymbolStr[idx * entrySize], sizeof(symbol));
+      ValueToSymbolMap::mapped_type id = (uint16_t) valueToSymbolStr[idx * entrySize + sizeof(symbol)];
+      _valueToSymbolMap.insert(std::make_pair(symbol, id));
       }
    }
 #endif /* defined(J9VM_OPT_JITSERVER) */
@@ -2070,4 +2144,19 @@ void TR::ImproperInterfaceMethodFromCPRecord::printFields()
    traceMsg(TR::comp(), "\t_beholder=0x%p\n", _beholder);
    printClass(_beholder);
    traceMsg(TR::comp(), "\t_cpIndex=%d\n", _cpIndex);
+   }
+
+bool TR::J2IThunkFromMethodRecord::isLessThanWithinKind(
+   SymbolValidationRecord *other)
+   {
+   TR::J2IThunkFromMethodRecord *rhs = downcast(this, other);
+   return LexicalOrder::by(_thunk, rhs->_thunk)
+      .thenBy(_method, rhs->_method).less();
+   }
+
+void TR::J2IThunkFromMethodRecord::printFields()
+   {
+   traceMsg(TR::comp(), "J2IThunkFromMethodRecord\n");
+   traceMsg(TR::comp(), "\t_thunk=0x%p\n", _thunk);
+   traceMsg(TR::comp(), "\t_method=0x%p\n", _method);
    }

@@ -316,7 +316,7 @@ public class GuestOSMXBeanTest {
 							return false;
 
 						} else {
-							Assert.fail("Invalid Guest Memory Usage statistics recieved!!");
+							Assert.fail("Invalid Guest Memory Usage statistics received!!");
 						}
 					}
 					scanner.close();

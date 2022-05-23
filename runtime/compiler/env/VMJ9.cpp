@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2000, 2021 IBM Corp. and others
+ * Copyright (c) 2000, 2022 IBM Corp. and others
  *
  * This program and the accompanying materials are made available under
  * the terms of the Eclipse Public License 2.0 which accompanies this
@@ -25,10 +25,6 @@
 #if defined(J9VM_OPT_JITSERVER)
 #include "env/VMJ9Server.hpp"
 #endif /* defined(J9VM_OPT_JITSERVER) */
-
-#if defined (_MSC_VER) && (_MSC_VER < 1900)
-#define snprintf _snprintf
-#endif
 
 #include "env/VMJ9.h"
 
@@ -130,6 +126,7 @@
 #include "infra/Bit.hpp"               //for trailingZeroes
 #include "VMHelpers.hpp"
 #include "env/JSR292Methods.h"
+#include "infra/String.hpp"
 
 #ifdef LINUX
 #include <signal.h>
@@ -175,6 +172,26 @@ extern "C" J9Method * getNewInstancePrototype(J9VMThread *context);
 // psuedo-call to asm function
 extern "C" void _getSTFLEBits(int numDoubleWords, uint64_t * bits);  /* 390 asm stub */
 extern "C" bool _isPSWInProblemState();  /* 390 asm stub */
+
+TR::FILE *fileOpen(TR::Options *options, J9JITConfig *jitConfig, char *name, char *permission, bool b1)
+   {
+   PORT_ACCESS_FROM_ENV(jitConfig->javaVM);
+   char tmp[1025];
+   char *formattedTmp = NULL;
+   if (!options->getOption(TR_EnablePIDExtension))
+      {
+      formattedTmp = TR_J9VMBase::getJ9FormattedName(jitConfig, PORTLIB, tmp, sizeof(tmp), name, NULL, false);
+      }
+   else
+      {
+      formattedTmp = TR_J9VMBase::getJ9FormattedName(jitConfig, PORTLIB, tmp, sizeof(tmp), name, options->getSuffixLogsFormat(), true);
+      }
+   if (NULL != formattedTmp)
+      {
+      return j9jit_fopen(formattedTmp, permission, b1);
+      }
+   return NULL;
+   }
 
 // Returns -1 if given vmThread is not a compilation thread
 int32_t
@@ -509,6 +526,32 @@ bool
 TR_J9SharedCacheVM::shouldDelayAotLoad()
    {
    return isAOT_DEPRECATED_DO_NOT_USE();
+   }
+
+bool
+TR_J9SharedCacheVM::isResolvedDirectDispatchGuaranteed(TR::Compilation *comp)
+   {
+   return isAotResolvedDirectDispatchGuaranteed(comp);
+   }
+
+bool
+TR_J9VMBase::isAotResolvedDirectDispatchGuaranteed(TR::Compilation *comp)
+   {
+   return comp->getOption(TR_UseSymbolValidationManager)
+      && comp->cg()->guaranteesResolvedDirectDispatchForSVM();
+   }
+
+bool
+TR_J9SharedCacheVM::isResolvedVirtualDispatchGuaranteed(TR::Compilation *comp)
+   {
+   return isAotResolvedVirtualDispatchGuaranteed(comp);
+   }
+
+bool
+TR_J9VMBase::isAotResolvedVirtualDispatchGuaranteed(TR::Compilation *comp)
+   {
+   return comp->getOption(TR_UseSymbolValidationManager)
+      && comp->cg()->guaranteesResolvedVirtualDispatchForSVM();
    }
 
 J9Class *
@@ -1037,8 +1080,6 @@ UDATA TR_J9VMBase::getOffsetOfArrayClassRomPtrField()               {return offs
 UDATA TR_J9VMBase::getOffsetOfClassRomPtrField()                    {return offsetof(J9Class, romClass);}
 UDATA TR_J9VMBase::getOffsetOfClassInitializeStatus()               {return offsetof(J9Class, initializeStatus);}
 UDATA TR_J9VMBase::getOffsetOfJ9ObjectJ9Class()                     {return offsetof(J9Object, clazz);}
-UDATA TR_J9VMBase::getObjectHeaderHasBeenMovedInClass()             {return OBJECT_HEADER_HAS_BEEN_MOVED_IN_CLASS;}
-UDATA TR_J9VMBase::getObjectHeaderHasBeenHashedInClass()            {return OBJECT_HEADER_HAS_BEEN_HASHED_IN_CLASS;}
 UDATA TR_J9VMBase::getJ9ObjectFlagsMask32()                         {return (J9_REQUIRED_CLASS_ALIGNMENT - 1);}
 UDATA TR_J9VMBase::getJ9ObjectFlagsMask64()                         {return (J9_REQUIRED_CLASS_ALIGNMENT - 1);}
 UDATA TR_J9VMBase::getOffsetOfJ9ThreadJ9VM()                        {return offsetof(J9VMThread, javaVM);}
@@ -2343,7 +2384,7 @@ TR_MarkHotField::markHotField(J9Class * clazz, bool rootClass)
       descriptorWord = descriptorPtr[0];
 
    // Check that the field is a member of the class.  At the time this code was written there were cases
-   // when value propation would call this function with the class being Object and the field being String.value
+   // when value propagation would call this function with the class being Object and the field being String.value
    //
    if (!(descriptorWord & _bitValue))
       return false;
@@ -2391,7 +2432,7 @@ TR_J9VMBase::reportHotField(int32_t reducedCpuUtil, J9Class* clazz, uint8_t fiel
 }
 
 /**
- * Query if hot reference field is reqired for dynamicBreadthFirstScanOrdering
+ * Query if hot reference field is required for dynamicBreadthFirstScanOrdering
  *  @return true if scavenger dynamicBreadthFirstScanOrdering is enabled, 0 otherwise
  */
 bool
@@ -2494,10 +2535,10 @@ TR_J9VMBase::markClassForTenuredAlignment(TR::Compilation *comp, TR_OpaqueClassB
       J9Class *clazz = TR::Compiler->cls.convertClassOffsetToClassPtr(opclazz);
       UDATA hotFieldsWordValue = 0x1; // mark for alignment
 
-      TR_ASSERT(0==(alignFromStart % TR::Compiler->om.objectAlignmentInBytes()), "alignment undershot should be multiple of %d bytes", TR::Compiler->om.objectAlignmentInBytes());
+      TR_ASSERT(0==(alignFromStart % TR::Compiler->om.getObjectAlignmentInBytes()), "alignment undershot should be multiple of %d bytes", TR::Compiler->om.getObjectAlignmentInBytes());
       TR_ASSERT((alignFromStart < 128), "alignment undershot should be less than 128 (124 max)");
 
-      hotFieldsWordValue |= (((alignFromStart & 0x7f)/TR::Compiler->om.objectAlignmentInBytes()) << 1);
+      hotFieldsWordValue |= (((alignFromStart & 0x7f)/TR::Compiler->om.getObjectAlignmentInBytes()) << 1);
 
       //printf("Class %p, hotFieldsWordValue %p\n", opclazz,  hotFieldsWordValue);
 
@@ -2524,7 +2565,12 @@ TR_J9VMBase::getClassSignature_DEPRECATED(TR_OpaqueClassBlock * clazz, int32_t &
    for (i = 0; i < numDims; i++)
       sig[i] = '[';
    if (* name != '[')
-      sig[i++] = 'L';
+      {
+      if (TR::Compiler->om.areValueTypesEnabled() && TR::Compiler->cls.isPrimitiveValueTypeClass(myClass))
+         sig[i++] = 'Q';
+      else
+         sig[i++] = 'L';
+      }
    memcpy(sig+i, name, len);
    i += len;
    if (* name != '[')
@@ -2546,13 +2592,18 @@ TR_J9VMBase::getClassSignature(TR_OpaqueClassBlock * clazz, TR_Memory * trMemory
    if (* name != '[')
       length += 2;
 
-    length++; //for null-termination
+   length++; //for null-termination
    char * sig = (char *)trMemory->allocateStackMemory(length);
    int32_t i;
    for (i = 0; i < numDims; i++)
       sig[i] = '[';
    if (* name != '[')
-      sig[i++] = 'L';
+      {
+      if (TR::Compiler->om.areValueTypesEnabled() && TR::Compiler->cls.isPrimitiveValueTypeClass(myClass))
+         sig[i++] = 'Q';
+      else
+         sig[i++] = 'L';
+      }
    memcpy(sig+i, name, len);
    i += len;
    if (* name != '[')
@@ -2726,7 +2777,7 @@ TR_J9VMBase::maybeHighlyPolymorphic(TR::Compilation *comp, TR_ResolvedMethod *ca
       else
          {
          int32_t len = callee->classNameLength();
-         char *s = classNameToSignature(callee->classNameChars(), len, comp);
+         char *s = TR::Compiler->cls.classNameToSignature(callee->classNameChars(), len, comp);
          classOfMethod = getClassFromSignature(s, len, caller, true);
          }
       if (classOfMethod)
@@ -2734,247 +2785,13 @@ TR_J9VMBase::maybeHighlyPolymorphic(TR::Compilation *comp, TR_ResolvedMethod *ca
          int len = 1;
          traceMsg(comp, "maybeHighlyPolymorphic classOfMethod: %s yizhang\n", getClassNameChars(classOfMethod, len));
          TR_PersistentCHTable *chTable = comp->getPersistentInfo()->getPersistentCHTable();
-         if (chTable->hasThreeOrMoreCompiledImplementors(classOfMethod, cpIndex, caller, comp, warm))
+         if (chTable->hasThreeOrMoreCompiledImplementers(classOfMethod, cpIndex, caller, comp, warm))
             {
             return true;
             }
          }
       }
       return false;
-   }
-
-
-bool TR_J9VMBase::supressInliningRecognizedInitialCallee(TR_CallSite* callsite, TR::Compilation* comp)
-   {
-   static const char* OPT_DETAILS = "O^O INLINER: " ;
-
-   TR::Node *callNode = callsite->_callNode;
-   TR::TreeTop *callNodeTreeTop  = callsite->_callNodeTreeTop;
-
-   bool dontInlineRecognizedMethod = callsite->_initialCalleeSymbol->canReplaceWithHWInstr();
-   if (callNode->getSymbol()->getResolvedMethodSymbol())
-      {
-      // Methods we may prefer not to inline, for heuristic reasons.
-      // (Methods we must not inline for correctness don't go in the next switch below.)
-      //
-      switch (callNode->getSymbol()->getResolvedMethodSymbol()->getRecognizedMethod())
-         {
-         // ByteArray Marshalling methods
-         case TR::com_ibm_dataaccess_ByteArrayMarshaller_writeShort_:
-         case TR::com_ibm_dataaccess_ByteArrayMarshaller_writeShortLength_:
-
-         case TR::com_ibm_dataaccess_ByteArrayMarshaller_writeInt_:
-         case TR::com_ibm_dataaccess_ByteArrayMarshaller_writeIntLength_:
-
-         case TR::com_ibm_dataaccess_ByteArrayMarshaller_writeLong_:
-         case TR::com_ibm_dataaccess_ByteArrayMarshaller_writeLongLength_:
-
-         case TR::com_ibm_dataaccess_ByteArrayMarshaller_writeFloat_:
-         case TR::com_ibm_dataaccess_ByteArrayMarshaller_writeDouble_:
-
-         // ByteArray Unmarshalling methods
-         case TR::com_ibm_dataaccess_ByteArrayUnmarshaller_readShort_:
-         case TR::com_ibm_dataaccess_ByteArrayUnmarshaller_readShortLength_:
-
-         case TR::com_ibm_dataaccess_ByteArrayUnmarshaller_readInt_:
-         case TR::com_ibm_dataaccess_ByteArrayUnmarshaller_readIntLength_:
-
-         case TR::com_ibm_dataaccess_ByteArrayUnmarshaller_readLong_:
-         case TR::com_ibm_dataaccess_ByteArrayUnmarshaller_readLongLength_:
-
-         case TR::com_ibm_dataaccess_ByteArrayUnmarshaller_readFloat_:
-         case TR::com_ibm_dataaccess_ByteArrayUnmarshaller_readDouble_:
-          if (!comp->getOption(TR_DisableMarshallingIntrinsics))
-             dontInlineRecognizedMethod = true;
-          break;
-
-         // DAA Packed Decimal arithmetic methods
-         case TR::com_ibm_dataaccess_PackedDecimal_addPackedDecimal_:
-         case TR::com_ibm_dataaccess_PackedDecimal_subtractPackedDecimal_:
-         case TR::com_ibm_dataaccess_PackedDecimal_multiplyPackedDecimal_:
-         case TR::com_ibm_dataaccess_PackedDecimal_dividePackedDecimal_:
-         case TR::com_ibm_dataaccess_PackedDecimal_remainderPackedDecimal_:
-
-         // DAA Packed Decimal comparison methods
-         case TR::com_ibm_dataaccess_PackedDecimal_lessThanPackedDecimal_:
-         case TR::com_ibm_dataaccess_PackedDecimal_lessThanOrEqualsPackedDecimal_:
-         case TR::com_ibm_dataaccess_PackedDecimal_greaterThanPackedDecimal_:
-         case TR::com_ibm_dataaccess_PackedDecimal_greaterThanOrEqualsPackedDecimal_:
-         case TR::com_ibm_dataaccess_PackedDecimal_equalsPackedDecimal_:
-         case TR::com_ibm_dataaccess_PackedDecimal_notEqualsPackedDecimal_:
-
-         // DAA Packed Decimal shift methods
-         case TR::com_ibm_dataaccess_PackedDecimal_shiftLeftPackedDecimal_:
-         case TR::com_ibm_dataaccess_PackedDecimal_shiftRightPackedDecimal_:
-
-         // DAA Packed Decimal check method
-         case TR::com_ibm_dataaccess_PackedDecimal_checkPackedDecimal_:
-
-         // DAA Packed Decimal <-> Integer
-         case TR::com_ibm_dataaccess_DecimalData_convertPackedDecimalToInteger_:
-         case TR::com_ibm_dataaccess_DecimalData_convertPackedDecimalToInteger_ByteBuffer_:
-         case TR::com_ibm_dataaccess_DecimalData_convertIntegerToPackedDecimal_:
-         case TR::com_ibm_dataaccess_DecimalData_convertIntegerToPackedDecimal_ByteBuffer_:
-
-         // DAA Packed Decimal <-> Long
-         case TR::com_ibm_dataaccess_DecimalData_convertPackedDecimalToLong_:
-         case TR::com_ibm_dataaccess_DecimalData_convertPackedDecimalToLong_ByteBuffer_:
-         case TR::com_ibm_dataaccess_DecimalData_convertLongToPackedDecimal_:
-         case TR::com_ibm_dataaccess_DecimalData_convertLongToPackedDecimal_ByteBuffer_:
-
-            // DAA Packed Decimal <-> External Decimal
-         case TR::com_ibm_dataaccess_DecimalData_convertPackedDecimalToExternalDecimal_:
-         case TR::com_ibm_dataaccess_DecimalData_convertExternalDecimalToPackedDecimal_:
-
-         // DAA Packed Decimal <-> Unicode Decimal
-         case TR::com_ibm_dataaccess_DecimalData_convertPackedDecimalToUnicodeDecimal_:
-         case TR::com_ibm_dataaccess_DecimalData_convertUnicodeDecimalToPackedDecimal_:
-
-         case TR::java_math_BigDecimal_noLLOverflowAdd:
-         case TR::java_math_BigDecimal_noLLOverflowMul:
-         case TR::java_math_BigDecimal_slowSubMulSetScale:
-         case TR::java_math_BigDecimal_slowAddAddMulSetScale:
-         case TR::java_math_BigDecimal_slowMulSetScale:
-            if (comp->cg()->getSupportsBDLLHardwareOverflowCheck())
-               dontInlineRecognizedMethod = true;
-            break;
-         case TR::java_util_concurrent_atomic_AtomicIntegerFieldUpdater_getAndDecrement:
-         case TR::java_util_concurrent_atomic_AtomicIntegerFieldUpdater_getAndIncrement:
-         case TR::java_util_concurrent_atomic_AtomicIntegerFieldUpdater_getAndAdd:
-         case TR::java_util_concurrent_atomic_AtomicIntegerFieldUpdater_decrementAndGet:
-         case TR::java_util_concurrent_atomic_AtomicIntegerFieldUpdater_incrementAndGet:
-         case TR::java_util_concurrent_atomic_AtomicIntegerFieldUpdater_addAndGet:
-            if (comp->cg()->getSupportsAtomicLoadAndAdd())
-               dontInlineRecognizedMethod = true;
-            break;
-         case TR::java_math_BigDecimal_valueOf:
-         case TR::java_math_BigDecimal_add:
-         case TR::java_math_BigDecimal_subtract:
-         case TR::java_math_BigDecimal_multiply:
-            if (comp->isProfilingCompilation())
-               {
-               dontInlineRecognizedMethod = true;
-               break;
-               }
-            // fall through
-         case TR::java_math_BigInteger_add:
-         case TR::java_math_BigInteger_subtract:
-         case TR::java_math_BigInteger_multiply:
-            if (callNode->getOpCode().isCallDirect())
-               {
-               bool dontInline = false;
-               if (callNode->getReferenceCount() == 1)
-                  dontInline = true;
-               else if (callNode->getReferenceCount() == 2)
-                  {
-                  TR::TreeTop *cursor = callNodeTreeTop->getNextTreeTop();
-                  while (cursor)
-                     {
-                     TR::Node *cursorNode = cursor->getNode();
-
-                     if (cursorNode->getOpCodeValue() == TR::BBEnd)
-                        break;
-
-                     if (cursorNode->getOpCodeValue() == TR::treetop)
-                        {
-                        if (cursorNode->getFirstChild() == callNode)
-                           {
-                           dontInline = true;
-                           break;
-                           }
-                        }
-
-                     cursor = cursor->getNextTreeTop();
-                     }
-                  }
-
-               if (dontInline &&
-                     performTransformation(comp, "%sNot inlining dead BigDecimal/BigInteger call node [" POINTER_PRINTF_FORMAT "]\n", OPT_DETAILS, callNode))
-                  dontInlineRecognizedMethod = true;
-               }
-            break;
-         case TR::com_ibm_ws_webcontainer_channel_WCCByteBufferOutputStream_printUnencoded:
-            if (comp->isServerInlining())
-               {
-               // Prefer arrayTranslate to kick in as often as possible
-               dontInlineRecognizedMethod = true;
-               }
-            break;
-         case TR::com_ibm_jit_JITHelpers_toUpperIntrinsicLatin1:
-         case TR::com_ibm_jit_JITHelpers_toLowerIntrinsicLatin1:
-         case TR::com_ibm_jit_JITHelpers_toUpperIntrinsicUTF16:
-         case TR::com_ibm_jit_JITHelpers_toLowerIntrinsicUTF16:
-            if(comp->cg()->getSupportsInlineStringCaseConversion())
-               {
-               dontInlineRecognizedMethod = true;
-               }
-            break;
-         case TR::java_lang_StringLatin1_indexOf:
-         case TR::java_lang_StringUTF16_indexOf:
-         case TR::com_ibm_jit_JITHelpers_intrinsicIndexOfStringLatin1:
-         case TR::com_ibm_jit_JITHelpers_intrinsicIndexOfStringUTF16:
-         case TR::com_ibm_jit_JITHelpers_intrinsicIndexOfLatin1:
-         case TR::com_ibm_jit_JITHelpers_intrinsicIndexOfUTF16:
-            if (comp->cg()->getSupportsInlineStringIndexOf())
-               {
-               dontInlineRecognizedMethod = true;
-               }
-            break;
-         case TR::java_lang_Math_max_D:
-         case TR::java_lang_Math_min_D:
-            if(comp->cg()->getSupportsVectorRegisters() && !comp->getOption(TR_DisableSIMDDoubleMaxMin))
-               {
-               dontInlineRecognizedMethod = true;
-               }
-            break;
-         case TR::java_lang_String_hashCodeImplDecompressed:
-            /*
-             * X86 and z want to avoid inlining both java_lang_String_hashCodeImplDecompressed and java_lang_String_hashCodeImplCompressed
-             * so they can be recognized and replaced with a custom fast implementation.
-             * Power currently only has the custom fast implementation for java_lang_String_hashCodeImplDecompressed.
-             * As a result, Power only wants to prevent inlining of java_lang_String_hashCodeImplDecompressed.
-             * When Power gets a fast implementation of TR::java_lang_String_hashCodeImplCompressed, this case can be merged into the case
-             * for java_lang_String_hashCodeImplCompressed instead of using a fallthrough.
-             */
-            if (!TR::Compiler->om.canGenerateArraylets() &&
-                comp->target().cpu.isPower() && comp->target().cpu.isAtLeast(OMR_PROCESSOR_PPC_P8) && comp->target().cpu.supportsFeature(OMR_FEATURE_PPC_HAS_VSX) && !comp->compileRelocatableCode())
-                  {
-                  dontInlineRecognizedMethod = true;
-                  break;
-                  }
-            // Intentional fallthrough here.
-         case TR::java_lang_String_hashCodeImplCompressed:
-            if (comp->cg()->getSupportsInlineStringHashCode())
-               {
-               dontInlineRecognizedMethod = true;
-               }
-            break;
-         default:
-            break;
-         }
-
-      // Methods we must not inline for correctness
-      //
-      switch (callNode->getSymbol()->getResolvedMethodSymbol()->getMandatoryRecognizedMethod())
-         {
-         case TR::java_nio_Bits_keepAlive: // This is an empty method whose only purpose is to serve as an anchored use of a given object, so it doesn't get collected
-         case TR::java_lang_ref_Reference_reachabilityFence: // This is an empty method whose only purpose is to serve as an anchored use of a given object, so it doesn't get collected
-         case TR::java_lang_Object_newInstancePrototype:
-         //case TR::java_lang_String_init_String:
-            dontInlineRecognizedMethod = true;
-            break;
-         default:
-            break;
-         }
-
-      }
-
-   if (dontInlineRecognizedMethod)
-      {
-      return true;
-      }
-
-   return false;
    }
 
 int TR_J9VMBase::checkInlineableWithoutInitialCalleeSymbol (TR_CallSite* callsite, TR::Compilation* comp)
@@ -3053,9 +2870,9 @@ TR_J9VMBase::testAreSomeClassFlagsSet(TR::Node *j9ClassRefNode, uint32_t flagsTo
    TR::SymbolReference *classFlagsSymRef = TR::comp()->getSymRefTab()->findOrCreateClassFlagsSymbolRef();
 
    TR::Node *loadClassFlags = TR::Node::createWithSymRef(TR::iloadi, 1, 1, j9ClassRefNode, classFlagsSymRef);
-   TR::Node *isValueTypeNode = TR::Node::create(TR::iand, 2, loadClassFlags, TR::Node::iconst(j9ClassRefNode, flagsToTest));
+   TR::Node *maskedFlags = TR::Node::create(TR::iand, 2, loadClassFlags, TR::Node::iconst(j9ClassRefNode, flagsToTest));
 
-   return isValueTypeNode;
+   return maskedFlags;
    }
 
 TR::Node *
@@ -3065,17 +2882,35 @@ TR_J9VMBase::testIsClassValueType(TR::Node *j9ClassRefNode)
    }
 
 TR::Node *
-TR_J9VMBase::checkArrayCompClassValueType(TR::Node *arrayBaseAddressNode, TR::ILOpCodes ifCmpOp)
+TR_J9VMBase::testIsClassPrimitiveValueType(TR::Node *j9ClassRefNode)
+   {
+   return testAreSomeClassFlagsSet(j9ClassRefNode, J9ClassIsPrimitiveValueType);
+   }
+
+TR::Node *
+TR_J9VMBase::checkSomeArrayCompClassFlags(TR::Node *arrayBaseAddressNode, TR::ILOpCodes ifCmpOp, uint32_t flagsToTest)
    {
    TR::SymbolReference *vftSymRef = TR::comp()->getSymRefTab()->findOrCreateVftSymbolRef();
    TR::SymbolReference *arrayCompSymRef = TR::comp()->getSymRefTab()->findOrCreateArrayComponentTypeSymbolRef();
 
    TR::Node *vft = TR::Node::createWithSymRef(TR::aloadi, 1, 1, arrayBaseAddressNode, vftSymRef);
    TR::Node *arrayCompClass = TR::Node::createWithSymRef(TR::aloadi, 1, 1, vft, arrayCompSymRef);
-   TR::Node *testIsValueTypeNode = testIsClassValueType(arrayCompClass);
-   TR::Node *ifNode = TR::Node::createif(ifCmpOp, testIsValueTypeNode, TR::Node::iconst(arrayBaseAddressNode, 0));
+   TR::Node *maskedFlagsNode = testAreSomeClassFlagsSet(arrayCompClass, flagsToTest);
+   TR::Node *ifNode = TR::Node::createif(ifCmpOp, maskedFlagsNode, TR::Node::iconst(arrayBaseAddressNode, 0));
 
    return ifNode;
+   }
+
+TR::Node *
+TR_J9VMBase::checkArrayCompClassPrimitiveValueType(TR::Node *arrayBaseAddressNode, TR::ILOpCodes ifCmpOp)
+   {
+   return checkSomeArrayCompClassFlags(arrayBaseAddressNode, ifCmpOp, J9ClassIsPrimitiveValueType);
+   }
+
+TR::Node *
+TR_J9VMBase::checkArrayCompClassValueType(TR::Node *arrayBaseAddressNode, TR::ILOpCodes ifCmpOp)
+   {
+   return checkSomeArrayCompClassFlags(arrayBaseAddressNode, ifCmpOp, J9ClassIsValueType);
    }
 
 TR::TreeTop *
@@ -3518,21 +3353,12 @@ TR_J9VMBase::lowerTree(TR::Compilation * comp, TR::Node * root, TR::TreeTop * tr
 uint8_t
 TR_J9VMBase::getCompilationShouldBeInterruptedFlag()
    {
-   // Some assumes to make sure that the code hasn't changed in an incompatible way
-   TR::CompilationInfoPerThreadBase *cp = _compInfo->getCompInfoForCompOnAppThread();
-   if (cp)
-      {
-      return cp->compilationShouldBeInterrupted();
-      }
-   else
-      {
 #ifdef DEBUG // make sure that what is true today stays true in the future
-      J9VMThread *vmThread = _jitConfig->javaVM->internalVMFunctions->currentVMThread(_jitConfig->javaVM);
-      TR::CompilationInfoPerThread *compInfoPT = _compInfo->getCompInfoForThread(vmThread);
-      TR_ASSERT(compInfoPT == _compInfoPT, "Discrepancy compInfoPT=%p _compInfoPT=%p\n", compInfoPT, _compInfoPT);
+   J9VMThread *vmThread = _jitConfig->javaVM->internalVMFunctions->currentVMThread(_jitConfig->javaVM);
+   TR::CompilationInfoPerThread *compInfoPT = _compInfo->getCompInfoForThread(vmThread);
+   TR_ASSERT(compInfoPT == _compInfoPT, "Discrepancy compInfoPT=%p _compInfoPT=%p\n", compInfoPT, _compInfoPT);
 #endif
-      return _compInfoPT->compilationShouldBeInterrupted();
-      }
+   return _compInfoPT->compilationShouldBeInterrupted();
    }
 
 // Resolution is 0.5 sec or worse. Returns negative value for not available
@@ -3540,12 +3366,8 @@ TR_J9VMBase::getCompilationShouldBeInterruptedFlag()
 int64_t
 TR_J9VMBase::getCpuTimeSpentInCompThread(TR::Compilation * comp)
    {
-   if (!_compInfo->getCompInfoForCompOnAppThread()) // filter out cases when we compile on app thread
-      {
-      _compInfoPT->getCompThreadCPU().update();
-      return _compInfoPT->getCompThreadCPU().getCpuTime();
-      }
-   return -1;
+   _compInfoPT->getCompThreadCPU().update();
+   return _compInfoPT->getCompThreadCPU().getCpuTime();
    }
 
 bool
@@ -3554,40 +3376,33 @@ TR_J9VMBase::compilationShouldBeInterrupted(TR::Compilation * comp, TR_CallingCo
    if (comp->getUpdateCompYieldStats())
       comp->updateCompYieldStatistics(callingContext);
 
-   bool const compilingOnApplicationThread = _compInfo->getCompInfoForCompOnAppThread() != NULL;
-   TR::CompilationInfoPerThreadBase * const compInfoPTB =
-      compilingOnApplicationThread ?
-         _compInfo->getCompInfoForCompOnAppThread() :
-         _compInfoPT;
+   TR::CompilationInfoPerThreadBase * const compInfoPTB = _compInfoPT;
 
    // Update the time spent in compilation thread
    //
    // TODO: use this only under an option
-   if (!compilingOnApplicationThread) // filter out cases when we compile on app thread; another test could be
+   // make sure current thread is the same as the thread stored in the FrontEnd
+   TR_ASSERT(vmThread() == _jitConfig->javaVM->internalVMFunctions->currentVMThread(_jitConfig->javaVM),
+             "Error: %p thread using the frontend of another thread %p",
+             _jitConfig->javaVM->internalVMFunctions->currentVMThread(_jitConfig->javaVM), vmThread());
+   // Update CPU time (update actually happens only every 0.5 seconds)
+   if (_compInfoPT->getCompThreadCPU().update()) // returns true if an update happened and metric looks good
       {
-      // make sure current thread is the same as the thread stored in the FrontEnd
-      TR_ASSERT(vmThread() == _jitConfig->javaVM->internalVMFunctions->currentVMThread(_jitConfig->javaVM),
-                "Error: %p thread using the frontend of another thread %p",
-                _jitConfig->javaVM->internalVMFunctions->currentVMThread(_jitConfig->javaVM), vmThread());
-      // Update CPU time (update actually happens only every 0.5 seconds)
-      if (_compInfoPT->getCompThreadCPU().update()) // returns true if an update happened and metric looks good
+      // We may also want to print it
+      if (TR::Options::getCmdLineOptions()->getVerboseOption(TR_VerboseCompilationThreads))
          {
-         // We may also want to print it
-         if (TR::Options::getCmdLineOptions()->getVerboseOption(TR_VerboseCompilationThreads))
-            {
-            int32_t CPUmillis = _compInfoPT->getCompThreadCPU().getCpuTime() / 1000000;
+         int32_t CPUmillis = _compInfoPT->getCompThreadCPU().getCpuTime() / 1000000;
 
-            // May issue a trace point if enabled
-            Trc_JIT_CompCPU(vmThread(), _compInfoPT->getCompThreadId(), CPUmillis);
+         // May issue a trace point if enabled
+         Trc_JIT_CompCPU(vmThread(), _compInfoPT->getCompThreadId(), CPUmillis);
 
-            TR_VerboseLog::writeLineLocked(
-               TR_Vlog_PERF,
-               "t=%6llu CPU time spent so far in compThread:%d = %d ms",
-               static_cast<unsigned long long>(_compInfo->getPersistentInfo()->getElapsedTime()),
-               _compInfoPT->getCompThreadId(),
-               CPUmillis
-               );
-            }
+         TR_VerboseLog::writeLineLocked(
+            TR_Vlog_PERF,
+            "t=%6llu CPU time spent so far in compThread:%d = %d ms",
+            static_cast<unsigned long long>(_compInfo->getPersistentInfo()->getElapsedTime()),
+            _compInfoPT->getCompThreadId(),
+            CPUmillis
+            );
          }
       }
 
@@ -3597,7 +3412,7 @@ TR_J9VMBase::compilationShouldBeInterrupted(TR::Compilation * comp, TR_CallingCo
       {
       releaseVMAccess(vmThread());
 
-      if (!compilingOnApplicationThread && comp->getOptions()->realTimeGC())
+      if (comp->getOptions()->realTimeGC())
          {
          // no compilation on application thread
          TR_ASSERT(_compInfoPT, "Missing compilation info per thread.");
@@ -3638,7 +3453,7 @@ TR_J9VMBase::compilationShouldBeInterrupted(TR::Compilation * comp, TR_CallingCo
 #endif
          //--- GC CAN INTERVENE HERE ---
          TR_ASSERT((vmThread()->publicFlags & J9_PUBLIC_FLAGS_VM_ACCESS) == 0, "comp thread must not have vm access");
-         if (!compilingOnApplicationThread && comp->getOptions()->realTimeGC())
+         if (comp->getOptions()->realTimeGC())
             {
             // no compilation on application thread
             TR_ASSERT(_compInfoPT, "Missing compilation info per thread.");
@@ -3899,10 +3714,7 @@ TR_J9VMBase::waitOnCompiler(void *config)
 bool
 TR_J9VMBase::tossingCode()
    {
-   if ((_jitConfig->runtimeFlags & J9JIT_TOSS_CODE) ||
-       (_jitConfig->runtimeFlags & J9JIT_TESTMODE))
-      return true;
-   return false;
+   return (_jitConfig->runtimeFlags & J9JIT_TOSS_CODE);
    }
 
 TR::KnownObjectTable::Index
@@ -4023,7 +3835,9 @@ TR_J9VMBase::canDereferenceAtCompileTimeWithFieldSymbol(TR::Symbol * fieldSymbol
       {
       case TR::Symbol::Java_lang_invoke_PrimitiveHandle_rawModifiers:
       case TR::Symbol::Java_lang_invoke_PrimitiveHandle_defc:
+#if defined(J9VM_OPT_METHOD_HANDLE)
       case TR::Symbol::Java_lang_invoke_VarHandle_handleTable:
+#endif /* defined(J9VM_OPT_METHOD_HANDLE) */
       case TR::Symbol::Java_lang_invoke_MethodHandleImpl_LoopClauses_clauses:
          {
          return true;
@@ -4097,10 +3911,10 @@ TR_J9VMBase::isStable(int cpIndex, TR_ResolvedMethod *owningMethod, TR::Compilat
 
    if (comp->getOption(TR_DisableStableAnnotations))
       return false;
-   
+
    if (cpIndex < 0)
       return false;
-   
+
    J9Class *fieldClass = (J9Class*)owningMethod->classOfMethod();
    if (!fieldClass)
       return false;
@@ -4125,6 +3939,13 @@ TR_J9VMBase::isStable(J9Class *fieldClass, int cpIndex)
    {
    TR_ASSERT_FATAL(fieldClass, "fieldClass must not be NULL");
    return jitIsFieldStable(vmThread(), fieldClass, cpIndex);
+   }
+
+bool
+TR_J9VMBase::isForceInline(TR_ResolvedMethod *method)
+   {
+   return jitIsMethodTaggedWithForceInline(vmThread(),
+                                           (J9Method*)method->getPersistentIdentifier());
    }
 
 // Creates a node to initialize the local object flags field
@@ -4372,8 +4193,8 @@ TR_J9VMBase::getOverflowSafeAllocSize()
 void
 TR_J9VMBase::unsupportedByteCode(TR::Compilation * comp, U_8 opcode)
    {
-   char errMsg[40];
-   snprintf(errMsg, 40, "bytecode %d not supported by JIT", opcode);
+   char errMsg[64];
+   TR::snprintfNoTrunc(errMsg, sizeof (errMsg), "bytecode %d not supported by JIT", opcode);
    comp->failCompilation<TR::CompilationException>(errMsg);
    }
 
@@ -4736,6 +4557,7 @@ TR_J9VMBase::lookupMethodHandleThunkArchetype(uintptr_t methodHandle)
       {
       case '[':
       case 'L':
+      case 'Q':
          // The thunkable signature might return some other class, but archetypes
          // returning a reference are always declared to return Object.
          //
@@ -4835,6 +4657,39 @@ TR::KnownObjectTable::Index TR_J9VMBase::mutableCallSiteEpoch(TR::Compilation *c
    return mh == 0 ? TR::KnownObjectTable::UNKNOWN : knot->getOrCreateIndex(mh);
    }
 
+
+TR_J9VMBase::MethodOfHandle TR_J9VMBase::methodOfDirectOrVirtualHandle(
+   uintptr_t *mh, bool isVirtual)
+   {
+   TR::VMAccessCriticalSection methodOfDirectOrVirtualHandle(this);
+
+   MethodOfHandle result = {};
+
+   uintptr_t methodHandle = *mh;
+   result.vmSlot = getInt64Field(methodHandle, "vmSlot");
+
+   uintptr_t jlClass = getReferenceField(
+      methodHandle, "referenceClass", "Ljava/lang/Class;");
+
+   TR_OpaqueClassBlock *clazz = getClassFromJavaLangClass(jlClass);
+
+   if (isVirtual)
+      {
+      size_t vftStartOffset = TR::Compiler->vm.getInterpreterVTableOffset();
+      TR_OpaqueMethodBlock **vtable =
+         (TR_OpaqueMethodBlock**)((uintptr_t)clazz + vftStartOffset);
+
+      int32_t index = (int32_t)((result.vmSlot - vftStartOffset) / sizeof(vtable[0]));
+      result.j9method = vtable[index];
+      }
+   else
+      {
+      result.j9method = (TR_OpaqueMethodBlock*)(intptr_t)result.vmSlot;
+      }
+
+   return result;
+   }
+
 bool
 TR_J9VMBase::hasMethodTypesSideTable()
    {
@@ -4882,24 +4737,97 @@ TR_J9VMBase::targetMethodFromMethodHandle(TR::Compilation* comp, TR::KnownObject
        knot &&
        !knot->isNull(objIndex))
       {
-      TR::VMAccessCriticalSection getTarget(this);
-      uintptr_t object = knot->getPointer(objIndex);
-      return targetMethodFromMethodHandle(object);
-      }
-   return NULL;
-   }
+      const char *mhClassName = "java/lang/invoke/MethodHandle";
+      int32_t mhClassNameLen = strlen(mhClassName);
+      TR_OpaqueClassBlock *mhClass =
+         getSystemClassFromClassName(mhClassName, mhClassNameLen);
 
-TR_OpaqueMethodBlock*
-TR_J9VMBase::targetMethodFromMethodHandle(uintptr_t methodHandle)
-   {
-   TR_ASSERT(haveAccess(), "targetFromMethodHandle requires VM access");
-   uintptr_t form = getReferenceField(
-      methodHandle,
-      "form",             "Ljava/lang/invoke/LambdaForm;");
-   uintptr_t vmentry = getReferenceField(
-      form,
-      "vmentry",             "Ljava/lang/invoke/MemberName;");
-   return targetMethodFromMemberName(vmentry);
+      if (mhClass == NULL)
+         {
+         if (comp->getOption(TR_TraceOptDetails))
+            traceMsg(comp, "targetMethodFromMethodHandle: MethodHandle is not loaded\n");
+
+         return NULL;
+         }
+
+      TR::VMAccessCriticalSection getTarget(this);
+
+      uintptr_t handle = knot->getPointer(objIndex);
+      TR_OpaqueClassBlock *objClass = getObjectClass(handle);
+      if (isInstanceOf(objClass, mhClass, true, true) != TR_yes)
+         {
+         if (comp->getOption(TR_TraceOptDetails))
+            {
+            traceMsg(
+               comp,
+               "targetMethodFromMethodHandle: Cannot load ((MethodHandle)obj%d).form "
+               "because obj%d is not a MethodHandle\n",
+               objIndex,
+               objIndex);
+            }
+
+         return NULL;
+         }
+
+      J9JavaVM *javaVM = _jitConfig->javaVM;
+      uint32_t keepAliveOffset = javaVM->jitVMEntryKeepAliveOffset;
+      uint32_t keepAliveOffsetNoHeader = keepAliveOffset - getObjectHeaderSizeInBytes();
+      uintptr_t vmentry = getVolatileReferenceFieldAt(handle, keepAliveOffsetNoHeader);
+      if (vmentry == 0)
+         {
+         uintptr_t form = getReferenceField(
+            handle, "form", "Ljava/lang/invoke/LambdaForm;");
+
+         if (form == 0)
+            {
+            if (comp->getOption(TR_TraceOptDetails))
+               {
+               traceMsg(
+                  comp,
+                  "targetMethodFromMethodHandle: null ((MethodHandle)obj%d).form\n",
+                  objIndex);
+               }
+
+            return NULL;
+            }
+
+         vmentry = getReferenceField(
+            form, "vmentry", "Ljava/lang/invoke/MemberName;");
+
+         if (vmentry == 0)
+            {
+            if (comp->getOption(TR_TraceOptDetails))
+               {
+               traceMsg(
+                  comp,
+                  "targetMethodFromMethodHandle: null ((MethodHandle)obj%d).form.vmentry\n",
+                  objIndex);
+               }
+
+            return NULL;
+            }
+
+         // This should be fj9object_t*, but j9gc_objaccess_compareAndSwapObject
+         // still expects J9Object** in its signature.
+         auto **keepAliveAddr = (J9Object**)(handle + keepAliveOffset);
+         UDATA success = javaVM->memoryManagerFunctions->j9gc_objaccess_compareAndSwapObject(
+            vmThread(), (J9Object*)handle, keepAliveAddr, NULL, (J9Object*)vmentry);
+
+         if (success == 0)
+            {
+            vmentry = getVolatileReferenceFieldAt(handle, keepAliveOffsetNoHeader);
+            TR_ASSERT_FATAL(
+               vmentry != 0,
+               "((MethodHandle)obj%d).jitVMEntryKeepAlive is still null "
+               "after failing compare and swap",
+               objIndex);
+            }
+         }
+
+      return targetMethodFromMemberName(vmentry);
+      }
+
+   return NULL;
    }
 
 J9JNIMethodID*
@@ -4924,15 +4852,15 @@ TR_J9VMBase::jniMethodIdFromMemberName(TR::Compilation* comp, TR::KnownObjectTab
    return NULL;
    }
 
-int32_t
+uintptr_t
 TR_J9VMBase::vTableOrITableIndexFromMemberName(uintptr_t memberName)
    {
    TR_ASSERT(haveAccess(), "vTableOrITableIndexFromMemberName requires VM access");
    auto methodID = jniMethodIdFromMemberName(memberName);
-   return (int32_t)methodID->vTableIndex;
+   return methodID->vTableIndex;
    }
 
-int32_t
+uintptr_t
 TR_J9VMBase::vTableOrITableIndexFromMemberName(TR::Compilation* comp, TR::KnownObjectTable::Index objIndex)
    {
    auto knot = comp->getKnownObjectTable();
@@ -4944,7 +4872,7 @@ TR_J9VMBase::vTableOrITableIndexFromMemberName(TR::Compilation* comp, TR::KnownO
       uintptr_t object = knot->getPointer(objIndex);
       return vTableOrITableIndexFromMemberName(object);
       }
-   return -1;
+   return (uintptr_t)-1;
    }
 
 TR::KnownObjectTable::Index
@@ -4995,9 +4923,8 @@ getSignatureForLinkToStatic(
 
    const char * const origSignature = utf8Data(romMethodSignature);
    const int origSignatureLength = J9UTF8_LENGTH(romMethodSignature);
-   signatureLength = origSignatureLength + extraParamsLength;
 
-   const int32_t signatureAllocSize = signatureLength + 1; // +1 for NUL terminator
+   const int32_t signatureAllocSize = origSignatureLength + extraParamsLength + 1; // +1 for NUL terminator
    char * linkToStaticSignature =
       (char *)comp->trMemory()->allocateMemory(signatureAllocSize, heapAlloc);
 
@@ -5037,7 +4964,7 @@ getSignatureForLinkToStatic(
       origSignature);
 
    // Put together the new signature.
-   const int formattedLength = snprintf(
+   signatureLength = TR::snprintfNoTrunc(
       linkToStaticSignature,
       signatureAllocSize,
       "(%s%.*s%s)%.*s",
@@ -5047,20 +4974,6 @@ getSignatureForLinkToStatic(
       extraParamsAfter,
       (int)(returnTypeEnd - returnType),
       returnType);
-
-   // This condition implies that (formattedLength < signatureAllocSize), so
-   // given that the assertion passes, we can be sure that the signature was
-   // not truncated.
-   TR_ASSERT_FATAL(
-      formattedLength == signatureLength,
-      "expected linkToStatic signature length %d but got %d "
-      "(origSignature `%.*s', extraParamsBefore `%s', extraParamsAfter `%s')",
-      signatureLength,
-      formattedLength,
-      origSignatureLength,
-      origSignature,
-      extraParamsBefore,
-      extraParamsAfter);
 
    return linkToStaticSignature;
    }
@@ -5086,6 +4999,97 @@ TR_J9VMBase::getSignatureForLinkToStaticForInvokeDynamic(TR::Compilation* comp, 
         romMethodSignature,
         signatureLength);
    }
+
+TR::KnownObjectTable::Index
+TR_J9VMBase::delegatingMethodHandleTarget(
+   TR::Compilation *comp, TR::KnownObjectTable::Index dmhIndex, bool trace)
+   {
+   TR::KnownObjectTable *knot = comp->getOrCreateKnownObjectTable();
+   if (knot == NULL)
+      return TR::KnownObjectTable::UNKNOWN;
+
+   if (dmhIndex == TR::KnownObjectTable::UNKNOWN || knot->isNull(dmhIndex))
+      return TR::KnownObjectTable::UNKNOWN;
+
+   const char * const cwClassName =
+      "java/lang/invoke/MethodHandleImpl$CountingWrapper";
+
+   const int cwClassNameLen = (int)strlen(cwClassName);
+   TR_OpaqueClassBlock *cwClass =
+      getSystemClassFromClassName(cwClassName, cwClassNameLen);
+
+   if (trace)
+      {
+      traceMsg(
+         comp,
+         "delegating method handle target: delegating mh obj%d(*%p) CountingWrapper %p\n",
+         dmhIndex,
+         knot->getPointerLocation(dmhIndex),
+         cwClass);
+      }
+
+   if (cwClass == NULL)
+      {
+      if (trace)
+         traceMsg(comp, "failed to find CountingWrapper\n");
+
+      return TR::KnownObjectTable::UNKNOWN;
+      }
+
+   TR_OpaqueClassBlock *dmhType =
+      getObjectClassFromKnownObjectIndex(comp, dmhIndex);
+
+   if (dmhType == NULL)
+      {
+      if (trace)
+         traceMsg(comp, "failed to determine concrete DelegatingMethodHandle type\n");
+
+      return TR::KnownObjectTable::UNKNOWN;
+      }
+   else if (isInstanceOf(dmhType, cwClass, true) != TR_yes)
+      {
+      if (trace)
+         traceMsg(comp, "object is not a CountingWrapper\n");
+
+      return TR::KnownObjectTable::UNKNOWN;
+      }
+
+   TR::KnownObjectTable::Index targetIndex = delegatingMethodHandleTargetHelper(comp, dmhIndex, cwClass);
+
+   if (trace)
+      traceMsg(comp, "target is obj%d\n", targetIndex);
+
+   return targetIndex;
+   }
+
+TR::KnownObjectTable::Index
+TR_J9VMBase::delegatingMethodHandleTargetHelper(
+   TR::Compilation *comp, TR::KnownObjectTable::Index dmhIndex, TR_OpaqueClassBlock *cwClass)
+   {
+   TR_ASSERT(!comp->isOutOfProcessCompilation(), "Should not be used in server mode");
+   TR::VMAccessCriticalSection dereferenceKnownObjectField(this);
+   TR::KnownObjectTable *knot = comp->getKnownObjectTable();
+   int32_t targetFieldOffset =
+      getInstanceFieldOffset(cwClass, "target", "Ljava/lang/invoke/MethodHandle;");
+
+   uintptr_t dmh = knot->getPointer(dmhIndex);
+   uintptr_t fieldAddress = getReferenceFieldAt(dmh, targetFieldOffset);
+   TR::KnownObjectTable::Index targetIndex = knot->getOrCreateIndex(fieldAddress);
+   return targetIndex;
+   }
+
+UDATA
+TR_J9VMBase::getVMTargetOffset()
+   {
+   return vmThread()->javaVM->vmtargetOffset;
+   }
+
+UDATA
+TR_J9VMBase::getVMIndexOffset()
+   {
+   return vmThread()->javaVM->vmindexOffset;
+   }
+
 #endif /* defined(J9VM_OPT_OPENJDK_METHODHANDLE) */
 
 TR::KnownObjectTable::Index
@@ -5096,6 +5100,23 @@ TR_J9VMBase::getMemberNameFieldKnotIndexFromMethodHandleKnotIndex(TR::Compilatio
    uintptr_t mhObject = knot->getPointer(mhIndex);
    uintptr_t mnObject = getReferenceField(mhObject, fieldName, "Ljava/lang/invoke/MemberName;");
    return knot->getOrCreateIndex(mnObject);
+   }
+
+bool
+TR_J9VMBase::isMethodHandleExpectedType(
+   TR::Compilation *comp,
+   TR::KnownObjectTable::Index mhIndex,
+   TR::KnownObjectTable::Index expectedTypeIndex)
+   {
+   TR::KnownObjectTable *knot = comp->getKnownObjectTable();
+   if (!knot)
+      return false;
+
+   TR::VMAccessCriticalSection vmAccess(this);
+   uintptr_t mhObject = knot->getPointer(mhIndex);
+   uintptr_t mtObject = getReferenceField(mhObject, "type", "Ljava/lang/invoke/MethodType;");
+   uintptr_t etObject = knot->getPointer(expectedTypeIndex);
+   return mtObject == etObject;
    }
 
 /**
@@ -5180,7 +5201,13 @@ TR_J9VMBase::getStringFieldByName(TR::Compilation * comp, TR::SymbolReference * 
    TR::Symbol::RecognizedField   field = fieldRef->getSymbol()->getRecognizedField();
 
    if (field == TR::Symbol::Java_lang_String_count)
+      {
+#if JAVA_SPEC_VERSION == 8
       pResult = (U_8*)string + J9VMJAVALANGSTRING_COUNT_OFFSET(vmThread());
+#else /* JAVA_SPEC_VERSION == 8 */
+      return false;
+#endif /* JAVA_SPEC_VERSION == 8 */
+      }
    else if (field == TR::Symbol::Java_lang_String_hashCode)
       {
       if (J9VMJAVALANGSTRING_HASH(vmThread(), string) == 0)
@@ -5231,7 +5258,7 @@ TR_J9VMBase::getFieldOffset(TR::Compilation * comp, TR::SymbolReference* classRe
    fprintf(stderr,"  (len is %d)\n",len);fflush(stderr);
    **/
 
-   char* classSignature = classNameToSignature((char*)u8ClassString, len, comp);
+   char* classSignature = TR::Compiler->cls.classNameToSignature((char*)u8ClassString, len, comp);
 
    /**
    fprintf(stderr,"classSignature is \n");
@@ -5333,13 +5360,6 @@ TR_J9VMBase::isString(TR_OpaqueClassBlock *clazz)
    return (J9Class*)clazz == J9VMJAVALANGSTRING(jitConfig->javaVM);
    }
 
-bool
-TR_J9VMBase::isString(uintptr_t objectPointer)
-   {
-   TR_ASSERT(haveAccess(), "isString requires VM access");
-   return isString(getObjectClass(objectPointer));
-   }
-
 int32_t
 TR_J9VMBase::getStringLength(uintptr_t objectPointer)
    {
@@ -5385,7 +5405,12 @@ TR_J9VMBase::getStringUTF8(uintptr_t objectPointer, char *buffer, intptr_t buffe
 uint32_t
 TR_J9VMBase::getVarHandleHandleTableOffset(TR::Compilation * comp)
    {
+#if defined(J9VM_OPT_METHOD_HANDLE) && (JAVA_SPEC_VERSION >= 11)
    return uint32_t(J9VMJAVALANGINVOKEVARHANDLE_HANDLETABLE_OFFSET(vmThread()));
+#else /* defined(J9VM_OPT_METHOD_HANDLE) && (JAVA_SPEC_VERSION >= 11) */
+   Assert_JIT_unreachable();
+   return 0;
+#endif /* defined(J9VM_OPT_METHOD_HANDLE) && (JAVA_SPEC_VERSION >= 11) */
    }
 
 // set a 32 bit field that will be printed if the VM crashes
@@ -5596,10 +5621,7 @@ TR_J9VMBase::reserveTrampolineIfNecessary(TR::Compilation * comp, TR::SymbolRefe
                if (newCache)
                   {
                   // check for class unloading that can happen in getNewCodeCache
-                  TR::CompilationInfoPerThreadBase * const compInfoPTB =
-                     _compInfo->getCompInfoForCompOnAppThread() ?
-                        _compInfo->getCompInfoForCompOnAppThread() :
-                        _compInfoPT;
+                  TR::CompilationInfoPerThreadBase * const compInfoPTB =_compInfoPT;
                   if (compInfoPTB->compilationShouldBeInterrupted())
                      {
                      newCache->unreserve(); // delete the reservation
@@ -5860,7 +5882,7 @@ TR_J9VMBase::setInvocationCount(TR_OpaqueMethodBlock * methodInfo, int32_t oldCo
 bool
 TR_J9VMBase::startAsyncCompile(TR_OpaqueMethodBlock * method, void *oldStartPC, bool *queued, TR_OptimizationPlan *optimizationPlan)
    {
-   if (_compInfo && _compInfo->useSeparateCompilationThread())
+   if (_compInfo)
       {
       TR::VMAccessCriticalSection startAsyncCompile(this);
 
@@ -5878,10 +5900,10 @@ TR_J9VMBase::isBeingCompiled(TR_OpaqueMethodBlock * method, void * startPC)
    return _compInfo->isQueuedForCompilation((J9Method *)method, startPC);
    }
 
-U_32
+I_32
 TR_J9VMBase::vTableSlotToVirtualCallOffset(U_32 vTableSlot)
    {
-   return TR::Compiler->vm.getInterpreterVTableOffset() - vTableSlot;
+   return (int32_t) TR::Compiler->vm.getInterpreterVTableOffset() - (int32_t) vTableSlot;
    }
 
 U_32
@@ -6154,9 +6176,11 @@ TR_J9VMBase::canAllocateInlineClass(TR_OpaqueClassBlock *clazzOffset)
    if (clazz->initializeStatus != 1)
       return false;
 
-   // Can not inline the allocation if the class is an interface, abstract or identityless
-   // (a value type) or if it is a class with identityless fields
-   if ((clazz->romClass->modifiers & (J9AccAbstract | J9AccInterface | J9AccValueType))
+   // Cannot inline the allocation if the class is an interface, abstract,
+   // or if it is a class with identityless primitive value type fields that
+   // aren't flattened, because they have to be made to refer to their type's
+   // default values
+   if ((clazz->romClass->modifiers & (J9AccAbstract | J9AccInterface))
        || (clazz->classFlags & J9ClassContainsUnflattenedFlattenables))
       return false;
    return true;
@@ -7052,10 +7076,7 @@ TR_J9VM::getResolvedTrampoline(TR::Compilation *comp, TR::CodeCache* curCache, J
             if (newCache)
                {
                // check for class unloading that can happen in getNewCodeCache
-               TR::CompilationInfoPerThreadBase * const compInfoPTB =
-                  _compInfo->getCompInfoForCompOnAppThread() ?
-                     _compInfo->getCompInfoForCompOnAppThread() :
-                     _compInfoPT;
+               TR::CompilationInfoPerThreadBase * const compInfoPTB = _compInfoPT;
                if (compInfoPTB->compilationShouldBeInterrupted())
                   {
                   newCache->unreserve(); // delete the reservation
@@ -7202,7 +7223,7 @@ TR_J9VM::getClassFromSignature(const char * sig, int32_t sigLength, J9ConstantPo
    J9Class * j9class = NULL;
    TR_OpaqueClassBlock * returnValue = NULL;
 
-   // For a non-array class type, strip off the first 'L' and last ';' of the
+   // For a non-array class type, strip off the first 'L' or 'Q' and last ';' of the
    // signature
    //
    if ((*sig == 'L' || *sig == 'Q') && sigLength > 2)
@@ -7345,16 +7366,8 @@ TR_J9VM::transformJavaLangClassIsArrayOrIsPrimitive(TR::Compilation * comp, TR::
 
    TR::Node * vftFieldInd;
 
-   if (TR::Compiler->cls.classesOnHeap())
-      {
-      vftFieldInd = TR::Node::createWithSymRef(TR::aloadi, 1, 1, vftField, comp->getSymRefTab()->findOrCreateClassFromJavaLangClassSymbolRef());
-      isArrayField = TR::Node::createWithSymRef(TR::aloadi, 1, 1,vftFieldInd,symRefTab->findOrCreateClassRomPtrSymbolRef());
-      }
-   else
-      {
-      isArrayField = TR::Node::createWithSymRef(TR::aloadi, 1, 1,vftField,symRefTab->findOrCreateClassRomPtrSymbolRef());
-      vftFieldInd  = isArrayField; //pkalle
-      }
+   vftFieldInd = TR::Node::createWithSymRef(TR::aloadi, 1, 1, vftField, comp->getSymRefTab()->findOrCreateClassFromJavaLangClassSymbolRef());
+   isArrayField = TR::Node::createWithSymRef(TR::aloadi, 1, 1,vftFieldInd,symRefTab->findOrCreateClassRomPtrSymbolRef());
 
    if (treeTop->getNode()->getOpCode().isNullCheck())
       {
@@ -7499,10 +7512,7 @@ TR_J9VM::inlineNativeCall(TR::Compilation * comp, TR::TreeTop * callNodeTreeTop,
       case TR::java_lang_Object_getClass:
          TR::Node::recreate(callNode, TR::aloadi);
          callNode->setSymbolReference(comp->getSymRefTab()->findOrCreateVftSymbolRef());
-         if (TR::Compiler->cls.classesOnHeap())
-            {
-            callNode = TR::Node::createWithSymRef(TR::aloadi, 1, 1, callNode, comp->getSymRefTab()->findOrCreateJavaLangClassFromClassSymbolRef());
-            }
+         callNode = TR::Node::createWithSymRef(TR::aloadi, 1, 1, callNode, comp->getSymRefTab()->findOrCreateJavaLangClassFromClassSymbolRef());
          return callNode;
 
       // Note: these cases are not tested and thus are commented out:
@@ -7545,9 +7555,9 @@ TR_J9VM::inlineNativeCall(TR::Compilation * comp, TR::TreeTop * callNodeTreeTop,
             {
             return 0;
             }
-            
+
          int32_t targetInlineDepth = 1;
-         
+
          int32_t callerIndex = callNode->getByteCodeInfo().getCallerIndex();
          J9Class *callerClass = NULL;
          J9Method *callerMethod = NULL;
@@ -7627,10 +7637,7 @@ TR_J9VM::inlineNativeCall(TR::Compilation * comp, TR::TreeTop * callNodeTreeTop,
                callNode->removeAllChildren();
                TR::SymbolReference *callerClassSymRef = comp->getSymRefTab()->findOrCreateClassSymbol(comp->getMethodSymbol(), -1, convertClassPtrToClassOffset(callerClass));
                callNode->setSymbolReference(callerClassSymRef);
-               if (TR::Compiler->cls.classesOnHeap())
-                  {
-                  callNode = TR::Node::createWithSymRef(TR::aloadi, 1, 1, callNode, comp->getSymRefTab()->findOrCreateJavaLangClassFromClassSymbolRef());
-                  }
+               callNode = TR::Node::createWithSymRef(TR::aloadi, 1, 1, callNode, comp->getSymRefTab()->findOrCreateJavaLangClassFromClassSymbolRef());
                }
             }
          else
@@ -7639,7 +7646,7 @@ TR_J9VM::inlineNativeCall(TR::Compilation * comp, TR::TreeTop * callNodeTreeTop,
             }
          }
          return callNode;
-         
+
       case TR::java_lang_Thread_currentThread:
          if (comp->cg()->getGRACompleted())
             {
@@ -7654,38 +7661,38 @@ TR_J9VM::inlineNativeCall(TR::Compilation * comp, TR::TreeTop * callNodeTreeTop,
             return callNode;
             }
       case TR::java_lang_Float_intBitsToFloat:
-         if (comp->cg()->getSupportsInliningOfTypeCoersionMethods())
+         if (comp->cg()->getSupportsInliningOfTypeCoercionMethods())
             TR::Node::recreate(callNode, TR::ibits2f);
          return callNode;
       case TR::java_lang_Float_floatToIntBits:
-         if (comp->cg()->getSupportsInliningOfTypeCoersionMethods())
+         if (comp->cg()->getSupportsInliningOfTypeCoercionMethods())
             {
             TR::Node::recreate(callNode, TR::fbits2i);
             callNode->setNormalizeNanValues(true);
             }
          return callNode;
       case TR::java_lang_Float_floatToRawIntBits:
-         if (comp->cg()->getSupportsInliningOfTypeCoersionMethods())
+         if (comp->cg()->getSupportsInliningOfTypeCoercionMethods())
             {
             TR::Node::recreate(callNode, TR::fbits2i);
             callNode->setNormalizeNanValues(false);
             }
          return callNode;
       case TR::java_lang_Double_longBitsToDouble:
-         if (comp->cg()->getSupportsInliningOfTypeCoersionMethods())
+         if (comp->cg()->getSupportsInliningOfTypeCoercionMethods())
             {
             TR::Node::recreate(callNode, TR::lbits2d);
             }
          return callNode;
       case TR::java_lang_Double_doubleToLongBits:
-         if (comp->cg()->getSupportsInliningOfTypeCoersionMethods())
+         if (comp->cg()->getSupportsInliningOfTypeCoercionMethods())
             {
             TR::Node::recreate(callNode, TR::dbits2l);
             callNode->setNormalizeNanValues(true);
             }
          return callNode;
       case TR::java_lang_Double_doubleToRawLongBits:
-         if (comp->cg()->getSupportsInliningOfTypeCoersionMethods())
+         if (comp->cg()->getSupportsInliningOfTypeCoercionMethods())
             {
             TR::Node::recreate(callNode, TR::dbits2l);
             callNode->setNormalizeNanValues(false);
@@ -7698,7 +7705,7 @@ TR_J9VM::inlineNativeCall(TR::Compilation * comp, TR::TreeTop * callNodeTreeTop,
             TR::SymbolReference * callerSymRef = callNode->getSymbolReference();
             TR_ResolvedMethod * owningMethod = callerSymRef->getOwningMethod(comp);
             int32_t len = owningMethod->classNameLength();
-            char * s = classNameToSignature(owningMethod->classNameChars(), len, comp);
+            char * s = TR::Compiler->cls.classNameToSignature(owningMethod->classNameChars(), len, comp);
             TR_OpaqueClassBlock * ReferenceClass = getClassFromSignature(s, len, owningMethod);
             // defect 143867, ReferenceClass == 0 and crashed later in findFieldInClass()
             if (!ReferenceClass)
@@ -8275,18 +8282,13 @@ TR_J9VM::getClassClassPointer(TR_OpaqueClassBlock *objectClassPointer)
    J9Class *j9class;
    j9class = TR::Compiler->cls.convertClassOffsetToClassPtr(objectClassPointer);
 
-   if (TR::Compiler->cls.classesOnHeap())
-      {
-      void *javaLangClass = J9VM_J9CLASS_TO_HEAPCLASS(TR::Compiler->cls.convertClassOffsetToClassPtr(objectClassPointer));
+   void *javaLangClass = J9VM_J9CLASS_TO_HEAPCLASS(TR::Compiler->cls.convertClassOffsetToClassPtr(objectClassPointer));
 
-      // j9class points to the J9Class corresponding to java/lang/Object
-      if (TR::Compiler->om.generateCompressedObjectHeaders())
-         j9class = (J9Class *)(uintptr_t) *((uint32_t *) ((uintptr_t) javaLangClass + (uintptr_t) TR::Compiler->om.offsetOfObjectVftField()));
-      else
-         j9class = (J9Class *)(*((J9Class **) ((uintptr_t) javaLangClass + (uintptr_t) TR::Compiler->om.offsetOfObjectVftField())));
-      }
+   // j9class points to the J9Class corresponding to java/lang/Object
+   if (TR::Compiler->om.generateCompressedObjectHeaders())
+      j9class = (J9Class *)(uintptr_t) *((uint32_t *) ((uintptr_t) javaLangClass + (uintptr_t) TR::Compiler->om.offsetOfObjectVftField()));
    else
-      j9class = (J9Class *)(*((J9Class **) ((uintptr_t)j9class + (uintptr_t) TR::Compiler->om.offsetOfObjectVftField())));
+      j9class = (J9Class *)(*((J9Class **) ((uintptr_t) javaLangClass + (uintptr_t) TR::Compiler->om.offsetOfObjectVftField())));
 
    j9class = (J9Class *)((uintptr_t)j9class & TR::Compiler->om.maskOfObjectVftField());
 
@@ -8410,7 +8412,7 @@ TR_J9VM::dereferenceStaticFinalAddress(void *staticAddress, TR::DataType address
 bool
 TR_J9SharedCacheVM::isClassVisible(TR_OpaqueClassBlock * sourceClass, TR_OpaqueClassBlock * destClass)
    {
-   TR::Compilation* comp = _compInfo->getCompInfoForCompOnAppThread() ? _compInfo->getCompInfoForCompOnAppThread()->getCompilation() : _compInfoPT->getCompilation();
+   TR::Compilation* comp = _compInfoPT->getCompilation();
    TR_ASSERT(comp, "Should be called only within a compilation");
 
    bool validated = false;
@@ -8496,7 +8498,7 @@ TR_J9SharedCacheVM::getInstanceFieldOffset(TR_OpaqueClassBlock * classPointer, c
                                     char * sig, uint32_t sigLen, UDATA options)
    {
 
-   TR::Compilation* comp = _compInfo->getCompInfoForCompOnAppThread() ? _compInfo->getCompInfoForCompOnAppThread()->getCompilation() : _compInfoPT->getCompilation();
+   TR::Compilation* comp = _compInfoPT->getCompilation();
    TR_ASSERT(comp, "Should be called only within a compilation");
 
    bool validated = false;
@@ -8522,7 +8524,7 @@ TR_J9SharedCacheVM::getClassOfMethod(TR_OpaqueMethodBlock *method)
    {
    TR_OpaqueClassBlock *classPointer = TR_J9VM::getClassOfMethod(method);
 
-   TR::Compilation* comp = _compInfo->getCompInfoForCompOnAppThread() ? _compInfo->getCompInfoForCompOnAppThread()->getCompilation() : _compInfoPT->getCompilation();
+   TR::Compilation* comp = _compInfoPT->getCompilation();
    TR_ASSERT(comp, "Should be called only within a compilation");
 
    bool validated = false;
@@ -8546,7 +8548,7 @@ TR_J9SharedCacheVM::getClassOfMethod(TR_OpaqueMethodBlock *method)
 TR_OpaqueClassBlock *
 TR_J9SharedCacheVM::getSuperClass(TR_OpaqueClassBlock * classPointer)
    {
-   TR::Compilation* comp = _compInfo->getCompInfoForCompOnAppThread() ? _compInfo->getCompInfoForCompOnAppThread()->getCompilation() : _compInfoPT->getCompilation();
+   TR::Compilation* comp = _compInfoPT->getCompilation();
    TR_ASSERT(comp, "Should be called only within a compilation");
 
    bool validated = false;
@@ -8570,7 +8572,7 @@ TR_J9SharedCacheVM::getSuperClass(TR_OpaqueClassBlock * classPointer)
 void
 TR_J9SharedCacheVM::getResolvedMethods(TR_Memory *trMemory, TR_OpaqueClassBlock * classPointer, List<TR_ResolvedMethod> * resolvedMethodsInClass)
    {
-   TR::Compilation* comp = _compInfo->getCompInfoForCompOnAppThread() ? _compInfo->getCompInfoForCompOnAppThread()->getCompilation() : _compInfoPT->getCompilation();
+   TR::Compilation* comp = _compInfoPT->getCompilation();
    TR_ASSERT(comp, "Should be called only within a compilation");
 
    bool validated = false;
@@ -8610,7 +8612,7 @@ TR_ResolvedMethod *
 TR_J9SharedCacheVM::getResolvedMethodForNameAndSignature(TR_Memory * trMemory, TR_OpaqueClassBlock * classPointer,
                                                          const char* methodName, const char *signature)
    {
-   TR::Compilation* comp = _compInfo->getCompInfoForCompOnAppThread() ? _compInfo->getCompInfoForCompOnAppThread()->getCompilation() : _compInfoPT->getCompilation();
+   TR::Compilation* comp = _compInfoPT->getCompilation();
    TR_ASSERT(comp, "Should be called only within a compilation");
 
    bool validated = false;
@@ -8652,7 +8654,7 @@ TR_J9SharedCacheVM::getMethodFromClass(TR_OpaqueClassBlock * methodClass, char *
    TR_OpaqueMethodBlock* omb = this->TR_J9VM::getMethodFromClass(methodClass, methodName, signature, callingClass);
    if (omb)
       {
-      TR::Compilation* comp = _compInfo->getCompInfoForCompOnAppThread() ? _compInfo->getCompInfoForCompOnAppThread()->getCompilation() : _compInfoPT->getCompilation();
+      TR::Compilation* comp = _compInfoPT->getCompilation();
       TR_ASSERT(comp, "Should be called only within a compilation");
 
       if (comp->getOption(TR_UseSymbolValidationManager))
@@ -8779,7 +8781,7 @@ TR_OpaqueClassBlock *
 TR_J9SharedCacheVM::getProfiledClassFromProfiledInfo(TR_ExtraAddressInfo *profiledInfo)
    {
    TR_OpaqueClassBlock * classPointer = (TR_OpaqueClassBlock *)(profiledInfo->_value);
-   TR::Compilation* comp = _compInfo->getCompInfoForCompOnAppThread() ? _compInfo->getCompInfoForCompOnAppThread()->getCompilation() : _compInfoPT->getCompilation();
+   TR::Compilation* comp = _compInfoPT->getCompilation();
    TR_ASSERT(comp, "Should be called only within a compilation");
 
    if (comp->getPersistentInfo()->isObsoleteClass((void *)classPointer, comp->fe()))
@@ -8806,7 +8808,7 @@ TR_J9SharedCacheVM::getProfiledClassFromProfiledInfo(TR_ExtraAddressInfo *profil
 bool
 TR_J9SharedCacheVM::isPublicClass(TR_OpaqueClassBlock * classPointer)
    {
-   TR::Compilation* comp = _compInfo->getCompInfoForCompOnAppThread() ? _compInfo->getCompInfoForCompOnAppThread()->getCompilation() : _compInfoPT->getCompilation();
+   TR::Compilation* comp = _compInfoPT->getCompilation();
    TR_ASSERT(comp, "Should be called only within a compilation");
 
    bool publicClass = TR_J9VM::isPublicClass(classPointer);
@@ -8832,7 +8834,7 @@ TR_J9SharedCacheVM::isPublicClass(TR_OpaqueClassBlock * classPointer)
 bool
 TR_J9SharedCacheVM::hasFinalizer(TR_OpaqueClassBlock * classPointer)
    {
-   TR::Compilation* comp = _compInfo->getCompInfoForCompOnAppThread() ? _compInfo->getCompInfoForCompOnAppThread()->getCompilation() : _compInfoPT->getCompilation();
+   TR::Compilation* comp = _compInfoPT->getCompilation();
    TR_ASSERT(comp, "Should be called only within a compilation");
 
    bool classHasFinalizer = TR_J9VM::hasFinalizer(classPointer);
@@ -8858,7 +8860,7 @@ TR_J9SharedCacheVM::hasFinalizer(TR_OpaqueClassBlock * classPointer)
 uintptr_t
 TR_J9SharedCacheVM::getClassDepthAndFlagsValue(TR_OpaqueClassBlock * classPointer)
    {
-   TR::Compilation* comp = _compInfo->getCompInfoForCompOnAppThread() ? _compInfo->getCompInfoForCompOnAppThread()->getCompilation() : _compInfoPT->getCompilation();
+   TR::Compilation* comp = _compInfoPT->getCompilation();
    TR_ASSERT(comp, "Should be called only within a compilation");
 
    bool validated = false;
@@ -8905,7 +8907,7 @@ TR_J9SharedCacheVM::getClassFlagsValue(TR_OpaqueClassBlock * classPointer)
 bool
 TR_J9SharedCacheVM::isPrimitiveClass(TR_OpaqueClassBlock * classPointer)
    {
-   TR::Compilation* comp = _compInfo->getCompInfoForCompOnAppThread() ? _compInfo->getCompInfoForCompOnAppThread()->getCompilation() : _compInfoPT->getCompilation();
+   TR::Compilation* comp = _compInfoPT->getCompilation();
    TR_ASSERT(comp, "Should be called only within a compilation");
 
    bool validated = false;
@@ -8931,7 +8933,7 @@ TR_J9SharedCacheVM::isPrimitiveClass(TR_OpaqueClassBlock * classPointer)
 TR_OpaqueClassBlock *
 TR_J9SharedCacheVM::getComponentClassFromArrayClass(TR_OpaqueClassBlock * arrayClass)
    {
-   TR::Compilation* comp = _compInfo->getCompInfoForCompOnAppThread() ? _compInfo->getCompInfoForCompOnAppThread()->getCompilation() : _compInfoPT->getCompilation();
+   TR::Compilation* comp = _compInfoPT->getCompilation();
    TR_ASSERT(comp, "Should be called only within a compilation");
 
    bool validated = false;
@@ -8957,7 +8959,7 @@ TR_J9SharedCacheVM::getComponentClassFromArrayClass(TR_OpaqueClassBlock * arrayC
 TR_OpaqueClassBlock *
 TR_J9SharedCacheVM::getArrayClassFromComponentClass(TR_OpaqueClassBlock * componentClass)
    {
-   TR::Compilation* comp = _compInfo->getCompInfoForCompOnAppThread() ? _compInfo->getCompInfoForCompOnAppThread()->getCompilation() : _compInfoPT->getCompilation();
+   TR::Compilation* comp = _compInfoPT->getCompilation();
    TR_ASSERT(comp, "Should be called only within a compilation");
 
    bool validated = false;
@@ -8982,7 +8984,7 @@ TR_J9SharedCacheVM::getArrayClassFromComponentClass(TR_OpaqueClassBlock * compon
 TR_OpaqueClassBlock *
 TR_J9SharedCacheVM::getLeafComponentClassFromArrayClass(TR_OpaqueClassBlock * arrayClass)
    {
-   TR::Compilation* comp = _compInfo->getCompInfoForCompOnAppThread() ? _compInfo->getCompInfoForCompOnAppThread()->getCompilation() : _compInfoPT->getCompilation();
+   TR::Compilation* comp = _compInfoPT->getCompilation();
    TR_ASSERT(comp, "Should be called only within a compilation");
 
    bool validated = false;
@@ -9008,7 +9010,7 @@ TR_J9SharedCacheVM::getLeafComponentClassFromArrayClass(TR_OpaqueClassBlock * ar
 TR_OpaqueClassBlock *
 TR_J9SharedCacheVM::getBaseComponentClass(TR_OpaqueClassBlock * classPointer, int32_t & numDims)
    {
-   TR::Compilation* comp = _compInfo->getCompInfoForCompOnAppThread() ? _compInfo->getCompInfoForCompOnAppThread()->getCompilation() : _compInfoPT->getCompilation();
+   TR::Compilation* comp = _compInfoPT->getCompilation();
    TR_ASSERT(comp, "Should be called only within a compilation");
 
    bool validated = false;
@@ -9044,7 +9046,7 @@ TR_J9SharedCacheVM::getClassFromNewArrayType(int32_t arrayType)
 bool
 TR_J9SharedCacheVM::isPrimitiveArray(TR_OpaqueClassBlock *classPointer)
    {
-   TR::Compilation* comp = _compInfo->getCompInfoForCompOnAppThread() ? _compInfo->getCompInfoForCompOnAppThread()->getCompilation() : _compInfoPT->getCompilation();
+   TR::Compilation* comp = _compInfoPT->getCompilation();
    TR_ASSERT(comp, "Should be called only within a compilation");
 
    bool validated = false;
@@ -9070,7 +9072,7 @@ TR_J9SharedCacheVM::isPrimitiveArray(TR_OpaqueClassBlock *classPointer)
 bool
 TR_J9SharedCacheVM::isReferenceArray(TR_OpaqueClassBlock *classPointer)
    {
-   TR::Compilation* comp = _compInfo->getCompInfoForCompOnAppThread() ? _compInfo->getCompInfoForCompOnAppThread()->getCompilation() : _compInfoPT->getCompilation();
+   TR::Compilation* comp = _compInfoPT->getCompilation();
    TR_ASSERT(comp, "Should be called only within a compilation");
 
    bool validated = false;
@@ -9230,7 +9232,7 @@ TR_J9SharedCacheVM::persistThunk(char *signatureChars, uint32_t signatureLength,
    const void* store= _jitConfig->javaVM->sharedClassConfig->storeSharedData(curThread, signatureChars, signatureLength, &dataDescriptor);
    if (!store) /* Store failed */
       {
-      TR::Compilation* comp = _compInfo->getCompInfoForCompOnAppThread() ? _compInfo->getCompInfoForCompOnAppThread()->getCompilation() : _compInfoPT->getCompilation();
+      TR::Compilation* comp = _compInfoPT->getCompilation();
       if (comp)
          comp->failCompilation<TR::CompilationException>("Failed to persist thunk");
       else
@@ -9245,7 +9247,7 @@ bool
 TR_J9SharedCacheVM::canRememberClass(TR_OpaqueClassBlock *classPtr)
    {
    if (_sharedCache)
-      return (_sharedCache->rememberClass((J9Class *) classPtr, false) != NULL);
+      return (_sharedCache->rememberClass((J9Class *)classPtr, NULL, false) != NULL);
    return false;
    }
 
@@ -9331,9 +9333,9 @@ TR_J9VMBase::inSnapshotMode()
    {
 #if defined(J9VM_OPT_CRIU_SUPPORT)
    return getJ9JITConfig()->javaVM->internalVMFunctions->isCheckpointAllowed(vmThread());
-#else
+#else /* defined(J9VM_OPT_CRIU_SUPPORT) */
    return false;
-#endif
+#endif /* defined(J9VM_OPT_CRIU_SUPPORT) */
    }
 
 
@@ -9345,7 +9347,7 @@ JIT_HELPER(initialInvokeExactThunkGlue);
 JIT_HELPER(_initialInvokeExactThunkGlue);
 #endif
 
-JNIEXPORT jlong JNICALL Java_java_lang_invoke_ThunkTuple_initialInvokeExactThunk
+jlong JNICALL Java_java_lang_invoke_ThunkTuple_initialInvokeExactThunk
    (JNIEnv *env, jclass clazz)
    {
 #if defined(J9ZOS390)
@@ -9363,7 +9365,7 @@ JNIEXPORT jlong JNICALL Java_java_lang_invoke_ThunkTuple_initialInvokeExactThunk
  * (private interface method, methods in Object) have been adapted away by the java code, so this
  * native only ever deals with iTable interface methods.
  */
-JNIEXPORT jint JNICALL Java_java_lang_invoke_InterfaceHandle_convertITableIndexToVTableIndex
+jint JNICALL Java_java_lang_invoke_InterfaceHandle_convertITableIndexToVTableIndex
   (JNIEnv *env, jclass InterfaceMethodHandle, jlong interfaceArg, jint itableIndex, jlong receiverClassArg)
    {
    J9Class  *interfaceClass = (J9Class*)(intptr_t)interfaceArg;
@@ -9374,7 +9376,12 @@ JNIEXPORT jint JNICALL Java_java_lang_invoke_InterfaceHandle_convertITableIndexT
          break;
    TR_ASSERT(itableEntry, "Shouldn't call convertITableIndexToVTableIndex without first ensuring the receiver implements the interface");
    UDATA *itableArray = (UDATA*)(itableEntry+1);
-   return (itableArray[itableIndex] - sizeof(J9Class))/sizeof(intptr_t);
+   UDATA vTableOffset = itableArray[itableIndex];
+   J9Method *method = *(J9Method**)((UDATA)receiverClass + vTableOffset);
+   if ((J9_ROM_METHOD_FROM_RAM_METHOD(method)->modifiers & J9AccPublic) == 0)
+      return -1;
+
+   return (vTableOffset - sizeof(J9Class))/sizeof(intptr_t);
 #if 0 // TODO:JSR292: We probably want to do something more like this instead, so it will properly handle exceptional cases
    struct
       {
@@ -9391,12 +9398,7 @@ JNIEXPORT jint JNICALL Java_java_lang_invoke_InterfaceHandle_convertITableIndexT
    }
 
 
-extern "C" {
-JNIEXPORT void JNICALL Java_java_lang_invoke_MutableCallSite_invalidate
-  (JNIEnv *env, jclass MutableCallSite, jlongArray cookieArrayObject);
-}
-
-JNIEXPORT void JNICALL Java_java_lang_invoke_MutableCallSite_invalidate
+void JNICALL Java_java_lang_invoke_MutableCallSite_invalidate
   (JNIEnv *env, jclass MutableCallSite, jlongArray cookieArrayObject)
    {
    J9VMThread          *vmThread  = (J9VMThread*)env;

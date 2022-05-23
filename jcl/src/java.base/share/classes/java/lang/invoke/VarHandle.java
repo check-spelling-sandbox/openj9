@@ -883,8 +883,8 @@ public abstract class VarHandle extends VarHandleInternal
 	}
 	
 	/**
-	 * Inserts a release memory fence, ensuring that no stores before this fence
-	 * are reordered with any loads/stores after the fence. 
+	 * Inserts a release memory fence, ensuring that no loads and stores before
+	 * this fence are reordered with any stores after the fence.
 	 */
 	public static void releaseFence() {
 		// TODO: storeStore + loadStore
@@ -984,7 +984,7 @@ public abstract class VarHandle extends VarHandleInternal
 		
 	/**
 	 * Sets the value of the field referenced by this {@link VarHandle} using acquire semantics.
-	 * Preceding stores will not be reordered with subsequent loads/stores.
+	 * Preceding loads and stores will not be reordered after this access.
 	 * 
 	 * @param args The arguments for this operation are determined by the field type
 	 * 				(see {@link VarHandle#accessModeType(AccessMode) accessModeType()}) 
@@ -1509,7 +1509,7 @@ public abstract class VarHandle extends VarHandleInternal
 					}
 					break;
 				default:
-					/*[MSG "K0619", "Malformated VarHandleDesc, {0} could not be retrieved."]*/
+					/*[MSG "K0619", "Malformed VarHandleDesc, {0} could not be retrieved."]*/
 					throw new InternalError(com.ibm.oti.util.Msg.getString("K0619", "field type")); //$NON-NLS-1$ //$NON-NLS-2$
 			}
 			
@@ -1561,7 +1561,7 @@ public abstract class VarHandle extends VarHandleInternal
 			ConstantDesc[] args = bootstrapArgs();
 			/* declaring class is always the first bootstrap argument */
 			if (!type.isField() || (args.length < 2) || !(args[0] instanceof ClassDesc)) {
-				/*[MSG "K0619", "Malformated VarHandleDesc, {0} could not be retrieved."]*/
+				/*[MSG "K0619", "Malformed VarHandleDesc, {0} could not be retrieved."]*/
 				throw new InternalError(com.ibm.oti.util.Msg.getString("K0619", "field declaring class descriptor")); //$NON-NLS-1$ //$NON-NLS-2$
 			}
 			return (ClassDesc)args[0];
@@ -1577,7 +1577,7 @@ public abstract class VarHandle extends VarHandleInternal
 			ConstantDesc[] args = bootstrapArgs();
 			/* field type is always the second bootstrap argument */
 			if (!type.isField() || (args.length < 2) || !(args[1] instanceof ClassDesc)) {
-				/*[MSG "K0619", "Malformated VarHandleDesc, {0} could not be retrieved."]*/
+				/*[MSG "K0619", "Malformed VarHandleDesc, {0} could not be retrieved."]*/
 				throw new InternalError(com.ibm.oti.util.Msg.getString("K0619", "field class descriptor")); //$NON-NLS-1$ //$NON-NLS-2$
 			}
 			return (ClassDesc)args[1];
@@ -1593,7 +1593,7 @@ public abstract class VarHandle extends VarHandleInternal
 			ConstantDesc[] args = bootstrapArgs();
 			/* array type is always the first bootstrap argument for an array type */
 			if (type.isField() || (args.length == 0) || !(args[0] instanceof ClassDesc)) {
-				/*[MSG "K0619", "Malformated VarHandleDesc, {0} could not be retrieved."]*/
+				/*[MSG "K0619", "Malformed VarHandleDesc, {0} could not be retrieved."]*/
 				throw new InternalError(com.ibm.oti.util.Msg.getString("K0619", "array type descriptor")); //$NON-NLS-1$ //$NON-NLS-2$
 			}
 			return (ClassDesc)args[0];

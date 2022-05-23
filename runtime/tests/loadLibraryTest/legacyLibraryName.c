@@ -39,7 +39,7 @@ jint JNICALL JNI_OnLoad(JavaVM *vm, void *reserved)
 
 /**
  * @brief Function indicates an alternative to the traditional unload routine to
- * the runtime specifically targeting the library legaclegacyLibraryNameyName.
+ * the runtime specifically targeting the library legacyName.
  */
 void JNICALL JNI_OnUnload(JavaVM *vm, void *reserved)
 {

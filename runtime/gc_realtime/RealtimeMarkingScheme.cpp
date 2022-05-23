@@ -60,7 +60,7 @@ MM_RealtimeMarkingScheme::kill(MM_EnvironmentBase *env)
 }
 
 /**
- * Intialize the RealtimeMarkingScheme instance.
+ * Initialize the RealtimeMarkingScheme instance.
  * 
  */
 bool

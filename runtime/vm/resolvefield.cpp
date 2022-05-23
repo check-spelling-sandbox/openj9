@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 1991, 2021 IBM Corp. and others
+ * Copyright (c) 1991, 2022 IBM Corp. and others
  *
  * This program and the accompanying materials are made available under
  * the terms of the Eclipse Public License 2.0 which accompanies this
@@ -824,7 +824,7 @@ fieldOffsetsStartDo(J9JavaVM *vm, J9ROMClass *romClass, J9Class *superClazz, J9R
 
 		state->finalizeLinkOffset = 0;
 		if ((NULL != superClazz) && (0!= superClazz->finalizeLinkOffset)) {
-			/* Superclass is finalizeable */
+			/* Superclass is finalizable */
 			state->finalizeLinkOffset = superClazz->finalizeLinkOffset;
 		} else {
 			/*
@@ -1030,16 +1030,24 @@ fieldOffsetsNextDo(J9ROMFieldOffsetWalkState *state)
 	if (walkHiddenFields && (0 != state->hiddenInstanceFieldWalkIndex)) {
 		UDATA const objectHeaderSize = J9JAVAVM_OBJECT_HEADER_SIZE(state->vm);
 		/* Note: hiddenInstanceFieldWalkIndex is the index of the last hidden instance field that was returned. */
-		J9HiddenInstanceField *hiddenField = state->hiddenInstanceFields[--state->hiddenInstanceFieldWalkIndex];
 
-		state->result.field = hiddenField->shape;
-		/*
-		 * This function returns offsets relative to the end of the object header,
-		 * whereas fieldOffset is relative to the start of the header.
-		 */
-		state->result.offset = hiddenField->fieldOffset - objectHeaderSize;
-		/* Hidden fields do not have a valid JVMTI index. */
-		state->result.index = (UDATA)-1;
+		while (0 != state->hiddenInstanceFieldWalkIndex) {
+			J9HiddenInstanceField *hiddenField = state->hiddenInstanceFields[--state->hiddenInstanceFieldWalkIndex];
+			if (J9_ARE_NO_BITS_SET(state->walkFlags, J9VM_FIELD_OFFSET_WALK_ONLY_OBJECT_SLOTS)
+				|| J9_ARE_ALL_BITS_SET(hiddenField->shape->modifiers, J9FieldFlagObject)
+			) {
+				/* If we are only looking for o-slots we've found one, or we can return anything */
+				state->result.field = hiddenField->shape;
+				/*
+				 * This function returns offsets relative to the end of the object header,
+				 * whereas fieldOffset is relative to the start of the header.
+				 */
+				state->result.offset = hiddenField->fieldOffset - objectHeaderSize;
+				/* Hidden fields do not have a valid JVMTI index. */
+				state->result.index = (UDATA)-1;
+				break;
+			}
+		}
 	}
 
 	Trc_VM_romFieldOffsetsNextDo_result(NULL, state->result.field, state->result.offset, state->result.index);
@@ -1110,15 +1118,14 @@ fieldOffsetsFindNext(J9ROMFieldOffsetWalkState *state, J9ROMFieldShape *field)
 									state->objectsSeen++;
 								}
 							} else {
-								U_32 size = fieldClass->totalInstanceSize;
+								U_32 size = (U_32)fieldClass->totalInstanceSize;
 								bool forceDoubleAlignment = false;
 								if (sizeof(U_32) == referenceSize) {
 									/** 
-									 * Flattened volatile or atomic valueType that is 8 bytes should be put at 8-byte aligned address. Currently flattening is disabled
+									 * Flattened volatile valueType that is 8 bytes should be put at 8-byte aligned address. Currently flattening is disabled
 									 * for such valueType > 8 bytes.
 									 */
-									forceDoubleAlignment = (J9_ARE_ALL_BITS_SET(field->modifiers, J9AccVolatile) || (J9ROMCLASS_IS_ATOMIC(fieldClass->romClass)))
-											&& (sizeof(U_64) == J9CLASS_UNPADDED_INSTANCE_SIZE(fieldClass));
+									forceDoubleAlignment = (J9_ARE_ALL_BITS_SET(field->modifiers, J9AccVolatile) && (sizeof(U_64) == J9CLASS_UNPADDED_INSTANCE_SIZE(fieldClass)));
 								} else {
 									/* copyObjectFields() uses U_64 load/store. Put all nested fields at 8-byte aligned address. */
 									forceDoubleAlignment = true;
@@ -1134,7 +1141,7 @@ fieldOffsetsFindNext(J9ROMFieldOffsetWalkState *state, J9ROMFieldShape *field)
 									Assert_VM_true((state->result.offset + referenceSize) % sizeof(U_64) == 0);
 									state->currentFlatDoubleOffset += ROUND_UP_TO_POWEROF2(size, sizeof(U_64));
 								} else if (J9_ARE_ALL_BITS_SET(fieldClass->classFlags, J9ClassLargestAlignmentConstraintReference)) {
-									size = ROUND_UP_TO_POWEROF2(size, referenceSize);
+									size = (U_32)ROUND_UP_TO_POWEROF2(size, referenceSize);
 									if (J9_ARE_ALL_BITS_SET(state->walkFlags, J9VM_FIELD_OFFSET_WALK_BACKFILL_FLAT_OBJECT_FIELD)
 										&& (state->flatBackFillSize == size)
 									) {

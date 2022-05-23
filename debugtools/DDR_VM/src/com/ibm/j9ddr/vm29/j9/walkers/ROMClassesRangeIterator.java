@@ -69,7 +69,7 @@ public class ROMClassesRangeIterator extends ROMClassesIterator implements Itera
 				newHeapPtr = nextClass.getAddress() + nextClass.romSize().longValue();
 			} catch (CorruptDataException e) {
 				/* This shouldn't happen, but if it does then it's likely an internal error */ 
-				out.append("Unabled to read size of ROMClass at " + nextClass.getHexAddress() + ".\n");
+				out.append("Unable to read size of ROMClass at " + nextClass.getHexAddress() + ".\n");
 				newNextClass = J9ROMClassPointer.NULL;
 			}
 		}

@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2015, 2021 IBM Corp. and others
+ * Copyright (c) 2015, 2022 IBM Corp. and others
  *
  * This program and the accompanying materials are made available under
  * the terms of the Eclipse Public License 2.0 which accompanies this
@@ -50,18 +50,17 @@ ObjectFieldInfo::countInstanceFields(void)
 				U_8 *fieldSigBytes = J9UTF8_DATA(J9ROMFIELDSHAPE_SIGNATURE(field));
 				if ('Q' == *fieldSigBytes) {
 					J9Class *fieldClass = findJ9ClassInFlattenedClassCache(_flattenedClassCache, fieldSigBytes + 1, J9UTF8_LENGTH(fieldSig) - 2);
-					U_32 size = fieldClass->totalInstanceSize;
+					U_32 size = (U_32)fieldClass->totalInstanceSize;
 					if (!J9_IS_FIELD_FLATTENED(fieldClass, field)) {
 						_instanceObjectCount += 1;
 						_totalObjectCount += 1;
 					} else {
 						bool forceDoubleAlignment = false;
 						if (sizeof(U_32) == _referenceSize) {
-							/* Flattened volatile or atomic valueType that is 8 bytes should be put at 8-byte aligned address. Currently flattening is disabled
+							/* Flattened volatile valueType that is 8 bytes should be put at 8-byte aligned address. Currently flattening is disabled
 							 * for such valueType > 8 bytes.
 							 */
-							forceDoubleAlignment = (J9_ARE_ALL_BITS_SET(field->modifiers, J9AccVolatile) || (J9ROMCLASS_IS_ATOMIC(fieldClass->romClass)))
-									&& (sizeof(U_64) == J9CLASS_UNPADDED_INSTANCE_SIZE(fieldClass));
+							forceDoubleAlignment = (J9_ARE_ALL_BITS_SET(field->modifiers, J9AccVolatile) && (sizeof(U_64) == J9CLASS_UNPADDED_INSTANCE_SIZE(fieldClass)));
 						} else {
 							/* copyObjectFields() uses U_64 load/store. Put all nested fields at 8-byte aligned address. */
 							forceDoubleAlignment = true;
@@ -74,7 +73,7 @@ ObjectFieldInfo::countInstanceFields(void)
 							}
 							_totalFlatFieldDoubleBytes += (U_32) ROUND_UP_TO_POWEROF2(size, sizeof(U_64));
 						} else if (J9_ARE_ALL_BITS_SET(fieldClass->classFlags, J9ClassLargestAlignmentConstraintReference)) {
-							size = (U_32) ROUND_UP_TO_POWEROF2(size, _referenceSize);
+							size = (U_32) ROUND_UP_TO_POWEROF2(size, (UDATA)_referenceSize);
 							_totalFlatFieldRefBytes += size;
 							setPotentialFlatObjectInstanceBackfill(size);
 						} else {
@@ -196,7 +195,7 @@ ObjectFieldInfo::calculateTotalFieldsSizeAndBackfill()
 					_myBackfillOffset = 0;
 
 					/*
-					 * Backfill may not be end-aligned, ie 8, 16, 24btye types since  backfill begins on a (4 == offset %8) boundary.
+					 * Backfill may not be end-aligned, ie 8, 16, 24byte types since  backfill begins on a (4 == offset %8) boundary.
 					 * In these cases the types are post-padded so doubles can start on a 8byte boundary.
 					 */
 					if (isBackFillPostPadded()) {

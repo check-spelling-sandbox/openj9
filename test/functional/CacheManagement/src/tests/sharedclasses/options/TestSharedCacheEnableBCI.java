@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2010, 2019 IBM Corp. and others
+ * Copyright (c) 2010, 2022 IBM Corp. and others
  *
  * This program and the accompanying materials are made available under
  * the terms of the Eclipse Public License 2.0 which accompanies this
@@ -49,13 +49,13 @@ public class TestSharedCacheEnableBCI extends TestUtils {
 	 * be updated accordingly.
 	 */
 	private static final int MIN_EXPECTED_ROMCLASSES = 250;
-	private static int CLASSS_FILE_LOAD_HOOK_COUNT = 250;
+	private static int CLASS_FILE_LOAD_HOOK_COUNT = 250;
 
 	public static void main(String args[]) {
 		String jvmLevel = System.getProperty("java.specification.version");
-		/* CLASSS_FILE_LOAD_HOOK_COUNT is different in Java8 and Java9 */
+		/* CLASS_FILE_LOAD_HOOK_COUNT is different in Java8 and Java9 */
 		if (Double.parseDouble(jvmLevel) >= 9) {
-			CLASSS_FILE_LOAD_HOOK_COUNT = 20;
+			CLASS_FILE_LOAD_HOOK_COUNT = 20;
 		}
 		runDestroyAllCaches();
 		runTest1();
@@ -84,7 +84,7 @@ public class TestSharedCacheEnableBCI extends TestUtils {
 		 * CMVC 186357 : This is to provide some leeway for number of ROMClasses
 		 * stored in shared cache by different invocations of JVM.
 		 */
-		int romClassNumberMargin = 10;
+		int romClassNumberMargin = 15;
 
 		if (isMVS() == false) {
 			/* Create a cache without an agent and with disableBCI option. */
@@ -385,10 +385,10 @@ public class TestSharedCacheEnableBCI extends TestUtils {
 						+ ". Minimum expected ROMClasses: "
 						+ MIN_EXPECTED_ROMCLASSES);
 			}
-			if (classFileLoadHookCount < CLASSS_FILE_LOAD_HOOK_COUNT) {
+			if (classFileLoadHookCount < CLASS_FILE_LOAD_HOOK_COUNT) {
 				fail("Number of times ClassFileLoadHook event triggered: "
 						+ classFileLoadHookCount + ". Expected it to be >= "
-						+ CLASSS_FILE_LOAD_HOOK_COUNT);
+						+ CLASS_FILE_LOAD_HOOK_COUNT);
 			}
 			if (Double.parseDouble(jvmLevel) < 9) {
 				/*
@@ -447,10 +447,10 @@ public class TestSharedCacheEnableBCI extends TestUtils {
 					+ ". Minimum expected ROMClasses: "
 					+ MIN_EXPECTED_ROMCLASSES);
 		}
-		if (classFileLoadHookCount < CLASSS_FILE_LOAD_HOOK_COUNT) {
+		if (classFileLoadHookCount < CLASS_FILE_LOAD_HOOK_COUNT) {
 			fail("Number of times ClassFileLoadHook event triggered: "
 					+ classFileLoadHookCount + ". Expected it to be >= "
-					+ CLASSS_FILE_LOAD_HOOK_COUNT);
+					+ CLASS_FILE_LOAD_HOOK_COUNT);
 		}
 		if (Double.parseDouble(jvmLevel) < 9) {
 		/*

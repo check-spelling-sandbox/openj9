@@ -1,5 +1,5 @@
 ################################################################################
-# Copyright (c) 2017, 2021 IBM Corp. and others
+# Copyright (c) 2017, 2022 IBM Corp. and others
 #
 # This program and the accompanying materials are made available under
 # the terms of the Eclipse Public License 2.0 which accompanies this
@@ -73,7 +73,11 @@ add_custom_command(
 			-cmakeCache "${CMAKE_CURRENT_BINARY_DIR}/parsed_cache.txt"
 			-version ${JAVA_SPEC_VERSION}
 	VERBATIM
-	DEPENDS "${CMAKE_CURRENT_BINARY_DIR}/parsed_cache.txt" j9vmcp objectmodel
+	DEPENDS
+		${j9vm_SOURCE_DIR}/oti/vmconstantpool.xml
+		"${CMAKE_CURRENT_BINARY_DIR}/parsed_cache.txt"
+		j9vmcp
+		objectmodel
 )
 add_custom_target(run_cptool
 	DEPENDS ${gen_constpool_files}
@@ -102,7 +106,7 @@ target_link_libraries(jclse
 
 target_sources(jclse
 	PRIVATE
-		${CMAKE_CURRENT_SOURCE_DIR}/common/acccont.c
+		${CMAKE_CURRENT_SOURCE_DIR}/common/account.c
 		${CMAKE_CURRENT_SOURCE_DIR}/common/annparser.c
 		${CMAKE_CURRENT_SOURCE_DIR}/common/attach.c
 		${CMAKE_CURRENT_SOURCE_DIR}/common/bootstrp.c
@@ -124,7 +128,7 @@ target_sources(jclse
 		${CMAKE_CURRENT_SOURCE_DIR}/common/java_lang_ref_Reference.cpp
 		${CMAKE_CURRENT_SOURCE_DIR}/common/jclcinit.c
 		${CMAKE_CURRENT_SOURCE_DIR}/common/jcldefine.c
-		${CMAKE_CURRENT_SOURCE_DIR}/common/jclexception.c
+		${CMAKE_CURRENT_SOURCE_DIR}/common/jclexception.cpp
 		${CMAKE_CURRENT_SOURCE_DIR}/common/jclglob.c
 		${CMAKE_CURRENT_SOURCE_DIR}/common/jclreflect.c
 		${CMAKE_CURRENT_SOURCE_DIR}/common/jcltrace.c
@@ -179,6 +183,13 @@ if(J9VM_OPT_OPENJDK_METHODHANDLE OR J9VM_OPT_METHOD_HANDLE)
 	target_sources(jclse
 		PRIVATE
 			${CMAKE_CURRENT_SOURCE_DIR}/common/java_lang_invoke_MethodHandleNatives.cpp
+	)
+endif()
+
+if(J9VM_OPT_CRIU_SUPPORT)
+	target_sources(jclse
+		PRIVATE
+			${CMAKE_CURRENT_SOURCE_DIR}/common/criu.cpp
 	)
 endif()
 

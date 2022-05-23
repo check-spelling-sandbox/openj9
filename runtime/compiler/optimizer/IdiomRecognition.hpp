@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2000, 2019 IBM Corp. and others
+ * Copyright (c) 2000, 2022 IBM Corp. and others
  *
  * This program and the accompanying materials are made available under
  * the terms of the Eclipse Public License 2.0 which accompanies this
@@ -57,7 +57,7 @@ namespace TR { class TreeTop; }
 
 typedef enum
    {
-   TR_variable = TR::NumIlOps,
+   TR_variable = OMR::ILOpCode::NumAllIlOps,
    TR_booltable,
    TR_entrynode,
    TR_exitnode,
@@ -276,7 +276,7 @@ public:
                                                                         _isParentSimplyConnected); }
    bool isCFGConnected()                        { return _flags.testAll(_isSuccSimplyConnected |
                                                                         _isPredSimplyConnected); }
-   bool isCFGDataConected()                     { return _flags.testAll(_isSuccSimplyConnected |
+   bool isCFGDataConnected()                     { return _flags.testAll(_isSuccSimplyConnected |
                                                                         _isPredSimplyConnected |
                                                                         _isChildSimplyConnected |
                                                                         _isParentSimplyConnected); }
@@ -417,7 +417,7 @@ protected:
    void setOpcode(uint32_t opc)
       {
       _opcode = opc;
-      _ilOpCode.setOpCodeValue(opc < TR::NumIlOps ? (TR::ILOpCodes)opc : TR::BadILOp);
+      _ilOpCode.setOpCodeValue(opc < OMR::ILOpCode::NumAllIlOps ? (TR::ILOpCodes)opc : TR::BadILOp);
       }
    uint32_t _opcode;    // TR::ILOpCodes enum
    TR::ILOpCode _ilOpCode;
@@ -765,6 +765,7 @@ public:
 
    static void setEssentialNodes(TR_CISCGraph*);
    static void makePreparedCISCGraphs(TR::Compilation *c);
+   static void initializeGraphs(TR::Compilation *c);
 
    TR_CISCGraph(TR_Memory * m, const char *title = 0, int32_t numHashTrNode = 31, int32_t numHashOpc = 17)
       : _titleOfCISC(title), _entryNode(0), _exitNode(0), _numNodes(0), _numDagIds(0),
@@ -1368,7 +1369,7 @@ class TR_CISCTransformer : public TR_LoopTransformer
       }
    TR_CISCNode *getT2Phead(TR_CISCNode *t) {return getT2Phead(t->getID());}
    bool isGenerateI2L() { return _isGenerateI2L; }
-   bool showMesssagesStdout() { return _showMesssagesStdout; }
+   bool showMessagesStdout() { return _showMessagesStdout; }
    TR_CISCNodeRegion *getCandidateRegion() { return _candidateRegion; }
    bool analyzeBoolTable(TR_BitVector **bv, TR::TreeTop **retTreeTop, TR_CISCNode *boolTable,
                          TR_BitVector *defBV, TR_CISCNode *defNode,
@@ -1508,7 +1509,7 @@ private:
    uint8_t *_EM;        // just for working
    uint8_t *_DE;        // just for working
    bool _isGenerateI2L;
-   bool _showMesssagesStdout;
+   bool _showMessagesStdout;
    };
 
 #endif

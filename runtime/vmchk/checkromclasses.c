@@ -35,7 +35,7 @@
  *			Ensure J9ROMClass->interfaces SRP is in the same segment if J9ROMClass->interfaceCount != 0.
  *			Ensure J9ROMClass->romMethods SRP is in the same segment if J9ROMClass->romMethodCount != 0.
  *			Ensure J9ROMClass->romFields SRP is in the same segment if J9ROMClass->romFieldCount != 0.
- *			Ensure J9ROMClass->innerClasses SRP is in the same segment if J9ROMClass->innerClasseCount != 0.
+ *			Ensure J9ROMClass->innerClasses SRP is in the same segment if J9ROMClass->innerClassCount != 0.
  *			Ensure cpShapeDescription in the same segment.
  *			Ensure all SRPs are in range on 64 bit platforms (including className, superclassName, and outerClassName).
  *

@@ -110,7 +110,7 @@ public:
       The read operation is blocking, subject to a timeout.
       If the message received is `compilationInterrupted` then an exception of type StreamInterrupted is thrown.
       If the message received is `connectionTerminate` then an exception of type StreamConnectionTerminate is thrown.
-      If the server detects an incompatibility with the client then a StreamMessageTypeMissmatch
+      If the server detects an incompatibility with the client then a StreamMessageTypeMismatch
       exception is thrown.
       Otherwise, the arguments sent by the client are returned as a tuple
 

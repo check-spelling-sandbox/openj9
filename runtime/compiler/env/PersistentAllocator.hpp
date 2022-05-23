@@ -91,7 +91,7 @@ private:
 
    // Use separate monitors to protect access to each data structure:
    // - the lists of small fixed-size blocks;
-   // - the (indexed) list of vartiable-sized large blocks; and
+   // - the (indexed) list of variable-sized large blocks; and
    // - the deque of segments.
    J9ThreadMonitor *_smallBlockMonitor;
    J9ThreadMonitor *_largeBlockMonitor;

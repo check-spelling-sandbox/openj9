@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2021, 2021 IBM Corp. and others
+ * Copyright (c) 2021, 2022 IBM Corp. and others
  *
  * This program and the accompanying materials are made available under
  * the terms of the Eclipse Public License 2.0 which accompanies this
@@ -43,6 +43,11 @@ TR::TreeLowering::perform()
       return 0;
       }
 
+   if (trace())
+      {
+      comp()->dumpMethodTrees("Trees before Tree Lowering Optimization");
+      }
+
    TransformationManager transformations(comp()->region());
 
    TR::ResolvedMethodSymbol* methodSymbol = comp()->getMethodSymbol();
@@ -55,6 +60,11 @@ TR::TreeLowering::perform()
       }
 
    transformations.doTransformations();
+
+   if (trace())
+      {
+      comp()->dumpMethodTrees("Trees after Tree Lowering Optimization");
+      }
 
    return 0;
    }
@@ -187,7 +197,7 @@ copyExitRegDepsAndSubstitute(TR::Node* const targetNode, TR::Node* const sourceN
  *
  * Given branch node, adds a GlRegDeps node by copying the dependencies from
  * a different GlRegDeps. This function allows *one* register dependency to
- * be changed (substituted). See `copyExitRegDepsAndSubstitue()` for details.
+ * be changed (substituted). See `copyExitRegDepsAndSubstitute()` for details.
  *
  * Note that the branch node is assumed to *not* have a GlRegDeps node already.
  *
@@ -239,17 +249,17 @@ class AcmpTransformer: public TR::TreeLowering::Transformer
  *
  * The transformation looks as follows:
  *
- *  +----------------------+
- *  |ttprev                |
- *  |treetop               |
- *  |  icall acmpHelper    |
- *  |    aload lhs         |
- *  |    aload rhs         |
- *  |ificmpeq --> ...      |
- *  |  ==> icall           |
- *  |  iconst 0            |
- *  |BBEnd                 |
- *  +----------------------+
+ *  +--------------------------+
+ *  |ttprev                    |
+ *  |treetop                   |
+ *  |  icall acmp{eq|ne}Helper |
+ *  |    aload lhs             |
+ *  |    aload rhs             |
+ *  |ificmpeq --> ...          |
+ *  |  ==> icall               |
+ *  |  iconst 0                |
+ *  |BBEnd                     |
+ *  +--------------------------+
  *
  *  ...becomes...
  *
@@ -257,25 +267,25 @@ class AcmpTransformer: public TR::TreeLowering::Transformer
  * +------------------------------+
  * |ttprev                        |
  * |iRegStore x                   |
- * |  iconst 1                    |
+ * |  iconst E                    |
  * |ifacmpeq  +->---------------------------+
  * |  aload lhs                   |         |
  * |  aload rhs                   |         |
  * |  GlRegDeps                   |         |
  * |    PassThrough x             |         |
- * |      ==> iconst 1            |         |
+ * |      ==> iconst E            |         |
  * |    PassThrough ...           |         |
  * |BBEnd                         |         |
  * +------------------------------+         |
  * |BBStart (extension)           |         |
  * |iRegStore x                   |         |
- * |  iconst 0                    |         |
+ * |  iconst U                    |         |
  * |ifacmpeq +->----------------------------+
  * |  aload lhs                   |         |
  * |  aconst 0                    |         |
  * |  GlRegDeps                   |         |
  * |    PassThrough x             |         |
- * |      ==> iconst 0            |         |
+ * |      ==> iconst U            |         |
  * |    PassThrough ...           |         |
  * |BBEnd                         |         |
  * +------------------------------+         |
@@ -285,7 +295,7 @@ class AcmpTransformer: public TR::TreeLowering::Transformer
  * |  ==> aconst 0                |         |
  * |  GlRegDeps                   |         |
  * |    PassThrough x             |         |
- * |      ==> iconst 0            |         |
+ * |      ==> iconst U            |         |
  * |    PassThrough ...           |         |
  * |BBEnd                         |         |
  * +------------------------------+         |
@@ -296,10 +306,10 @@ class AcmpTransformer: public TR::TreeLowering::Transformer
  * |      aloadi J9Class          |         |
  * |        aload lhs             |         |
  * |    iconst J9ClassIsValueType |         |
- * |  iconst 0                    |         |
+ * |  iconst U                    |         |
  * |  GlRegDeps                   |         |
  * |    PassThrough x             |         |
- * |      ==> iconst 0            |         |
+ * |      ==> iconst U            |         |
  * |    PassThrough ...           |         |
  * |BBEnd                         |         |
  * +------------------------------+         |
@@ -310,11 +320,11 @@ class AcmpTransformer: public TR::TreeLowering::Transformer
  * |      aloadi J9Class          |    |    |
  * |        aload rhs             |    |    |
  * |    iconst J9ClassIsValueType |    |    |
- * |  iconst 0                    |    |    |
+ * |  iconst U                    |    |    |
  * |BBEnd                         |    |    |
  * |  GlRegDeps                   |    |    |
  * |    PassThrough x             |    |    |
- * |      ==> iconst 0            |    |    |
+ * |      ==> iconst U            |    |    |
  * |    PassThrough ...           |    |    |
  * +------------------------------+    |    |
  *       |                             |    |
@@ -332,23 +342,28 @@ class AcmpTransformer: public TR::TreeLowering::Transformer
  * +------------------------------+    |    |
  * |BBStart                       *<---+    |
  * |iRegStore x                   |         |
- * |  icall acmpHelper            |         |
+ * |  icall acmp{eq|ne}Helper     |         |
  * |    aload lhs                 |         |
  * |    aload rhs                 |         |
  * |Goto -->----------------------*---------+
  * |  GlRegDeps                   |
  * |    PassThrough x             |
- * |      ==> icall acmpHelper    |
+ * |      ==> icall acmp...       |
  * |    PassThrough ...           |
  * |BBEnd                         |
  * +------------------------------+
+ *
+ * where E represents the result if the two references are equal, and U
+ * represents the result if the two references are unequal - that is,
+ * E == 1 and U == 0 if a call to acmpeqHelper is being lowered, and
+ * E == 0 and U == 1 if a call to acmpneHelper is being lowered.
  *
  * Any GlRegDeps on the extension block are created by OMR::Block::splitPostGRA
  * while those on the ifacmpeq at the end of the first block are copies of those,
  * with the exception of any register (x, above) holding the result of the compare
  *
  * @param node is the current node in the tree walk
- * @param tt is the treetop at the root of the tree ancoring the current node
+ * @param tt is the treetop at the root of the tree anchoring the current node
  *
  */
 void
@@ -377,6 +392,11 @@ AcmpTransformer::lower(TR::Node * const node, TR::TreeTop * const tt)
          node->getFirstChild()->getGlobalIndex(), node->getSecondChild()->getGlobalIndex(), anchoredCallArg1TT->getNode()->getGlobalIndex(), anchoredCallArg2TT->getNode()->getGlobalIndex());
       }
 
+   // Are we working with an equality comparison or an inequality comparison?
+   const bool isObjectEqualityTest = (node->getSymbolReference() == comp->getSymRefTab()->findOrCreateAcmpeqHelperSymbolRef());
+   const int cmpResultForEquality = isObjectEqualityTest ? 1 : 0;
+   const int cmpResultForInequality = isObjectEqualityTest ? 0 : 1;
+
    // Split the block at the call TreeTop so that the new block created
    // after the call can become a merge point for all the fastpaths.
    TR::Block* callBlock = tt->getEnclosingBlock();
@@ -396,7 +416,10 @@ AcmpTransformer::lower(TR::Node * const node, TR::TreeTop * const tt)
    if (!performTransformation(comp, "%sInserting fastpath for lhs == rhs\n", optDetailString()))
       return;
 
-   // Insert store of constant 1 as the result of the fastpath.
+   // Insert store of constant cmpResultForEquality as the result of the fastpath.
+   // If the references are ultimately being tested for equality, cmpResultForEquality
+   // is 1, indicating the test is satisfied; if they are being tested for inequality,
+   // cmpResultForEquality is 0, indicating the test is unsatisfied.
    // The value must go wherever the value returned by the helper call goes
    // so that the code in the target block (merge point) picks up the constant
    // if the branch is taken. Use the TreeTop previously inserted to anchor the
@@ -404,26 +427,26 @@ AcmpTransformer::lower(TR::Node * const node, TR::TreeTop * const tt)
    TR::Node* anchoredNode = anchoredCallTT->getNode()->getFirstChild(); // call node is under a treetop node
    if (trace())
       traceMsg(comp, "Anchored call has been transformed into %s node n%un\n", anchoredNode->getOpCode().getName(), anchoredNode->getGlobalIndex());
-   auto* const1Node = TR::Node::iconst(1);
+   auto* constForEqualityNode = TR::Node::iconst(cmpResultForEquality);
    TR::Node* storeNode = NULL;
    TR::Node* regDepForStoreNode = NULL; // this is the reg dep for the store if one is needed
    if (anchoredNode->getOpCodeValue() == TR::iRegLoad)
       {
       if (trace())
-         traceMsg(comp, "Storing constant 1 in register %s\n", comp->getDebug()->getGlobalRegisterName(anchoredNode->getGlobalRegisterNumber()));
+         traceMsg(comp, "Storing constant %d in register %s\n", cmpResultForEquality, comp->getDebug()->getGlobalRegisterName(anchoredNode->getGlobalRegisterNumber()));
       auto const globalRegNum = anchoredNode->getGlobalRegisterNumber();
-      storeNode = TR::Node::create(TR::iRegStore, 1, const1Node);
+      storeNode = TR::Node::create(TR::iRegStore, 1, constForEqualityNode);
       storeNode->setGlobalRegisterNumber(globalRegNum);
       // Since the result is in a global register, we're going to need a PassThrough
       // on the exit point GlRegDeps.
-      regDepForStoreNode = TR::Node::create(TR::PassThrough, 1, const1Node);
+      regDepForStoreNode = TR::Node::create(TR::PassThrough, 1, constForEqualityNode);
       regDepForStoreNode->setGlobalRegisterNumber(globalRegNum);
       }
    else if (anchoredNode->getOpCodeValue() == TR::iload)
       {
       if (trace())
-         traceMsg(comp, "Storing constant 1 to symref %d (%s)\n", anchoredNode->getSymbolReference()->getReferenceNumber(), anchoredNode->getSymbolReference()->getName(comp->getDebug()));
-      storeNode = TR::Node::create(TR::istore, 1, const1Node);
+         traceMsg(comp, "Storing constant %d to symref %d (%s)\n", cmpResultForEquality, anchoredNode->getSymbolReference()->getReferenceNumber(), anchoredNode->getSymbolReference()->getName(comp->getDebug()));
+      storeNode = TR::Node::create(TR::istore, 1, constForEqualityNode);
       storeNode->setSymbolReference(anchoredNode->getSymbolReference());
       }
    else
@@ -455,10 +478,11 @@ AcmpTransformer::lower(TR::Node * const node, TR::TreeTop * const tt)
    if (!performTransformation(comp, "%sInserting fastpath for lhs == NULL\n", optDetailString()))
       return;
 
-   // Create store of 0 as fastpath result by duplicate the node used to store
-   // the constant 1. Also duplicate the corresponding regdep if needed.
+   // Create store of cmpResultForInequality as fastpath result for cases where the references
+   // are unequal by duplicating the node used to store the constant cmpResultForEquality and
+   // updating the value being stored.  Also duplicate the corresponding regdep if needed.
    storeNode = storeNode->duplicateTree(true);
-   storeNode->getFirstChild()->setInt(0);
+   storeNode->getFirstChild()->setInt(cmpResultForInequality);
    tt->insertBefore(TR::TreeTop::create(comp, storeNode));
    if (regDepForStoreNode != NULL)
       {
@@ -515,7 +539,7 @@ AcmpTransformer::lower(TR::Node * const node, TR::TreeTop * const tt)
 
    auto* const lhsVft = TR::Node::createWithSymRef(node, TR::aloadi, 1, anchoredCallArg1TT->getNode()->getFirstChild(), vftSymRef);
    auto* const isLhsValueType = comp->fej9()->testIsClassValueType(lhsVft);
-   auto* const checkLhsIsVT = TR::Node::createif(TR::ificmpeq, isLhsValueType, storeNode->getFirstChild(), targetBlock->getEntry());
+   auto* const checkLhsIsVT = TR::Node::createif(TR::ificmpeq, isLhsValueType, TR::Node::iconst(0), targetBlock->getEntry());
    // regDepForStoreNode might or might not be NULL here depending on if (lhs == NULL) or  (rhs == NULL) is skipped
    exitGlRegDeps = copyBranchGlRegDepsAndSubstitute(checkLhsIsVT, exitGlRegDeps, regDepForStoreNode);
    // Set regDepForStoreNode to NULL so that the subsequent calls to copyBranchGlRegDepsAndSubstitute do not need to substitute it.
@@ -548,7 +572,7 @@ AcmpTransformer::lower(TR::Node * const node, TR::TreeTop * const tt)
    // Create and insert branch.
    auto* const rhsVft = TR::Node::createWithSymRef(node, TR::aloadi, 1, anchoredCallArg2TT->getNode()->getFirstChild(), vftSymRef);
    auto* const isRhsValueType = comp->fej9()->testIsClassValueType(rhsVft);
-   auto* const checkRhsIsNotVT = TR::Node::createif(TR::ificmpne, isRhsValueType, storeNode->getFirstChild(), callBlock->getEntry());
+   auto* const checkRhsIsNotVT = TR::Node::createif(TR::ificmpne, isRhsValueType, TR::Node::iconst(0), callBlock->getEntry());
    // Because we've switched the fallthrough and target blocks, the register
    // dependencies also need to be switched.
    if (prevBlock->getExit()->getNode()->getNumChildren() > 0)
@@ -590,11 +614,37 @@ AcmpTransformer::lower(TR::Node * const node, TR::TreeTop * const tt)
       }
    }
 
+static void
+copyRegisterDependency(TR::Node *fromNode, TR::Node *toNode)
+   {
+   if (fromNode->getNumChildren() != 0)
+      {
+      TR::Node *blkDeps = fromNode->getFirstChild();
+      TR::Node *newDeps = TR::Node::create(blkDeps, TR::GlRegDeps);
 
-class ArrayStoreCHKTransformer: public TR::TreeLowering::Transformer
+      for (int i = 0; i < blkDeps->getNumChildren(); i++)
+         {
+         TR::Node *regDep = blkDeps->getChild(i);
+
+         if (regDep->getOpCodeValue() == TR::PassThrough)
+            {
+            TR::Node *orig= regDep;
+            regDep = TR::Node::create(orig, TR::PassThrough, 1, orig->getFirstChild());
+            regDep->setLowGlobalRegisterNumber(orig->getLowGlobalRegisterNumber());
+            regDep->setHighGlobalRegisterNumber(orig->getHighGlobalRegisterNumber());
+            }
+
+         newDeps->addChildren(&regDep, 1);
+         }
+
+      toNode->addChildren(&newDeps, 1);
+      }
+   }
+
+class NonNullableArrayNullStoreCheckTransformer: public TR::TreeLowering::Transformer
    {
    public:
-   explicit ArrayStoreCHKTransformer(TR::TreeLowering* opt)
+   explicit NonNullableArrayNullStoreCheckTransformer(TR::TreeLowering* opt)
       : TR::TreeLowering::Transformer(opt)
       {}
 
@@ -602,140 +652,143 @@ class ArrayStoreCHKTransformer: public TR::TreeLowering::Transformer
    };
 
 /**
- * If value types are enabled, and the value that is being assigned to the array
- * element might be a null reference, lower the ArrayStoreCHK by splitting the
- * block before the ArrayStoreCHK, and inserting a NULLCHK guarded by a check
- * of whether the array's component type is a value type.
+ * If value types are enabled, a check of whether a null reference is being
+ * assigned to a value type array might be needed.  This is represented in the
+ * IL with a call to the <nonNullableArrayNullStoreCheck> non-helper.
+ *
+ * Lower the call by splitting the block before the call, and replacing it
+ a with a NULLCHK guarded by tests of whether the value is null and whether
+ * the array's component type is a value type.  If the value is known to be
+ * non-null at this point in the compilation, the call is simply removed.
  *
  * @param node is the current node in the tree walk
- * @param tt is the treetop at the root of the tree ancoring the current node
+ * @param tt is the treetop at the root of the tree anchoring the current node
  */
 void
-ArrayStoreCHKTransformer::lower(TR::Node* const node, TR::TreeTop* const tt)
+NonNullableArrayNullStoreCheckTransformer::lower(TR::Node* const node, TR::TreeTop* const tt)
    {
-   // Pattern match the ArrayStoreCHK operands to get the source of the assignment
-   // (sourceChild) and the array to which an element will have a value assigned (destChild)
-   TR::Node *firstChild = node->getFirstChild();
-
-   // The only kind of child for an ArrayStoreCHK should be an awrtbari.  If something
-   // else can appear (such as astorei) will need to rework the logic to determine the
-   // destination of the element store
+   // Transform
+   //   +-----------------------------------------+
+   //   | ttprev                                  |
+   //   | treetop                                 |
+   //   |   call <nonNullableArrayNullStoreCheck> |
+   //   |     <value-reference>                   |
+   //   |     <array-reference>                   |
+   //   | ttnext                                  |
+   //   +-----------------------------------------+
    //
-   TR_ASSERT_FATAL_WITH_NODE(node, firstChild->getOpCodeValue() == TR::awrtbari, "Expected child of ArrayStoreCHK to be awrtbari");
+   // into
+   //   +--------------------------------+
+   //   | ttprev                         |
+   //   | treetop                        |
+   //   |   <array-reference>            |
+   //   | treetop                        |
+   //   |   <value-reference>            |
+   //   | ifacmpne  -->------------------*---------+
+   //   |   ==><value-reference>         |         |
+   //   |   aconst 0                     |         |
+   //   | BBEnd                          |         |
+   //   +--------------------------------+         |
+   //   | BBStart (Extension)            |         |
+   //   | ificmpeq  -->------------------*---------+
+   //   |   iand                         |         |
+   //   |     iloadi <isClassFlags>      |         |
+   //   |       aloadi <componentClass>  |         |
+   //   |         aloadi <vft-symbol>    |         |
+   //   |           ==><array-reference> |         |
+   //   |     iconst J9ClassIsPrimitiveValueType   |
+   //   |   iconst 0                     |         |
+   //   | BBEnd                          |         |
+   //   +--------------------------------+         |
+   //   | BBStart (Extension)            |         |
+   //   | NULLCHK                        |         |
+   //   |   Passthrough                  |         |
+   //   |     ==><value-reference>       |         |
+   //   | BBEnd                          |         |
+   //   +--------------------------------+         |
+   //                   |                          |
+   //                   +--------------------------+
+   //                   |
+   //                   v
+   //   +--------------------------------+
+   //   | BBStart                        |
+   //   | ttnext                         |
+   //   +--------------------------------+
+   //
+   TR::Node *sourceChild = node->getFirstChild();
+   TR::Node *destChild = node->getSecondChild();
 
-   TR::Node *sourceChild = firstChild->getSecondChild();
-   TR::Node *destChild = firstChild->getChild(2);
-
-   // Only need to lower if it is possible that the value is a null reference
    if (!sourceChild->isNonNull())
       {
       TR::CFG * cfg = comp()->getFlowGraph();
       cfg->invalidateStructure();
 
       TR::Block *prevBlock = tt->getEnclosingBlock();
-
-      performTransformation(comp(), "%sTransforming ArrayStoreCHK n%dn [%p] by splitting block block_%d, and inserting a NULLCHK guarded with a check of whether the component type of the array is a value type\n", optDetailString(), node->getGlobalIndex(), node, prevBlock->getNumber());
-
-      // Anchor the node containing the source of the array element
-      // assignment and the node that contains the destination array
-      // to ensure they are available for the ificmpeq and NULLCHK
       TR::TreeTop *anchoredArrayTT = TR::TreeTop::create(comp(), tt->getPrevTreeTop(), TR::Node::create(TR::treetop, 1, destChild));
       TR::TreeTop *anchoredSourceTT = TR::TreeTop::create(comp(), anchoredArrayTT, TR::Node::create(TR::treetop, 1, sourceChild));
 
-      // Transform
-      //   +--------------------------------+
-      //   | ttprev                         |
-      //   | ArrayStoreCHK                  |
-      //   |   awrtbari                     |
-      //   |     aladd                      |
-      //   |       <array-reference>        |
-      //   |       index-offset-calculation |
-      //   |     <value>                    |
-      //   |     <array-reference>          |
-      //   +--------------------------------+
+      TR::TreeTop *nextTT = tt->getNextTreeTop();
+      tt->getPrevTreeTop()->join(nextTT);
+      TR::Block *nextBlock = prevBlock->splitPostGRA(nextTT, cfg);
+
+      TR::Node *ifNode = comp()->fej9()->checkArrayCompClassPrimitiveValueType(destChild, TR::ificmpeq);
+
+      ifNode->setBranchDestination(nextBlock->getEntry());
+
+      // Copy register dependencies from the end of the block split
+      // to the ificmpeq, which checks for a value type, that's being
+      // added to the end of that block
       //
-      // into
-      //   +--------------------------------+
-      //   | treetop                        |
-      //   |   <array-reference>            |
-      //   | treetop                        |
-      //   |   <value-reference>            |
-      //   | ificmpeq  -->------------------*---------+
-      //   |   iand                         |         |
-      //   |     iloadi <isClassFlags>      |         |
-      //   |       aloadi <componentClass>  |         |
-      //   |         aloadi <vft-symbol>    |         |
-      //   |           <array-reference>    |         |
-      //   |     iconst J9ClassIsValueType  |         |
-      //   |   iconst 0                     |         |
-      //   | BBEnd                          |         |
-      //   +--------------------------------+         |
-      //   | BBStart (Extension)            |         |
-      //   | NULLCHK                        |         |
-      //   |   Passthrough                  |         |
-      //   |     <value-reference>          |         |
-      //   | BBEnd                          |         |
-      //   +--------------------------------+         |
-      //                   |                          |
-      //                   +--------------------------+
-      //                   |
-      //                   v
-      //   +--------------------------------+
-      //   | BBStart                        |
-      //   | ArrayStoreCHK                  |
-      //   |   awrtbari                     |
-      //   |     aladd                      |
-      //   |       aload <array>            |
-      //   |       index-offset-calculation |
-      //   |     aload <value>              |
-      //   +--------------------------------+
+      copyRegisterDependency(prevBlock->getExit()->getNode(), ifNode);
+
+      TR::TreeTop *ifArrayCompClassPrimitiveValueTypeTT = prevBlock->append(TR::TreeTop::create(comp(), ifNode));
+
+      bool enableTrace = trace();
+      auto* const nullConst = TR::Node::aconst(0);
+      auto* const checkValueNull = TR::Node::createif(TR::ifacmpne, sourceChild, nullConst, nextBlock->getEntry());
+
+      // Copy register dependencies from the end of the block split to the
+      // ifacmpne, which checks for a null value, that's being added to the
+      // end of that block
       //
-      TR::Node *ifNode = comp()->fej9()->checkArrayCompClassValueType(anchoredArrayTT->getNode()->getFirstChild(), TR::ificmpeq);
+      copyRegisterDependency(prevBlock->getExit()->getNode(), checkValueNull);
 
-      TR::Node *passThru  = TR::Node::create(node, TR::PassThrough, 1, sourceChild);
-      TR::ResolvedMethodSymbol *currentMethod = comp()->getMethodSymbol();
+      TR::TreeTop *checkValueNullTT = ifArrayCompClassPrimitiveValueTypeTT->insertBefore(TR::TreeTop::create(comp(), checkValueNull));
 
-      TR::Block *arrayStoreCheckBlock = prevBlock->splitPostGRA(tt, cfg);
-
-      ifNode->setBranchDestination(arrayStoreCheckBlock->getEntry());
-
-      // Copy register dependencies from the end of the block split before the
-      // ArrayStoreCHK to the ificmpeq that's being added to the end of that block
-      if (prevBlock->getExit()->getNode()->getNumChildren() != 0)
+      if (enableTrace)
          {
-         TR::Node *blkDeps = prevBlock->getExit()->getNode()->getFirstChild();
-         TR::Node *ifDeps = TR::Node::create(blkDeps, TR::GlRegDeps);
-
-         for (int i = 0; i < blkDeps->getNumChildren(); i++)
-            {
-            TR::Node *regDep = blkDeps->getChild(i);
-
-            if (regDep->getOpCodeValue() == TR::PassThrough)
-               {
-               TR::Node *orig= regDep;
-               regDep = TR::Node::create(orig, TR::PassThrough, 1, orig->getFirstChild());
-               regDep->setLowGlobalRegisterNumber(orig->getLowGlobalRegisterNumber());
-               regDep->setHighGlobalRegisterNumber(orig->getHighGlobalRegisterNumber());
-               }
-
-            ifDeps->addChildren(&regDep, 1);
-            }
-
-         ifNode->addChildren(&ifDeps, 1);
+         traceMsg(comp(),"checkValueNull n%dn is inserted before  n%dn in prevBlock %d\n", checkValueNull->getGlobalIndex(), ifNode->getGlobalIndex(), prevBlock->getNumber());
          }
 
-      prevBlock->append(TR::TreeTop::create(comp(), ifNode));
+      TR::Block *compTypeTestBlock = prevBlock->split(ifArrayCompClassPrimitiveValueTypeTT, cfg);
+      compTypeTestBlock->setIsExtensionOfPreviousBlock(true);
 
+      cfg->addEdge(prevBlock, nextBlock);
+
+      if (enableTrace)
+         {
+         traceMsg(comp(),"ifArrayCompClassValueTypeTT n%dn is isolated in compTypeTestBlock %d\n", ifNode->getGlobalIndex(), compTypeTestBlock->getNumber());
+         }
+
+      TR::ResolvedMethodSymbol *currentMethod = comp()->getMethodSymbol();
+
+      TR::Node *passThru  = TR::Node::create(node, TR::PassThrough, 1, sourceChild);
       TR::Node *nullCheck = TR::Node::createWithSymRef(node, TR::NULLCHK, 1, passThru,
                                comp()->getSymRefTab()->findOrCreateNullCheckSymbolRef(currentMethod));
-      TR::TreeTop *nullCheckTT = prevBlock->append(TR::TreeTop::create(comp(), nullCheck));
+      TR::TreeTop *nullCheckTT = compTypeTestBlock->append(TR::TreeTop::create(comp(), nullCheck));
 
-      TR::Block *nullCheckBlock = prevBlock->split(nullCheckTT, cfg);
+      TR::Block *nullCheckBlock = compTypeTestBlock->split(nullCheckTT, cfg);
 
       nullCheckBlock->setIsExtensionOfPreviousBlock(true);
 
-      cfg->addEdge(prevBlock, arrayStoreCheckBlock);
+      cfg->addEdge(compTypeTestBlock, nextBlock);
       }
+   else
+      {
+      tt->getPrevTreeTop()->join(tt->getNextTreeTop());
+      }
+
+   node->recursivelyDecReferenceCount();
    }
 
 static TR::Node *
@@ -812,33 +865,6 @@ createStoreNodeForAnchoredNode(TR::Node *anchoredNode, TR::Node *nodeToBeStored,
    return storeNode;
    }
 
-static void
-copyRegisterDependency(TR::Node *fromNode, TR::Node *toNode)
-   {
-   if (fromNode->getNumChildren() != 0)
-      {
-      TR::Node *blkDeps = fromNode->getFirstChild();
-      TR::Node *newDeps = TR::Node::create(blkDeps, TR::GlRegDeps);
-
-      for (int i = 0; i < blkDeps->getNumChildren(); i++)
-         {
-         TR::Node *regDep = blkDeps->getChild(i);
-
-         if (regDep->getOpCodeValue() == TR::PassThrough)
-            {
-            TR::Node *orig= regDep;
-            regDep = TR::Node::create(orig, TR::PassThrough, 1, orig->getFirstChild());
-            regDep->setLowGlobalRegisterNumber(orig->getLowGlobalRegisterNumber());
-            regDep->setHighGlobalRegisterNumber(orig->getHighGlobalRegisterNumber());
-            }
-
-         newDeps->addChildren(&regDep, 1);
-         }
-
-      toNode->addChildren(&newDeps, 1);
-      }
-   }
-
 class LoadArrayElementTransformer: public TR::TreeLowering::Transformer
    {
    public:
@@ -849,11 +875,19 @@ class LoadArrayElementTransformer: public TR::TreeLowering::Transformer
    void lower(TR::Node* const node, TR::TreeTop* const tt);
    };
 
+static bool skipBoundChecks(TR::Compilation *comp, TR::Node *node)
+   {
+   TR::ResolvedMethodSymbol *method = comp->getOwningMethodSymbol(node->getOwningMethod());
+   if (method && method->skipBoundChecks())
+      return true;
+   return false;
+   }
+
 /*
  * LoadArrayElementTransformer transforms the block that contains the jitLoadFlattenableArrayElement helper call into three blocks:
  *   1. The merge block (blockAfterHelperCall) that contains the tree tops after the helper call
  *   2. The helper call block (helperCallBlock) that contains the helper call and is moved to the end of the tree top list
- *   3. The new non-VT array load block (arrayElementLoadBlock) which is an extended block of the original block
+ *   3. The new non-primitive VT array load block (arrayElementLoadBlock) which is an extended block of the original block
  *
  *      originalBlock----------+
  *      arrayElementLoadBlock  |
@@ -885,7 +919,7 @@ class LoadArrayElementTransformer: public TR::TreeLowering::Transformer
  |   iand                                   |           |
  |      iloadi  <isClassFlags>              |           |
  |      ...                                 |           |
- |      iconst 1024                         |           |
+ |      iconst J9ClassIsPrimitiveValueType  |           |
  |   iconst 0                               |           |
  |   GlRegDeps ()                           |           |
  |      ==>aRegLoad                         |           |
@@ -974,7 +1008,7 @@ LoadArrayElementTransformer::lower(TR::Node* const node, TR::TreeTop* const tt)
    // 1. Anchor helper call node after the helper call
    //    Anchor elementIndex and arrayBaseAddress before the helper call
 
-   // Anchoring the helper call ensures that the return value from the helper call or from the non-VT array element load
+   // Anchoring the helper call ensures that the return value from the helper call or from the non-primitive VT array element load
    // will be saved to a register or a temp.
    TR::TreeTop *anchoredCallTT = TR::TreeTop::create(comp, tt, TR::Node::create(TR::treetop, 1, node));
    TR::TreeTop *anchoredElementIndexTT = TR::TreeTop::create(comp, tt->getPrevTreeTop(), TR::Node::create(TR::treetop, 1, elementIndexNode));
@@ -1065,19 +1099,29 @@ LoadArrayElementTransformer::lower(TR::Node* const node, TR::TreeTop* const tt)
    if (comp->useCompressedPointers())
       dataWidth = TR::Compiler->om.sizeofReferenceField();
 
-   TR::Node *arraylengthNode = TR::Node::create(TR::arraylength, 1, anchoredArrayBaseAddressNode);
-   arraylengthNode->setArrayStride(dataWidth);
-
    //ILGen for array element load already generates a NULLCHK
 
-   elementLoadTT->insertBefore(TR::TreeTop::create(comp, TR::Node::createWithSymRef(TR::BNDCHK, 2, 2, arraylengthNode, anchoredElementIndexNode, comp->getSymRefTab()->findOrCreateArrayBoundsCheckSymbolRef(comp->getMethodSymbol()))));
+   // Some JCL methods are known never to trigger an ArrayIndexOutOfBoundsException,
+   // so only add a BNDCHK if it's needed
+   if (!skipBoundChecks(comp, node))
+      {
+      TR::Node *arraylengthNode = TR::Node::create(TR::arraylength, 1, anchoredArrayBaseAddressNode);
+      arraylengthNode->setArrayStride(dataWidth);
+
+      elementLoadTT->insertBefore(TR::TreeTop::create(comp, TR::Node::createWithSymRef(TR::BNDCHK, 2, 2, arraylengthNode, anchoredElementIndexNode, comp->getSymRefTab()->findOrCreateArrayBoundsCheckSymbolRef(comp->getMethodSymbol()))));
+
+      // This might be the first time the various checking symbol references are used
+      // Need to ensure aliasing for them is correctly constructed
+      //
+      this->optimizer()->setAliasSetsAreValid(false);
+      }
 
 
    ///////////////////////////////////////
    // 9. Create ificmpne node that checks classFlags
 
    // The branch destination will be set up later
-   TR::Node *ifNode = comp->fej9()->checkArrayCompClassValueType(anchoredArrayBaseAddressNode, TR::ificmpne);
+   TR::Node *ifNode = comp->fej9()->checkArrayCompClassPrimitiveValueType(anchoredArrayBaseAddressNode, TR::ificmpne);
 
    // Copy register dependency to the ificmpne node that's being appended to the current block
    copyRegisterDependency(arrayElementLoadBlock->getExit()->getNode(), ifNode);
@@ -1157,11 +1201,19 @@ class StoreArrayElementTransformer: public TR::TreeLowering::Transformer
    void lower(TR::Node* const node, TR::TreeTop* const tt);
    };
 
+static bool skipArrayStoreChecks(TR::Compilation *comp, TR::Node *node)
+   {
+   TR::ResolvedMethodSymbol *method = comp->getOwningMethodSymbol(node->getOwningMethod());
+   if (method && method->skipArrayStoreChecks())
+      return true;
+   return false;
+   }
+
 /*
  * StoreArrayElementTransformer transforms the block that contains the jitStoreFlattenableArrayElement helper call into three blocks:
  *   1. The merge block that contains the tree tops after the helper call
  *   2. The helper call block that contains the helper call and is moved to the end of the tree top list
- *   3. The new non-VT array store block which is an extended block of the original block
+ *   3. The new non-primitive VT array store block which is an extended block of the original block
  *
  *      originalBlock ----------+
  *      arrayElementStoreBlock  |
@@ -1195,7 +1247,7 @@ class StoreArrayElementTransformer: public TR::TreeLowering::Transformer
  |   iand                                    |               |
  |      iloadi  <isClassFlags>               |               |
  |      ...                                  |               |
- |      iconst 1024                          |               |
+ |      iconst J9ClassIsPrimitiveValueType   |               |
  |   iconst 0                                |               |
  |   GlRegDeps ()                            |               |
  |      PassThrough rcx                      |               |
@@ -1246,9 +1298,6 @@ class StoreArrayElementTransformer: public TR::TreeLowering::Transformer
  |      aRegLoad ecx                         |     |
  |      aRegLoad r8d                         |     |
  |      iRegLoad edi                         |     |
- |NULLCHK                                    |     |
- |   PassThrough                             |     |
- |      ==>aload                             |     |
  |treetop                                    |     |
  |   acall  jitStoreFlattenableArrayElement  |     |
  |      ==>aRegLoad                          |     |
@@ -1326,18 +1375,11 @@ StoreArrayElementTransformer::lower(TR::Node* const node, TR::TreeTop* const tt)
 
 
    ///////////////////////////////////////
-   // 5. Split (2) at the helper call node including the nullchk on the value reference into its own helperCallBlock
+   // 5. Split (2) at the helper call node into its own helperCallBlock
 
-   // Insert NULLCHK for VT
+   // Insert NULLCHK for Primitive VT
    TR::Node *anchoredValueNode = anchoredValueTT->getNode()->getFirstChild();
    TR::TreeTop *ttForHelperCallBlock = tt;
-
-   if (!anchoredValueNode->isNonNull())
-      {
-      TR::Node *passThru  = TR::Node::create(node, TR::PassThrough, 1, anchoredValueNode);
-      TR::Node *nullCheck = TR::Node::createWithSymRef(node, TR::NULLCHK, 1, passThru, comp->getSymRefTab()->findOrCreateNullCheckSymbolRef(comp->getMethodSymbol()));
-      ttForHelperCallBlock = tt->insertBefore(TR::TreeTop::create(comp, nullCheck));
-      }
 
    TR::Block *helperCallBlock = originalBlock->splitPostGRA(ttForHelperCallBlock, cfg, true, NULL);
 
@@ -1355,43 +1397,79 @@ StoreArrayElementTransformer::lower(TR::Node* const node, TR::TreeTop* const tt)
    TR::SymbolReference *elementSymRef = comp->getSymRefTab()->findOrCreateArrayShadowSymbolRef(TR::Address, anchoredArrayBaseAddressNode);
    TR::Node *elementStoreNode = TR::Node::createWithSymRef(TR::awrtbari, 3, 3, elementAddress, anchoredValueNode, anchoredArrayBaseAddressNode, elementSymRef);
 
-   TR::SymbolReference *arrayStoreCHKSymRef = comp->getSymRefTab()->findOrCreateTypeCheckArrayStoreSymbolRef(comp->getMethodSymbol());
-   TR::Node *arrayStoreCHKNode = TR::Node::createWithRoomForThree(TR::ArrayStoreCHK, elementStoreNode, 0, arrayStoreCHKSymRef);
-   arrayStoreCHKNode->copyByteCodeInfo(node);
+   TR::Node *arrayStoreCHKNode = NULL;
+   TR::TreeTop *arrayStoreTT = NULL;
 
-   TR::TreeTop *arrayStoreCHKTT = originalBlock->append(TR::TreeTop::create(comp, arrayStoreCHKNode));
+   // Some JCL methods are known never to trigger an ArrayStoreException
+   // Only add an ArrayStoreCHK if it's required
+   if (!skipArrayStoreChecks(comp, node))
+      {
+      TR::SymbolReference *arrayStoreCHKSymRef = comp->getSymRefTab()->findOrCreateTypeCheckArrayStoreSymbolRef(comp->getMethodSymbol());
+      arrayStoreCHKNode = TR::Node::createWithRoomForThree(TR::ArrayStoreCHK, elementStoreNode, 0, arrayStoreCHKSymRef);
+      arrayStoreCHKNode->copyByteCodeInfo(node);
+      arrayStoreTT = originalBlock->append(TR::TreeTop::create(comp, arrayStoreCHKNode));
+      if (enableTrace)
+         traceMsg(comp, "Created arrayStoreCHK treetop n%dn arrayStoreCHKNode n%dn\n", arrayStoreTT->getNode()->getGlobalIndex(), arrayStoreCHKNode->getGlobalIndex());
 
-   if (enableTrace)
-      traceMsg(comp, "Created arrayStoreCHK treetop n%dn node n%dn\n", arrayStoreCHKTT->getNode()->getGlobalIndex(), arrayStoreCHKNode->getGlobalIndex());
-
+      // This might be the first time the various checking symbol references are used
+      // Need to ensure aliasing for them is correctly constructed
+      //
+      this->optimizer()->setAliasSetsAreValid(false);
+      }
+   else
+      {
+      arrayStoreTT = originalBlock->append(TR::TreeTop::create(comp, TR::Node::create(TR::treetop, 1, elementStoreNode)));
+      if (enableTrace)
+         traceMsg(comp, "Created treetop node with awrtbari child as treetop n%dn elementStoreNode n%dn\n", arrayStoreTT->getNode()->getGlobalIndex(), elementStoreNode->getGlobalIndex());
+      }
 
    ///////////////////////////////////////
    // 7. Split (3) at the regular array element store
-   TR::Block *arrayElementStoreBlock = originalBlock->split(arrayStoreCHKTT, cfg);
+   TR::Block *arrayElementStoreBlock = originalBlock->split(arrayStoreTT, cfg);
 
    arrayElementStoreBlock->setIsExtensionOfPreviousBlock(true);
 
    if (enableTrace)
-      traceMsg(comp, "Isolated array element store treetop n%dn node n%dn in block_%d\n", arrayStoreCHKTT->getNode()->getGlobalIndex(), arrayStoreCHKNode->getGlobalIndex(), arrayElementStoreBlock->getNumber());
+      traceMsg(comp, "Isolated array element store treetop n%dn node n%dn in block_%d\n", arrayStoreTT->getNode()->getGlobalIndex(),
+            arrayStoreCHKNode ? arrayStoreCHKNode->getGlobalIndex() : elementStoreNode->getGlobalIndex(), arrayElementStoreBlock->getNumber());
 
    int32_t dataWidth = TR::Symbol::convertTypeToSize(TR::Address);
    if (comp->useCompressedPointers())
       dataWidth = TR::Compiler->om.sizeofReferenceField();
 
-   TR::Node *arraylengthNode = TR::Node::create(TR::arraylength, 1, anchoredArrayBaseAddressNode);
-   arraylengthNode->setArrayStride(dataWidth);
+   const bool needNullCHK = !anchoredArrayBaseAddressNode->isNonNull() && (tt->getNode()->getOpCodeValue() == TR::NULLCHK);
+   const bool needBNDCHK = !skipBoundChecks(comp, node);
 
-   //ILGen for array element store already generates a NULLCHK
-   //If the helper call node is anchored under NULLCHK due to compactNullChecks, the NULLCHK is split into the helper call block.
-   //The NULLCHK is required for regular array block.
-   if (!anchoredArrayBaseAddressNode->isNonNull() && tt->getNode()->getOpCodeValue() == TR::NULLCHK)
-      arrayStoreCHKTT->insertBefore(TR::TreeTop::create(comp, TR::Node::createWithSymRef(TR::NULLCHK, 1, 1, arraylengthNode, comp->getSymRefTab()->findOrCreateNullCheckSymbolRef(comp->getMethodSymbol()))));
+   if (needNullCHK || needBNDCHK)
+      {
+      TR::Node *arraylengthNode = TR::Node::create(TR::arraylength, 1, anchoredArrayBaseAddressNode);
+      arraylengthNode->setArrayStride(dataWidth);
 
-   arrayStoreCHKTT->insertBefore(TR::TreeTop::create(comp, TR::Node::createWithSymRef(TR::BNDCHK, 2, 2, arraylengthNode, anchoredElementIndexNode, comp->getSymRefTab()->findOrCreateArrayBoundsCheckSymbolRef(comp->getMethodSymbol()))));
+      //ILGen for array element store already generates a NULLCHK
+      //If the helper call node is anchored under NULLCHK due to compactNullChecks, the NULLCHK is split into the helper call block.
+      //The NULLCHK is required for regular array block.
+      if (needNullCHK)
+         {
+         arrayStoreTT->insertBefore(TR::TreeTop::create(comp, TR::Node::createWithSymRef(TR::NULLCHK, 1, 1, arraylengthNode, comp->getSymRefTab()->findOrCreateNullCheckSymbolRef(comp->getMethodSymbol()))));
+         }
+
+
+      // Some JCL methods are known never to trigger an ArrayIndexOutOfBoundsException,
+      // so only add a BNDCHK if it's needed
+      if (needBNDCHK)
+         {
+         arrayStoreTT->insertBefore(TR::TreeTop::create(comp, TR::Node::createWithSymRef(TR::BNDCHK, 2, 2, arraylengthNode, anchoredElementIndexNode, comp->getSymRefTab()->findOrCreateArrayBoundsCheckSymbolRef(comp->getMethodSymbol()))));
+         }
+
+      // This might be the first time the various checking symbol references are used
+      // Need to ensure aliasing for them is correctly constructed
+      //
+      this->optimizer()->setAliasSetsAreValid(false);
+      }
 
    if (comp->useCompressedPointers())
       {
-      arrayStoreCHKTT->insertAfter(TR::TreeTop::create(comp, TR::Node::createCompressedRefsAnchor(elementStoreNode)));
+      arrayStoreTT->insertAfter(TR::TreeTop::create(comp, TR::Node::createCompressedRefsAnchor(elementStoreNode)));
       }
 
 
@@ -1399,7 +1477,7 @@ StoreArrayElementTransformer::lower(TR::Node* const node, TR::TreeTop* const tt)
    // 8. Create the ificmpne node that checks classFlags
 
    // The branch destination will be set up later
-   TR::Node *ifNode = comp->fej9()->checkArrayCompClassValueType(anchoredArrayBaseAddressNode, TR::ificmpne);
+   TR::Node *ifNode = comp->fej9()->checkArrayCompClassPrimitiveValueType(anchoredArrayBaseAddressNode, TR::ificmpne);
 
    // Copy register dependency to the ificmpne node that's being appended to the current block
    copyRegisterDependency(arrayElementStoreBlock->getExit()->getNode(), ifNode);
@@ -1470,15 +1548,26 @@ TR::TreeLowering::lowerValueTypeOperations(TransformationManager& transformation
 
    if (node->getOpCode().isCall())
       {
-      if (symRefTab->isNonHelper(node->getSymbolReference(), TR::SymbolReferenceTable::objectEqualityComparisonSymbol))
+      // IL Generation only uses the <objectInequalityComparison> non-helper today,
+      // but just in case, make sure TreeLowering can handle both possibilities.
+      const bool isObjectEqualityTest = symRefTab->isNonHelper(node->getSymbolReference(), TR::SymbolReferenceTable::objectEqualityComparisonSymbol);
+      const bool isObjectInequalityTest = symRefTab->isNonHelper(node->getSymbolReference(), TR::SymbolReferenceTable::objectInequalityComparisonSymbol);
+
+      if (isObjectEqualityTest || isObjectInequalityTest)
          {
          // turn the non-helper call into a VM helper call
-         node->setSymbolReference(symRefTab->findOrCreateAcmpHelperSymbolRef());
+         node->setSymbolReference(isObjectEqualityTest ? symRefTab->findOrCreateAcmpeqHelperSymbolRef()
+                                                       : symRefTab->findOrCreateAcmpneHelperSymbolRef());
+
          static const bool disableAcmpFastPath =  NULL != feGetEnv("TR_DisableVT_AcmpFastpath");
          if (!disableAcmpFastPath)
             {
             transformations.addTransformation(getTransformer<AcmpTransformer>(), node, tt);
             }
+         }
+      else if (symRefTab->isNonHelper(node->getSymbolReference(), TR::SymbolReferenceTable::nonNullableArrayNullStoreCheckSymbol))
+         {
+         transformations.addTransformation(getTransformer<NonNullableArrayNullStoreCheckTransformer>(), node, tt);
          }
       else if (node->getSymbolReference()->getReferenceNumber() == TR_ldFlattenableArrayElement)
          {
@@ -1503,11 +1592,5 @@ TR::TreeLowering::lowerValueTypeOperations(TransformationManager& transformation
             transformations.addTransformation(getTransformer<StoreArrayElementTransformer>(), node, tt);
             }
          }
-      }
-   // If inlining check for aastore is enabled, the NULLCHK on the value reference is
-   // taken care of by StoreArrayElementTransformer.
-   else if (node->getOpCodeValue() == TR::ArrayStoreCHK && disableInliningCheckAastore)
-      {
-      transformations.addTransformation(getTransformer<ArrayStoreCHKTransformer>(), node, tt);
       }
    }

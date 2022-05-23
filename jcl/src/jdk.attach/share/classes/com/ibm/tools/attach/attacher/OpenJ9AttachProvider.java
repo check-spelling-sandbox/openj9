@@ -1,6 +1,6 @@
 /*[INCLUDE-IF JAVA_SPEC_VERSION >= 8]*/
 /*******************************************************************************
- * Copyright (c) 2009, 2021 IBM Corp. and others
+ * Copyright (c) 2009, 2022 IBM Corp. and others
  *
  * This program and the accompanying materials are made available under
  * the terms of the Eclipse Public License 2.0 which accompanies this
@@ -45,6 +45,9 @@ import com.sun.tools.attach.spi.AttachProvider;
  * Concrete subclass of the class that lists the available target VMs
  * 
  */
+/*[IF JAVA_SPEC_VERSION >= 17]*/
+@SuppressWarnings("removal")
+/*[ENDIF] JAVA_SPEC_VERSION >= 17 */
 public class OpenJ9AttachProvider extends AttachProvider {
 
 	/**
@@ -85,7 +88,9 @@ public class OpenJ9AttachProvider extends AttachProvider {
 			throw new AttachNotSupportedException(com.ibm.oti.util.Msg.getString("K0543")); //$NON-NLS-1$
 		}
 
-		OpenJ9VirtualMachine vm = new OpenJ9VirtualMachine(this, descriptor.id());
+		String id = descriptor.id();
+		OpenJ9VirtualMachine vm = new OpenJ9VirtualMachine(this, id);
+		IPC.logMessage("Attach target descriptor.id(): " + id); //$NON-NLS-1$
 		vm.attachTarget();
 		return vm;
 	}

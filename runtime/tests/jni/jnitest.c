@@ -985,7 +985,7 @@ threadproc(void *p)
 	} else {
 		j9tty_printf(PORTLIB, "\n*** failed to attach current thread rc = %d ***\n", result);
 	}
-	j9tty_printf(PORTLIB, "exitting pthread\n");
+	j9tty_printf(PORTLIB, "exiting pthread\n");
 	pthread_exit(NULL);
 	/* unreachable: silence compiler */
 	return NULL;

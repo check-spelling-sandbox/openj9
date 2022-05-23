@@ -63,7 +63,7 @@ tgcHookExcessiveGCCheckFreeSpace(J9HookInterface** hook, UDATA eventNum, void* e
 	MM_ExcessiveGCCheckFreeSpaceEvent* event = (MM_ExcessiveGCCheckFreeSpaceEvent *)eventData;
 	MM_TgcExtensions *tgcExtensions = MM_TgcExtensions::getExtensions(event->currentThread);
 		
-	tgcExtensions->printf("\texcessiveGC: gcid=\"%zu\" percentreclaimed=\"%2.2f\" freedelta=\"%zu\" activesize=\"%zu\" currentsize=\"%zu\" maxiumumsize=\"%zu\" \n", 
+	tgcExtensions->printf("\texcessiveGC: gcid=\"%zu\" percentreclaimed=\"%2.2f\" freedelta=\"%zu\" activesize=\"%zu\" currentsize=\"%zu\" maximumsize=\"%zu\" \n", 
 		event->gcCount, 
 		event->reclaimedPercent,
 		event->freeMemoryDelta, 

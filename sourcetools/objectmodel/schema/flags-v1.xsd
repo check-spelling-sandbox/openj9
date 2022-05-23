@@ -97,7 +97,7 @@
 			<xsd:documentation>
 				Represents a depends-on linkage between flags. Indicates
 				that the flag requires that another flag be enabled. The
-				flag which is dependended upon is identified by name
+				flag which is dependent upon is identified by name
 				using the flag attribute.
 			</xsd:documentation>
 		</xsd:annotation>
@@ -109,7 +109,7 @@
 	<xsd:complexType name="precludesType">
 		<xsd:annotation>
 			<xsd:documentation>
-				A list of elements which indentify flags that are
+				A list of elements which identify flags that are
 				incompatible with the containing flag definition.
 			</xsd:documentation>
 		</xsd:annotation>
@@ -123,7 +123,7 @@
 			<xsd:documentation>
 				Represents an either-or linkage between flags. Indicates
 				that the flag cannot function properly in the presence
-				of another flag. The incompatiable flags is identified
+				of another flag. The incompatible flags is identified
 				by name using the flag attribute.
 			</xsd:documentation>
 		</xsd:annotation>

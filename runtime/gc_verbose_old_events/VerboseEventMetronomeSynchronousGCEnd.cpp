@@ -53,7 +53,7 @@ MM_VerboseEventMetronomeSynchronousGCEnd::newInstance(MM_MetronomeSynchronousGCE
 void
 MM_VerboseEventMetronomeSynchronousGCEnd::initialize(MM_MetronomeSynchronousGCEndEvent *event)
 {
-	_reason = UNKOWN_REASON;
+	_reason = UNKNOWN_REASON;
 	_timestamp[0] = 0;
 }
 
@@ -70,7 +70,7 @@ MM_VerboseEventMetronomeSynchronousGCEnd::consumeEvents(void)
 	MM_VerboseEventStream *eventStream = manager->getEventStream();	
 	MM_VerboseEventMetronomeSynchronousGCStart *eventSyncGCStart = NULL;
 	
-	manager->incrementMetronomeSynchGCCount();		
+	manager->incrementMetronomeSyncGCCount();		
 
 	/* Find previous (matching) SyncGC start event */
 	if (NULL != (eventSyncGCStart = (MM_VerboseEventMetronomeSynchronousGCStart *)eventStream->returnEvent(J9HOOK_MM_PRIVATE_METRONOME_SYNCHRONOUS_GC_START, _manager->getPrivateHookInterface(), (MM_VerboseEvent *)this))){
@@ -102,7 +102,7 @@ MM_VerboseEventMetronomeSynchronousGCEnd::formattedOutput(MM_VerboseOutputAgent 
 	U_64 timeSinceLastEvent;
 	
 	/* Get the timestamp of any of previous heartbeat or trigger event, needed to calculate intervalms.
-	 * Intervalms reported will be between that previous event and the mayching syncGC start event (not end event!) */
+	 * Intervalms reported will be between that previous event and the matching syncGC start event (not end event!) */
 	if (manager->getLastMetronomeTime()) {
 		/* SyncGC due to OOM is preceded by a trigger start event, so that lastMetronomeTime is for sure non 0 */
 		timeSinceLastEvent = omrtime_hires_delta(manager->getLastMetronomeTime(), _startTime, J9PORT_TIME_DELTA_IN_MICROSECONDS);
@@ -114,8 +114,8 @@ MM_VerboseEventMetronomeSynchronousGCEnd::formattedOutput(MM_VerboseOutputAgent 
 	U_64 syncGCTimeDuration = 0;
 	bool deltaTimeSuccess = getTimeDeltaInMicroSeconds(&syncGCTimeDuration, _startTime, getTimeStamp());
 	
-	agent->formatAndOutput(static_cast<J9VMThread*>(_omrThread->_language_vmthread), manager->getIndentLevel(), "<gc type=\"synchgc\" id=\"%zu\" timestamp=\"%s\" intervalms=\"%llu.%03.3llu\">",
-		manager->getMetronomeSynchGCCount(),
+	agent->formatAndOutput(static_cast<J9VMThread*>(_omrThread->_language_vmthread), manager->getIndentLevel(), "<gc type=\"syncgc\" id=\"%zu\" timestamp=\"%s\" intervalms=\"%llu.%03.3llu\">",
+		manager->getMetronomeSyncGCCount(),
 		_timestamp,  /* This is the timestamp of matching SyncGC start event! */
 		timeSinceLastEvent / 1000,
 		timeSinceLastEvent % 1000
@@ -166,7 +166,7 @@ MM_VerboseEventMetronomeSynchronousGCEnd::formattedOutput(MM_VerboseOutputAgent 
 	agent->formatAndOutput(static_cast<J9VMThread*>(_omrThread->_language_vmthread), manager->getIndentLevel(), "<synchronousgcpriority value=\"%zu\" />", _gcThreadPriority);
 	manager->decrementIndent();
 	agent->formatAndOutput(static_cast<J9VMThread*>(_omrThread->_language_vmthread), manager->getIndentLevel(), "</gc>");
-	manager->setLastMetronomeSynchGCTime(getTimeStamp());
+	manager->setLastMetronomeSyncGCTime(getTimeStamp());
 	agent->endOfCycle(static_cast<J9VMThread*>(_omrThread->_language_vmthread));
 }
 

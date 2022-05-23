@@ -46,7 +46,7 @@
 
 /* The vm version which must match the JCL.
  * It has the format 0xAABBCCCC
- *	AA - vm version, BB - jcl version, CCCC - master version
+ *	AA - vm version, BB - jcl version, CCCC - main version
  * CCCC must match exactly with the JCL
  * Up the vm version (AA) when adding natives
  * BB is the required level of JCL to run the vm
@@ -280,6 +280,7 @@ jint initializeKnownClasses(J9JavaVM* vm, U_32 runtimeFlags)
 					Trc_JCL_initializeKnownClasses_ClassRefNotResolvedForInstanceFieldRef(vm->mainThread, romFieldConstantPool[i].classRefCPIndex, i);
 				}  else {
 					Trc_JCL_initializeKnownClasses_ExitError(vm->mainThread, i);
+					Trc_JCL_Assert_StartupFailure();
 					return JNI_ERR;
 				}
 			}
@@ -307,6 +308,7 @@ jint initializeKnownClasses(J9JavaVM* vm, U_32 runtimeFlags)
 						Trc_JCL_initializeKnownClasses_ClassRefNotResolvedForMethodRef(vm->mainThread, romMethodConstantPool[i].classRefCPIndex, i);
 					} else {
 						Trc_JCL_initializeKnownClasses_ExitError(vm->mainThread, i);
+						Trc_JCL_Assert_StartupFailure();
 						return JNI_ERR;
 					}
 				}
@@ -323,6 +325,7 @@ jint initializeKnownClasses(J9JavaVM* vm, U_32 runtimeFlags)
 						Trc_JCL_initializeKnownClasses_ClassRefNotResolvedForMethodRef(vm->mainThread, romMethodConstantPool[i].classRefCPIndex, i);
 					} else {
 						Trc_JCL_initializeKnownClasses_ExitError(vm->mainThread, i);
+						Trc_JCL_Assert_StartupFailure();
 						return JNI_ERR;
 					}
 				} else {
@@ -339,6 +342,7 @@ jint initializeKnownClasses(J9JavaVM* vm, U_32 runtimeFlags)
 						Trc_JCL_initializeKnownClasses_ClassRefNotResolvedForMethodRef(vm->mainThread, romMethodConstantPool[i].classRefCPIndex, i);
 					} else {
 						Trc_JCL_initializeKnownClasses_ExitError(vm->mainThread, i);
+						Trc_JCL_Assert_StartupFailure();
 						return JNI_ERR;
 					}
 				} else {
@@ -469,7 +473,7 @@ static const J9IntConstantMapping intVMConstants[] = {
  * @return a JNI result code
  */
 static jint
-intializeVMConstants(J9VMThread *currentThread)
+initializeVMConstants(J9VMThread *currentThread)
 {
 	J9JavaVM *vm = currentThread->javaVM;
 	OMR_VM *omrVM = (OMR_VM *)vm->omrVM;
@@ -586,6 +590,9 @@ initializeRequiredClasses(J9VMThread *vmThread, char* dllName)
 			J9VMCONSTANTPOOL_JDKINTERNALLOADERNATIVELIBRARIES,
 			J9VMCONSTANTPOOL_JDKINTERNALLOADERNATIVELIBRARIESNATIVELIBRARYIMPL,
 #endif /* JAVA_SPEC_VERSION >= 15 */
+#if JAVA_SPEC_VERSION >= 18
+			J9VMCONSTANTPOOL_JAVALANGINVOKEMETHODHANDLENATIVES,
+#endif /* JAVA_SPEC_VERSION >= 18 */
 	};
 
 	/* Determine java/lang/String.value signature before any required class is initialized */
@@ -627,6 +634,10 @@ initializeRequiredClasses(J9VMThread *vmThread, char* dllName)
 	if (0 != vmFuncs->addHiddenInstanceField(vm, "java/lang/invoke/MutableCallSite", "invalidationCookie", "J", &vm->mutableCallSiteInvalidationCookieOffset)) {
 		return 1;
 	}
+
+	if (0 != vmFuncs->addHiddenInstanceField(vm, "java/lang/invoke/MethodHandle", "jitVMEntryKeepAlive", "Ljava/lang/invoke/MemberName;", &vm->jitVMEntryKeepAliveOffset)) {
+		return 1;
+	}
 #endif /* defined(J9VM_OPT_OPENJDK_METHODHANDLE) */
 
 
@@ -641,7 +652,7 @@ initializeRequiredClasses(J9VMThread *vmThread, char* dllName)
 		return 1;
 	}
 	vmInternalsClass->initializeStatus = J9ClassInitSucceeded;
-	if (JNI_OK != intializeVMConstants(vmThread)) {
+	if (JNI_OK != initializeVMConstants(vmThread)) {
 		return 1;
 	}
 
@@ -743,6 +754,8 @@ initializeRequiredClasses(J9VMThread *vmThread, char* dllName)
 	for (i=0; i < sizeof(requiredClasses) / sizeof(UDATA); i++) {
 		clazz = vmFuncs->internalFindKnownClass(vmThread, requiredClasses[i], J9_FINDKNOWNCLASS_FLAG_NON_FATAL);
 		if ((NULL == clazz) || (NULL != vmThread->currentException)) {
+			Trc_JCL_initializeRequiredClasses_ExitError(vmThread, i);
+			Trc_JCL_Assert_StartupFailure();
 			return 1;
 		}
 		vmFuncs->initializeClass(vmThread, clazz);

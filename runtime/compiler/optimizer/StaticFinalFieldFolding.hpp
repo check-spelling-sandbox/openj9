@@ -59,7 +59,7 @@ namespace TR { class NodeChecklist; }
  *
  * To be able to do guarded static final field folding (to fold the second type of fields),
  * we have to make sure that an OSR guard can be added after any yield point (place where
- * invaliation of assumptions can happen) that can reach the folded field. This is because
+ * invalidation of assumptions can happen) that can reach the folded field. This is because
  * if invalidation happens, we have to get out of the JIT body before running into the code
  * with the invalid folded value.
  *

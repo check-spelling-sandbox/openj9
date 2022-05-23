@@ -69,7 +69,7 @@
 #define TEST17_SHAREDMEMORY "j9shmem_test17"
 
 /* The define FD_BIAS is defined in portpriv.h ... however we can't and shouldn't use this here ... so for now we redefine.
- * In the long run fstat will be implemented in the port librart for test 7 so we don't need this.
+ * In the long run fstat will be implemented in the port library for test 7 so we don't need this.
  */
 #ifdef J9ZOS390
 /*CMVC 99667: Introducing FD-biasing to fix MVS started-tasks and POSIX file-descriptors*/
@@ -144,7 +144,7 @@ verifyShmemStats(J9PortLibrary *portLibrary, struct j9shmem_handle *handle, stru
 	}
 	outputComment(PORTLIB, "owner gid: %zu\n", statbuf->ogid);
 	if (statbuf->ogid != gid) {
-		outputErrorMessage(PORTTEST_ERROR_ARGS, "Expected ownder gid=%zu, owner gid obtained by shm stats=%zu\n", gid, statbuf->ogid);
+		outputErrorMessage(PORTTEST_ERROR_ARGS, "Expected owner gid=%zu, owner gid obtained by shm stats=%zu\n", gid, statbuf->ogid);
 	}
 	outputComment(PORTLIB, "creator gid: %zu\n", statbuf->cgid);
 	if (statbuf->cgid != gid) {
@@ -424,7 +424,7 @@ j9shmem_test4_child(J9PortLibrary *portLibrary)
 									"- but it should have been there!\n");
 		goto exit;
 	} else if(rc == J9PORT_ERROR_SHMEM_OPFAILED || rc == J9PORT_ERROR_SHMEM_WAIT_FOR_CREATION_MUTEX_TIMEDOUT) {
-		outputErrorMessage(PORTTEST_ERROR_ARGS, "open child shareded memory fails:\n");
+		outputErrorMessage(PORTTEST_ERROR_ARGS, "open child shared memory fails:\n");
 		goto exit;
 	}
 
@@ -645,7 +645,7 @@ j9shmem_test6(J9PortLibrary *portLibrary)
 
 	fd = j9file_open(mybaseFilePath, EsOpenRead, 0);
 	if(fd == -1) {
-		outputErrorMessage(PORTTEST_ERROR_ARGS, "canot open base file");
+		outputErrorMessage(PORTTEST_ERROR_ARGS, "cannot open base file");
 		goto exit;
 	}
 
@@ -716,7 +716,7 @@ exit:
 
 /**
  * Verify @ref j9shmem.c::j9shmem_findfirst "j9shmem_findfirst",
- * @ref j9shmem.c::j9shmem_findnext "j9shmem_findnext" and @ref j9shmem.c::j9shmem_findclose "j9shmem_findclse"
+ * @ref j9shmem.c::j9shmem_findnext "j9shmem_findnext" and @ref j9shmem.c::j9shmem_findclose "j9shmem_findclose"
  * functions.
  *
  * @param[in] portLibrary The port library under test
@@ -1261,7 +1261,7 @@ j9shmem_test13(J9PortLibrary *portLibrary) {
 	/* Set the region back to read/write and try to write
 	 * we should be able to write to the entire region again
 	 */
-    outputComment(portLibrary,"Reseting memory to readwrite\n");
+    outputComment(portLibrary,"Resetting memory to readwrite\n");
     rc = j9shmem_protect(cacheDir, 0, regionA,SHMSIZE,J9PORT_PAGE_PROTECT_WRITE);
 	if (rc != 0) {
 			if (rc == J9PORT_PAGE_PROTECT_NOT_SUPPORTED) {
@@ -1441,7 +1441,7 @@ j9shmem_test14(J9PortLibrary *portLibrary) {
 	/* Set the region back to read/write and try to write
 	 * we should be able to write to the entire region again
 	 */
-    outputComment(portLibrary,"Reseting first page to readwrite\n");
+    outputComment(portLibrary,"Resetting first page to readwrite\n");
     rc = j9shmem_protect(cacheDir, 0, regionA,pageSize,J9PORT_PAGE_PROTECT_WRITE);
 	if (rc != 0) {
 			if (rc == J9PORT_PAGE_PROTECT_NOT_SUPPORTED) {

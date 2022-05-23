@@ -472,7 +472,7 @@ bool TR_SignExtendLoads::ConvertSubTreeToLong(TR::Node *parent, TR::Node *node, 
          if (!node->cannotOverflow()) return false;
 
          // need to change nodes top-down to avoid sticking in
-         // superflous l2i nodes
+         // superfluous l2i nodes
          opCode = node->getOpCodeValue();
          if (changeNode)
             {
@@ -741,7 +741,7 @@ int32_t TR_SignExtendLoads::perform()
 
    if (trace())
      {
-       traceMsg(comp(), "Starting Sign Extention of Loads\n");
+       traceMsg(comp(), "Starting Sign Extension of Loads\n");
        traceMsg(comp(), "\nCFG before loop simplification:\n");
        getDebug()->print(comp()->getOutFile(), comp()->getFlowGraph());
      }

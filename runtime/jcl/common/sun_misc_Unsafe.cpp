@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 1998, 2021 IBM Corp. and others
+ * Copyright (c) 1998, 2022 IBM Corp. and others
  *
  * This program and the accompanying materials are made available under
  * the terms of the Eclipse Public License 2.0 which accompanies this
@@ -66,6 +66,7 @@ Java_sun_misc_Unsafe_defineClass__Ljava_lang_String_2_3BIILjava_lang_ClassLoader
 	return defineClassCommon(env, classLoader, className, classRep, offset, length, protectionDomain, &defineClassOptions, NULL, NULL, FALSE);
 }
 
+#if JAVA_SPEC_VERSION < 17
 jclass JNICALL
 Java_sun_misc_Unsafe_defineAnonymousClass(JNIEnv *env, jobject receiver, jclass hostClass, jbyteArray bytecodes, jobjectArray constPatches)
 {
@@ -182,6 +183,7 @@ exit:
 
 	return anonClass;
 }
+#endif /* JAVA_SPEC_VERSION < 17 */
 
 /**
  * Initialization function called during VM bootstrap (Unsafe.<clinit>).
@@ -831,7 +833,11 @@ Java_jdk_internal_misc_Unsafe_objectFieldOffset1(JNIEnv *env, jobject receiver, 
 		if (NULL == romField) {
 			vmFuncs->setCurrentExceptionUTF(currentThread, J9VMCONSTANTPOOL_JAVALANGINTERNALERROR, NULL);
 		} else if (J9_ARE_ANY_BITS_SET(romField->modifiers, J9AccStatic)) {
-			vmFuncs->setCurrentExceptionUTF(currentThread, J9VMCONSTANTPOOL_JAVALANGILLEGALARGUMENTEXCEPTION, NULL);
+			offset = fieldID->offset | J9_SUN_STATIC_FIELD_OFFSET_TAG;
+
+			if (J9_ARE_ANY_BITS_SET(romField->modifiers, J9AccFinal)) {
+				offset |= J9_SUN_FINAL_FIELD_OFFSET_TAG;
+			}
 		} else {
 			offset = (jlong)fieldID->offset + J9VMTHREAD_OBJECT_HEADER_SIZE(currentThread);
 		}
@@ -946,11 +952,13 @@ registerJdkInternalMiscUnsafeNativesCommon(JNIEnv *env, jclass clazz) {
 			(char*)"(Ljava/lang/String;[BIILjava/lang/ClassLoader;Ljava/security/ProtectionDomain;)Ljava/lang/Class;",
 			(void*)&Java_sun_misc_Unsafe_defineClass__Ljava_lang_String_2_3BIILjava_lang_ClassLoader_2Ljava_security_ProtectionDomain_2
 		},
+#if JAVA_SPEC_VERSION < 17
 		{
 			(char*)"defineAnonymousClass0",
 			(char*)"(Ljava/lang/Class;[B[Ljava/lang/Object;)Ljava/lang/Class;",
 			(void*)&Java_sun_misc_Unsafe_defineAnonymousClass
 		},
+#endif /* JAVA_SPEC_VERSION < 17 */
 		{
 			(char*)"pageSize",
 			(char*)"()I",

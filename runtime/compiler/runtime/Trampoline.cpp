@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2000, 2020 IBM Corp. and others
+ * Copyright (c) 2000, 2022 IBM Corp. and others
  *
  * This program and the accompanying materials are made available under
  * the terms of the Eclipse Public License 2.0 which accompanies this
@@ -480,10 +480,13 @@ bool ppcCodePatching(void *method, void *callSite, void *currentPC, void *curren
 
          oldBits = *(int32_t *)((uint8_t *)callSite - encodingStartOffset);     // The load of the first IPIC cache slot or rldimi
 #if defined(TR_TARGET_64BIT)
-         if (TR::Compiler->target.cpu.isAtLeast(OMR_PROCESSOR_PPC_P10))
+
+         distance = *(int32_t *)((uint8_t *)callSite - encodingStartOffset - 4);
+         // Testing if it is really a paddi case
+         if (TR::Compiler->target.cpu.isAtLeast(OMR_PROCESSOR_PPC_P10) &&
+             (((distance >> 20) & 0x00000FFF) == 0x061))
             {
             // oldBits is the latter half of paddi
-            distance = *(int32_t *)((uint8_t *)callSite - encodingStartOffset - 4);
             distance = (distance & 0x0003FFFF) << 16;  // Getting the top-18-bits and shifted into place
             distance |= oldBits & 0x0000FFFF;          // Concatenate with the bottom-16-bits
             distance = (distance << 30) >> 30;         // sign-extend
@@ -952,6 +955,9 @@ void arm64CodeCacheConfig(int32_t ccSizeInByte, int32_t *numTempTrampolines)
 void arm64CreateHelperTrampolines(void *trampPtr, int32_t numHelpers)
    {
    uint32_t *buffer = (uint32_t *)((uint8_t *)trampPtr + TRAMPOLINE_SIZE);
+#if defined(OSX) && defined(AARCH64)
+   pthread_jit_write_protect_np(0);
+#endif
    for (int32_t i=1; i<numHelpers; i++)
       {
       *((int32_t *)buffer) = 0x58000050; //LDR R16 PC+8
@@ -965,6 +971,9 @@ void arm64CreateHelperTrampolines(void *trampPtr, int32_t numHelpers)
 #if defined(TR_HOST_ARM64)
    arm64CodeSync((uint8_t*)trampPtr, TRAMPOLINE_SIZE * numHelpers);
 #endif
+#if defined(OSX) && defined(AARCH64)
+   pthread_jit_write_protect_np(1);
+#endif
    }
 
 void arm64CreateMethodTrampoline(void *trampPtr, void *startPC, void *method)
@@ -973,6 +982,9 @@ void arm64CreateMethodTrampoline(void *trampPtr, void *startPC, void *method)
    J9::PrivateLinkage::LinkageInfo *linkInfo = J9::PrivateLinkage::LinkageInfo::get(startPC);
    intptr_t dispatcher = (intptr_t)((uint8_t *)startPC + linkInfo->getReservedWord());
 
+#if defined(OSX) && defined(AARCH64)
+   pthread_jit_write_protect_np(0);
+#endif
    *buffer = 0x58000050; //LDR R16 PC+8
    buffer += 1;
    *buffer = 0xD61F0200; //BR R16
@@ -981,6 +993,9 @@ void arm64CreateMethodTrampoline(void *trampPtr, void *startPC, void *method)
 
 #if defined(TR_HOST_ARM64)
    arm64CodeSync((uint8_t*)trampPtr, TRAMPOLINE_SIZE);
+#endif
+#if defined(OSX) && defined(AARCH64)
+   pthread_jit_write_protect_np(1);
 #endif
    }
 
@@ -1022,9 +1037,15 @@ bool arm64CodePatching(void *callee, void *callSite, void *currentPC, void *curr
             }
          else
             {
+#if defined(OSX) && defined(AARCH64)
+            pthread_jit_write_protect_np(0);
+#endif
             *((uint64_t*)currentTramp+1) = (uint64_t)entryAddress;
 #if defined(TR_HOST_ARM64)
             arm64CodeSync((uint8_t*)currentTramp+8, 8);
+#endif
+#if defined(OSX) && defined(AARCH64)
+            pthread_jit_write_protect_np(1);
 #endif
             }
          }
@@ -1035,9 +1056,15 @@ bool arm64CodePatching(void *callee, void *callSite, void *currentPC, void *curr
    if (currentDistance != distance)
       {
       branchInstr |= (distance >> 2) & 0x03ffffff;
+#if defined(OSX) && defined(AARCH64)
+      pthread_jit_write_protect_np(0);
+#endif
       *(int32_t *)callSite = branchInstr;
 #if defined(TR_HOST_ARM64)
       arm64CodeSync((uint8_t*)callSite, 4);
+#endif
+#if defined(OSX) && defined(AARCH64)
+      pthread_jit_write_protect_np(1);
 #endif
       }
 
@@ -1211,7 +1238,7 @@ bool s390zOS64CodePatching(void *method, void *callSite, void *currentPC, void *
 
    //#define CHECK_32BIT_TRAMPOLINE_RANGE(x,rip)  (((intptr_t)(x) == (intptr_t)(rip) + (int32_t)((intptr_t)(x) - (intptr_t)(rip))) && (x % 2 == 0))
 
-   // call instruction should be BASRL rRA,Imm  with immediate field aligned.
+   // call instruction should be BASR rRA,Imm  with immediate field aligned.
    if (TR::Options::getCmdLineOptions()->getOption(TR_StressTrampolines) || !CHECK_32BIT_TRAMPOLINE_RANGE(distance,0))
       {
       // Check if the call already jumps to our current trampoline.

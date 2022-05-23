@@ -496,9 +496,9 @@ public abstract class ELFDumpReader implements ILibraryDependentCore {
 
 		// TODO - Sort modules. For the sake of tidiness.
 		_modules.addAll(allModules);
-		ELFFileReader readerForExectuableOnDiskOrAppended = getReaderForModuleOnDiskOrAppended(executableName);
+		ELFFileReader readerForExecutableOnDiskOrAppended = getReaderForModuleOnDiskOrAppended(executableName);
 		_executable = createModuleFromElfReader(executableBaseAddress, executableName, executableELF,
-				readerForExectuableOnDiskOrAppended);
+				readerForExecutableOnDiskOrAppended);
 	}
 
 	/**

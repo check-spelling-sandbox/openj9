@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 1991, 2021 IBM Corp. and others
+ * Copyright (c) 1991, 2022 IBM Corp. and others
  *
  * This program and the accompanying materials are made available under
  * the terms of the Eclipse Public License 2.0 which accompanies this
@@ -301,9 +301,24 @@ allocateClassLoader(J9JavaVM *javaVM);
 void
 freeClassLoader(J9ClassLoader *classLoader, J9JavaVM *javaVM, J9VMThread *vmThread, UDATA needsFrameBuild);
 
+/* ---------------- classname.cpp ---------------- */
+
+/**
+ * Get the String representing the name of a Class. If the String has not been created
+ * yet, create it and optionally intern and assign it to the Class.
+ *
+ * Current thread must have VM access and have a special frame on top of stack
+ * with the J9VMThread roots up-to-date.
+ *
+ * @param[in] currentThread the current J9VMThread
+ * @param[in] classObject the java/lang/Class being queried
+ * @param[im] internAndAssign if true, intern the String and assign it to the Class object
+ * @return the Class name String, or NULL on out of memory (exception will be pending)
+ */
+j9object_t
+getClassNameString(J9VMThread *currentThread, j9object_t classObject, jboolean internAndAssign);
+
 /* ---------------- classsupport.c ---------------- */
-
-
 
 /**
 * @brief
@@ -345,7 +360,7 @@ internalCreateArrayClass(J9VMThread* vmThread, J9ROMArrayClass* romClass, J9Clas
  * @param classLoader J9ClassLoader to use
  * @param options load options such as J9_FINDCLASS_FLAG_EXISTING_ONLY
  * @param allowedBitsForClassName the allowed bits for a valid class name,
- *        including CLASSNAME_INVALID, CLASSNAME_VALID_NON_ARRARY, CLASSNAME_VALID_ARRARY, or CLASSNAME_VALID.
+ *        including CLASSNAME_INVALID, CLASSNAME_VALID_NON_ARRAY, CLASSNAME_VALID_ARRAY, or CLASSNAME_VALID.
  *
  * @return pointer to J9Class if success, NULL if fail
  *
@@ -435,7 +450,7 @@ contendedLoadTableFree(J9JavaVM* vm);
  * @param comparator handle to function that will compare elements
  * @param maxStack maximum concurrent classloads or class linkage
  * @param stackpool pool for stack elements
- * @param throwException flag to indicate if exception should be thrown in the case of cirularity
+ * @param throwException flag to indicate if exception should be thrown in the case of circularity
  * @param ownsClassTableMutex flag to indicate if class table mutex is being held
  * @result TRUE is element exists in stack, FALSE otherwise
  */
@@ -473,11 +488,12 @@ internalCreateRAMClassFromROMClass(J9VMThread *vmThread, J9ClassLoader *classLoa
 	IDATA entryIndex, I_32 locationType, J9Class *classBeingRedefined, J9Class *hostClass);
 
 
-/* ---------------- criuhelpers.cpp ---------------- */
+#if defined(J9VM_OPT_CRIU_SUPPORT)
+
+/* ---------------- CRIUHelpers.cpp ---------------- */
 /**
  * @brief Queries if CRIU support is enabled. By default support
  * is not enabled, it can be enabled with `-XX:+EnableCRIUSupport`
- *
  *
  * @param currentThread vmthread token
  * @return TRUE if enabled, FALSE otherwise
@@ -490,7 +506,6 @@ isCRIUSupportEnabled(J9VMThread *currentThread);
  * -XX:+CRIURestoreNonPortableMode option is specified checkpointing
  * will not be permitted after the JVM has been restored from a checkpoint
  * (checkpoint once mode).
- *
  *
  * @param currentThread vmthread token
  * @return TRUE if permitted, FALSE otherwise
@@ -516,6 +531,41 @@ jvmCheckpointHooks(J9VMThread *currentThread);
  */
 BOOLEAN
 jvmRestoreHooks(J9VMThread *currentThread);
+
+/**
+ * @brief This iterates heap objects first, then goes through hook records,
+ * and runs the checkpoint hook function.
+ * ExclusiveVMAccess is required since J9InternalHookRecord holds live object references
+ * and GC is not allowed while running these hook functions.
+ *
+ * @param currentThread vmthread token
+ * @return BOOLEAN TRUE if no error, otherwise FALSE
+ */
+BOOLEAN
+runInternalJVMCheckpointHooks(J9VMThread *currentThread);
+
+/**
+ * @brief This runs the restore hook function, and cleanup.
+ * ExclusiveVMAccess is required since J9InternalHookRecord hold live object references
+ * and GC are not allowed while running these hook functions.
+ *
+ * @param currentThread vmthread token
+ * @param isRestore If FALSE, run the hook specified for checkpoint, otherwise run the hook specified for restore
+ * @return BOOLEAN TRUE if no error, otherwise FALSE
+ */
+BOOLEAN
+runInternalJVMRestoreHooks(J9VMThread *currentThread);
+
+/**
+ * @brief This function runs the identity operations that were delayed
+ * during the Java checkpoint and restore hooks.
+ *
+ * @param currentThread thread token
+ * @return BOOLEAN TRUE if no error, otherwise FALSE
+ */
+BOOLEAN
+runDelayedLockRelatedOperations(J9VMThread *currentThread);
+#endif /* defined(J9VM_OPT_CRIU_SUPPORT) */
 
 /* ---------------- classloadersearch.c ---------------- */
 
@@ -629,10 +679,11 @@ internalExceptionDescribe(J9VMThread *vmThread);
 * @param ramClass)
 * @param userData
 * @param pruneConstructors
+* @param skipHiddenFrames
 * @return UDATA
 */
 UDATA
-iterateStackTrace(J9VMThread * vmThread, j9object_t* exception,  UDATA  (*callback) (J9VMThread * vmThread, void * userData, UDATA bytecodeOffset, J9ROMClass * romClass, J9ROMMethod * romMethod, J9UTF8 * fileName, UDATA lineNumber, J9ClassLoader* classLoader, J9Class* ramClass), void * userData, UDATA pruneConstructors);
+iterateStackTrace(J9VMThread * vmThread, j9object_t* exception,  UDATA  (*callback) (J9VMThread * vmThread, void * userData, UDATA bytecodeOffset, J9ROMClass * romClass, J9ROMMethod * romMethod, J9UTF8 * fileName, UDATA lineNumber, J9ClassLoader* classLoader, J9Class* ramClass), void * userData, UDATA pruneConstructors, UDATA skipHiddenFrames);
 
 
 /* ---------------- exceptionsupport.c ---------------- */
@@ -715,6 +766,14 @@ setClassLoadingConstraintError(J9VMThread * currentThread, J9ClassLoader * initi
 void
 setClassCastException(J9VMThread *currentThread, J9Class * instanceClass, J9Class * castClass);
 
+/**
+ * @brief
+ * @param *currentThread
+ * @param size
+ * @return void
+ */
+void
+setNegativeArraySizeException(J9VMThread *currentThread, I_32 size);
 
 /**
 * @brief
@@ -1162,6 +1221,16 @@ gpCheckSetNativeOutOfMemoryError(J9VMThread* env, U_32 moduleName, U_32 messageN
 /**
 * @brief
 * @param env
+* @param size
+* @return void
+*/
+void JNICALL
+gpCheckSetNegativeArraySizeException(J9VMThread* env, I_32 size);
+
+
+/**
+* @brief
+* @param env
 * @return void
 */
 void JNICALL
@@ -1481,7 +1550,7 @@ deallocateVMThread(J9VMThread * vmThread, UDATA decrementZombieCount, UDATA send
 * @return void
 */
 void
-freeClassLoaderEntries(J9VMThread * vmThread, J9ClassPathEntry * entries, UDATA count);
+freeClassLoaderEntries(J9VMThread * vmThread, J9ClassPathEntry **entries, UDATA count, UDATA initCount);
 
 /**
 * @brief
@@ -1685,12 +1754,12 @@ VMInitStages(J9JavaVM *vm, IDATA stage, void* reserved);
  * @param[in] classPathSeparator platform specific class path separator
  * @param[in] cpFlags clas path entry flags
  * @param[in] initClassPathEntry if TRUE initialize each class path entry
- * @param[out] classPathEntries returns the class path entries allocated and initialized by the function
+ * @param[out] classPathEntries returns the pointer array of class path entries.
  *
  * @return number of class path entries initialized
  */
 UDATA
-initializeClassPath(J9JavaVM *vm, char *classPath, U_8 classPathSeparator, U_16 cpFlags, BOOLEAN initClassPathEntry, J9ClassPathEntry **classPathEntries);
+initializeClassPath(J9JavaVM *vm, char *classPath, U_8 classPathSeparator, U_16 cpFlags, BOOLEAN initClassPathEntry, J9ClassPathEntry ***classPathEntries);
 
 /*
  * Initialize the given class path entry. This involves determining what kind
@@ -1703,7 +1772,7 @@ initializeClassPath(J9JavaVM *vm, char *classPath, U_8 classPathSeparator, U_16 
  * 		CPE_TYPE_DIRECTORY if it's a directory
  * 		CPE_TYPE_JAR if it's a ZIP file, extraInfo contains the J9ZipFile
  * 		CPE_TYPE_JIMAGE if it's a jimage file
- * 		CPE_TYPE_USUSABLE if it's a bad entry, don't try to use it anymore
+ * 		CPE_TYPE_UNUSABLE if it's a bad entry, don't try to use it anymore
  */
 IDATA
 initializeClassPathEntry (J9JavaVM * javaVM, J9ClassPathEntry *cpEntry);
@@ -2235,7 +2304,6 @@ profilingBytecodeBufferFullHookRegistered(J9JavaVM* vm);
 
 /* ---------------- rasdump.c ---------------- */
 
-#if (defined(J9VM_RAS_DUMP_AGENTS))
 /**
 * @brief
 * @param *vm
@@ -2243,7 +2311,6 @@ profilingBytecodeBufferFullHookRegistered(J9JavaVM* vm);
 */
 IDATA
 configureRasDump(J9JavaVM *vm);
-#endif /* J9VM_RAS_DUMP_AGENTS */
 
 
 struct J9JavaVM;
@@ -2403,7 +2470,7 @@ classPrepareWithWithUnflattenedFlattenables(J9VMThread *currentThread, J9Class *
 
 /**
  * Compare two objects for equality. This helper will perform a
- * structural comparison if both objecst are valueTypes
+ * structural comparison if both objects are valueTypes
  *
  * @param[in] currentThread the current thread
  * @param[in] lhs first operand
@@ -3189,7 +3256,7 @@ addStatistic (J9JavaVM* javaVM, U_8 * name, U_8 dataType);
 void *
 getStatistic (J9JavaVM* javaVM, U_8 * name);
 
-/* ---------------- stringhelpers.c ---------------- */
+/* ---------------- stringhelpers.cpp ---------------- */
 
 /**
  * @brief Compare a java string to another java string for character equality.
@@ -3304,14 +3371,14 @@ getStringUTF8Length(J9VMThread *vmThread,j9object_t string);
 /**
 * Check incoming class name characters and return following values accordingly:
 * 	CLASSNAME_INVALID - if there is a character '/';
-* 	CLASSNAME_VALID_NON_ARRARY - if it is valid and there is no '[' at beginning of class name string;
-* 	CLASSNAME_VALID_ARRARY - if it is valid and there is a '[' at beginning of class name string.
+* 	CLASSNAME_VALID_NON_ARRAY - if it is valid and there is no '[' at beginning of class name string;
+* 	CLASSNAME_VALID_ARRAY - if it is valid and there is a '[' at beginning of class name string.
 *
 * @param[in] *vmThread current thread
 * @param[in] className the class name string
 * @param[in] classNameLength the length of the class name string
 * @param[in] allowedBitsForClassName the allowed bits for a valid class name,
-*            including CLASSNAME_VALID_NON_ARRARY, CLASSNAME_VALID_ARRARY, or CLASSNAME_VALID.
+*            including CLASSNAME_VALID_NON_ARRAY, CLASSNAME_VALID_ARRAY, or CLASSNAME_VALID.
 *
 * @return a UDATA to indicate the nature of incoming class name string, see descriptions above.
 */
@@ -3841,6 +3908,15 @@ getVMHookInterface(J9JavaVM* vm);
 IDATA
 initializeVMHookInterface(J9JavaVM* vm);
 
+#if defined(J9VM_OPT_VALHALLA_VALUE_TYPES)
+/**
+ * @brief Retrieves the address of the default value slot for a value class
+ * @param clazz The class to retrieve the default address value for. Must be an initialized value class.
+ * @return the address of the default value slot for the value class
+ */
+j9object_t*
+getDefaultValueSlotAddress(J9Class* clazz);
+#endif /* #if defined(J9VM_OPT_VALHALLA_VALUE_TYPES) */
 
 /**
 * @brief
@@ -4020,7 +4096,7 @@ void
 terminateVMThreading(J9JavaVM *vm);
 
 
-/* ---------------- vmthread.c ---------------- */
+/* ---------------- vmthread.cpp ---------------- */
 
 /*
  * Perform thread setup before any java code is run on the thread.
@@ -4118,7 +4194,6 @@ IDATA J9THREAD_PROC
 javaThreadProc(void *entryarg);
 
 
-#if (defined(J9VM_RAS_DUMP_AGENTS))  || (defined(J9VM_INTERP_SIG_QUIT_THREAD))
 /**
 * @brief
 * @param *vm
@@ -4128,7 +4203,6 @@ javaThreadProc(void *entryarg);
 */
 void
 printThreadInfo(J9JavaVM *vm, J9VMThread *self, char *toFile, BOOLEAN allThreads);
-#endif /* J9VM_('RAS_DUMP_AGENTS' 'INTERP_SIG_QUIT_THREAD') */
 
 
 /**
@@ -4383,6 +4457,7 @@ setLogOptions (J9JavaVM *vm, char *options);
 
 /* -------------------- NativeHelpers.cpp ------------ */
 
+#if defined(J9VM_OPT_METHOD_HANDLE)
 /**
 * @brief
 * @param currentThread
@@ -4391,6 +4466,7 @@ setLogOptions (J9JavaVM *vm, char *options);
 */
 J9SFMethodTypeFrame *
 buildMethodTypeFrame(J9VMThread * currentThread, j9object_t methodType);
+#endif /* defined(J9VM_OPT_METHOD_HANDLE) */
 
 /* -------------------- drophelp.c ------------ */
 
@@ -4683,7 +4759,7 @@ void
 throwNewJavaIoIOException(JNIEnv *env, const char *message);
 
 #ifdef __cplusplus
-}
+} /* extern "C" */
 #endif
 
 #endif /* vm_api_h */

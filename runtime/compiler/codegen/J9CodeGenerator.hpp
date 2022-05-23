@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2000, 2021 IBM Corp. and others
+ * Copyright (c) 2000, 2022 IBM Corp. and others
  *
  * This program and the accompanying materials are made available under
  * the terms of the Eclipse Public License 2.0 which accompanies this
@@ -342,7 +342,7 @@ private:
 
    TR::list<TR::Node*> _nodesSpineCheckedList;
 
-   TR::list<TR_Pair<TR_ResolvedMethod, TR::Instruction> *> _jniCallSites; // list of instrutions representing direct jni call sites
+   TR::list<TR_Pair<TR_ResolvedMethod, TR::Instruction> *> _jniCallSites; // list of instructions representing direct jni call sites
 
    uint16_t changeParmLoadsToRegLoads(TR::Node*node, TR::Node **regLoads, TR_BitVector *globalRegsWithRegLoad, TR_BitVector &killedParms, vcount_t visitCount); // returns number of RegLoad nodes created
 
@@ -434,7 +434,7 @@ public:
 
    void dumpInvariant(CS2::ArrayOf<gpuParameter, TR::Allocator>::Cursor pit, NVVMIRBuffer &ir, bool isbufferalign);
 
-   GPUResult dumpNVVMIR(TR::TreeTop *firstTreeTop, TR::TreeTop *lastTreeTop, TR_RegionStructure *loop, SharedSparseBitVector *blocksinLoop, ListBase<TR::AutomaticSymbol> *autos, ListBase<TR::ParameterSymbol> *parms, bool staticMethod, char * &nvvmIR, TR::Node * &errorNode, int gpuPtxCount, bool* hasExceptionChecks);
+   GPUResult dumpNVVMIR(TR::TreeTop *firstTreeTop, TR::TreeTop *lastTreeTop, TR_RegionStructure *loop, SharedSparseBitVector *blocksInLoop, ListBase<TR::AutomaticSymbol> *autos, ListBase<TR::ParameterSymbol> *parms, bool staticMethod, char * &nvvmIR, TR::Node * &errorNode, int gpuPtxCount, bool* hasExceptionChecks);
 
    GPUResult printNVVMIR(NVVMIRBuffer &ir, TR::Node * node, TR_RegionStructure *loop, TR_BitVector *targetBlocks, vcount_t visitCount, TR_SharedMemoryAnnotations *sharedMemory, int32_t &nextParmNum, TR::Node * &errorNode);
 
@@ -500,6 +500,16 @@ public:
    void setSupportsInlineStringHashCode() { _j9Flags.set(SupportsInlineStringHashCode); }
 
    /** \brief
+   *    Determines whether the code generator supports inlining of java/lang/StringLatin1.inflate
+   */
+   bool getSupportsInlineStringLatin1Inflate() { return _j9Flags.testAny(SupportsInlineStringLatin1Inflate); }
+
+   /** \brief
+   *    The code generator supports inlining of java/lang/StringLatin1.inflate
+   */
+   void setSupportsInlineStringLatin1Inflate() { _j9Flags.set(SupportsInlineStringLatin1Inflate); }
+
+   /** \brief
    *    Determines whether the code generator supports inlining of java_util_concurrent_ConcurrentLinkedQueue_tm*
    *    methods
    */
@@ -509,6 +519,16 @@ public:
    *    The code generator supports inlining of java_util_concurrent_ConcurrentLinkedQueue_tm* methods
    */
    void setSupportsInlineConcurrentLinkedQueue() { _j9Flags.set(SupportsInlineConcurrentLinkedQueue); }
+
+   /** \brief
+	*   Determines whether the code generator supports inlining of java/lang/StringCoding.encodeASCII
+	*/
+   bool getSupportsInlineEncodeASCII() { return _j9Flags.testAny(SupportsInlineEncodeASCII); }
+
+   /** \brief
+	*   The code generator supports inlining of java/lang/StringCoding.encodeASCII
+	*/
+   void setSupportsInlineEncodeASCII() { _j9Flags.set(SupportsInlineEncodeASCII); }
 
    /**
     * \brief
@@ -585,6 +605,62 @@ public:
     */
    uint32_t initializeLinkageInfo(void *linkageInfoPtr);
 
+   /**
+    * \brief Check if a profiled class is compatible with the call site
+    *
+    * \param[in] profiledClass : The J9Class obtained from profiling data
+    * \param[in] callSiteMethodClass : The J9Class from the J9Method of the call site target
+    *
+    * \return True if it can be determined that the profiled class is compatible, otherwise False
+    */
+   bool isProfiledClassAndCallSiteCompatible(TR_OpaqueClassBlock *profiledClass, TR_OpaqueClassBlock *callSiteMethodClass);
+
+   /** \brief
+   *    Determines whether the code generator supports inlining of java/lang/Integer.stringSize() or java/lang/Long.stringSize()
+   */
+   bool getSupportsIntegerStringSize() { return _j9Flags.testAny(SupportsIntegerStringSize); }
+
+   /** \brief
+   *    The code generator supports inlining of java/lang/Integer.stringSize() or java/lang/Long.stringSize()
+   */
+   void setSupportsIntegerStringSize() {_j9Flags.set(SupportsIntegerStringSize); }
+
+   /** \brief
+   *    Determines whether the code generator supports inlining of
+   *       - Integer.getChars,
+   *       - Long.getChars,
+   *       - StringUTF16.getChars(JI[B)I,
+   *       - StringUTF16.getChars(II[B)I
+   */
+   bool getSupportsIntegerToChars() { return _j9Flags.testAny(SupportsIntegerToChars); }
+
+   /** \brief
+   *    The code generator supports inlining of
+   *       - Integer.getChars,
+   *       - Long.getChars,
+   *       - StringUTF16.getChars(JI[B)I,
+   *       - StringUTF16.getChars(II[B)I
+   */
+   void setSupportsIntegerToChars() {_j9Flags.set(SupportsIntegerToChars); }
+
+   /**
+    * \brief Determine whether this code generator guarantees resolved direct
+    * dispatch under AOT with SVM.
+    *
+    * \return true if resolved direct dispatch is guaranteed, false otherwise
+    * \see TR_J9VMBase::isResolvedDirectDispatchGuaranteed
+    */
+   bool guaranteesResolvedDirectDispatchForSVM() { return false; } // safe default
+
+   /**
+    * \brief Determine whether this code generator guarantees resolved virtual
+    * dispatch under AOT with SVM.
+    *
+    * \return true if resolved virtual dispatch is guaranteed, false otherwise
+    * \see TR_J9VMBase::isResolvedVirtualDispatchGuaranteed
+    */
+   bool guaranteesResolvedVirtualDispatchForSVM() { return false; } // safe default
+
 private:
 
    enum // Flags
@@ -596,6 +672,10 @@ private:
       SupportsInlineStringHashCode                        = 0x00000010, /*! codegen inlining of Java string hash code */
       SupportsInlineConcurrentLinkedQueue                 = 0x00000020,
       SupportsBigDecimalLongLookasideVersioning           = 0x00000040,
+      SupportsInlineStringLatin1Inflate                   = 0x00000080, /*! codegen inlining of Java StringLatin1.inflate */
+      SupportsIntegerStringSize                           = 0x00000100,
+      SupportsIntegerToChars                              = 0x00000200,
+      SupportsInlineEncodeASCII                           = 0x00000400,
       };
 
    flags32_t _j9Flags;

@@ -40,15 +40,15 @@ public class JavaRuntimeVersion {
         if (versionParts.length > 2) {
         	throw new IllegalArgumentException ("invalid version: " + properties[0]);
         }
-        String intialVersion = versionParts[0];
-        if (intialVersion.startsWith("1.8") || intialVersion.startsWith("8.")) {
+        String initialVersion = versionParts[0];
+        if (initialVersion.startsWith("1.8") || initialVersion.startsWith("8.")) {
         	// Java 8 can have an underscore
-            if (!intialVersion.matches("[1-9][0-9\\.]+") && !intialVersion.matches("[1-9][0-9\\.]+_[1-9][0-9]*")) {
-            	throw new IllegalArgumentException ("invalid version: " + intialVersion);
+            if (!initialVersion.matches("[1-9][0-9\\.]+") && !initialVersion.matches("[1-9][0-9\\.]+_[1-9][0-9]*")) {
+            	throw new IllegalArgumentException ("invalid version: " + initialVersion);
             }
         } else {
-	        if (!intialVersion.matches("[1-9][0-9\\.]+")) {
-	        	throw new IllegalArgumentException ("invalid version: " + intialVersion);
+	        if (!initialVersion.matches("[1-9][0-9\\.]+")) {
+	        	throw new IllegalArgumentException ("invalid version: " + initialVersion);
 	        }
         }
         		

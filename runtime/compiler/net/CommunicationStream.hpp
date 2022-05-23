@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2018, 2021 IBM Corp. and others
+ * Copyright (c) 2018, 2022 IBM Corp. and others
  *
  * This program and the accompanying materials are made available under
  * the terms of the Eclipse Public License 2.0 which accompanies this
@@ -43,9 +43,11 @@ public:
    static bool useSSL();
    static void initSSL();
 
-#ifdef MESSAGE_SIZE_STATS
-   static TR_Stats collectMsgStat[JITServer::MessageType_MAXTYPE];
-#endif
+   static uint32_t _msgTypeCount[MessageType::MessageType_MAXTYPE];
+   static uint64_t _totalMsgSize;
+#if defined(MESSAGE_SIZE_STATS)
+   static TR_Stats _msgSizeStats[MessageType::MessageType_MAXTYPE];
+#endif /* defined(MESSAGE_SIZE_STATS) */
 
    static void initConfigurationFlags();
 
@@ -86,9 +88,6 @@ protected:
    // Build a message sent by a remote party by reading from the socket
    // as much as possible (up to internal buffer capacity)
    void readMessage(Message &msg);
-   // Build a message sent by a remote party by first reading the message
-   // size and then reading the rest of the message
-   void readMessage2(Message &msg);
    void writeMessage(Message &msg);
 
    int getConnFD() const { return _connfd; }
@@ -99,26 +98,16 @@ protected:
    ClientMessage _cMsg;
 
    static const uint8_t MAJOR_NUMBER = 1;
-   static const uint16_t MINOR_NUMBER = 28;
+   static const uint16_t MINOR_NUMBER = 38;
    static const uint8_t PATCH_NUMBER = 0;
    static uint32_t CONFIGURATION_FLAGS;
 
 private:
-   // readBlocking and writeBlocking are functions that directly read/write
-   // passed object from/to the socket. For the object to be correctly written,
-   // it needs to be contiguous.
-   template <typename T>
-   void readBlocking(T &val)
-      {
-      static_assert(std::is_trivially_copyable<T>::value == true, "T must be trivially copyable.");
-      readBlocking((char*)&val, sizeof(T));
-      }
-
    void readBlocking(char *data, size_t size)
       {
+      size_t totalBytesRead = 0;
       if (_ssl)
          {
-         int32_t totalBytesRead = 0;
          while (totalBytesRead < size)
             {
             int bytesRead = (*OBIO_read)(_ssl, data + totalBytesRead, size - totalBytesRead);
@@ -132,13 +121,13 @@ private:
          }
       else
          {
-         int32_t totalBytesRead = 0;
          while (totalBytesRead < size)
             {
-            int32_t bytesRead = read(_connfd, data + totalBytesRead, size - totalBytesRead);
+            ssize_t bytesRead = read(_connfd, data + totalBytesRead, size - totalBytesRead);
             if (bytesRead <= 0)
                {
-               throw JITServer::StreamFailure("JITServer I/O error: read error");
+               throw JITServer::StreamFailure("JITServer I/O error: read error: " +
+                                              (bytesRead ? std::string(strerror(errno)) : "connection closed by peer"));
                }
             totalBytesRead += bytesRead;
             }
@@ -151,38 +140,32 @@ private:
       if (_ssl)
          {
          bytesRead = (*OBIO_read)(_ssl, data, size);
+         if (bytesRead <= 0)
+            {
+            (*OERR_print_errors_fp)(stderr);
+            throw JITServer::StreamFailure("JITServer I/O error: read error");
+            }
          }
       else
          {
          bytesRead = read(_connfd, data, size);
-         }
-
-      if (bytesRead <= 0)
-         {
-         if (_ssl)
+         if (bytesRead <= 0)
             {
-            (*OERR_print_errors_fp)(stderr);
+            throw JITServer::StreamFailure("JITServer I/O error: read error: " +
+                                           (bytesRead ? std::string(strerror(errno)) : "connection closed by peer"));
             }
-         throw JITServer::StreamFailure("JITServer I/O error: read error");
          }
       return bytesRead;
       }
 
-   template <typename T>
-   void writeBlocking(const T &val)
+   void writeBlocking(const char *data, size_t size)
       {
-      static_assert(std::is_trivially_copyable<T>::value == true, "T must be trivially copyable.");
-      writeBlocking(&val, sizeof(T));
-      }
-
-   void writeBlocking(const char* data, size_t size)
-      {
+      size_t totalBytesWritten = 0;
       if (_ssl)
          {
-         int32_t totalBytesWritten = 0;
          while (totalBytesWritten < size)
             {
-            int32_t bytesWritten = (*OBIO_write)(_ssl, data + totalBytesWritten, size - totalBytesWritten);
+            int bytesWritten = (*OBIO_write)(_ssl, data + totalBytesWritten, size - totalBytesWritten);
             if (bytesWritten <= 0)
                {
                (*OERR_print_errors_fp)(stderr);
@@ -193,13 +176,12 @@ private:
          }
       else
          {
-         int32_t totalBytesWritten = 0;
          while (totalBytesWritten < size)
             {
-            int32_t bytesWritten = write(_connfd, data + totalBytesWritten, size - totalBytesWritten);
+            ssize_t bytesWritten = write(_connfd, data + totalBytesWritten, size - totalBytesWritten);
             if (bytesWritten <= 0)
                {
-               throw JITServer::StreamFailure("JITServer I/O error: write error");
+               throw JITServer::StreamFailure("JITServer I/O error: write error: " + std::string(strerror(errno)));
                }
             totalBytesWritten += bytesWritten;
             }

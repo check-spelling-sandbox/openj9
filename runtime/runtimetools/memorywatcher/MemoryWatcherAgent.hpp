@@ -50,7 +50,7 @@ private:
 	jmethodID _method;
 
 	/* holds the threshold a which we should generate dumps */
-	int _dumpThreshHold;
+	int _dumpThreshold;
 
 protected:
 	/**

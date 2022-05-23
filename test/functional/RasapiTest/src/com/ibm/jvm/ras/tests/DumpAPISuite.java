@@ -158,7 +158,7 @@ public class DumpAPISuite {
 				}
 				String[] threads = contents.toString().split("Thread=");
 
-				// We get an initial emptry array so we will have two
+				// We get an initial empty array so we will have two
 				// elements for STACK and more for CONSOLE.
 				// (It is safe to assume the VM is running more than one thread.)
 				if( threads.length == 2) {

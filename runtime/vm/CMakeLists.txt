@@ -1,5 +1,5 @@
 ################################################################################
-# Copyright (c) 2017, 2021 IBM Corp. and others
+# Copyright (c) 2017, 2022 IBM Corp. and others
 #
 # This program and the accompanying materials are made available under
 # the terms of the Eclipse Public License 2.0 which accompanies this
@@ -42,7 +42,7 @@ if(OMR_ARCH_POWER AND OMR_OS_AIX)
 		list(APPEND interp_flags_to_remove "-O3" "-g")
 		list(APPEND interp_new_flags "-O2" "-qdebug=lincomm:ptranl:tfbagg")
 		# Note: the following code is specified in the UMA builds, however,
-		# it isn't currently reachable, so it is block commneted out ( #[[ ]] )
+		# it isn't currently reachable, so it is block commented out ( #[[ ]] )
 		#[[
 		if(OMR_OS_LINUX)
 			# TODO -qpic=large -> -qpic
@@ -52,7 +52,7 @@ if(OMR_ARCH_POWER AND OMR_OS_AIX)
 		]]
 	endif()
 elseif(OMR_OS_ZOS)
-	#TODO need to handle optimized debug info
+	# TODO need to handle optimized debug info
 	list(APPEND interp_flags_to_remove "-O3" "-g" "-qdebug=nohook")
 
 	list(APPEND interp_new_flags
@@ -87,10 +87,10 @@ set(main_sources
 	classallocation.c
 	ClassInitialization.cpp
 	classloadersearch.c
+	classname.cpp
 	classseg.c
 	classsupport.c
 	createramclass.cpp
-	criuhelpers.cpp
 	description.c
 	dllsup.c
 	drophelp.c
@@ -133,6 +133,7 @@ set(main_sources
 	jvminitcommon.c
 	jvmrisup.c
 	KeyHashTable.c
+	LayoutFFITypeHelpers.cpp
 	leconditionexceptionsup.c
 	linearswalk.c
 	lockwordconfig.c
@@ -148,6 +149,7 @@ set(main_sources
 	OutOfLineINL_com_ibm_jit_JITHelpers.cpp
 	OutOfLineINL_java_lang_invoke_NativeMethodHandle.cpp
 	OutOfLineINL_jdk_internal_misc_Unsafe.cpp
+	OutOfLineINL_jdk_internal_foreign_abi_ProgrammableInvoker.cpp
 	ownedmonitors.c
 	profilingbc.c
 	rasdump.c
@@ -175,19 +177,31 @@ set(main_sources
 	vmprops.c
 	vmruntimestate.c
 	vmthinit.c
-	vmthread.c
+	vmthread.cpp
 	xcheck.c
 
 	${CMAKE_CURRENT_BINARY_DIR}/ut_j9vm.c
 )
+
+if(J9VM_OPT_CRIU_SUPPORT)
+	list(APPEND main_sources
+		CRIUHelpers.cpp
+	)
+endif()
+
 set(interpreter_sources
 	BytecodeInterpreterCompressed.cpp
 	BytecodeInterpreterFull.cpp
 	DebugBytecodeInterpreterCompressed.cpp
 	DebugBytecodeInterpreterFull.cpp
-	MHInterpreterCompressed.cpp
-	MHInterpreterFull.cpp
 )
+
+if(J9VM_OPT_METHOD_HANDLE)
+	list(APPEND interpreter_sources
+		MHInterpreterCompressed.cpp
+		MHInterpreterFull.cpp
+	)
+endif()
 
 j9vm_add_library(j9vm SHARED
 	OUTPUT_NAME j9vm${J9VM_VERSION_SUFFIX}
@@ -216,7 +230,6 @@ if(interp_new_flags)
 	omr_stringify(flags_str ${interp_new_flags})
 	set_property(SOURCE ${interpreter_sources} APPEND_STRING PROPERTY COMPILE_FLAGS " ${flags_str}")
 endif()
-
 
 if(OMR_OS_WINDOWS AND (OMR_TOOLCONFIG STREQUAL "msvc"))
 	# JIT helper methods require us to disable buffer security checks on Windows
@@ -321,10 +334,23 @@ elseif(OMR_ARCH_ARM)
 elseif(OMR_ARCH_AARCH64)
 	j9vm_gen_asm(arm64cinterp.m4)
 	target_sources(j9vm PRIVATE arm64cinterp.s)
-	if(OMR_OS_LINUX)
-		target_sources(j9vm PRIVATE xr64/unsafeHelper.s)
+	if(OMR_OS_LINUX OR OMR_OS_OSX)
+		j9vm_gen_asm(xr64/unsafeHelper.m4)
+		target_sources(j9vm PRIVATE unsafeHelper.s)
 	else()
 		message(SEND_ERROR "Unsupported OS")
+	endif()
+elseif(OMR_ARCH_RISCV)
+	if(OMR_ENV_DATA64)
+		j9vm_gen_asm(riscvcinterp.m4)
+		target_sources(j9vm PRIVATE riscvcinterp.s)
+		if(OMR_OS_LINUX)
+			target_sources(j9vm PRIVATE rv64/unsafeHelper.s)
+		else()
+			message(SEND_ERROR "Unsupported OS")
+		endif()
+	else()
+		message(SEND_ERROR "Unsupported platform: RV32")
 	endif()
 else()
 	message(SEND_ERROR "Unsupported platform")
@@ -368,6 +394,11 @@ target_link_libraries(j9vm
 		j9dyn
 		j9util
 		j9thr
+)
+
+target_compile_definitions(j9vm
+	PRIVATE
+		-DJ9_EXTENDED_DEBUG
 )
 
 omr_add_exports(j9vm

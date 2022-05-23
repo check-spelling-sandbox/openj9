@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2000, 2020 IBM Corp. and others
+ * Copyright (c) 2000, 2022 IBM Corp. and others
  *
  * This program and the accompanying materials are made available under
  * the terms of the Eclipse Public License 2.0 which accompanies this
@@ -85,7 +85,7 @@
 #define getFirstInternalPtrMapPinningArrayCursor getFirstInternalPtrMapPinningArrayCursorVerbose
 #define getNextInternalPtrMapPinningArrayCursor getNextInternalPtrMapPinningArrayCursorVerbose
 #define getJitRegisterMap getJitRegisterMapVerbose
-#define getNextDecriptionCursor getNextDecriptionCursorVerbose
+#define getNextDescriptionCursor getNextDescriptionCursorVerbose
 #define getJitStackSlots getJitStackSlotsVerbose
 #define getJitLiveMonitors getJitLiveMonitorsVerbose
 #define getMonitorMask getMonitorMaskVerbose
@@ -240,11 +240,11 @@ typedef struct TR_MapIterator
       } \
    }
 
-void * getStackMapFromJitPC(J9JavaVM * javaVM, J9TR_MethodMetaData * exceptionTable, UDATA jitPC);
-void * getStackAllocMapFromJitPC(J9JavaVM * javaVM, J9TR_MethodMetaData * exceptionTable, UDATA jitPC, void *curStackMap);
+void * getStackMapFromJitPC(J9VMThread * currentThread, J9JavaVM * vm, J9TR_MethodMetaData * exceptionTable, UDATA jitPC);
+void * getStackAllocMapFromJitPC(J9VMThread * currentThread, J9TR_MethodMetaData * exceptionTable, UDATA jitPC, void *curStackMap);
 UDATA jitExceptionHandlerSearch(J9VMThread * currentThread, J9StackWalkState * walkState);
-void * jitGetInlinerMapFromPC(J9JavaVM * javaVM, J9JITExceptionTable * exceptionTable, UDATA jitPC);
-void jitGetMapsFromPC(J9JavaVM * javaVM, J9JITExceptionTable * exceptionTable, UDATA jitPC, void * * inlineMap, void * * stackMap);
+void * jitGetInlinerMapFromPC(J9VMThread * currentThread, J9JavaVM * vm, J9JITExceptionTable * exceptionTable, UDATA jitPC);
+void jitGetMapsFromPC(J9VMThread * currentThread, J9JavaVM * vm, J9JITExceptionTable * exceptionTable, UDATA jitPC, void * * inlineMap, void * * stackMap);
 void * getFirstInlineRange(TR_MapIterator * i, void * methodMetaData, UDATA * startOffset, UDATA * endOffset);
 void * getNextInlineRange(TR_MapIterator * i, UDATA * startOffset, UDATA * endOffset);
 void walkJITFrameSlotsForInternalPointers(J9StackWalkState * walkState,  U_8 ** jitDescriptionCursor, UDATA * scanCursor, void *stackMap, J9JITStackAtlas *gcStackAtlas);
@@ -299,7 +299,7 @@ U_8 * getNextInternalPtrMapPinningArrayCursor(U_8 * internalPtrMapPinningArrayCu
 UDATA hasFourByteOffset(J9TR_MethodMetaData * md);
 
 U_32 getJitRegisterMap(J9TR_MethodMetaData *md, void * stackMap);
-U_8 * getNextDecriptionCursor(J9TR_MethodMetaData * md, void * stackMap, U_8 * jitDescriptionCursor);
+U_8 * getNextDescriptionCursor(J9TR_MethodMetaData * md, void * stackMap, U_8 * jitDescriptionCursor);
 U_8 * getJitStackSlots(J9TR_MethodMetaData * metadata, void * stackMap);
 U_8 * getJitLiveMonitors(J9TR_MethodMetaData * metaData, void * stackMap);
 U_8 * getMonitorMask(J9TR_StackAtlas *, void * inlinedCallSite);

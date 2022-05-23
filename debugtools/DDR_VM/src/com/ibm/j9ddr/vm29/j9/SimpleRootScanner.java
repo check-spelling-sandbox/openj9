@@ -82,7 +82,7 @@ abstract class SimpleRootScanner extends AddressAwareRootScanner
 			J9ThreadAbstractMonitorPointer monitor = J9ThreadAbstractMonitorPointer.cast(slot.monitor());
 			doSlot(J9ObjectPointer.cast(monitor.userData()), VoidPointer.cast(monitor.userDataEA()));
 		} catch (CorruptDataException e) {
-			EventManager.raiseCorruptDataEvent("Errror accessing object slot from J9ObjectMonitorPointer: " + slot.getHexAddress(), e, false);
+			EventManager.raiseCorruptDataEvent("Error accessing object slot from J9ObjectMonitorPointer: " + slot.getHexAddress(), e, false);
 		}
 	}
 	
@@ -93,7 +93,7 @@ abstract class SimpleRootScanner extends AddressAwareRootScanner
 			J9ThreadAbstractMonitorPointer monitor = J9ThreadAbstractMonitorPointer.cast(slot.monitor());
 			doSlot(J9ObjectPointer.cast(monitor.userData()), VoidPointer.cast(monitor.userDataEA()));
 		} catch (CorruptDataException e) {
-			EventManager.raiseCorruptDataEvent("Errror accessing object slot from J9ObjectMonitorPointer: " + slot.getHexAddress(), e, false);
+			EventManager.raiseCorruptDataEvent("Error accessing object slot from J9ObjectMonitorPointer: " + slot.getHexAddress(), e, false);
 		}
 	}
 

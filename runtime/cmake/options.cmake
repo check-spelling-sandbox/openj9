@@ -1,5 +1,5 @@
 ################################################################################
-# Copyright (c) 2017, 2021 IBM Corp. and others
+# Copyright (c) 2017, 2022 IBM Corp. and others
 #
 # This program and the accompanying materials are made available under
 # the terms of the Eclipse Public License 2.0 which accompanies this
@@ -58,8 +58,8 @@ j9vm_shadowed_option(J9VM_GC_DEBUG_ASSERTS "Specialized GC assertions are used i
 # When enabled, a contiguous block of memory is created for each array in which data surpasses the size of a region. This contiguous block represents the array as
 # if the data was stored in a contiguous region of memory. All of the array data is stored in a unique region (not with spine); hence, all arraylets
 # become discontiguous whenever this flag is enabled. Since there won’t be any empty arraylet leaves, then arrayoid NULL pointers are no longer required since
-# all data is stored in a unique region. It additionaly reduces footprint, mainly for JNI primitive array critical.
-j9vm_shadowed_option(J9VM_GC_ENABLE_DOUBLE_MAP OMR_GC_DOUBLE_MAP_ARRAYLETS "Allows LINUX and OSX systems to double map arrays that are stored as arraylets.")
+# all data is stored in a unique region. It additionally reduces footprint, mainly for JNI primitive array critical.
+j9vm_shadowed_option(J9VM_GC_ENABLE_DOUBLE_MAP OMR_GC_DOUBLE_MAP_ARRAYLETS "Allows Linux and OSX systems to double map arrays that are stored as arraylets.")
 j9vm_shadowed_option(J9VM_GC_LARGE_OBJECT_AREA "Enable large object area (LOA) support")
 j9vm_shadowed_option(J9VM_GC_LEAF_BITS "Add leaf bit instance descriptions to classes")
 j9vm_shadowed_option(J9VM_GC_MINIMUM_OBJECT_SIZE "Guarantee a minimum size to all objects allocated")
@@ -128,7 +128,7 @@ option(J9VM_OPT_CRIU_SUPPORT "Enables support for CRIU Java API's")
 j9vm_shadowed_option(J9VM_OPT_CUDA "Add support for CUDA")
 
 option(J9VM_OPT_DYNAMIC_LOAD_SUPPORT "Determines if the dynamic loader is included.")
-option(J9VM_OPT_FIPS "Add supports for FIPs")
+option(J9VM_OPT_FIPS "Add supports for FIPS")
 option(J9VM_OPT_FRAGMENT_RAM_CLASSES "Transitional flag for the GC during the switch to fragmented RAM class allocation")
 
 option(J9VM_OPT_JVMTI "Support for the JVMTI interface")
@@ -139,6 +139,7 @@ option(J9VM_OPT_METHOD_HANDLE_COMMON "Enables common dependencies between OpenJ9
 option(J9VM_OPT_MODULE "Turns on module support")
 option(J9VM_OPT_MULTI_VM "Decides if multiple VMs can be created in the same address space")
 option(J9VM_OPT_OPENJDK_METHODHANDLE "Enables support for OpenJDK MethodHandles. J9VM_OPT_METHOD_HANDLE should be disabled.")
+option(J9VM_OPT_OPENJDK_THREAD_SUPPORT "Enables OpenJDK Thread support for Project Loom.")
 
 option(J9VM_OPT_PANAMA "Enables support for Project Panama features such as native method handles")
 option(J9VM_OPT_VALHALLA_VALUE_TYPES "Enables support for Project Valhalla Value Types")
@@ -152,9 +153,6 @@ option(J9VM_OPT_ZLIB_SUPPORT "Controls if the VM includes the zlib compression l
 
 option(J9VM_PORT_RUNTIME_INSTRUMENTATION "Controls whether runtime instrumentation support exists on this platform.")
 
-option(J9VM_RAS_DUMP_AGENTS "Support multiple dump agents, instead of just console dump.")
-option(J9VM_RAS_EYE_CATCHERS "Add eyecatcher blocks to key structures")
-
-option(J9VM_USE_RDYNAMIC "Link using the -rdynamic option (Linux only)" ON)
+option(J9VM_USE_RDYNAMIC "Link using the -rdynamic option (Linux only)" OFF)
 
 option(J9VM_ZOS_3164_INTEROPERABILITY "Enables support for 64-bit zOS to interoperate with 31-bit JNI native targets.")

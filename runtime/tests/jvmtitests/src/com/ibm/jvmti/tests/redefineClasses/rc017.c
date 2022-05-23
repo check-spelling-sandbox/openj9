@@ -60,7 +60,7 @@ Java_com_ibm_jvmti_tests_redefineClasses_rc017_redefineMultipleClass(JNIEnv * jn
 	jboolean rc = JNI_TRUE;
 
 	if (0 >= classCount) {
-		error(env, err, "Invalid class count paremeter received");
+		error(env, err, "Invalid class count parameter received");
 		return JNI_FALSE;
 	}
 

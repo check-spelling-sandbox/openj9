@@ -1,6 +1,6 @@
 
 /*******************************************************************************
- * Copyright (c) 1991, 2019 IBM Corp. and others
+ * Copyright (c) 1991, 2022 IBM Corp. and others
  *
  * This program and the accompanying materials are made available under
  * the terms of the Eclipse Public License 2.0 which accompanies this
@@ -33,6 +33,12 @@
 #include "j9cfg.h"
 #include "modronopt.h"
 
+#include "GCExtensions.hpp"
+#include "MemoryPool.hpp"
+#include "EnvironmentVLHGC.hpp"
+#include "HeapRegionDescriptorVLHGC.hpp"
+#include "HeapRegionManager.hpp"
+
 class MM_CopyScanCacheVLHGC;
 class MM_LightweightNonReentrantLock;
 
@@ -44,10 +50,13 @@ class MM_CopyForwardCompactGroup
 {
 /* data members */
 private:
+	MM_HeapRegionManager *_regionManager;  /**< Region manager for the heap instance */
 protected:
 public:
 	MM_CopyScanCacheVLHGC *_copyCache;  /**< The copy cache in this compact group for the owning thread */
 	MM_LightweightNonReentrantLock *_copyCacheLock; /**< The lock associated with the list this copy cache belongs to */
+	void *_TLHRemainderBase;  /**< base pointers of the last unused TLH copy cache, that might be reused  on next copy refresh */
+	void *_TLHRemainderTop;	  /**< top pointers of the last unused TLH copy cache, that might be reused  on next copy refresh */
 	void *_DFCopyBase;	/**< The base address of the inlined "copy cache" used by CopyForwardSchemeDepthFirst */
 	void *_DFCopyAlloc;	/**< The alloc pointer of the inlined "copy cache" used by CopyForwardSchemeDepthFirst */
 	void *_DFCopyTop;	/**< The top address of the inlined "copy cache" used by CopyForwardSchemeDepthFirst */
@@ -70,6 +79,7 @@ public:
 	UDATA _failedCopiedBytes; /**< The number of bytes which the owning thread failed to copy in this compact group */
 	UDATA _freeMemoryMeasured;	/**< The number of bytes which were wasted while this thread was working with the given _copyCache (due to alignment, etc) which is needs to save back into the pool when giving up the cache */
 	UDATA _discardedBytes; /**< The number of bytes discarded in survivor regions for this compact group by the owning thread due to incompletely filled copy caches and other inefficiencies */
+	UDATA _TLHRemainderCount; /**< number of TLHRemainders has been created for the compact group during the copyforward */
 	U_64 _allocationAge; /**< Average allocation age for this compact group */
 	
 	/* Mark map rebuilding cache values for the active MM_CopyScanCacheVLHGC associated with this group */
@@ -83,6 +93,8 @@ public:
 	void initialize(MM_EnvironmentVLHGC *env) {
 		_copyCache = NULL;
 		_copyCacheLock = NULL;
+		_TLHRemainderBase = NULL;
+		_TLHRemainderTop = NULL;
 		_DFCopyBase = NULL;
 		_DFCopyAlloc = NULL;
 		_DFCopyTop = NULL;
@@ -103,6 +115,7 @@ public:
 		_failedCopiedBytes = 0;
 		_freeMemoryMeasured = 0;
 		_discardedBytes = 0;
+		_TLHRemainderCount = 0;
 		_allocationAge = 0;
 		_markMapAtomicHeadSlotIndex = 0;
 		_markMapAtomicTailSlotIndex = 0;
@@ -110,12 +123,68 @@ public:
 		_markMapPGCBitMask = 0;
 		_markMapGMPSlotIndex = 0;
 		_markMapGMPBitMask = 0;
+		_regionManager = MM_GCExtensions::getExtensions(env)->heapRegionManager;
 	}
 
 /* function members */
 private:
 protected:
 public:
+	MMINLINE void resetTLHRemainder()
+	{
+		_TLHRemainderBase = NULL;
+		_TLHRemainderTop = NULL;
+	}
+
+	MMINLINE void setTLHRemainder(void* base, void* top)
+	{
+		_TLHRemainderBase = base;
+		_TLHRemainderTop = top;
+		_TLHRemainderCount += 1;
+	}
+
+	MMINLINE uintptr_t getTLHRemainderSize()
+	{
+		return ((uintptr_t)_TLHRemainderTop - (uintptr_t)_TLHRemainderBase);
+	}
+
+	MMINLINE void discardTLHRemainder(MM_EnvironmentVLHGC* env)
+	{
+		if (NULL != _TLHRemainderBase) {
+			discardTLHRemainder(env, _TLHRemainderBase, _TLHRemainderTop);
+			resetTLHRemainder();
+		} else {
+			Assert_MM_true(NULL == _TLHRemainderTop);
+		}
+	}
+
+	MMINLINE void discardTLHRemainder(MM_EnvironmentVLHGC* env, void* base, void* top)
+	{
+		/* make it a walkable hole */
+		env->_cycleState->_activeSubSpace->abandonHeapChunk(base, top);
+		MM_HeapRegionDescriptorVLHGC *region = (MM_HeapRegionDescriptorVLHGC*)_regionManager->tableDescriptorForAddress(base);
+		discardHeapChunk(base, top, region);
+	}
+
+	MMINLINE void recycleTLHRemainder(MM_EnvironmentVLHGC* env)
+	{
+		if (NULL != _TLHRemainderBase) {
+			/* make it a walkable hole */
+			env->_cycleState->_activeSubSpace->abandonHeapChunk(_TLHRemainderBase, _TLHRemainderTop);
+			MM_HeapRegionDescriptorVLHGC *region = (MM_HeapRegionDescriptorVLHGC*)_regionManager->tableDescriptorForAddress(_TLHRemainderBase);
+			region->getMemoryPool()->recycleHeapChunk(env, _TLHRemainderBase, _TLHRemainderTop);
+			resetTLHRemainder();
+		} else {
+			Assert_MM_true(NULL == _TLHRemainderTop);
+		}
+	}
+
+	MMINLINE void discardHeapChunk(void* base, void* top, MM_HeapRegionDescriptorVLHGC* region)
+	{
+		uintptr_t discardSize = ((uintptr_t)top - (uintptr_t)base);
+		_discardedBytes += discardSize;
+		region->getMemoryPool()->incrementDarkMatterBytesAtomic(discardSize);
+	}
 };
 
 #endif /* COPYFORWARDCOMPACTGROUP_HPP_ */

@@ -440,7 +440,7 @@ public class J9NLS implements NLSConstants {
 			for (Iterator iter = oldFormatSpec.iterator(); iter.hasNext();) {
 				String spec = (String)iter.next();
 				if (spec.indexOf('$') == -1) {
-					failure("\"" + oldMessage + "\" includes a mix of ordered and unordered format sepcifiers", false);
+					failure("\"" + oldMessage + "\" includes a mix of ordered and unordered format specifiers", false);
 				}
 				if (!newFormatSpec.remove(spec)) {
 					return false;

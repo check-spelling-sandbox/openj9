@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2000, 2021 IBM Corp. and others
+ * Copyright (c) 2000, 2022 IBM Corp. and others
  *
  * This program and the accompanying materials are made available under
  * the terms of the Eclipse Public License 2.0 which accompanies this
@@ -273,7 +273,7 @@ static uint8_t *flushArgument(
       TR::CodeGenerator *cg)
    {
    /* TODO:AMD64: Share code with the other flushArgument */
-   cursor = TR::InstOpCode(op).binary(cursor);
+   cursor = TR::InstOpCode(op).binary(cursor, OMR::X86::Default);
 
    // Mod | Reg | R/M
    //
@@ -307,7 +307,7 @@ static int32_t flushArgumentSize(
       TR::InstOpCode::Mnemonic op,
       int32_t offset)
    {
-   int32_t size = TR::InstOpCode(op).length() + 1;   // length including ModRM + 1 SIB
+   int32_t size = TR::InstOpCode(op).length(OMR::X86::Default) + 1;   // length including ModRM + 1 SIB
    return size + (((offset >= -128 && offset <= 127)) ? 1 : 4);
    }
 
@@ -673,10 +673,10 @@ TR_J2IThunk *J9::X86::AMD64::PrivateLinkage::generateInvokeExactJ2IThunk(TR::Nod
       {
       // JMPImm4 helper
       //
-      *(uint8_t *)cursor++ = 0xe9;
+      *(uint8_t *)cursor = 0xe9;
       TR::SymbolReference *helper = cg()->symRefTab()->findOrCreateRuntimeHelper(TR_methodHandleJ2IGlue);
-      int32_t disp32 = cg()->branchDisplacementToHelperOrTrampoline(cursor+4, helper);
-      *(int32_t *)cursor = disp32;
+      int32_t disp32 = cg()->branchDisplacementToHelperOrTrampoline(cursor, helper);
+      *(int32_t *)(++cursor) = disp32;
       cursor += 4;
       }
    else
@@ -687,7 +687,10 @@ TR_J2IThunk *J9::X86::AMD64::PrivateLinkage::generateInvokeExactJ2IThunk(TR::Nod
       *(uint8_t *)cursor++ = 0xe7;
       }
 
-   traceMsg(comp, "\n-- ( Created invokeExact J2I thunk " POINTER_PRINTF_FORMAT " for node " POINTER_PRINTF_FORMAT " )", thunk, callNode);
+   if (comp->getOption(TR_TraceCG))
+      {
+      traceMsg(comp, "\n-- ( Created invokeExact J2I thunk " POINTER_PRINTF_FORMAT " for node " POINTER_PRINTF_FORMAT " )", thunk, callNode);
+      }
 
    return thunk;
    }
@@ -923,7 +926,11 @@ int32_t J9::X86::AMD64::PrivateLinkage::buildPrivateLinkageArgs(TR::Node        
          uint32_t frameSize = parmAreaSize + cg()->getFrameSizeInBytes() + getProperties().getRetAddressWidth();
          frameSize += stackFrameAlignment - (frameSize % stackFrameAlignment);
          alignedParmAreaSize = frameSize - cg()->getFrameSizeInBytes() - getProperties().getRetAddressWidth();
-         traceMsg(comp(), "parm area size was %d, and is aligned to %d\n", parmAreaSize, alignedParmAreaSize);
+
+         if (comp()->getOption(TR_TraceCG))
+            {
+            traceMsg(comp(), "parm area size was %d, and is aligned to %d\n", parmAreaSize, alignedParmAreaSize);
+            }
          }
       if (alignedParmAreaSize > 0)
          generateRegImmInstruction((alignedParmAreaSize <= 127 ? TR::InstOpCode::SUBRegImms() : TR::InstOpCode::SUBRegImm4()), callNode, stackPointer, alignedParmAreaSize, cg());
@@ -962,6 +969,7 @@ int32_t J9::X86::AMD64::PrivateLinkage::buildPrivateLinkageArgs(TR::Node        
                      numSpecialArgs++;
                      break;
                   case TR::java_lang_invoke_ComputedCalls_dispatchVirtual:
+                  case TR::com_ibm_jit_JITHelpers_dispatchVirtual:
                      rregIndex = getProperties().getVTableIndexArgumentRegister();
                      numSpecialArgs++;
                      break;
@@ -1250,7 +1258,7 @@ void J9::X86::AMD64::PrivateLinkage::buildIPIC(TR::X86CallSite &site, TR::LabelS
          // let's just lay it down.  It's likely not worth the effort to get
          // this exactly right in all cases.
          //
-         generateInstruction(TR::InstOpCode::bad, site.getCallNode(), cg());
+         generateInstruction(TR::InstOpCode::INT3, site.getCallNode(), cg());
          }
       }
 
@@ -1335,7 +1343,9 @@ void J9::X86::AMD64::PrivateLinkage::buildVirtualOrComputedCall(TR::X86CallSite 
       {
       traceMsg(comp(), "buildVirtualOrComputedCall(%p), isComputed=%d\n", site.getCallNode(), methodSymRef->getSymbol()->castToMethodSymbol()->isComputed());
       }
-   bool evaluateVftEarly = methodSymRef->isUnresolved() || fej9->forceUnresolvedDispatch();
+
+   bool evaluateVftEarly = methodSymRef->isUnresolved()
+      || !fej9->isResolvedVirtualDispatchGuaranteed(comp());
 
    if (methodSymRef->getSymbol()->castToMethodSymbol()->isComputed())
       {
@@ -1350,6 +1360,26 @@ void J9::X86::AMD64::PrivateLinkage::buildVirtualOrComputedCall(TR::X86CallSite 
       {
       // Call through VFT
       //
+      if (comp()->compileRelocatableCode())
+         {
+         // Non-SVM AOT still has to force unresolved virtual dispatch, which
+         // works there because it won't transform other things into virtual
+         // calls, e.g. invokeinterface of an Object method.
+         TR_ASSERT_FATAL(
+            comp()->getOption(TR_UseSymbolValidationManager),
+            "resolved virtual dispatch in AOT requires SVM");
+
+         void *thunk = site.getThunkAddress();
+         TR_OpaqueMethodBlock *method = methodSymRef
+            ->getSymbol()
+            ->castToResolvedMethodSymbol()
+            ->getResolvedMethod()
+            ->getPersistentIdentifier();
+
+         comp()->getSymbolValidationManager()
+            ->addJ2IThunkFromMethodRecord(thunk, method);
+         }
+
       buildVFTCall(site, TR::InstOpCode::CALLMem, NULL, generateX86MemoryReference(site.evaluateVFT(), methodSymRef->getOffset(), cg()));
       }
    else

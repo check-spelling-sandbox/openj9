@@ -143,7 +143,7 @@ class TR_J9InlinerUtil: public OMR_InlinerUtil
       virtual void adjustByteCodeSize(TR_ResolvedMethod *calleeResolvedMethod, bool isInLoop, TR::Block *block, int &bytecodeSize);
       virtual void adjustCallerWeightLimit(TR::ResolvedMethodSymbol *callSymbol, int &callerWeightLimit);
       virtual void adjustMethodByteCodeSizeThreshold(TR::ResolvedMethodSymbol *callSymbol, int &methodByteCodeSizeThreshold);
-      virtual bool addTargetIfMethodIsNotOverridenInReceiversHierarchy(TR_IndirectCallSite *callsite);
+      virtual bool addTargetIfMethodIsNotOverriddenInReceiversHierarchy(TR_IndirectCallSite *callsite);
       virtual bool addTargetIfThereIsSingleImplementer (TR_IndirectCallSite *callsite);
       virtual TR_ResolvedMethod *findSingleJittedImplementer(TR_IndirectCallSite *callsite);
       virtual TR_PrexArgInfo* createPrexArgInfoForCallTarget(TR_VirtualGuardSelection *guard, TR_ResolvedMethod *implementer);
@@ -254,7 +254,7 @@ class TR_J9InlinerPolicy : public OMR_InlinerPolicy
       bool _tryToGenerateILForMethod (TR::ResolvedMethodSymbol* calleeSymbol, TR::ResolvedMethodSymbol* callerSymbol, TR_CallTarget* calltarget);
       bool doCorrectnessAndSizeChecksForInlineCallTarget(TR_CallStack *callStack, TR_CallTarget *calltarget, bool inlinefromgraph, TR_PrexArgInfo *argInfo);
       bool validateArguments(TR_CallTarget *calltarget, TR_LinkHead<TR_ParameterMapping> &map);
-      virtual bool supressInliningRecognizedInitialCallee(TR_CallSite* callsite, TR::Compilation* comp);
+      virtual bool suppressInliningRecognizedInitialCallee(TR_CallSite* callsite, TR::Compilation* comp);
       virtual TR_InlinerFailureReason checkIfTargetInlineable(TR_CallTarget* target, TR_CallSite* callsite, TR::Compilation* comp);
       /** \brief
        *     This query decides whether the given method is JSR292 related

@@ -137,7 +137,7 @@ public class MethodHandleAPI_privateLookupIn {
 	 * privateLookupIn test for a target class and a caller lookup from different packages within the same module
 	 */
 	@Test(groups = { "level.sanity" })
-	public static void test_privateLookupIn_TargetClass_callerLookup_DiffferentPackage_SameModule() throws Throwable {
+	public static void test_privateLookupIn_TargetClass_callerLookup_DifferentPackage_SameModule() throws Throwable {
 		Lookup mhprivateLookupIn = privateLookupIn(SameModuleExample.class, callerLookup);
 		Assert.assertEquals(mhprivateLookupIn.lookupClass(), SameModuleExample.class);
 		Assert.assertEquals(mhprivateLookupIn.lookupModes() & Lookup.PRIVATE, Lookup.PRIVATE);

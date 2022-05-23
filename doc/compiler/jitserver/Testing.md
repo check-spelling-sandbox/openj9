@@ -1,5 +1,5 @@
 <!--
-Copyright (c) 2018, 2021 IBM Corp. and others
+Copyright (c) 2018, 2022 IBM Corp. and others
 
 This program and the accompanying materials are made available under
 the terms of the Eclipse Public License 2.0 which accompanies this
@@ -42,7 +42,7 @@ These are the steps to run the tests on your machine.
 
    ```
    cd $OPENJ9_DIR/openj9/test
-   git clone https://github.com/AdoptOpenJDK/TKG.git
+   git clone https://github.com/adoptium/TKG.git
    cd TKG
    export TEST_JDK_HOME=<path to JDK directory that you wish to test, it's the same as $JAVA_HOME>
    export JAVA_BIN=/your/sdk/jre/bin
@@ -110,7 +110,3 @@ These are the steps to run the tests on your machine.
    ```
 
 For more advanced testing features, refer to [this guide](https://github.com/eclipse-openj9/openj9/blob/master/test/docs/OpenJ9TestUserGuide.md).
-
-## DOCKER
-
-Follow the [Docker.md](Docker.md) here for building then testing JITServer in Docker.

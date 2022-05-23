@@ -23,7 +23,7 @@ SPDX-License-Identifier: EPL-2.0 OR Apache-2.0 OR GPL-2.0 WITH Classpath-excepti
 # OpenJ9 Compiler Memory Manager
 
 The JIT Compiler in OpenJ9 extends the OMR Compiler. Therefore, it
-also extendes the OMR Compiler's Memory Manager, consequently 
+also extends the OMR Compiler's Memory Manager, consequently 
 managing its own memory for the same reasons as the OMR Compiler. 
 However, in order to ensure that all memory in the JVM is accounted 
 for, as well as to minimize the likelihood of memory leaks,
@@ -109,7 +109,7 @@ APIs to
 * Release Memory
 * Inform about the preferred segment size
 
-It is related to `TR::SegmentProvider` not by inheritence, but rather
+It is related to `TR::SegmentProvider` not by inheritance, but rather
  is chained to `J9::SystemSegmentProvider`. In OpenJ9, the Port
 Library provides APIs to allocate/deallocate segments of memory. These
 segments show up in the `Internal Memory` section of a javacore. They
@@ -144,7 +144,7 @@ It uses `J9::SegmentAllocator` to allocate memory and `TR::RawAllocator`
 for all its internal memory management requirements. It receives these 
 allocators via the `TR::PersistentAllocatorKit`. All allocations/deallocations 
 are thread safe. Therefore, there is extra overhead due to the need to 
-acquire a lock before each allocation/dellocation. It also contains an automatic 
+acquire a lock before each allocation/deallocation. It also contains an automatic 
 conversion (which wraps it in a `TR::typed_allocator`) for ease of use with 
 STL containers.
 
@@ -197,11 +197,11 @@ Compilation Threads AND compilations on Application Threads. When a compilation
 occurs on an Application Thread, `J9::SegmentAllocator` is instantiated instead.
 
 There are a lot of places (thanks to `TR_ALLOC` and related macros) 
-where memory is explicity allocated. However, `TR::Region` 
+where memory is explicitly allocated. However, `TR::Region` 
 should be the allocator used for all new code as much as possible.
 
 ### Allocations that persist for the lifetime of the JVM
-The Compiler initializes a `TR::PeristentAllocator` object when 
+The Compiler initializes a `TR::PersistentAllocator` object when 
 it is first initialized (close to bootstrap time). For the most 
 part it allocates persistent memory either directly using the global 
 `jitPersistentAlloc`/`jitPersistentFree` or via the object methods 
@@ -226,7 +226,7 @@ calling it `TR::PersistentSegmentProvider`, and have it use
 
 The mechanism for limiting the memory usage during compilation can be summarized as:
 
-Default size of system segments allocatd by `J9::SystemSegmentProvider` is 16 MB. 
+Default size of system segments allocated by `J9::SystemSegmentProvider` is 16 MB. 
 These system segments are then carved into smaller segments based on the size requested
 which is rounded up to 64 KB. The cumulative memory usage of these system segments is limited 
 by the value of the option `scratchSpaceLimit`. When the scratch space limit is not a multiple

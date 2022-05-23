@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2001, 2019 IBM Corp. and others
+ * Copyright (c) 2001, 2022 IBM Corp. and others
  *
  * This program and the accompanying materials are made available under
  * the terms of the Eclipse Public License 2.0 which accompanies this
@@ -491,7 +491,7 @@ IDATA test2(J9JavaVM* vm) {
 	/* Verify dummy data is added to the cache */
 	dummyDataItem = (ShcItem *)cc->getMetaAllocPtr();
 	if (TYPE_UNINDEXED_BYTE_DATA != ITEMTYPE(dummyDataItem)) {
-		ERRPRINTF2("Error: Did not find expected data type in last metedata item.\n" \
+		ERRPRINTF2("Error: Did not find expected data type in last metadata item.\n" \
 				"Expected type for dummy data = %d, data type found = %d", TYPE_UNINDEXED_BYTE_DATA, ITEMTYPE(dummyDataItem));
 		rc = FAIL;
 		goto done;
@@ -1133,7 +1133,7 @@ IDATA test4(J9JavaVM* vm) {
 	/* Verify dummy data is added to the cache */
 	dummyDataItem = (ShcItem *)cc->getMetaAllocPtr();
 	if (TYPE_UNINDEXED_BYTE_DATA != ITEMTYPE(dummyDataItem)) {
-		ERRPRINTF2("Error: Did not find expected data type in last metedata item.\n" \
+		ERRPRINTF2("Error: Did not find expected data type in last metadata item.\n" \
 				"Expected type for dummy data = %d, data type found = %d", TYPE_UNINDEXED_BYTE_DATA, ITEMTYPE(dummyDataItem));
 		rc = FAIL;
 		goto done;
@@ -2445,13 +2445,14 @@ IDATA test8(J9JavaVM* vm) {
 	cc = (SH_CompositeCacheImpl *)cacheMap->getCompositeCacheAPI();
 	ca = cc->getCacheHeaderAddress();
 
+	cc->enterWriteMutex(vm->mainThread, false, testName);
+
 	oldFreeBlockBytes = cc->getFreeBlockBytes();
 
 	/* Add enough metadata to the cache to mark it as full */
 	itemLen = (U_32) (oldFreeBlockBytes - (J9SHR_MIN_GAP_BEFORE_METADATA + ONE_K_BYTES) - (sizeof(ShcItem) + sizeof(ShcItemHdr)));
 	cc->initBlockData(&itemPtr, itemLen, TYPE_UNINDEXED_BYTE_DATA);
 
-	cc->enterWriteMutex(vm->mainThread, false, testName);
 	result = cc->allocateBlock(vm->mainThread, &item, SHC_WORDALIGN, 0);
 	if (NULL == result) {
 		ERRPRINTF1("Error: Did not expect allocateBlock to fail but it returned result=%p", result);
@@ -2846,7 +2847,7 @@ IDATA test9(J9JavaVM* vm)
 
 	rc = (IDATA) vm->sharedClassConfig->storeAttachedData(vm->mainThread, SEGUPDATEPTR(ca), &dataDescriptor, true);
 	if (0 == rc) {
-		INFOPRINTF("Successfully added JIT data into the resvered JIT space");
+		INFOPRINTF("Successfully added JIT data into the reserved JIT space");
 	} else {
 		ERRPRINTF1("Error: Adding JIT data to cache failed with error code = %d", rc);
 		rc = FAIL;

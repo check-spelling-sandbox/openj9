@@ -147,7 +147,7 @@ public class TestUnsafeAccessOpaque extends UnsafeTestBase {
 		testFloat(FloatData.class, OPAQUE);
 	}
 
-	public void testStaticPutOrderdDouble() throws Exception {
+	public void testStaticPutOrderedDouble() throws Exception {
 		testDouble(DoubleData.class, OPAQUE);
 	}
 

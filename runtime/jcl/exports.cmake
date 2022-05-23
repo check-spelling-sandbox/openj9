@@ -1,5 +1,5 @@
 ################################################################################
-# Copyright (c) 2019, 2021 IBM Corp. and others
+# Copyright (c) 2019, 2022 IBM Corp. and others
 #
 # This program and the accompanying materials are made available under
 # the terms of the Eclipse Public License 2.0 which accompanies this
@@ -140,8 +140,6 @@ omr_add_exports(jclse
 	Java_com_ibm_jit_JITHelpers_j9ThreadJ9JavaVMOffset
 	Java_com_ibm_jit_JITHelpers_javaLangClassJ9ClassOffset
 	Java_com_ibm_jit_JITHelpers_javaLangThreadJ9ThreadOffset
-	Java_com_ibm_jit_JITHelpers_objectHeaderHasBeenHashedInClass
-	Java_com_ibm_jit_JITHelpers_objectHeaderHasBeenMovedInClass
 	Java_com_ibm_jvm_Dump_HeapDumpImpl
 	Java_com_ibm_jvm_Dump_JavaDumpImpl
 	Java_com_ibm_jvm_Dump_SnapDumpImpl
@@ -258,12 +256,14 @@ omr_add_exports(jclse
 	Java_com_ibm_oti_reflect_TypeAnnotationParser_getTypeAnnotationsDataImpl__Ljava_lang_reflect_Method_2
 	Java_com_ibm_oti_shared_SharedAbstractHelper_getIsVerboseImpl
 	Java_com_ibm_oti_shared_SharedClassAbstractHelper_initializeShareableClassloaderImpl
+	Java_com_ibm_oti_shared_SharedClassStatistics_cachePathImpl
 	Java_com_ibm_oti_shared_SharedClassStatistics_freeSpaceBytesImpl
 	Java_com_ibm_oti_shared_SharedClassStatistics_maxAotBytesImpl
 	Java_com_ibm_oti_shared_SharedClassStatistics_maxJitDataBytesImpl
 	Java_com_ibm_oti_shared_SharedClassStatistics_maxSizeBytesImpl
 	Java_com_ibm_oti_shared_SharedClassStatistics_minAotBytesImpl
 	Java_com_ibm_oti_shared_SharedClassStatistics_minJitDataBytesImpl
+	Java_com_ibm_oti_shared_SharedClassStatistics_numberAttachedImpl
 	Java_com_ibm_oti_shared_SharedClassStatistics_softmxBytesImpl
 	Java_com_ibm_oti_shared_SharedClassTokenHelperImpl_findSharedClassImpl2
 	Java_com_ibm_oti_shared_SharedClassTokenHelperImpl_storeSharedClassImpl2
@@ -300,6 +300,7 @@ omr_add_exports(jclse
 	Java_com_ibm_oti_vm_VM_localGC
 	Java_com_ibm_oti_vm_VM_markCurrentThreadAsSystemImpl
 	Java_com_ibm_oti_vm_VM_setCommonData
+	Java_com_ibm_oti_vm_VM_getJ9ConstantPoolFromJ9Class
 	Java_com_ibm_rmi_io_IIOPInputStream_00024LUDCLStackWalkOptimizer_LUDCLMarkFrame
 	Java_com_ibm_rmi_io_IIOPInputStream_00024LUDCLStackWalkOptimizer_LUDCLUnmarkFrameImpl
 	Java_com_ibm_virtualization_management_internal_GuestOS_retrieveMemoryUsageImpl
@@ -334,8 +335,8 @@ omr_add_exports(jclse
 	Java_java_lang_Class_getVirtualMethodCountImpl
 	Java_java_lang_Class_getVirtualMethodsImpl
 	Java_java_lang_Class_isClassADeclaredClass
+	Java_java_lang_Class_isClassAnEnclosedClass
 	Java_java_lang_Class_isCircularDeclaringClass
-	Java_java_lang_Class_getRecordComponentsImpl
 	Java_java_lang_Class_permittedSubclassesImpl
 	Java_java_lang_Compiler_commandImpl
 	Java_java_lang_Compiler_compileClassImpl
@@ -345,7 +346,7 @@ omr_add_exports(jclse
 	Java_java_lang_J9VMInternals_dumpString
 	Java_java_lang_J9VMInternals_getStackTrace
 	Java_java_lang_J9VMInternals_newInstance
-	Java_java_lang_System_getEncoding
+	Java_java_lang_System_getSysPropBeforePropertiesInitialized
 	Java_java_lang_System_getPropertyList
 	Java_java_lang_System_mapLibraryName
 	Java_java_lang_System_rasInitializeVersion
@@ -395,7 +396,6 @@ omr_add_exports(jclse
 	Java_sun_misc_Unsafe_allocateDBBMemory
 	Java_sun_misc_Unsafe_allocateMemory
 	Java_sun_misc_Unsafe_copyMemory__Ljava_lang_Object_2JLjava_lang_Object_2JJ
-	Java_sun_misc_Unsafe_defineAnonymousClass
 	Java_sun_misc_Unsafe_defineClass__Ljava_lang_String_2_3BIILjava_lang_ClassLoader_2Ljava_security_ProtectionDomain_2
 	Java_sun_misc_Unsafe_ensureClassInitialized
 	Java_sun_misc_Unsafe_freeDBBMemory
@@ -435,6 +435,12 @@ omr_add_exports(jclse
 	Java_sun_reflect_ConstantPool_getStringAt0
 	Java_sun_reflect_ConstantPool_getUTF8At0
 )
+
+if(JAVA_SPEC_VERSION LESS 17)
+omr_add_exports(jclse
+	Java_sun_misc_Unsafe_defineAnonymousClass
+)
+endif()
 
 if(J9VM_OPT_METHOD_HANDLE)
 	omr_add_exports(jclse
@@ -583,12 +589,14 @@ if(NOT JAVA_SPEC_VERSION LESS 11)
 		Java_java_lang_Class_getNestHostImpl
 		Java_java_lang_Class_getNestMembersImpl
 		Java_java_lang_invoke_MethodHandleResolver_getCPConstantDynamicAt
+		Java_java_lang_System_initJCLPlatformEncoding
 	)
 endif()
 
 # java 15+
 if(NOT JAVA_SPEC_VERSION LESS 15)
 	omr_add_exports(jclse
+		Java_java_lang_Class_getRecordComponentsImpl
 		Java_java_lang_Class_isHiddenImpl
 		Java_java_lang_ClassLoader_defineClassImpl1
 	)
@@ -635,5 +643,13 @@ if(J9VM_OPT_OPENJDK_METHODHANDLE OR J9VM_OPT_METHOD_HANDLE)
 	omr_add_exports(jclse
 		Java_java_lang_invoke_MethodHandle_invoke
 		Java_java_lang_invoke_MethodHandle_invokeExact
+	)
+endif()
+
+# J9VM_OPT_CRIU_SUPPORT
+if(J9VM_OPT_CRIU_SUPPORT)
+	omr_add_exports(jclse
+		Java_openj9_internal_criu_InternalCRIUSupport_isCheckpointAllowedImpl
+		Java_openj9_internal_criu_InternalCRIUSupport_isCRIUSupportEnabledImpl
 	)
 endif()

@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 1991, 2021 IBM Corp. and others
+ * Copyright (c) 1991, 2022 IBM Corp. and others
  *
  * This program and the accompanying materials are made available under
  * the terms of the Eclipse Public License 2.0 which accompanies this
@@ -51,7 +51,7 @@ extern "C" {
 #define AGENT_XRUN 0x20000
 #define NEVER_CLOSE_DLL 0x40000
 #define BUNDLED_COMP 0x80000
-	
+
 /* Value for RC_SILENT_EXIT should not be changed as this is
  * used by launcher to hide message "Could not create the Java virtual machine"
  */
@@ -187,13 +187,13 @@ enum INIT_STAGE {
 	JIT_INITIALIZED,
 	AGENTS_STARTED,
 	ABOUT_TO_BOOTSTRAP,
-	JCL_INITIALIZED, 
+	JCL_INITIALIZED,
 	VM_INITIALIZATION_COMPLETE,
 	INTERPRETER_SHUTDOWN,
 	LIBRARIES_ONUNLOAD,
 	HEAP_STRUCTURES_FREED,
 	GC_SHUTDOWN_COMPLETE,
-	/* this stage will only be invoked for the jcl shared library when it is being run remotely */ 
+	/* this stage will only be invoked for the jcl shared library when it is being run remotely */
 	OFFLOAD_JCL_PRECONFIGURE
 
 
@@ -313,6 +313,8 @@ enum INIT_STAGE {
 #define VMOPT_X142BOOSTGCTHRPRIO "-X142BoostGCThrPrio"
 #define VMOPT_XREALTIME "-Xrealtime"
 #define VMOPT_XNORTSJ "-Xnortsj"
+#define VMOPT_XXNOSHOWHIDDENFRAMES "-XX:-ShowHiddenFrames"
+#define VMOPT_XXSHOWHIDDENFRAMES "-XX:+ShowHiddenFrames"
 #define VMOPT_XXNOSTACKTRACEINTHROWABLE "-XX:-StackTraceInThrowable"
 #define VMOPT_XXSTACKTRACEINTHROWABLE "-XX:+StackTraceInThrowable"
 #define VMOPT_XXNOPAGEALIGNDIRECTMEMORY "-XX:-PageAlignDirectMemory"
@@ -385,16 +387,17 @@ enum INIT_STAGE {
 #define VMOPT_XXDISABLEORIGINALJDK8HEAPSIZECOMPATIBILITY "-XX:-OriginalJDK8HeapSizeCompatibilityMode"
 #define VMOPT_XXDISABLELEGACYMANGLING "-XX:-UseLegacyJNINameEscaping"
 #define VMOPT_XXENABLELEGACYMANGLING "-XX:+UseLegacyJNINameEscaping"
+#define VMOPT_XXENABLEUTFCACHE "-XX:+UTFCache"
+#define VMOPT_XXDISABLEUTFCACHE "-XX:-UTFCache"
+#define VMOPT_XXENABLEENSUREHASHED "-XX:+EnsureHashed:"
+#define VMOPT_XXDISABLEENSUREHASHED "-XX:-EnsureHashed:"
+#define VMOPT_XXOPENJ9COMMANDLINEENV "-XX:+OpenJ9CommandLineEnv"
+#define VMOPT_XXNOOPENJ9COMMANDLINEENV "-XX:-OpenJ9CommandLineEnv"
 
 #if defined(J9VM_ZOS_3164_INTEROPERABILITY)
 #define VMOPT_XXENABLE3164INTEROPERABILITY "-XX:+Enable3164Interoperability"
 #define VMOPT_XXDISABLE3164INTEROPERABILITY "-XX:-Enable3164Interoperability"
 #endif /* defined(J9VM_ZOS_3164_INTEROPERABILITY) */
-
-#if defined(J9VM_OPT_VALHALLA_VALUE_TYPES)
-#define VMOPT_XXENABLEVALHALLA "-XX:+EnableValhalla"
-#define VMOPT_XXDISABLEVALHALLA "-XX:-EnableValhalla"
-#endif /* defined(J9VM_OPT_VALHALLA_VALUE_TYPES) */
 
 #if defined(J9VM_OPT_CRIU_SUPPORT)
 #define VMOPT_XXENABLECRIU "-XX:+EnableCRIUSupport"
@@ -421,6 +424,8 @@ enum INIT_STAGE {
 #define VMOPT_XXDISCLAIMJITSCRATCH		"-XX:+DisclaimJitScratch"
 #define VMOPT_XXNODISCLAIMJITSCRATCH	"-XX:-DisclaimJitScratch"
 
+#define VMOPT_TUNE_QUICKSTART "-Xtune:quickstart"
+#define VMOPT_TUNE_THROUGHPUT "-Xtune:throughput"
 #define VMOPT_TUNE_VIRTUALIZED "-Xtune:virtualized"
 
 #define VMOPT_XXCOMPACTSTRINGS "-XX:+CompactStrings"
@@ -490,6 +495,8 @@ enum INIT_STAGE {
 
 #define VMOPT_XCOMPRESSEDREFS "-Xcompressedrefs"
 #define VMOPT_XNOCOMPRESSEDREFS "-Xnocompressedrefs"
+#define VMOPT_XXUSECOMPRESSEDOOPS "-XX:+UseCompressedOops"
+#define VMOPT_XXNOUSECOMPRESSEDOOPS "-XX:-UseCompressedOops"
 
 #define VMOPT_XXTRANSPARENT_HUGEPAGE "-XX:+TransparentHugePage"
 #define VMOPT_XXNOTRANSPARENT_HUGEPAGE "-XX:-TransparentHugePage"
@@ -502,6 +509,9 @@ enum INIT_STAGE {
 
 #define VMOPT_XXCLASSRELATIONSHIPVERIFIER "-XX:+ClassRelationshipVerifier"
 #define VMOPT_XXNOCLASSRELATIONSHIPVERIFIER "-XX:-ClassRelationshipVerifier"
+
+#define VMOPT_XXDYNAMICHEAPIFICATION "-XX:+DynamicHeapification"
+#define VMOPT_XXNODYNAMICHEAPIFICATION "-XX:-DynamicHeapification"
 
 #define MAPOPT_AGENTLIB_JDWP_EQUALS "-agentlib:jdwp="
 
@@ -589,6 +599,9 @@ enum INIT_STAGE {
 #define VMOPT_PATCH_MODULE "--patch-module"
 #define VMOPT_ILLEGAL_ACCESS "--illegal-access="
 #define VMOPT_ENABLE_NATIVE_ACCESS "--enable-native-access"
+
+/* JEP 421: Deprecate Finalization for Removal */
+#define VMOPT_DISABLE_FINALIZATION "--finalization="
 
 #define ENVVAR_IBM_MIXED_MODE_THRESHOLD "IBM_MIXED_MODE_THRESHOLD"
 #define ENVVAR_JAVA_COMPILER "JAVA_COMPILER"

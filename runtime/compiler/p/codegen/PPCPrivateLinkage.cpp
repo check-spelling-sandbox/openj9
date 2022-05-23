@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2000, 2021 IBM Corp. and others
+ * Copyright (c) 2000, 2022 IBM Corp. and others
  *
  * This program and the accompanying materials are made available under
  * the terms of the Eclipse Public License 2.0 which accompanies this
@@ -506,7 +506,7 @@ void J9::Power::PrivateLinkage::mapStack(TR::ResolvedMethodSymbol *method)
       // Each auto's GC index will have already been aligned, we just need to make sure
       // we align the starting stack offset.
       uint32_t unalignedStackIndex = stackIndex;
-      stackIndex &= ~(TR::Compiler->om.objectAlignmentInBytes() - 1);
+      stackIndex &= ~(TR::Compiler->om.getObjectAlignmentInBytes() - 1);
       uint32_t paddingBytes = unalignedStackIndex - stackIndex;
       if (paddingBytes > 0)
          {
@@ -595,7 +595,7 @@ void J9::Power::PrivateLinkage::mapStack(TR::ResolvedMethodSymbol *method)
 
 void J9::Power::PrivateLinkage::mapSingleAutomatic(TR::AutomaticSymbol *p, uint32_t &stackIndex)
    {
-   int32_t roundup = (comp()->useCompressedPointers() && p->isLocalObject() ? TR::Compiler->om.objectAlignmentInBytes() : TR::Compiler->om.sizeofReferenceAddress()) - 1;
+   int32_t roundup = (comp()->useCompressedPointers() && p->isLocalObject() ? TR::Compiler->om.getObjectAlignmentInBytes() : TR::Compiler->om.sizeofReferenceAddress()) - 1;
    int32_t roundedSize = (p->getSize() + roundup) & (~roundup);
    if (roundedSize == 0)
       roundedSize = 4;
@@ -1276,7 +1276,7 @@ void J9::Power::PrivateLinkage::createPrologue(TR::Instruction *cursor)
       TR_ASSERT(!comp()->useCompressedPointers() ||
                 !localCursor->isLocalObject() ||
                 !localCursor->isCollectedReference() ||
-                (localCursor->getOffset() & (TR::Compiler->om.objectAlignmentInBytes() - 1)) == 0,
+                (localCursor->getOffset() & (TR::Compiler->om.getObjectAlignmentInBytes() - 1)) == 0,
                 "Stack allocated object not aligned to minimum required alignment");
       localCursor->setOffset(localCursor->getOffset() + size);
       localCursor = automaticIterator.getNext();
@@ -1460,6 +1460,7 @@ int32_t J9::Power::PrivateLinkage::buildPrivateLinkageArgs(TR::Node             
          numFloatArgRegs = 0;
          break;
       case TR::java_lang_invoke_ComputedCalls_dispatchVirtual:
+      case TR::com_ibm_jit_JITHelpers_dispatchVirtual:
          specialArgReg = getProperties().getVTableIndexArgumentRegister();
          break;
       }
@@ -2019,10 +2020,10 @@ static bool getProfiledCallSiteInfo(TR::CodeGenerator *cg, TR::Node *callNode, u
    info->getSortedList(comp, &allValues);
 
    TR_ResolvedMethod   *owningMethod = methodSymRef->getOwningMethod(comp);
-   TR_OpaqueClassBlock *callSiteMethod;
+   TR_OpaqueClassBlock *callSiteMethodClass;
 
    if (methodSymbol->isVirtual())
-       callSiteMethod = methodSymRef->getSymbol()->getResolvedMethodSymbol()->getResolvedMethod()->classOfMethod();
+       callSiteMethodClass = methodSymRef->getSymbol()->getResolvedMethodSymbol()->getResolvedMethod()->classOfMethod();
 
    ListIterator<TR_ExtraAddressInfo> valuesIt(&allValues);
 
@@ -2042,8 +2043,8 @@ static bool getProfiledCallSiteInfo(TR::CodeGenerator *cg, TR::Node *callNode, u
 
       if (methodSymbol->isVirtual())
          {
-         TR_ASSERT(callSiteMethod, "Expecting valid callSiteMethod for virtual call");
-         if (fej9->isInstanceOf(clazz, callSiteMethod, true, true) != TR_yes)
+         TR_ASSERT(callSiteMethodClass, "Expecting valid callSiteMethodClass for virtual call");
+         if (!cg->isProfiledClassAndCallSiteCompatible(clazz, callSiteMethodClass))
             continue;
 
          method = owningMethod->getResolvedVirtualMethod(comp, clazz, methodSymRef->getOffset());
@@ -2271,6 +2272,7 @@ void J9::Power::PrivateLinkage::buildVirtualDispatch(TR::Node                   
       switch (methodSymbol->getMandatoryRecognizedMethod())
          {
          case TR::java_lang_invoke_ComputedCalls_dispatchVirtual:
+         case TR::com_ibm_jit_JITHelpers_dispatchVirtual:
             {
             // Need a j2i thunk for the method that will ultimately be dispatched by this handle call
             char    *j2iSignature = fej9->getJ2IThunkSignatureForDispatchVirtual(methodSymbol->getMethod()->signatureChars(), methodSymbol->getMethod()->signatureLength(), comp());
@@ -2684,10 +2686,7 @@ void J9::Power::PrivateLinkage::buildDirectCall(TR::Node *callNode,
    if (callSymRef->getReferenceNumber() >= TR_PPCnumRuntimeHelpers)
       fej9->reserveTrampolineIfNecessary(comp(), callSymRef, false);
 
-   bool forceUnresolvedDispatch = fej9->forceUnresolvedDispatch();
-   if (comp()->getOption(TR_UseSymbolValidationManager))
-      forceUnresolvedDispatch = false;
-
+   bool forceUnresolvedDispatch = !fej9->isResolvedDirectDispatchGuaranteed(comp());
    if ((callSymbol->isJITInternalNative() ||
         (!callSymRef->isUnresolved() && !callSymbol->isInterpreted() && ((forceUnresolvedDispatch && callSymbol->isHelper()) || !forceUnresolvedDispatch))))
       {

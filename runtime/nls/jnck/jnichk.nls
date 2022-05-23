@@ -711,7 +711,7 @@ J9NLS_JNICHK_ARRAY_DATA_MODIFIED.sample_input_3=function2
 J9NLS_JNICHK_ARRAY_DATA_MODIFIED.sample_input_4=0x3123FAB3
 J9NLS_JNICHK_ARRAY_DATA_MODIFIED.sample_input_5=0xCDD3FA13
 J9NLS_JNICHK_ARRAY_DATA_MODIFIED.sample_input_6=methodName2
-J9NLS_JNICHK_ARRAY_DATA_MODIFIED.explanation=The named JNI function has returned a copy of an array. The original array contents have been modfied since the copy was obtained.
+J9NLS_JNICHK_ARRAY_DATA_MODIFIED.explanation=The named JNI function has returned a copy of an array. The original array contents have been modified since the copy was obtained.
 J9NLS_JNICHK_ARRAY_DATA_MODIFIED.system_action=The JVM continues.
 J9NLS_JNICHK_ARRAY_DATA_MODIFIED.user_response=Check and correct the JNI application code if necessary.
 # END NON-TRANSLATABLE

@@ -109,7 +109,7 @@
 	
 	<test id="Test 60: -Xnolinenumbers : ensure debug area is zero bytes when -Xnolinenumbers is used" timeout="600" runPath=".">
 		<command>$JAVA_EXE$ $currentMode$,printStats,printDetails -version</command>
-		<output type="sucess" caseSensitive="yes" regex="yes" javaUtilPattern="yes" showMatch="yes">Class debug area size[\s]*= 0</output>
+		<output type="success" caseSensitive="yes" regex="yes" javaUtilPattern="yes" showMatch="yes">Class debug area size[\s]*= 0</output>
 		<output type="required" caseSensitive="yes" regex="yes" javaUtilPattern="yes" showMatch="yes">Class LocalVariableTable bytes[\s]*= 0</output>
 		<output type="required" caseSensitive="yes" regex="yes" javaUtilPattern="yes" showMatch="yes">Class LineNumberTable bytes[\s]*= 0</output>
 		<output type="required" caseSensitive="yes" regex="yes" javaUtilPattern="yes" showMatch="yes">Class debug area % used[\s]*= 100%</output>
@@ -139,7 +139,7 @@
 	
 	<test id="Test 63: -Xnolinenumbers & -Xjit:verbose : ensure debug area is zero bytes when -Xnolinenumbers & -Xjit:verbose are used" timeout="600" runPath=".">
 		<command>$JAVA_EXE$ $currentMode$,printStats,printDetails -version</command>
-		<output type="sucess" caseSensitive="yes" regex="yes" javaUtilPattern="yes" showMatch="yes">Class debug area size[\s]*= 0</output>
+		<output type="success" caseSensitive="yes" regex="yes" javaUtilPattern="yes" showMatch="yes">Class debug area size[\s]*= 0</output>
 		<output type="required" caseSensitive="yes" regex="yes" javaUtilPattern="yes" showMatch="yes">Class LocalVariableTable bytes[\s]*= 0</output>
 		<output type="required" caseSensitive="yes" regex="yes" javaUtilPattern="yes" showMatch="yes">Class LineNumberTable bytes[\s]*= 0</output>
 		<output type="required" caseSensitive="yes" regex="yes" javaUtilPattern="yes" showMatch="yes">Class debug area % used[\s]*= 100%</output>

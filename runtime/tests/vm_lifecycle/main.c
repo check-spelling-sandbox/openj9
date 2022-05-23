@@ -250,14 +250,14 @@ childProcessMain(struct J9PortLibrary *portLibrary, void * vargs)
 
 	/* first make sure we can load the function pointers */
 	if (setupInvocationAPIMethods(args) != 0) {
-		j9tty_printf(PORTLIB, "\nCound not do required setup...\n");
+		j9tty_printf(PORTLIB, "\nCould not do required setup...\n");
 		rc = FAIL;
 		goto done;
 	}
 
 	/* now set up the arguments for JNI_CreateJavaVM */
 	if (setupArguments(args,&vm_args,&vmOptionsTable) != 0){
-		j9tty_printf(PORTLIB, "\nCound not create required arguments for JNI_CreateJavaVM...\n");
+		j9tty_printf(PORTLIB, "\nCould not create required arguments for JNI_CreateJavaVM...\n");
 		rc = FAIL;
 		goto done;
 	}
@@ -395,7 +395,7 @@ launchChildProcess (J9PortLibrary* portLibrary, const char* testname, char * new
 	char **env = NULL;
 	UDATA envSize = 0;
 	char *dir = ".";
-	U_32 exeoptions = (J9PORT_PROCESS_INHERIT_STDOUT | J9PORT_PROCESS_INHERIT_STDERR);
+	U_32 execOptions = (J9PORT_PROCESS_INHERIT_STDOUT | J9PORT_PROCESS_INHERIT_STDERR);
 	IDATA retVal;
 	PORT_ACCESS_FROM_PORT(portLibrary);
 
@@ -413,7 +413,7 @@ launchChildProcess (J9PortLibrary* portLibrary, const char* testname, char * new
 
 	}
 
-	retVal = j9process_create((const char **)newargv, newargc, env, envSize, dir, exeoptions, J9PORT_INVALID_FD, J9PORT_INVALID_FD, J9PORT_INVALID_FD, &processHandle);
+	retVal = j9process_create((const char **)newargv, newargc, env, envSize, dir, execOptions, J9PORT_INVALID_FD, J9PORT_INVALID_FD, J9PORT_INVALID_FD, &processHandle);
 
 	if (0 != retVal) {
 		I_32 portableErrno = j9error_last_error_number();

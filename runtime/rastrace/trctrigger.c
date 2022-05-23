@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2002, 2019 IBM Corp. and others
+ * Copyright (c) 2002, 2022 IBM Corp. and others
  *
  * This program and the accompanying materials are made available under
  * the terms of the Eclipse Public License 2.0 which accompanies this
@@ -246,9 +246,9 @@ setSleepTime(UtThreadData **thr, const char * str, BOOLEAN atRuntime)
 
 	if (*suffix != '\0') {
 		/* A suffix has been specified, parse it */
-		if (j9_cmdla_stricmp((char *)suffix, "s") == 0) {
+		if (j9_cmdla_stricmp(suffix, "s") == 0) {
 			unitsSeconds = TRUE;
-		} else if (j9_cmdla_stricmp((char *)suffix, "ms") == 0) {
+		} else if (j9_cmdla_stricmp(suffix, "ms") == 0) {
 			/* Do nothing - milliseconds is the default */
 		} else {
 			/* Unrecognised suffix */
@@ -362,12 +362,12 @@ decimalString2Int(const char *decString, int32_t signedAllowed, omr_error_t *rc,
 static uint32_t
 parseTriggerIndex(OMR_VMThread *thr, const char * name, BOOLEAN atRuntime)
 {
-	int i;
+	int i = 0;
 
 	for (i = 0; i < numTriggerActions; i++) {
 		const struct RasTriggerAction *action = &rasTriggerActions[i];
 
-		if (j9_cmdla_stricmp((char *)name, (char *)action->name) == 0) {
+		if (j9_cmdla_stricmp(name, action->name) == 0) {
 			return i;
 		}
 	}
@@ -847,35 +847,35 @@ processTriggerClause(OMR_VMThread *thr, const char *clause, BOOLEAN atRuntime)
 {
 	OMRPORT_ACCESS_FROM_OMRVMTHREAD(thr);
 	uintptr_t clauseLength = strlen(clause);
-	int i;
+	int i = 0;
 	BOOLEAN disableSet = FALSE;
 
-	if (clauseLength == 0) {
+	if (0 == clauseLength) {
 		reportCommandLineError(atRuntime, "Zero length clause in trigger statement.");
 		return OMR_ERROR_INTERNAL;
 	}
 
-	if (clause[clauseLength - 1] != '}') {
+	if ('}' != clause[clauseLength - 1]) {
 		reportCommandLineError(atRuntime, "Trigger clause must end with '}'");
 		return OMR_ERROR_INTERNAL;
 	}
 
-	if (*clause == '!') {
-		clause++;
+	if ('!' == *clause) {
+		clause += 1;
 		disableSet = TRUE;
 	}
 
 	for (i = 0; i < numTriggerTypes; i++) {
 		const struct RasTriggerType *type = &rasTriggerTypes[i];
+		uintptr_t typeLength = strlen(type->name);
 
-		if (j9_cmdla_strnicmp((char *)clause, (char *)type->name, strlen(type->name)) == 0) {
-			uintptr_t typeLength = strlen(type->name);
-			uintptr_t subClauseLength;
-			char *subClause;
-			int rc;
+		if (0 == j9_cmdla_strnicmp(clause, type->name, typeLength)) {
+			uintptr_t subClauseLength = 0;
+			char *subClause = NULL;
+			int rc = 0;
 
 			if (atRuntime && !type->runtimeModifiable) {
-				UT_DBGOUT(1, ("<UT> Trigger clause %s cannot be modified at run time\n",type->name));
+				UT_DBGOUT(1, ("<UT> Trigger clause %s cannot be modified at run time\n", type->name));
 				return OMR_ERROR_INTERNAL;
 			}
 
@@ -896,10 +896,9 @@ processTriggerClause(OMR_VMThread *thr, const char *clause, BOOLEAN atRuntime)
 				return OMR_ERROR_INTERNAL;
 			}
 
-			subClauseLength = clauseLength - typeLength - 2;
-
+			subClauseLength = clauseLength - typeLength - 2; /* 2 for { and } */
 			subClause = omrmem_allocate_memory(subClauseLength + 1, OMRMEM_CATEGORY_TRACE);
-			if (!subClause) {
+			if (NULL == subClause) {
 				UT_DBGOUT(1, ("<UT> Out of memory processing trigger property.\n"));
 				return OMR_ERROR_OUT_OF_NATIVE_MEMORY;
 			}
@@ -1242,19 +1241,23 @@ checkTriggerGroupsForTpid(OMR_VMThread *thr, char *compName, int traceId, const 
 static void
 checkTriggerTpidForTpid(OMR_VMThread *thr, char *compName, unsigned int traceId, const TriggerPhase phase, BOOLEAN actionArray[])
 {
-	RasTriggerTpidRange *ptr;
-	intptr_t oldValue;
+	uintptr_t *refCountPtr = (uintptr_t *)&UT_GLOBAL(triggerOnTpidsReferenceCount);
+	RasTriggerTpidRange *ptr = NULL;
+	uint32_t oldDelay = 0;
 
 	/* Increment the reference count */
+	for (;;) {
+		uintptr_t oldValue = *refCountPtr;
 
-	do {
-		oldValue = UT_GLOBAL(triggerOnTpidsReferenceCount);
-
-		if (oldValue < 0) {
+		if (((intptr_t)(oldValue)) < 0) {
 			/* The queue is being cleared - bail out */
 			return;
 		}
-	} while (compareAndSwapUDATA((uintptr_t *)&UT_GLOBAL(triggerOnTpidsReferenceCount),(uintptr_t)oldValue,(uintptr_t)oldValue+1) != (uintptr_t)oldValue);
+
+		if (compareAndSwapUDATA(refCountPtr, oldValue, oldValue + 1) == oldValue) {
+			break;
+		}
+	}
 
 	/*
 	 * we're in here because a tracepoint has been hit for which the trigger
@@ -1266,75 +1269,95 @@ checkTriggerTpidForTpid(OMR_VMThread *thr, char *compName, unsigned int traceId,
 	 */
 
 	/* walk down the triggerOnTpids chain */
-	for (ptr = UT_GLOBAL(triggerOnTpids); ptr != NULL; ptr = ptr->next) {
-		if (rasTriggerActions[ptr->actionIndex].phase == phase) {
-			if (strcmp(compName, ptr->compName) == 0 && traceId >= ptr->startTpid && traceId <= ptr->endTpid) {
+	for (ptr = UT_GLOBAL(triggerOnTpids); NULL != ptr; ptr = ptr->next) {
+		if (actionArray[ptr->actionIndex]) {
+			/* already enabled */
+			continue;
+		}
 
-				uint32_t oldDelay;
+		if (rasTriggerActions[ptr->actionIndex].phase != phase) {
+			/* wrong phase */
+			continue;
+		}
 
-				do {
-					oldDelay = ptr->delay;
+		if ((traceId < ptr->startTpid) || (traceId > ptr->endTpid)) {
+			/* traceId out of range */
+			continue;
+		}
 
-					if (0 == oldDelay) {
-						break;
-					}
-				} while(compareAndSwapU32(&ptr->delay,oldDelay,oldDelay-1) != oldDelay);
+		if (0 != j9_cmdla_stricmp(compName, ptr->compName)) {
+			/* wrong component name */
+			continue;
+		}
 
-				if (0 == oldDelay) {
-					int32_t oldMatch;
+		do {
+			oldDelay = ptr->delay;
 
-					do {
-						oldMatch = ptr->match;
+			if (0 == oldDelay) {
+				break;
+			}
+		} while (compareAndSwapU32(&ptr->delay, oldDelay, oldDelay - 1) != oldDelay);
 
-						if (oldMatch <= 0) {
-							break;
-						}
-					} while(compareAndSwapU32((uint32_t*)&ptr->match,(uint32_t)oldMatch,(uint32_t)(oldMatch-1)) != oldMatch);
+		if (0 != oldDelay) {
+			RAS_DBGOUT((stderr, "tpnid %X matches tpnid range %s.%X-%X, "
+								"decrement delay\n", traceId, ptr->compName, ptr->startTpid, ptr->endTpid));
+		} else {
+			uint32_t *matchPtr = (uint32_t *)&ptr->match;
+			uint32_t oldMatch = 0;
 
-					if (oldMatch != 0) {
-						/*
-						 * Do a trigger action
-						 */
-						RAS_DBGOUT((stderr, "tpnid %X matches tpnid range %s.%X-%X, "
-											"action=%d\n",
-											traceId, ptr->compName, ptr->startTpid, ptr->endTpid, ptr->action));
-						actionArray[ptr->actionIndex] = TRUE;
-					}
-				} else {
-					RAS_DBGOUT((stderr, "tpnid %X matches tpnid range %s.%X-%X, "
-										"decrement delay\n", traceId, ptr->compName, ptr->startTpid, ptr->endTpid));
+			do {
+				oldMatch = *matchPtr;
+
+				if (((int32_t)oldMatch) <= 0) {
+					break;
 				}
+			} while (compareAndSwapU32(matchPtr, oldMatch, oldMatch - 1) != oldMatch);
+
+			if (0 != oldMatch) {
+				/* enable the trigger action */
+				RAS_DBGOUT((stderr, "tpnid %X matches tpnid range %s.%X-%X, "
+									"action=%d\n",
+									traceId, ptr->compName, ptr->startTpid, ptr->endTpid, ptr->action));
+				actionArray[ptr->actionIndex] = TRUE;
 			}
 		}
 	}
 
-	do {
-		oldValue = UT_GLOBAL(triggerOnTpidsReferenceCount);
-	} while (compareAndSwapUDATA((uintptr_t *)&UT_GLOBAL(triggerOnTpidsReferenceCount),(uintptr_t)oldValue,(uintptr_t)oldValue-1) != (uintptr_t)oldValue);
-}
+	for (;;) {
+		uintptr_t oldValue = *refCountPtr;
 
-void triggerHit(OMR_VMThread *thr, char *compName, uint32_t traceId, TriggerPhase phase)
-{
-	BOOLEAN *actionArray = NULL;
-	int i;
-	PORT_ACCESS_FROM_PORT(UT_GLOBAL(portLibrary));
-
-	actionArray = j9mem_allocate_memory( sizeof(BOOLEAN) * numTriggerActions, OMRMEM_CATEGORY_TRACE);
-	memset(actionArray,0,sizeof(BOOLEAN) * numTriggerActions);
-
-	/* check for which trigger group clause(s) brought us here */
-	checkTriggerGroupsForTpid(thr, compName, traceId, phase,actionArray);
-
-	/* check for which trigger tpnid clause(s) brought us here */
-	checkTriggerTpidForTpid(thr, compName, traceId, phase,actionArray);
-
-	for (i=0;i!=numTriggerActions;i++) {
-		if (actionArray[i]) {
-			rasTriggerActions[i].fn(thr);
+		if (compareAndSwapUDATA(refCountPtr, oldValue, oldValue - 1) == oldValue) {
+			break;
 		}
 	}
+}
 
-	j9mem_free_memory(actionArray);
+void
+triggerHit(OMR_VMThread *thr, char *compName, uint32_t traceId, TriggerPhase phase)
+{
+	PORT_ACCESS_FROM_PORT(UT_GLOBAL(portLibrary));
+	size_t arraySize = sizeof(BOOLEAN) * numTriggerActions;
+	BOOLEAN * actionArray = j9mem_allocate_memory(arraySize, OMRMEM_CATEGORY_TRACE);
+
+	if (NULL != actionArray) {
+		int i = 0;
+
+		memset(actionArray, 0, arraySize);
+
+		/* check for which trigger group clause(s) brought us here */
+		checkTriggerGroupsForTpid(thr, compName, traceId, phase, actionArray);
+
+		/* check for which trigger tpnid clause(s) brought us here */
+		checkTriggerTpidForTpid(thr, compName, traceId, phase, actionArray);
+
+		for (i = 0; i != numTriggerActions; i++) {
+			if (actionArray[i]) {
+				rasTriggerActions[i].fn(thr);
+			}
+		}
+
+		j9mem_free_memory(actionArray);
+	}
 }
 
 void

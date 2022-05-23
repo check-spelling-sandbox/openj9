@@ -160,7 +160,7 @@ MM_ClassLoaderRememberedSet::rememberRegionInternal(MM_EnvironmentBase* env, UDA
 		if (taggedRegionIndex == gcRememberedSet) {
 			/* this region is already remembered */
 			success = true;
-		} else if (isOverflowedRemememberedSet(gcRememberedSet)) {
+		} else if (isOverflowedRememberedSet(gcRememberedSet)) {
 			/* this class loader is overflowed */
 			success = true;
 		} else if (0 == gcRememberedSet) {
@@ -181,7 +181,7 @@ MM_ClassLoaderRememberedSet::installBitVector(MM_EnvironmentBase* env, volatile 
 {
 	_lock.acquire();
 	UDATA gcRememberedSet = *gcRememberedSetAddress;
-	if (isOverflowedRemememberedSet(gcRememberedSet)) {
+	if (isOverflowedRememberedSet(gcRememberedSet)) {
 		/* this class loader overflowed in another thread - nothing to do */
 	} else if (!isTaggedRegionIndex(gcRememberedSet)) {
 		/* already inflated - nothing to do */
@@ -258,7 +258,7 @@ MM_ClassLoaderRememberedSet::isRememberedInternal(MM_EnvironmentBase *env, UDATA
 	bool isRemembered = false;
 	if (0 == gcRememberedSet) {
 		/* this class loader is not remembered */
-	} else if (isOverflowedRemememberedSet(gcRememberedSet)) {
+	} else if (isOverflowedRememberedSet(gcRememberedSet)) {
 		/* this class loader is overflowed */
 		isRemembered = true;
 	} else if (isTaggedRegionIndex(gcRememberedSet)) {
@@ -308,7 +308,7 @@ MM_ClassLoaderRememberedSet::isRegionRemembered(MM_EnvironmentBase *env, UDATA r
 	if (taggedRegionIndex == gcRememberedSet) {
 		/* this region is the only remembered region */
 		isRemembered = true;
-	} else if (isOverflowedRemememberedSet(gcRememberedSet)) {
+	} else if (isOverflowedRememberedSet(gcRememberedSet)) {
 		/* this class loader is overflowed */
 		isRemembered = true;
 	} else if (0 == gcRememberedSet) {
@@ -398,7 +398,7 @@ MM_ClassLoaderRememberedSet::clearRememberedSetsInternal(MM_EnvironmentBase *env
 	UDATA gcRememberedSet = *gcRememberedSetAddress;
 	if (0 == gcRememberedSet) {
 		/* this class loader is not remembered - do nothing */
-	} else if (isOverflowedRemememberedSet(gcRememberedSet)) {
+	} else if (isOverflowedRememberedSet(gcRememberedSet)) {
 		/* this class loader is overflowed  - do nothing */
 	} else if (isTaggedRegionIndex(gcRememberedSet)) {
 		/* some region is remembered using the immediate encoding */

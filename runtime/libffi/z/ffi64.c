@@ -231,7 +231,7 @@ ffi_prep_args_cel4ro31 (unsigned char *arg_list_ptr, extended_cif *ecif)
     arg_ptr += sizeof(int);
   }
 
-   /* Now for the arguments.  CEL4RO31 is targetting 31-bit callees.
+   /* Now for the arguments.  CEL4RO31 is targeting 31-bit callees.
     * Slots are considered 4-bytes.
     */
   for (type_ptr = ecif->cif->arg_types, i = ecif->cif->nargs;

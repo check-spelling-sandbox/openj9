@@ -45,7 +45,7 @@
  * JITServer can have multiple JITClients and each JITClient has its own class 
  * hierarchies, the JITServer needs to keep a separate TR_PersistentCHTable
  * cache for each JITClient. This is done by associating caches with client 
- * IDs within the JITServerPersisentCHTable. It overrides the findClassInfo()
+ * IDs within the JITServerPersistentCHTable. It overrides the findClassInfo()
  * methods to find the corresponding JITClient and return its cached class 
  * info.
  */
@@ -148,7 +148,7 @@ private:
  * @class FlatPersistentClassInfo
  * @brief Class for serializing and deserializing CHTable data for JITServerPersistentCHtable and JITClientPersistentCHTable
  *
- * This class is a utilty class for JITServerPersistentCHTable and 
+ * This class is a utility class for JITServerPersistentCHTable and 
  * JITClientPersistentCHTable. It is a friend class of TR_PersistentClassInfo
  * to make it more convenient to manipulate its fields.
  */
@@ -187,7 +187,7 @@ public:
  * This class is a extension of the TR_PersistentClassInfo class that is
  * used by JITClient to mark classInfo as dirty/removed.
  * This is how JITClient determines what the delta update to JITServer is
- * everytime. Once the marking operation is completed, the corresponding 
+ * every time. Once the marking operation is completed, the corresponding 
  * parent method is called and original functionality is preserved.
  */
 

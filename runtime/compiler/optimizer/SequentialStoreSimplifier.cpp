@@ -2183,7 +2183,7 @@ TR::TreeTop* generateArraycopyFromSequentialLoads(TR::Compilation* comp, bool tr
       }
 
    /*
-    * This is an example transformation. 4 consective byte loads from a byte array are used to construct an int.
+    * This is an example transformation. 4 consecutive byte loads from a byte array are used to construct an int.
     * After the transformation a Little Endian int load is used to directly create the int.
     * Big Endian has support as well but the bytes in the original array need to be in the opposite order or a byteswap is inserted.
     *
@@ -2216,7 +2216,7 @@ TR::TreeTop* generateArraycopyFromSequentialLoads(TR::Compilation* comp, bool tr
     * n23n              lsub
     * n10n                ==>i2l
     * n24n                lconst -10  <<-- byteOffsets (2)
-    * n25n        iconst 0x10000      <<-- convreted to shiftValue (2)
+    * n25n        iconst 0x10000      <<-- converted to shiftValue (2)
     * n26n    imul                  <<-- processedByteNodes (3)
     * n27n      b2i                 <<-- byteConversionNode (3)
     * n28n        bloadi
@@ -2447,7 +2447,7 @@ TR::TreeTop* generateArraycopyFromSequentialLoads(TR::Compilation* comp, bool tr
    if (trace) traceMsg(comp, "Sequential Load Simplification Candidate - rootNode: %p, newConvertChildNode: %p, newLoadChildNode: %p\n", rootNode, newConvertChildNode, newLoadChildNode);
 
    /*
-    * Check the endianess of the platform and the endianess of the byte array.
+    * Check the endianness of the platform and the endianness of the byte array.
     * If they don't match, byteswaps will be needed.
     */
    if (littleEndianLoad && !comp->target().cpu.isLittleEndian())
@@ -2767,7 +2767,7 @@ TR::TreeTop* generateArraycopyFromSequentialLoads(TR::Compilation* comp, bool tr
       if (trace) traceMsg(comp, "Creating mulNode (%p) with children %p and %p.\n", mulNode, mulNode->getFirstChild(), mulNode->getSecondChild());
 
       TR::Node * shortConversionNode = NULL;
-      /* The location to start the sload from depends on endianess of the byte array. */
+      /* The location to start the sload from depends on endianness of the byte array. */
       if (littleEndianLoad)
          {
          shortConversionNode = byteConversionNodes[0];
@@ -2842,7 +2842,7 @@ TR::TreeTop* generateArraycopyFromSequentialLoads(TR::Compilation* comp, bool tr
       if (trace) traceMsg(comp, "Creating mulNode (%p) with children %p and %p.\n", mulNode, mulNode->getFirstChild(), mulNode->getSecondChild());
 
       TR::Node * lowerIntConversionNode = NULL;
-      /* The location to start the lower iload from depends on endianess of the byte array. */
+      /* The location to start the lower iload from depends on endianness of the byte array. */
       if (littleEndianLoad)
          {
          lowerIntConversionNode = byteConversionNodes[0];
@@ -3111,7 +3111,7 @@ static bool useArraySet(int32_t numBytes, TR::CodeGenerator *codeGen)
 //     aload #base (base value)
 //     T1const # (constant) where bytes of T1 const are the same
 //   iT2store offset (T2 is one of i, b, c, l, d, f) offset X + sizeof(T1)
-//     aload #base (baes value)
+//     aload #base (base value)
 //     T2const # (constant) where bytes of T2 const are same as bytes of T1const
 static TR::TreeTop* generateArraysetFromSequentialStores(TR::Compilation* comp, TR::TreeTop* prevTreeTop, TR::TreeTop* istoreTreeTop, TR::Node* istoreNode, bool *newTempsCreated)
    {
@@ -3676,7 +3676,7 @@ bool TR_ArrayShiftTreeCollection::insertTree(TR::TreeTop * currTree)
          }
       if (_storeTrees[_numTrees]->getRootNode()->getOpCode().getSize() * (_numTrees + 1) > _maxStoreSize)
          {
-         dumpOptDetails(comp(), "Max store size of %d exceeeded the max [%p]\n", (_storeTrees[_numTrees]->getRootNode()->getOpCode().getSize() * (_numTrees + 1)), _storeTrees[_numTrees]->getRootNode());
+         dumpOptDetails(comp(), "Max store size of %d exceeded the max [%p]\n", (_storeTrees[_numTrees]->getRootNode()->getOpCode().getSize() * (_numTrees + 1)), _storeTrees[_numTrees]->getRootNode());
          return false;
          }
 
@@ -3875,7 +3875,7 @@ static TR::TreeTop * reduceArrayLoad(TR_ArrayShiftTreeCollection * storeTrees, T
          }
       else if (numByteStore >= 4)
          {
-         // between 4 and 7 bytes go into here, and we will transfrom the first 4 bytes
+         // between 4 and 7 bytes go into here, and we will transform the first 4 bytes
          newDataType = TR::Int32;
          numValidTrees = 4 / storeTrees->getTree(0)->getRootNode()->getOpCode().getSize();
          storeOpCode = TR::istorei;

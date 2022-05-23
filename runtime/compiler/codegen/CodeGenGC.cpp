@@ -269,7 +269,7 @@ J9::CodeGenerator::createStackAtlas()
          }
       }
 
-   // Iniialize colour mapping for locals compaction
+   // Initialize colour mapping for locals compaction
    //
    int32_t *colourToGCIndexMap = 0;
 

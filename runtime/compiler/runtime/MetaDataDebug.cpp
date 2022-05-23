@@ -49,7 +49,7 @@ TR_Debug::printJ9JITExceptionTableDetails(J9JITExceptionTable *data, J9JITExcept
    uintptr_t startPC = (uintptr_t)data->startPC;
    trfprintf(_file, "J9JITExceptionTable [%p]\n", data);
    trfprintf(_file, "CP=[%p], slots=[%p], NumExcpRanges=[%p], size=[%p]\n",
-               data->constantPool, data->slots, data->numExcptionRanges, data->size);
+               data->constantPool, data->slots, data->numExceptionRanges, data->size);
    trfprintf(_file, "startPC=     [%p]\n", data->startPC);
    trfprintf(_file, "endWarmPC=   [%p]\n",data->endWarmPC);
    trfprintf(_file, "startColdPC= [%p]\n",data->startColdPC);
@@ -79,8 +79,8 @@ TR_Debug::print(J9JITExceptionTable * data, TR_ResolvedMethod * feMethod, bool f
 
    // print exception table entries
    //
-   int32_t i, numExceptionRanges = data->numExcptionRanges & 0x3FFF;
-   bool fourByteExceptionRanges = (data->numExcptionRanges & 0x8000) != 0;
+   int32_t i, numExceptionRanges = data->numExceptionRanges & 0x3FFF;
+   bool fourByteExceptionRanges = (data->numExceptionRanges & 0x8000) != 0;
 
    if (numExceptionRanges)
       trfprintf(_file, "\n<exceptionTable offsetBytes=\"%d\">\n", fourByteExceptionRanges ? 4 : 2);

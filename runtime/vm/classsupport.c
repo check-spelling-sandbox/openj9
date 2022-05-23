@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 1991, 2021 IBM Corp. and others
+ * Copyright (c) 1991, 2022 IBM Corp. and others
  *
  * This program and the accompanying materials are made available under
  * the terms of the Eclipse Public License 2.0 which accompanies this
@@ -211,7 +211,7 @@ internalCreateArrayClass(J9VMThread* vmThread, J9ROMArrayClass* romClass, J9Clas
 	 * instance of the array. Element class init must be done before the arrayClass is created so that in the case
 	 * of an init failure the arrayClass is not temporarily exposed.
 	 */
-	if (J9_IS_J9CLASS_VALUETYPE(elementClass)) {
+	if (J9_IS_J9CLASS_PRIMITIVE_VALUETYPE(elementClass)) {
 		UDATA initStatus = elementClass->initializeStatus;
 		if ((J9ClassInitSucceeded != initStatus) && ((UDATA)vmThread != initStatus)) {
 			initializeClass(vmThread, elementClass);
@@ -265,7 +265,7 @@ internalCreateArrayClass(J9VMThread* vmThread, J9ROMArrayClass* romClass, J9Clas
  *
  * @param currentThread pointer to the current J9VMThread
  * @param classLoader pointer to the J9ClassLoader being probed
- * @param className pointer to the U_8 representation of the classaname.  Doesn't need to be null terminated
+ * @param className pointer to the U_8 representation of the classname.  Doesn't need to be null terminated
  * @param classNameLength length of the className
  * @return a J9Class pointer if the class has already been loaded in this loader.  Null otherwise.
  */
@@ -531,7 +531,7 @@ resolveKnownClass(J9JavaVM * vm, UDATA index)
  * @return pointer to class if locally defined, 0 if not defined, -1 if we cannot do dynamic load
  *
  * Preconditions: none
- * Postconditions: class segment mutex locked if dynamicLoadBuffers is null (this is likely a bug)
+ * Postconditions: class table mutex locked if dynamicLoadBuffers is null
  *
  */
 
@@ -547,13 +547,11 @@ callFindLocallyDefinedClass(J9VMThread* vmThread, J9Module *j9module, U_8* class
 	Assert_VM_true(NULL != localBuffer);
 
 	if (NULL != dynamicLoadBuffers) {
-		 J9ClassPathEntry* classPathEntries = NULL;
-		 if (classLoader == vmThread->javaVM->systemClassLoader) {
-			 classPathEntries = classLoader->classPathEntries;
-		 }
-		 TRIGGER_J9HOOK_VM_FIND_LOCALLY_DEFINED_CLASS(vmThread->javaVM->hookInterface, vmThread, classLoader, j9module, (char*)className, classNameLength,
-						classPathEntries, classLoader->classPathEntryCount, -1, NULL, 0, 0,
-						(IDATA *) &localBuffer->entryIndex, returnVal);
+		if (classLoader == vmThread->javaVM->systemClassLoader) {
+			TRIGGER_J9HOOK_VM_FIND_LOCALLY_DEFINED_CLASS(vmThread->javaVM->hookInterface, vmThread, classLoader, j9module, (char*)className, classNameLength,
+					NULL, 0, -1, NULL, 0, 0,
+					(IDATA *) &localBuffer->entryIndex, returnVal);
+		}
 
 		findResult = (IDATA) returnVal;
 		if (0 == findResult) {
@@ -568,8 +566,7 @@ callFindLocallyDefinedClass(J9VMThread* vmThread, J9Module *j9module, U_8* class
 			if (returnVal != NULL) {
 				findResult = classFound;
 			} else {
-				findResult = dynamicLoadBuffers->findLocallyDefinedClassFunction(vmThread, j9module, className, (U_32)classNameLength, classLoader, classPathEntries,
-						classLoader->classPathEntryCount, options, localBuffer);
+				findResult = dynamicLoadBuffers->findLocallyDefinedClassFunction(vmThread, j9module, className, (U_32)classNameLength, classLoader, options, localBuffer);
 				if ((-1 == findResult) && (J9_PRIVATE_FLAGS_REPORT_ERROR_LOADING_CLASS & vmThread->privateFlags)) {
 					vmThread->privateFlags |= J9_PRIVATE_FLAGS_FAILED_LOADING_REQUIRED_CLASS;
 				}
@@ -977,6 +974,13 @@ loadNonArrayClass(J9VMThread* vmThread, J9Module *j9module, U_8* className, UDAT
 	BOOLEAN fastMode = J9_ARE_ALL_BITS_SET(vm->extendedRuntimeFlags, J9_EXTENDED_RUNTIME_FAST_CLASS_HASH_TABLE);
 	BOOLEAN loaderMonitorLocked = FALSE;
 
+#if defined(J9VM_OPT_VALHALLA_VALUE_TYPES)
+	if (J9_IS_STRING_DESCRIPTOR(className, classNameLength)) {
+		className += 1; /* 1 for 'L' or 'Q' */
+		classNameLength -= 2; /* 2 for 'L'/'Q' and ';' */
+	}
+#endif /* defined(J9VM_OPT_VALHALLA_VALUE_TYPES) */
+
 	vmThread->privateFlags &= ~J9_PRIVATE_FLAGS_CLOAD_NO_MEM;
 
 	if (J9CLASSLOADER_PARALLEL_CAPABLE == (J9CLASSLOADER_PARALLEL_CAPABLE & classLoader->flags)) {
@@ -1162,15 +1166,26 @@ internalFindClassInModule(J9VMThread* vmThread, J9Module *j9module, U_8* classNa
 
 				if (reportErrorFlags == (reportErrorFlags & vmThread->privateFlags)) {
 					UDATA i;
+					BOOLEAN holdCpMutex = FALSE;
 					/* same error message as displayed by internalFindKnownClass() on failure */
 #if defined (J9VM_SIZE_SMALL_CODE)
 					j9nls_printf(PORTLIB, J9NLS_ERROR, J9NLS_VM_UNABLE_TO_FIND_AND_INITIALIZE_REQUIRED_CLASS, classNameLength, className);
 #else
 					j9nls_printf(PORTLIB, J9NLS_ERROR | J9NLS_BEGIN_MULTI_LINE, J9NLS_VM_UNABLE_TO_FIND_AND_INITIALIZE_REQUIRED_CLASS, classNameLength, className);
 #endif
+					if (classLoader->classPathEntryCount > 0) {
+						omrthread_rwmutex_enter_read(classLoader->cpEntriesMutex);
+						holdCpMutex = TRUE;
+					}
 					for (i = 0; i < classLoader->classPathEntryCount; i++) {
-						J9ClassPathEntry *entry = &classLoader->classPathEntries[i];
+						J9ClassPathEntry *entry = classLoader->classPathEntries[i];
+						/* J9NLS_VM_SEARCHED_IN_DIR can only printed out for bootstrap class path, because classPathEntryCount is
+						 * always 0 for non-bootstrap class loader.
+						 */
 						j9nls_printf(PORTLIB, J9NLS_INFO, J9NLS_VM_SEARCHED_IN_DIR, entry->pathLength, entry->path);
+					}
+					if (holdCpMutex) {
+						omrthread_rwmutex_exit_read(classLoader->cpEntriesMutex);
 					}
 					j9nls_printf(PORTLIB, J9NLS_INFO, J9NLS_VM_CHECK_JAVA_HOME);
 					vmThread->privateFlags &= ~(J9_PRIVATE_FLAGS_REPORT_ERROR_LOADING_CLASS);
@@ -1246,8 +1261,14 @@ internalFindKnownClass(J9VMThread *vmThread, UDATA index, UDATA flags)
 			classLocation = findClassLocationForClass(vmThread, knownClass);
 			omrthread_monitor_exit(vm->classLoaderModuleAndLocationMutex);
 
-			if ((NULL != classLocation) && (J9_CP_INDEX_NONE != classLocation->entryIndex) && (LOAD_LOCATION_CLASSPATH == classLocation->locationType)) {
-				cpEntry = &(knownClass->classLoader->classPathEntries[classLocation->entryIndex]);
+			if ((NULL != classLocation)
+				&& (J9_CP_INDEX_NONE != classLocation->entryIndex)
+				&& (LOAD_LOCATION_CLASSPATH == classLocation->locationType)
+				&& (classLocation->entryIndex < (IDATA)knownClass->classLoader->classPathEntryCount)
+			) {
+				omrthread_rwmutex_enter_read(classLoader->cpEntriesMutex);
+				cpEntry = (knownClass->classLoader->classPathEntries[classLocation->entryIndex]);
+				omrthread_rwmutex_exit_read(classLoader->cpEntriesMutex);
 				if (NULL != cpEntry) {
 					if (0 == (CPE_FLAG_BOOTSTRAP & cpEntry->flags)) {
 						j9nls_printf(PORTLIB, J9NLS_ERROR, J9NLS_VM_REQUIRED_CLASS_ON_WRONG_PATH, J9UTF8_LENGTH(utfWrapper), J9UTF8_DATA(utfWrapper), cpEntry->pathLength, cpEntry->path);
@@ -1282,14 +1303,23 @@ internalFindKnownClass(J9VMThread *vmThread, UDATA index, UDATA flags)
 _fail:
 	if ((0 == (J9_RUNTIME_INITIALIZED & vm->runtimeFlags)) || (0 == (J9_FINDKNOWNCLASS_FLAG_NON_FATAL & flags))) {
 		UDATA i;
+		BOOLEAN holdCpMutex = FALSE;
 #if defined (J9VM_SIZE_SMALL_CODE)
 		j9nls_printf(PORTLIB, J9NLS_ERROR, J9NLS_VM_UNABLE_TO_FIND_AND_INITIALIZE_REQUIRED_CLASS, J9UTF8_LENGTH(utfWrapper), J9UTF8_DATA(utfWrapper));
 #else
 		j9nls_printf(PORTLIB, J9NLS_ERROR | J9NLS_BEGIN_MULTI_LINE, J9NLS_VM_UNABLE_TO_FIND_AND_INITIALIZE_REQUIRED_CLASS, J9UTF8_LENGTH(utfWrapper), J9UTF8_DATA(utfWrapper));
 #endif
+		if (classLoader->classPathEntryCount > 0) {
+			omrthread_rwmutex_enter_read(classLoader->cpEntriesMutex);
+			holdCpMutex = TRUE;
+		}
 		for (i = 0; i < classLoader->classPathEntryCount; i++) {
-			J9ClassPathEntry *entry = &classLoader->classPathEntries[i];
+			J9ClassPathEntry *entry = classLoader->classPathEntries[i];
+			/* J9NLS_VM_SEARCHED_IN_DIR can only printed out for bootstrap class path, because classPathEntryCount is always 0 for non-bootstrap class loader */
 			j9nls_printf(PORTLIB, J9NLS_INFO, J9NLS_VM_SEARCHED_IN_DIR, entry->pathLength, entry->path);
+		}
+		if (holdCpMutex) {
+			omrthread_rwmutex_exit_read(classLoader->cpEntriesMutex);
 		}
 		j9nls_printf(PORTLIB, J9NLS_INFO, J9NLS_VM_CHECK_JAVA_HOME);
 	}

@@ -1,6 +1,6 @@
 /*[INCLUDE-IF JAVA_SPEC_VERSION >= 8]*/
 /*******************************************************************************
- * Copyright (c) 1998, 2021 IBM Corp. and others
+ * Copyright (c) 1998, 2022 IBM Corp. and others
  *
  * This program and the accompanying materials are made available under
  * the terms of the Eclipse Public License 2.0 which accompanies this
@@ -35,10 +35,13 @@ import java.util.WeakHashMap;
 import java.security.AccessControlContext;
 import java.security.CodeSource;
 import java.security.ProtectionDomain;
+import java.io.FileDescriptor;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.PrintStream;
 import java.net.URL;
+import java.nio.charset.Charset;
+
 /*[IF Sidecar19-SE]*/
 import jdk.internal.ref.CleanerShutdown;
 import jdk.internal.ref.CleanerImpl;
@@ -83,6 +86,49 @@ final class J9VMInternals {
 	}
 
 	/*
+	 * Called after everything else is initialized.
+	 */
+	static void threadCompleteInitialization() {
+		/*[PR CMVC 99755] Implement -Djava.system.class.loader option */
+		Thread.currentThread().internalSetContextClassLoader(ClassLoader.getSystemClassLoader());
+		/*[IF JAVA_SPEC_VERSION > 8] */
+		jdk.internal.misc.VM.initLevel(4);
+		/*[ELSE] JAVA_SPEC_VERSION > 8 */
+		sun.misc.VM.booted();
+		/*[ENDIF] JAVA_SPEC_VERSION > 8 */
+		/*[IF Sidecar18-SE-OpenJ9 | (JAVA_SPEC_VERSION > 8)]*/
+		System.startSNMPAgent();
+		/*[ENDIF] Sidecar18-SE-OpenJ9 | (JAVA_SPEC_VERSION > 8) */
+
+		/*[IF JAVA_SPEC_VERSION >= 11] */
+		/* Although file.encoding is used to set the default Charset, some Charset's are not available
+		 * in the java.base module and so are not used at startup. There are additional Charset's in the
+		 * jdk.charsets module, which is only loaded later. This means the default Charset may not be the
+		 * same as file.encoding. Now that all modules and Charset's are available, check if the desired
+		 * encodings can be used for System.err and System.out.
+		 */
+		Properties props = System.internalGetProperties();
+		// If the sun.stderr.encoding was already set in System, don't change the encoding
+		if (!System.hasSetErrEncoding()) {
+			Charset stderrCharset = System.getCharset(props.getProperty("sun.stderr.encoding"), true); //$NON-NLS-1$
+			if (stderrCharset != null) {
+				System.err.flush();
+				System.setErr(System.createConsole(FileDescriptor.err, stderrCharset));
+			}
+		}
+
+		// If the sun.stdout.encoding was already set in System, don't change the encoding
+		if (!System.hasSetOutEncoding()) {
+			Charset stdoutCharset = System.getCharset(props.getProperty("sun.stdout.encoding"), true); //$NON-NLS-1$
+			if (stdoutCharset != null) {
+				System.out.flush();
+				System.setOut(System.createConsole(FileDescriptor.out, stdoutCharset));
+			}
+		}
+		/*[ENDIF] JAVA_SPEC_VERSION >= 11 */
+	}
+
+	/*
 	 * Called by the vm after everything else is initialized.
 	 */
 	private static void completeInitialization() {
@@ -90,39 +136,48 @@ final class J9VMInternals {
 		exceptions = new WeakHashMap();
 
 		ClassLoader.completeInitialization();
-		Thread.currentThread().completeInitialization();
+		threadCompleteInitialization();
 
 		/*[IF Sidecar19-SE]*/
-		if (Boolean.getBoolean("ibm.java9.forceCommonCleanerShutdown")) {//$NON-NLS-1$
-			Runnable runnable = () -> {
+		System.initGPUAssist();
 
+		if (Boolean.getBoolean("ibm.java9.forceCommonCleanerShutdown")) { //$NON-NLS-1$
+			Runnable runnable = () -> {
 				CleanerShutdown.shutdownCleaner();
 				ThreadGroup threadGroup = Thread.currentThread().group; // the system ThreadGroup
+				/*[IF OPENJDK_THREAD_SUPPORT]*/
+				ThreadGroup threadGroups[] = new ThreadGroup[threadGroup.ngroups];
+				/*[ELSE] OPENJDK_THREAD_SUPPORT
 				ThreadGroup threadGroups[] = new ThreadGroup[threadGroup.numGroups];
+				/*[ENDIF] OPENJDK_THREAD_SUPPORT */
 				threadGroup.enumerate(threadGroups, false); /* non-recursive enumeration */
 				for (ThreadGroup tg : threadGroups) {
 					if ("InnocuousThreadGroup".equals(tg.getName())) { //$NON-NLS-1$
+						/*[IF OPENJDK_THREAD_SUPPORT]*/
+						Thread threads[] = new Thread[tg.nthreads];
+						/*[ELSE] OPENJDK_THREAD_SUPPORT
 						Thread threads[] = new Thread[tg.numThreads];
+						/*[ENDIF] OPENJDK_THREAD_SUPPORT */
 						tg.enumerate(threads, false);
 						for (Thread t : threads) {
 							if (t.getName().equals("Common-Cleaner")) { //$NON-NLS-1$
 								t.interrupt();
-			 					try {
-			 						/* Need to wait for the Common-Cleaner thread to die before
-			 						 * continuing. If not this will result in a race condition where
-			 						 * the VM might attempt to shutdown before Common-Cleaner has a
-			 						 * chance to stop properly. This will result in an unsuccessful
-			 						 * shutdown and we will not release vm resources.
-			 						 */
-				 					 t.join(3000);
-				 					 /* giving this a 3sec timeout. If it works it should work fairly
-				 					  * quickly, 3 seconds should be more than enough time. If it doesn't
-				 					  * work it may block indefinitely. Turning on -verbose:shutdown will
-				 					  * let us know if it worked or not
-				 					  */
-			 					} catch (Throwable e) {
-			 						/* empty block */
-			 					}
+								try {
+									/* Need to wait for the Common-Cleaner thread to die before
+									 * continuing. If not this will result in a race condition where
+									 * the VM might attempt to shutdown before Common-Cleaner has a
+									 * chance to stop properly. This will result in an unsuccessful
+									 * shutdown and we will not release vm resources.
+									 */
+									t.join(3000);
+									/* giving this a 3sec timeout. If it works it should work fairly
+									 * quickly, 3 seconds should be more than enough time. If it doesn't
+									 * work it may block indefinitely. Turning on -verbose:shutdown will
+									 * let us know if it worked or not
+									 */
+								} catch (Throwable e) {
+									/* empty block */
+								}
 							}
 						}
 					}
@@ -130,7 +185,7 @@ final class J9VMInternals {
 			};
 			Runtime.getRuntime().addShutdownHook(new Thread(runnable, "CommonCleanerShutdown", true, false, false, null)); //$NON-NLS-1$
 		}
-		/*[ENDIF]*/
+		/*[ENDIF] Sidecar19-SE */
 	}
 
 	/**
@@ -184,6 +239,12 @@ final class J9VMInternals {
 			if (exceptions == null)
 				exceptions = new WeakHashMap();
 			synchronized(exceptions) {
+/*[IF JAVA_SPEC_VERSION >= 18]*/
+				if (!(err instanceof Error)) {
+					err = new ExceptionInInitializerError(err);
+				}
+				exceptions.put(clazz, new SoftReference(copyThrowable(err)));
+/*[ELSE] JAVA_SPEC_VERSION >= 18*/
 				Throwable cause = err;
 				if (err instanceof ExceptionInInitializerError) {
 					cause = ((ExceptionInInitializerError)err).getException();
@@ -193,6 +254,7 @@ final class J9VMInternals {
 					}
 				}
 				exceptions.put(clazz, new SoftReference(copyThrowable(cause)));
+/*[ENDIF] JAVA_SPEC_VERSION >= 18*/
 			}
 		}
 		ensureError(err);
@@ -310,12 +372,15 @@ final class J9VMInternals {
 		/*[PR 106323] -- remove might throw an exception, so make sure we finish the cleanup*/
 		try {
 			// Leave the ThreadGroup. This is why remove can't be private
+			/*[IF OPENJDK_THREAD_SUPPORT]*/
+			thread.group.threadTerminated(thread);
+			/*[ELSE] OPENJDK_THREAD_SUPPORT */
 			thread.group.remove(thread);
-		}
-		finally {
-			thread.cleanup();
+			/*[ENDIF] OPENJDK_THREAD_SUPPORT */
+		} finally {
+			thread.exit();
 
-			synchronized(thread) {
+			synchronized (thread) {
 				thread.notifyAll();
 			}
 		}

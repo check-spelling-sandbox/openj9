@@ -34,7 +34,7 @@ import java.lang.reflect.Field;
 public class ReceiverBoundHandleTest {
 
 	@Test(groups = { "level.extended" })
-	public void testIfRecieverBoundHandleTestIsJitted() throws Throwable {
+	public void testIfReceiverBoundHandleTestIsJitted() throws Throwable {
 		try {
 			TestClass_RBH clazz = new TestClass_RBH();
 			MethodHandle mh = MethodHandles.lookup().findVirtual(TestClass_RBH.class, "test", MethodType.methodType(void.class)).bindTo(clazz);

@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2017, 2021 IBM Corp. and others
+ * Copyright (c) 2017, 2022 IBM Corp. and others
  *
  * This program and the accompanying materials are made available under
  * the terms of the Eclipse Public License 2.0 which accompanies this
@@ -192,7 +192,7 @@ MM_MarkingDelegate::mainCleanupAfterGC(MM_EnvironmentBase *env)
 }
 
 void
-MM_MarkingDelegate::scanRoots(MM_EnvironmentBase *env)
+MM_MarkingDelegate::startRootListProcessing(MM_EnvironmentBase *env)
 {
 	/* Start unfinalized object and ownable synchronizer processing */
 	if (J9MODRON_HANDLE_NEXT_WORK_UNIT(env)) {
@@ -217,6 +217,14 @@ MM_MarkingDelegate::scanRoots(MM_EnvironmentBase *env)
 				}
 			}
 		}
+	}
+}
+
+void
+MM_MarkingDelegate::scanRoots(MM_EnvironmentBase *env, bool processLists)
+{
+	if (processLists) {
+		startRootListProcessing(env);
 	}
 
 	/* Reset MM_RootScanner base class for scanning */
@@ -335,6 +343,10 @@ MM_MarkingDelegate::completeMarking(MM_EnvironmentBase *env)
 											_markingScheme->markObjectNoCheck(env, (omrobjectptr_t )module->version);
 										}
 										modulePtr = (J9Module**)hashTableNextDo(&moduleWalkState);
+									}
+
+									if (classLoader == javaVM->systemClassLoader) {
+										_markingScheme->markObjectNoCheck(env, (omrobjectptr_t )javaVM->unamedModuleForSystemLoader->moduleObject);
 									}
 								}
 							}

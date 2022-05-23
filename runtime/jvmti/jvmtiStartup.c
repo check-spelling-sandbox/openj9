@@ -697,21 +697,21 @@ loadAgentLibrary(J9JavaVM * vm, J9JVMTIAgentLibrary * agentLibrary)
 	BOOLEAN found = FALSE;
 	const char *errorMessage = NULL;
 	char nameBuffer[J9JVMTI_BUFFER_LENGTH + 1] = {0};
-	UDATA nameBufferLengh = 0;
+	UDATA nameBufferLength = 0;
 
 	Trc_JVMTI_loadAgentLibrary_Entry(agentLibrary->nativeLib.name);
 
 	/* Attempt linking the agent statically, looking for Agent_OnLoad_L.  
 	 * If this is not found, fall back on the regular, dynamic linking way.
 	 */
-	nameBufferLengh = j9str_printf(
+	nameBufferLength = j9str_printf(
 							PORTLIB,
 							nameBuffer,
 							(J9JVMTI_BUFFER_LENGTH + 1),
 							"%s_%s",
 							J9JVMTI_AGENT_ONLOAD,
 							agentLibrary->nativeLib.name);
-	if (nameBufferLengh >= J9JVMTI_BUFFER_LENGTH) {
+	if (nameBufferLength >= J9JVMTI_BUFFER_LENGTH) {
 		result = JNI_ERR;
 		goto exit;
 	}

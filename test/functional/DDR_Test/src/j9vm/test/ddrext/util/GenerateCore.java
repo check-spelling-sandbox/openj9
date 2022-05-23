@@ -78,7 +78,7 @@ public class GenerateCore {
 						+ generatedCoreFile);
 			}
 		} else {
-			log.error("Please provide java_home and the locatin to store the generated core dump(option, the default location is java_home\\[platform])");
+			log.error("Please provide java_home and the location to store the generated core dump(option, the default location is java_home\\[platform])");
 		}
 	}
 

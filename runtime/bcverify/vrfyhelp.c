@@ -37,9 +37,9 @@
 #define J9CLASS_ARITY_FROM_CLASS_ENTRY(clazz)	(((clazz & BCV_ARITY_MASK) >> BCV_ARITY_SHIFT) + ((clazz & BCV_TAG_BASE_ARRAY_OR_NULL) >> 1))
 
 #define CLONEABLE_CLASS_NAME "java/lang/Cloneable"
-#define SERIALIZEABLE_CLASS_NAME "java/io/Serializable"
+#define SERIALIZABLE_CLASS_NAME "java/io/Serializable"
 #define CLONEABLE_CLASS_NAME_LENGTH (sizeof(CLONEABLE_CLASS_NAME) - 1)
-#define SERIALIZEABLE_CLASS_NAME_LENGTH (sizeof(SERIALIZEABLE_CLASS_NAME) - 1)
+#define SERIALIZABLE_CLASS_NAME_LENGTH (sizeof(SERIALIZABLE_CLASS_NAME) - 1)
 
 static VMINLINE UDATA compareTwoUTF8s (J9UTF8 * first, J9UTF8 * second);
 static UDATA addClassName (J9BytecodeVerificationData * verifyData, U_8 * name, UDATA length, UDATA index);
@@ -535,7 +535,7 @@ isClassCompatible(J9BytecodeVerificationData *verifyData, UDATA sourceClass, UDA
 		 *    which means targetClass must be one/array of Object, java/lang/Cloneable and java/io/Serializable.
 		 */
 		if (J9UTF8_DATA_EQUALS(targetName, targetLength, CLONEABLE_CLASS_NAME, CLONEABLE_CLASS_NAME_LENGTH)
-		||  J9UTF8_DATA_EQUALS(targetName, targetLength, SERIALIZEABLE_CLASS_NAME, SERIALIZEABLE_CLASS_NAME_LENGTH)
+		||  J9UTF8_DATA_EQUALS(targetName, targetLength, SERIALIZABLE_CLASS_NAME, SERIALIZABLE_CLASS_NAME_LENGTH)
 		) {
 			rc = isInterfaceClass(verifyData, targetName, targetLength, reasonCode);
 
@@ -970,7 +970,7 @@ isProtectedAccessPermitted(J9BytecodeVerificationData *verifyData, J9UTF8* decla
 		}
 		if (J9ROMCLASS_IS_HIDDEN(romClass)) {
 			/* j9rtv_verifierGetRAMClass won't find hidden classes. We are checking if the current class has access to
-			 * proected memeber of declaringClass. We can use the superclass of current class instead here. */
+			 * protected member of declaringClass. We can use the superclass of current class instead here. */
 			currentClassName = J9ROMCLASS_SUPERCLASSNAME(romClass);
 			if (compareTwoUTF8s(declaringClassName, currentClassName)) {
 				return TRUE;

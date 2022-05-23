@@ -48,7 +48,7 @@ public class FindInMemoryCommand extends Command
 	public FindInMemoryCommand()
 	{
 		addCommand("find", "<width|ascii pattern startaddr>", "Find first number or a search string in memory starting at an address");
-		addCommand("findall", "<width|ascii pattern startaddr>", "Find all occurances of number or a search string in memory starting at an address");
+		addCommand("findall", "<width|ascii pattern startaddr>", "Find all occurrences of number or a search string in memory starting at an address");
 		addCommand("findnext", "", "Find next match in the search initiated by find");
 	}
 

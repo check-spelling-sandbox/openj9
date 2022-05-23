@@ -1,6 +1,6 @@
 <?xml version='1.0' encoding='UTF-8'?>
 <!--
-Copyright (c) 2016, 2021 IBM Corp. and others
+Copyright (c) 2016, 2022 IBM Corp. and others
 
 This program and the accompanying materials are made available under
 the terms of the Eclipse Public License 2.0 which accompanies this
@@ -247,7 +247,9 @@ SPDX-License-Identifier: EPL-2.0 OR Apache-2.0 OR GPL-2.0 WITH Classpath-excepti
 			<version>9</version>
 			<version>11+</version>
 		</versions>
-		<aot>explicit</aot>
+		<features>
+			<feature>AOT:explicit</feature>
+		</features>
 	</test>
 	<test>
 		<testCaseName>shrtest_zos</testCaseName>
@@ -278,7 +280,9 @@ SPDX-License-Identifier: EPL-2.0 OR Apache-2.0 OR GPL-2.0 WITH Classpath-excepti
 			<version>9</version>
 			<version>11+</version>
 		</versions>
-		<aot>explicit</aot>
+		<features>
+			<feature>AOT:explicit</feature>
+		</features>
 	</test>
 	<test>
 		<testCaseName>shrtest_aix</testCaseName>
@@ -309,7 +313,9 @@ SPDX-License-Identifier: EPL-2.0 OR Apache-2.0 OR GPL-2.0 WITH Classpath-excepti
 			<version>9</version>
 			<version>11+</version>
 		</versions>
-		<aot>explicit</aot>
+		<features>
+			<feature>AOT:explicit</feature>
+		</features>
 	</test>
 	<test>
 		<testCaseName>shrtest_win</testCaseName>
@@ -339,7 +345,9 @@ SPDX-License-Identifier: EPL-2.0 OR Apache-2.0 OR GPL-2.0 WITH Classpath-excepti
 			<version>9</version>
 			<version>11+</version>
 		</versions>
-		<aot>explicit</aot>
+		<features>
+			<feature>AOT:explicit</feature>
+		</features>
 	</test>
 	<test>
 		<testCaseName>shrtest_linux_SE80</testCaseName>
@@ -369,7 +377,9 @@ SPDX-License-Identifier: EPL-2.0 OR Apache-2.0 OR GPL-2.0 WITH Classpath-excepti
 		<versions>
 			<version>8</version>
 		</versions>
-		<aot>explicit</aot>
+		<features>
+			<feature>AOT:explicit</feature>
+		</features>
 	</test>
 	<test>
 		<testCaseName>shrtest_zos_SE80</testCaseName>
@@ -399,10 +409,18 @@ SPDX-License-Identifier: EPL-2.0 OR Apache-2.0 OR GPL-2.0 WITH Classpath-excepti
 		<versions>
 			<version>8</version>
 		</versions>
-		<aot>explicit</aot>
+		<features>
+			<feature>AOT:explicit</feature>
+		</features>
 	</test>
 	<test>
 		<testCaseName>shrtest_aix_SE80</testCaseName>
+		<disables>
+			<disable>
+				<comment>runtimes/infrastructure/issues/5965</comment>
+				<impl>ibm</impl>
+			</disable>
+		</disables>
 		<variations>
 			<variation>Mode110</variation>
 			<variation>Mode610</variation>
@@ -429,7 +447,9 @@ SPDX-License-Identifier: EPL-2.0 OR Apache-2.0 OR GPL-2.0 WITH Classpath-excepti
 		<versions>
 			<version>8</version>
 		</versions>
-		<aot>explicit</aot>
+		<features>
+			<feature>AOT:explicit</feature>
+		</features>
 	</test>
 	<test>
 		<testCaseName>shrtest_win_SE80</testCaseName>
@@ -458,7 +478,9 @@ SPDX-License-Identifier: EPL-2.0 OR Apache-2.0 OR GPL-2.0 WITH Classpath-excepti
 		<versions>
 			<version>8</version>
 		</versions>
-		<aot>explicit</aot>
+		<features>
+			<feature>AOT:explicit</feature>
+		</features>
 	</test>
 	<test>
 		<testCaseName>thrstatetest</testCaseName>
@@ -516,7 +538,7 @@ SPDX-License-Identifier: EPL-2.0 OR Apache-2.0 OR GPL-2.0 WITH Classpath-excepti
 		</impls>
 	</test>
 	<test>
-		<testCaseName>vmLifecyleTests</testCaseName>
+		<testCaseName>vmLifecycleTests</testCaseName>
 		<disables>
 			<disable>
 				<comment>https://github.com/eclipse-openj9/openj9/issues/3561</comment>
@@ -531,7 +553,7 @@ SPDX-License-Identifier: EPL-2.0 OR Apache-2.0 OR GPL-2.0 WITH Classpath-excepti
 			<variation>Mode551</variation>
 		</variations>
 		<command>$(ADD_JVM_LIB_DIR_TO_LIBPATH) \
-	$(SQ)$(JAVA_SHARED_LIBRARIES_DIR)$(D)vmLifecyleTests$(SQ) $(JVM_OPTIONS) -Djava.home=$(SQ)$(TEST_JDK_HOME)$(D)jre$(D)$(SQ) -Dibm.java9.forceCommonCleanerShutdown=true ; \
+	$(SQ)$(JAVA_SHARED_LIBRARIES_DIR)$(D)vmLifecycleTests$(SQ) $(JVM_OPTIONS) -Djava.home=$(SQ)$(TEST_JDK_HOME)$(D)jre$(D)$(SQ) -Dibm.java9.forceCommonCleanerShutdown=true ; \
 	$(TEST_STATUS)</command>
 		<levels>
 			<level>extended</level>
@@ -551,7 +573,7 @@ SPDX-License-Identifier: EPL-2.0 OR Apache-2.0 OR GPL-2.0 WITH Classpath-excepti
 		</versions>
 	</test>
 	<test>
-		<testCaseName>vmLifecyleTests</testCaseName>
+		<testCaseName>vmLifecycleTests</testCaseName>
 		<disables>
 			<disable>
 				<comment>https://github.com/eclipse-openj9/openj9/issues/3561</comment>
@@ -566,7 +588,7 @@ SPDX-License-Identifier: EPL-2.0 OR Apache-2.0 OR GPL-2.0 WITH Classpath-excepti
 			<variation>Mode551</variation>
 		</variations>
 		<command>$(ADD_JVM_LIB_DIR_TO_LIBPATH) \
-	$(SQ)$(JAVA_SHARED_LIBRARIES_DIR)$(D)vmLifecyleTests$(SQ) $(JVM_OPTIONS) -Djava.home=$(SQ)$(TEST_JDK_HOME)$(D)$(SQ) -Dibm.java9.forceCommonCleanerShutdown=true ; \
+	$(SQ)$(JAVA_SHARED_LIBRARIES_DIR)$(D)vmLifecycleTests$(SQ) $(JVM_OPTIONS) -Djava.home=$(SQ)$(TEST_JDK_HOME)$(D)$(SQ) -Dibm.java9.forceCommonCleanerShutdown=true ; \
 	$(TEST_STATUS)</command>
 		<levels>
 			<level>extended</level>
@@ -605,8 +627,5 @@ SPDX-License-Identifier: EPL-2.0 OR Apache-2.0 OR GPL-2.0 WITH Classpath-excepti
 			<impl>openj9</impl>
 			<impl>ibm</impl>
 		</impls>
-		<versions>
-			<version>8+</version>
-		</versions>
 	</test>
 </playlist>

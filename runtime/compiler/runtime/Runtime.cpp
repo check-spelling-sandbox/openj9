@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2000, 2021 IBM Corp. and others
+ * Copyright (c) 2000, 2022 IBM Corp. and others
  *
  * This program and the accompanying materials are made available under
  * the terms of the Eclipse Public License 2.0 which accompanies this
@@ -37,12 +37,16 @@
 #include "jitprotos.h"
 #include "rommeth.h"
 #include "emfloat.h"
+#include "env/FilePointer.hpp"
 #include "env/FrontEnd.hpp"
 #include "codegen/PreprologueConst.hpp"
 #include "codegen/PrivateLinkage.hpp"
+#include "control/CompilationThread.hpp"
 #include "control/Recompilation.hpp"
 #include "control/RecompilationInfo.hpp"
 #include "env/jittypes.h"
+#include "infra/String.hpp"
+#include "runtime/CodeRuntime.hpp"
 #include "runtime/CodeCacheManager.hpp"
 #include "runtime/RuntimeAssumptions.hpp"
 #include "runtime/asmprotos.h"
@@ -584,6 +588,8 @@ JIT_HELPER(_interpreterUnresolvedInstanceDataGlue);
 JIT_HELPER(_interpreterUnresolvedInstanceDataStoreGlue);
 JIT_HELPER(_virtualUnresolvedHelper);
 JIT_HELPER(_interfaceCallHelper);
+JIT_HELPER(_interfaceCompleteSlot2);
+JIT_HELPER(_interfaceSlotsUnavailable);
 JIT_HELPER(icallVMprJavaSendVirtual0);
 JIT_HELPER(icallVMprJavaSendVirtual1);
 JIT_HELPER(icallVMprJavaSendVirtualJ);
@@ -600,10 +606,18 @@ JIT_HELPER(_interpreterSyncFloatStaticGlue);
 JIT_HELPER(_interpreterDoubleStaticGlue);
 JIT_HELPER(_interpreterSyncDoubleStaticGlue);
 JIT_HELPER(_nativeStaticHelper);
-JIT_HELPER(_interfaceDispatch);
 JIT_HELPER(__arrayCopy);
 JIT_HELPER(__forwardArrayCopy);
 JIT_HELPER(__backwardArrayCopy);
+JIT_HELPER(__fwHalfWordArrayCopy);
+JIT_HELPER(__fwWordArrayCopy);
+JIT_HELPER(__fwDoubleWordArrayCopy);
+JIT_HELPER(__fwQuadWordArrayCopy);
+JIT_HELPER(__bwHalfWordArrayCopy);
+JIT_HELPER(__bwWordArrayCopy);
+JIT_HELPER(__bwDoubleWordArrayCopy);
+JIT_HELPER(__bwQuadWordArrayCopy);
+JIT_HELPER(_patchGCRHelper);
 
 #elif defined(TR_HOST_S390)
 JIT_HELPER(__double2Long);
@@ -644,6 +658,8 @@ JIT_HELPER(_jitResolveConstantDynamic);
 JIT_HELPER(_nativeStaticHelper);
 JIT_HELPER(_interpreterStaticSpecialCallGlue);
 JIT_HELPER(jitLookupInterfaceMethod);
+JIT_HELPER(jitLookupDynamicInterfaceMethod);
+JIT_HELPER(jitLookupDynamicPublicInterfaceMethod);
 JIT_HELPER(jitMethodIsNative);
 JIT_HELPER(jitMethodIsSync);
 JIT_HELPER(jitPreJNICallOffloadCheck);
@@ -685,7 +701,7 @@ static void initS390ArrayCopyTable(uint8_t* code)
    // Linkage:  R14 is the return address
    //           R0 may be clobbered as part of the call
    //           R1,R2 are the dest/src arrays
-   static const uint8_t templat3[]     =
+   static const uint8_t template3[]     =
                                       "\xD2\x00\x10\x00\x20\x00"  // MVC 0(x,R1),0(R2)
                                       "\x07\xFE\x00\x00"          // BR R14
                                       "\x00\x00\x00\x00"
@@ -700,7 +716,7 @@ static void initS390ArrayCopyTable(uint8_t* code)
    memcpy(code, zeroTemplate, 16);
    for (int i=1; i<256; ++i)
       {
-      memcpy(&code[i<<4], templat3, 16);
+      memcpy(&code[i<<4], template3, 16);
       code[(i<<4) + 1] = (i-1);
       }
    }
@@ -712,7 +728,7 @@ static void initS390ArraySetZeroTable(uint8_t* code)
    // Linkage:  R14 is the return address
    //           R0 may be clobbered as part of the call
    //           R1 is the storage to clear
-   static const uint8_t templat3[]     =
+   static const uint8_t template3[]     =
                                       "\xD7\x00\x10\x00\x10\x00"  // XC 0(x,R1),0(R1)
                                       "\x07\xFE"                  // BR R14
                                       "\x00\x00\x00\x00"
@@ -727,7 +743,7 @@ static void initS390ArraySetZeroTable(uint8_t* code)
    memcpy(code, zeroTemplate, 16);
    for (int i=1; i<256; ++i)
       {
-      memcpy(&code[i<<4], templat3, 16);
+      memcpy(&code[i<<4], template3, 16);
       code[(i<<4) + 1] = (i-1);
       }
    }
@@ -740,7 +756,7 @@ static void initS390ArraySetGeneralTable(uint8_t* code)
    //           R0 may be clobbered as part of the call
    //           R1 is the storage to clear
    //           R2 contains the byte value
-   static const uint8_t templat3[]     =
+   static const uint8_t template3[]     =
                                       "\x42\x20\x10\x00"          // STC R2,0(,R1)
                                       "\xD2\x00\x10\x01\x10\x00"  // MVC 0(x,R1),1(R1)
                                       "\x07\xFE"                  // BR R14
@@ -761,7 +777,7 @@ static void initS390ArraySetGeneralTable(uint8_t* code)
    memcpy(&code[16], oneTemplate, 16);
    for (int i=2; i<256; ++i)
       {
-      memcpy(&code[i<<4], templat3, 16);
+      memcpy(&code[i<<4], template3, 16);
       code[(i<<4) + 5] = (i-2);
       }
    }
@@ -774,7 +790,7 @@ static void initS390ArrayCmpTable(uint8_t* code)
    //           R1,R2 are the dest/src arrays on input
    //           R0 may be clobbered as part of the call
    //           CC is set based on CLC operation for perusal from mainline code
-   static const uint8_t templat3[]     =
+   static const uint8_t template3[]     =
                                       "\xD5\x00\x10\x00\x20\x00"  // CLC 0(x,R1),0(R2)
                                       "\x07\xFE\x00\x00"          // BR R14
                                       "\x00\x00\x00\x00"
@@ -790,7 +806,7 @@ static void initS390ArrayCmpTable(uint8_t* code)
    memcpy(code, zeroTemplate, 16);
    for (int i=1; i<256; ++i)
       {
-      memcpy(&code[i<<4], templat3, 16);
+      memcpy(&code[i<<4], template3, 16);
       code[(i<<4) + 1] = (i-1);
       }
    }
@@ -805,7 +821,7 @@ static void initS390ArrayTranslateAndTestTable(uint8_t* code)
    //           R3 is the table address of TRT's input
    //           R0 may be clobbered as part of the call
    //           CC is set based on CLC operation for perusal from mainline code
-   static const uint8_t templat3[]     =
+   static const uint8_t template3[]     =
                                       "\xDD\x00\x10\x00\x30\x00"  // TRT 0(x,R1),0(R3)
                                       "\x07\xFE\x00\x00"          // BR R14
                                       "\x00\x00\x00\x00"
@@ -820,7 +836,7 @@ static void initS390ArrayTranslateAndTestTable(uint8_t* code)
    memcpy(code, zeroTemplate, 16);
    for (int i=1; i<256; ++i)
       {
-      memcpy(&code[i<<4], templat3, 16);
+      memcpy(&code[i<<4], template3, 16);
       code[(i<<4) + 1] = (i-1);
       }
    }
@@ -833,7 +849,7 @@ static void initS390Long2StringTable(uint8_t* code)
    //           R1 is the start address of UNPKU's input
    //           R2 is the start address of UNPKU's output
    //           CC is modified by UNPKU
-   static const uint8_t templat3[]     =
+   static const uint8_t template3[]     =
                                       "\xE2\x00\x20\x00\x10\x00"  // UNPKU 0(x,R2),0(R1)
                                       "\x07\xFE\x00\x00"          // BR R14
                                       "\x00\x00\x00\x00"
@@ -849,7 +865,7 @@ static void initS390Long2StringTable(uint8_t* code)
    memcpy(code, zeroTemplate, 16);
    for (int i=1; i<256; ++i)
       {
-      memcpy(&code[i<<4], templat3, 16);
+      memcpy(&code[i<<4], template3, 16);
       code[(i<<4) + 1] = (i << 1) - 1;
       }
    }
@@ -861,7 +877,7 @@ static void initS390ArrayBitOpMemTable(uint8_t* code, uint8_t opcode)
    // Linkage:  R14 is the return address
    //           R0 may be clobbered as part of the call
    //           R1,R2 are the dest/src arrays
-   static uint8_t templat3[]     =
+   static uint8_t template3[]     =
                                       "\x00\x00\x10\x00\x20\x00"  // SSInstruction 0(x,R1),0(R2)
                                       "\x07\xFE\x00\x00"          // BR R14
                                       "\x00\x00\x00\x00"
@@ -872,11 +888,11 @@ static void initS390ArrayBitOpMemTable(uint8_t* code, uint8_t opcode)
                                       "\x00\x00\x00\x00"
                                       "\x00\x00\x00\x00";
 
-   templat3[0] = opcode;
+   template3[0] = opcode;
    memcpy(code, zeroTemplate, 16);
    for (int i=1; i<256; ++i)
       {
-      memcpy(&code[i<<4], templat3, 16);
+      memcpy(&code[i<<4], template3, 16);
       code[(i<<4) + 1] = (i-1);
       }
    }
@@ -1059,9 +1075,13 @@ void initializeCodeRuntimeHelperTable(J9JITConfig *jitConfig, char isSMP)
    SET(TR_ldFlattenableArrayElement,        (void *)jitLoadFlattenableArrayElement, TR_Helper);
    SET(TR_strFlattenableArrayElement,        (void *)jitStoreFlattenableArrayElement, TR_Helper);
 
-   SET(TR_acmpHelper,                  (void *)jitAcmpHelper, TR_Helper);
+   SET(TR_acmpeqHelper,               (void *)jitAcmpeqHelper, TR_Helper);
+   SET(TR_acmpneHelper,               (void *)jitAcmpneHelper, TR_Helper);
    SET(TR_multiANewArray,             (void *)jitAMultiNewArray, TR_Helper);
    SET(TR_aThrow,                     (void *)jitThrowException, TR_Helper);
+
+   SET(TR_jitLookupDynamicInterfaceMethod, (void *)jitLookupDynamicInterfaceMethod, TR_Helper);
+   SET(TR_jitLookupDynamicPublicInterfaceMethod, (void *)jitLookupDynamicPublicInterfaceMethod, TR_Helper);
 
    SET(TR_nullCheck,                  (void *)jitThrowNullPointerException,          TR_Helper);
    SET(TR_methodTypeCheck,            (void *)jitThrowWrongMethodTypeException,      TR_Helper);
@@ -1579,13 +1599,23 @@ void initializeCodeRuntimeHelperTable(J9JITConfig *jitConfig, char isSMP)
    SET(TR_ARM64interpreterDoubleStaticGlue,       (void *) _interpreterDoubleStaticGlue,     TR_Helper);
    SET(TR_ARM64interpreterSyncDoubleStaticGlue,   (void *) _interpreterSyncDoubleStaticGlue, TR_Helper);
    SET(TR_ARM64nativeStaticHelper,                (void *) _nativeStaticHelper,              TR_Helper);
-   SET(TR_ARM64interfaceDispatch,                 (void *) _interfaceDispatch,               TR_Helper);
+   SET(TR_ARM64interfaceCompleteSlot2,            (void *) _interfaceCompleteSlot2,           TR_Helper);
+   SET(TR_ARM64interfaceSlotsUnavailable,         (void *) _interfaceSlotsUnavailable,       TR_Helper);
    SET(TR_ARM64floatRemainder,                    (void *) helperCFloatRemainderFloat,       TR_Helper);
    SET(TR_ARM64doubleRemainder,                   (void *) helperCDoubleRemainderDouble,     TR_Helper);
    SET(TR_ARM64jitCollapseJNIReferenceFrame,      (void *) jitCollapseJNIReferenceFrame,     TR_Helper);
    SET(TR_ARM64arrayCopy,                         (void *) __arrayCopy,                      TR_Helper);
    SET(TR_ARM64forwardArrayCopy,                  (void *) __forwardArrayCopy,               TR_Helper);
    SET(TR_ARM64backwardArrayCopy,                 (void *) __backwardArrayCopy,              TR_Helper);
+   SET(TR_ARM64forwardQuadWordArrayCopy,          (void *) __fwQuadWordArrayCopy,            TR_Helper);
+   SET(TR_ARM64forwardDoubleWordArrayCopy,        (void *) __fwDoubleWordArrayCopy,          TR_Helper);
+   SET(TR_ARM64forwardWordArrayCopy,              (void *) __fwWordArrayCopy,                TR_Helper);
+   SET(TR_ARM64forwardHalfWordArrayCopy,          (void *) __fwHalfWordArrayCopy,            TR_Helper);
+   SET(TR_ARM64backwardQuadWordArrayCopy,         (void *) __bwQuadWordArrayCopy,             TR_Helper);
+   SET(TR_ARM64backwardDoubleWordArrayCopy,       (void *) __bwDoubleWordArrayCopy,          TR_Helper);
+   SET(TR_ARM64backwardWordArrayCopy,             (void *) __bwWordArrayCopy,                TR_Helper);
+   SET(TR_ARM64backwardHalfWordArrayCopy,         (void *) __bwHalfWordArrayCopy,            TR_Helper);
+   SET(TR_ARM64PatchGCRHelper,                    (void *) _patchGCRHelper,                  TR_Helper);
 
 #elif defined(TR_HOST_S390)
    SET(TR_S390double2Long,                                (void *) 0,                                              TR_Helper);
@@ -2106,4 +2136,48 @@ bool isOrderedPair(U_8 recordType)
    return isOrderedPair;
    }
 
+void rtlogPrint(J9JITConfig *jitConfig, TR::CompilationInfoPerThread *compInfoPT, const char *buffer, bool locked)
+   {
+   TR::FILE *rtFile = compInfoPT ? compInfoPT->getRTLogFile() : NULL;
+   if (rtFile)
+      {
+      j9jit_fprintf(rtFile, "%s", buffer);
+      }
+   else
+      {
+      if (locked)
+         JITRT_LOCK_LOG(jitConfig);
+      JITRT_PRINTF(jitConfig)(jitConfig, "%s", buffer);
+      if (locked)
+         JITRT_UNLOCK_LOG(jitConfig);
+      }
+   }
 
+void rtlogPrintLocked(J9JITConfig *jitConfig, TR::CompilationInfoPerThread *compInfoPT, const char *buffer)
+   {
+   rtlogPrint(jitConfig, compInfoPT, buffer, true);
+   }
+
+void rtlogPrintf(J9JITConfig *jitConfig, TR::CompilationInfoPerThread *compInfoPT, const char *format, ...)
+   {
+   char buffer[512];
+
+   va_list args;
+   va_start(args, format);
+   TR::vsnprintfTrunc(buffer, sizeof(buffer), format, args);
+   va_end(args);
+
+   rtlogPrint(jitConfig, compInfoPT, buffer);
+   }
+
+void rtlogPrintfLocked(J9JITConfig *jitConfig, TR::CompilationInfoPerThread *compInfoPT, const char *format, ...)
+   {
+   char buffer[512];
+
+   va_list args;
+   va_start(args, format);
+   TR::vsnprintfTrunc(buffer, sizeof(buffer), format, args);
+   va_end(args);
+
+   rtlogPrintLocked(jitConfig, compInfoPT, buffer);
+   }

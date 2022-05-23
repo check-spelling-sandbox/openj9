@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2018, 2021 IBM Corp. and others
+ * Copyright (c) 2018, 2022 IBM Corp. and others
  *
  * This program and the accompanying materials are made available under
  * the terms of the Eclipse Public License 2.0 which accompanies this
@@ -203,19 +203,19 @@ TR_Listener::serveRemoteCompilationRequests(BaseCompileDispatcher *compiler)
 
    // see `man 7 socket` for option explanations
    int flag = true;
-   if (setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, (void *)&flag, sizeof(flag)) < 0)
+   if (setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &flag, sizeof(flag)) < 0)
       {
       perror("Can't set SO_REUSEADDR");
       exit(1);
       }
-   if (setsockopt(sockfd, SOL_SOCKET, SO_KEEPALIVE, (void *)&flag, sizeof(flag)) < 0)
+   if (setsockopt(sockfd, SOL_SOCKET, SO_KEEPALIVE, &flag, sizeof(flag)) < 0)
       {
       perror("Can't set SO_KEEPALIVE");
       exit(1);
       }
 
    struct sockaddr_in serv_addr;
-   memset((char *)&serv_addr, 0, sizeof(serv_addr));
+   memset(&serv_addr, 0, sizeof(serv_addr));
    serv_addr.sin_family = AF_INET;
    serv_addr.sin_addr.s_addr = htonl(INADDR_ANY);
    serv_addr.sin_port = htons(port);
@@ -277,19 +277,20 @@ TR_Listener::serveRemoteCompilationRequests(BaseCompileDispatcher *compiler)
                {
                if (TR::Options::getVerboseOption(TR_VerboseJITServer))
                   {
-                  TR_VerboseLog::writeLineLocked(TR_Vlog_JITServer, "Error accepting connection: errno=%d", errno);
+                  TR_VerboseLog::writeLineLocked(TR_Vlog_JITServer, "Error accepting connection: errno=%d: %s",
+                                                 errno, strerror(errno));
                   }
                }
             }
          else
             {
-            struct timeval timeoutMsForConnection = {(timeoutMs / 1000), ((timeoutMs % 1000) * 1000)};
-            if (setsockopt(connfd, SOL_SOCKET, SO_RCVTIMEO, (void *)&timeoutMsForConnection, sizeof(timeoutMsForConnection)) < 0)
+            struct timeval timeout = { timeoutMs / 1000, (timeoutMs % 1000) * 1000 };
+            if (setsockopt(connfd, SOL_SOCKET, SO_RCVTIMEO, &timeout, sizeof(timeout)) < 0)
                {
                perror("Can't set option SO_RCVTIMEO on connfd socket");
                exit(1);
                }
-            if (setsockopt(connfd, SOL_SOCKET, SO_SNDTIMEO, (void *)&timeoutMsForConnection, sizeof(timeoutMsForConnection)) < 0)
+            if (setsockopt(connfd, SOL_SOCKET, SO_SNDTIMEO, &timeout, sizeof(timeout)) < 0)
                {
                perror("Can't set option SO_SNDTIMEO on connfd socket");
                exit(1);
@@ -343,6 +344,48 @@ static int32_t J9THREAD_PROC listenerThreadProc(void * entryarg)
       return JNI_ERR; // attaching the JITServer Listener thread failed
 
    j9thread_set_name(j9thread_self(), "JITServer Listener");
+
+   if (TR::Options::isAnyVerboseOptionSet())
+      {
+      OMRPORT_ACCESS_FROM_J9PORT(PORTLIB);
+      char timestamp[32];
+      char zoneName[32];
+      int32_t zoneSecondsEast = 0;
+      TR_VerboseLog::CriticalSection vlogLock;
+
+      omrstr_ftime_ex(timestamp, sizeof(timestamp), "%b %d %H:%M:%S %Y", j9time_current_time_millis(), OMRSTR_FTIME_FLAG_LOCAL);
+      TR_VerboseLog::writeLine(TR_Vlog_INFO, "StartTime: %s", timestamp);
+
+      TR_VerboseLog::write(TR_Vlog_INFO, "TimeZone: ");
+      if (0 != omrstr_current_time_zone(&zoneSecondsEast, zoneName, sizeof(zoneName)))
+         {
+         TR_VerboseLog::write("(unavailable)");
+         }
+      else
+         {
+         /* Write UTC[+/-]hr:min (zoneName) to the log. */
+         TR_VerboseLog::write("UTC");
+
+         if (0 != zoneSecondsEast)
+            {
+            const char *format = (zoneSecondsEast > 0) ? "+%d" : "-%d";
+            int32_t offset = ((zoneSecondsEast > 0) ? zoneSecondsEast : -zoneSecondsEast) / 60;
+            int32_t hours = offset / 60;
+            int32_t minutes = offset % 60;
+
+            TR_VerboseLog::write(format, hours);
+            if (0 != minutes)
+               {
+               TR_VerboseLog::write(":%02d", minutes);
+               }
+            }
+         if ('\0' != *zoneName)
+            {
+            TR_VerboseLog::write(" (%s)", zoneName);
+            }
+         TR_VerboseLog::write("\n");
+         }
+      }
 
    J9CompileDispatcher handler(jitConfig);
    listener->serveRemoteCompilationRequests(&handler);

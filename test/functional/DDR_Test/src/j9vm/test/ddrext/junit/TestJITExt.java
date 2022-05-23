@@ -95,13 +95,13 @@ public class TestJITExt extends DDRExtTesterBase {
 
 		String jitstackOutput = exec(Constants.JITSTACK_CMD,
 				new String[] { args });
-		String jitstacklotsOutput = exec(Constants.JITSTACKSLOTS_CMD,
+		String jitstackslotsOutput = exec(Constants.JITSTACKSLOTS_CMD,
 				new String[] { args });
 		String jitmetadatafrompcOutput = exec(Constants.JITMETADATAFROMPC,
 				new String[] { pc });
 		assertTrue(validate(jitstackOutput, Constants.JIT_CMD_SUCCESS_KEY,
 				Constants.JIT_CMD_FAILURE_KEY, true));
-		assertTrue(validate(jitstacklotsOutput, Constants.JIT_CMD_SUCCESS_KEY,
+		assertTrue(validate(jitstackslotsOutput, Constants.JIT_CMD_SUCCESS_KEY,
 				Constants.JIT_CMD_FAILURE_KEY, true));
 		assertTrue(validate(jitmetadatafrompcOutput,
 				Constants.JITMETADATAFROMPC_SUCCESS_KEY,

@@ -610,7 +610,7 @@ public class LookupAPITests_Unreflect {
 	 */
 	@Test(groups = { "level.extended" })
 	@SuppressWarnings({ "rawtypes", "unchecked" })
-	public void test_Unreflect_Special_Public_SamePackage_Overriddden() throws Throwable {
+	public void test_Unreflect_Special_Public_SamePackage_Overridden() throws Throwable {
 		Class clazz = Class.forName( "com.ibm.j9.jsr292.SamePackageExampleSubclass" );
 		Method m = clazz.getDeclaredMethod( "addProtected", int.class, int.class );
 		boolean iaeThrown = false;
@@ -762,7 +762,7 @@ public class LookupAPITests_Unreflect {
 	 */
 	@Test(groups = { "level.extended" })
 	@SuppressWarnings({ "rawtypes", "unchecked" })
-	public void test_Unreflect_Special_Public_CrossPackage_Overriddden() throws Throwable {
+	public void test_Unreflect_Special_Public_CrossPackage_Overridden() throws Throwable {
 		Class clazz = Class.forName( "com.ibm.j9.jsr292.CrossPackageExampleSubclass" );
 		Method m = clazz.getDeclaredMethod( "addProtected", int.class, int.class );
 		boolean iaeThrown = false;
@@ -1275,7 +1275,7 @@ public class LookupAPITests_Unreflect {
 		
 		try {
 			level2InnerClassLookup.unreflect( innerclassMethod_Level1 );
-			System.out.println("IllegalAccessExcetpion NOT thrown while attempting to unreflect a protected inner class " +
+			System.out.println("IllegalAccessException NOT thrown while attempting to unreflect a protected inner class " +
 					"method from a different class");
 		} catch ( IllegalAccessException e ) {
 			illegalAccessException = true;

@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2000, 2021 IBM Corp. and others
+ * Copyright (c) 2000, 2022 IBM Corp. and others
  *
  * This program and the accompanying materials are made available under
  * the terms of the Eclipse Public License 2.0 which accompanies this
@@ -90,7 +90,7 @@ void *operator new(size_t size)
 
 // Avoid -Wimplicit-exception-spec-mismatch error on platforms that specify the global delete operator with throw()
 #ifndef _NOEXCEPT
-#define _NOEXCEPT 
+#define _NOEXCEPT
 #endif
 
 /**
@@ -192,9 +192,14 @@ J9::Compilation::Compilation(int32_t id,
    _remoteCompilation(false),
    _serializedRuntimeAssumptions(getTypedAllocator<SerializedRuntimeAssumption *>(self()->allocator())),
    _clientData(NULL),
+   _stream(NULL),
    _globalMemory(*::trPersistentMemory, heapMemoryRegion),
    _perClientMemory(_trMemory),
    _methodsRequiringTrampolines(getTypedAllocator<TR_OpaqueMethodBlock *>(self()->allocator())),
+   _deserializedAOTMethod(false),
+   _deserializedAOTMethodUsingSVM(false),
+   _aotCacheStore(false),
+   _serializationRecords(decltype(_serializationRecords)::allocator_type(heapMemoryRegion)),
 #endif /* defined(J9VM_OPT_JITSERVER) */
    _osrProhibitedOverRangeOfTrees(false)
    {
@@ -216,7 +221,7 @@ J9::Compilation::Compilation(int32_t id,
       _cachedClassPointers[i] = NULL;
 
 
-   // Add known object index to parm 0 so that other optmizations can be unlocked.
+   // Add known object index to parm 0 so that other optimizations can be unlocked.
    // It is safe to do so because method and method symbols of a archetype specimen
    // are not shared other methods.
    //
@@ -324,9 +329,12 @@ J9::Compilation::allocateCompYieldStatsMatrix()
 void
 J9::Compilation::printCompYieldStats()
    {
-   TR_VerboseLog::writeLine(TR_Vlog_PERF, "Max yield-to-yield time of %u usec for ", static_cast<uint32_t>(_maxYieldInterval));
-   TR_VerboseLog::write("%s -", J9::Compilation::getContextName(_sourceContextForMaxYieldInterval));
-   TR_VerboseLog::write("- %s", J9::Compilation::getContextName(_destinationContextForMaxYieldInterval));
+   TR_VerboseLog::writeLine(
+      TR_Vlog_PERF,
+      "Max yield-to-yield time of %u usec for %s -- %s",
+      static_cast<uint32_t>(_maxYieldInterval),
+      J9::Compilation::getContextName(_sourceContextForMaxYieldInterval),
+      J9::Compilation::getContextName(_destinationContextForMaxYieldInterval));
    }
 
 const char *
@@ -391,7 +399,7 @@ J9::Compilation::findNullChkInfo(TR::Node *node)
          break;
          }
       }
-   TR_ASSERT(newNode, "checkcastAndNullChk node doesnt have a corresponding null chk bytecodeinfo\n");
+   TR_ASSERT(newNode, "checkcastAndNullChk node doesn't have a corresponding null chk bytecodeinfo\n");
    return newNode;
    }
 
@@ -719,10 +727,10 @@ J9::Compilation::canAllocateInline(TR::Node* node, TR_OpaqueClassBlock* &classIn
       if (clazz == NULL)
          return -1;
 
-      // Arrays of value type classes must have all their elements initialized with the
+      // Arrays of primitive value type classes must have all their elements initialized with the
       // default value of the component type.  For now, prevent inline allocation of them.
       //
-      if (areValueTypesEnabled && TR::Compiler->cls.isValueTypeClass(reinterpret_cast<TR_OpaqueClassBlock*>(clazz)))
+      if (areValueTypesEnabled && TR::Compiler->cls.isPrimitiveValueTypeClass(reinterpret_cast<TR_OpaqueClassBlock*>(clazz)))
          {
          return -1;
          }
@@ -1561,3 +1569,14 @@ J9::Compilation::incompleteOptimizerSupportForReadWriteBarriers()
    return self()->getOption(TR_EnableFieldWatch);
    }
 
+#if defined(J9VM_OPT_JITSERVER)
+void
+J9::Compilation::addSerializationRecord(const AOTCacheRecord *record, uintptr_t reloDataOffset)
+   {
+   TR_ASSERT_FATAL(_aotCacheStore, "Trying to add serialization record for compilation that is not an AOT cache store");
+   if (record)
+      _serializationRecords.push_back({ record, reloDataOffset });
+   else
+      _aotCacheStore = false;// Serialization failed; method won't be stored in AOT cache
+   }
+#endif /* defined(J9VM_OPT_JITSERVER) */

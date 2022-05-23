@@ -42,7 +42,7 @@
  *  2. Nodes with known object index
  *  3. Nodes whose value can be compile-time inferred and is a known object
  *
- * We'd like the object info be avaliable at places where we want to do transformation,
+ * We'd like the object info be available at places where we want to do transformation,
  * however, the objects will be stored into autos and autos will be used instead of
  * nodes with known object index. Thus we need to track the object info while walking
  * the trees.
@@ -87,7 +87,7 @@ class TR_MethodHandleTransformer : public TR::Optimization
    //
    void mergeObjectInfo(ObjectInfo *first, ObjectInfo *second);
 
-   // Obect info at method entry or first block of the method
+   // Object info at method entry or first block of the method
    // The object info comes from prex arg info
    //
    ObjectInfo* getMethodEntryObjectInfo();
@@ -107,7 +107,7 @@ class TR_MethodHandleTransformer : public TR::Optimization
    //
    TR::KnownObjectTable::Index getObjectInfoOfNode(TR::Node* node);
 
-   // The folowing visit functions will visit different types of node, update object info,
+   // The following visit functions will visit different types of node, update object info,
    // and/or do transformations
    //
    void visitIndirectLoad(TR::TreeTop* tt, TR::Node* node);

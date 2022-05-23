@@ -1,4 +1,4 @@
-dnl Copyright (c) 2017, 2021 IBM Corp. and others
+dnl Copyright (c) 2017, 2022 IBM Corp. and others
 dnl
 dnl This program and the accompanying materials are made available under
 dnl the terms of the Eclipse Public License 2.0 which accompanies this
@@ -408,7 +408,8 @@ SLOW_PATH_ONLY_HELPER_NO_RETURN_VALUE(jitReportInstanceFieldRead,2)
 SLOW_PATH_ONLY_HELPER_NO_RETURN_VALUE(jitReportInstanceFieldWrite,3)
 SLOW_PATH_ONLY_HELPER_NO_RETURN_VALUE(jitReportStaticFieldRead,1)
 SLOW_PATH_ONLY_HELPER_NO_RETURN_VALUE(jitReportStaticFieldWrite,2)
-FAST_PATH_ONLY_HELPER(jitAcmpHelper,2)
+FAST_PATH_ONLY_HELPER(jitAcmpeqHelper,2)
+FAST_PATH_ONLY_HELPER(jitAcmpneHelper,2)
 OLD_DUAL_MODE_HELPER(jitGetFlattenableField,2)
 OLD_DUAL_MODE_HELPER(jitCloneValueType, 1)
 OLD_DUAL_MODE_HELPER(jitWithFlattenableField,3)
@@ -418,6 +419,8 @@ OLD_DUAL_MODE_HELPER_NO_RETURN_VALUE(jitPutFlattenableStaticField,3)
 OLD_DUAL_MODE_HELPER(jitLoadFlattenableArrayElement,2)
 OLD_DUAL_MODE_HELPER_NO_RETURN_VALUE(jitStoreFlattenableArrayElement,3)
 SLOW_PATH_ONLY_HELPER_NO_RETURN_VALUE(jitResolveFlattenableField,3)
+FAST_PATH_ONLY_HELPER(jitLookupDynamicInterfaceMethod,3)
+OLD_DUAL_MODE_HELPER(jitLookupDynamicPublicInterfaceMethod,3)
 
 dnl Trap handlers
 
@@ -1048,10 +1051,13 @@ START_PROC(jitReferenceArrayCopy)
 	mov PARM_REG(2),_rcx
 	mov PARM_REG(1),_rbp
 	call FASTCALL_SYMBOL(impl_jitReferenceArrayCopy,2)
-	dnl set ZF if succeed
-	test _rax,_rax
+	dnl Save return value to check later.
+	dnl We don't check it now because restoring the register clobbers flags.
+	mov dword ptr J9TR_VMThread_floatTemp3[_rbp],eax
 	RESTORE_C_VOLATILE_REGS
 	SWITCH_TO_JAVA_STACK
+	dnl Set ZF on success.
+	test dword ptr J9TR_VMThread_floatTemp3[_rbp], -1
 	push uword ptr J9TR_VMThread_jitReturnAddress[_rbp]
 	ret
 END_PROC(jitReferenceArrayCopy)

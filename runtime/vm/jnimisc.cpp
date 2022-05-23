@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2012, 2021 IBM Corp. and others
+ * Copyright (c) 2012, 2022 IBM Corp. and others
  *
  * This program and the accompanying materials are made available under
  * the terms of the Eclipse Public License 2.0 which accompanies this
@@ -74,6 +74,7 @@ javaOffloadSwitchOnWithReason(J9VMThread *currentThread, UDATA reason)
 		if (0 == currentThread->javaOffloadState) {
 			vm->javaOffloadSwitchOnWithReasonFunc(currentThread, reason);
 		}
+		Assert_VM_unequal(currentThread->javaOffloadState & J9_JNI_OFFLOAD_MAX_VALUE, J9_JNI_OFFLOAD_MAX_VALUE);
 		currentThread->javaOffloadState += 1;
 	}
 }
@@ -176,6 +177,9 @@ getCurrentClassLoader(J9VMThread *currentThread)
 			/* special case - if jdk/internal/loader/NativeLibraries.load(NativeLibraryImpl impl, String name, boolean isBuiltin, boolean isJNI)
 			 * is the current native method, use the class loader of "impl.fromClass".
 			 * This nativeMethod can't be cached cause HCR might make it invalid.
+			 *
+			 * Note that in jdk17, the signature of that method changed to
+			 *   NativeLibraries.load(NativeLibraryImpl impl, String name, boolean isBuiltin, boolean isJNI, boolean throwOnFailure)
 			 */
 			if (J9VMJDKINTERNALLOADERNATIVELIBRARIES_LOAD_METHOD(currentThread->javaVM) == nativeMethod) {
 				/* The current native method has a NativeLibraryImpl instance as its first argument */
@@ -573,7 +577,7 @@ newObjectArray(JNIEnv *env, jsize length, jclass clazz, jobject initialElement)
 	J9VMThread *currentThread = (J9VMThread*)env;
 	VM_VMAccess::inlineEnterVMFromJNI(currentThread);
 	if (length < 0) {
-		gpCheckSetCurrentException(currentThread, J9VMCONSTANTPOOL_JAVALANGNEGATIVEARRAYSIZEEXCEPTION, NULL);
+		gpCheckSetNegativeArraySizeException(currentThread, (I_32)length);
 	} else {
 		J9Class *j9clazz = J9VM_J9CLASS_FROM_HEAPCLASS(currentThread, J9_JNI_UNWRAP_REFERENCE(clazz));
 		J9Class *arrayClass = fetchArrayClass(currentThread, j9clazz);
@@ -741,7 +745,7 @@ newBaseTypeArray(JNIEnv *env, IDATA length, UDATA arrayClassOffset)
 	j9object_t resultObject = NULL;
 	VM_VMAccess::inlineEnterVMFromJNI(currentThread);
 	if (length < 0) {
-		gpCheckSetCurrentException(currentThread, J9VMCONSTANTPOOL_JAVALANGNEGATIVEARRAYSIZEEXCEPTION, NULL);
+		gpCheckSetNegativeArraySizeException(currentThread, (I_32)length);
 	} else {
 		J9JavaVM *vm = currentThread->javaVM;
 		J9Class *arrayClass = *(J9Class**)((UDATA)vm + arrayClassOffset);

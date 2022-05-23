@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2019, 2021 IBM Corp. and others
+ * Copyright (c) 2019, 2022 IBM Corp. and others
  *
  * This program and the accompanying materials are made available under
  * the terms of the Eclipse Public License 2.0 which accompanies this
@@ -221,13 +221,18 @@ public class ValueTypeHelper {
 		}
 
 		@Override
-		public boolean isRomClassAtomic(J9ROMClassPointer romClass) throws CorruptDataException {
-			return romClass.modifiers().allBitsIn(J9JavaAccessFlags.J9AccAtomic);
+		public boolean doesRomClassPermitsValue(J9ROMClassPointer romClass) throws CorruptDataException {
+			return romClass.modifiers().allBitsIn(J9JavaAccessFlags.J9AccPermitsValue);
 		}
 
 		@Override
 		public boolean isJ9ClassAValueType(J9ClassPointer clazz) throws CorruptDataException {
 			return clazz.classFlags().allBitsIn(J9JavaClassFlags.J9ClassIsValueType);
+		}
+
+		@Override
+		public boolean isJ9ClassAPrimitiveValueType(J9ClassPointer clazz) throws CorruptDataException {
+			return clazz.classFlags().allBitsIn(J9JavaClassFlags.J9ClassIsPrimitiveValueType);
 		}
 
 		@Override
@@ -390,13 +395,13 @@ public class ValueTypeHelper {
 	}
 
 	/**
-	 * Queries if a J9ROMClass is atomic
+	 * Queries if a J9ROMClass can be extended by a value class
 	 *
 	 * @param romClass class to query
 	 * @return true if the romClass is atomic, false otherwise.
 	 * @throws CorruptDataException
 	 */
-	public boolean isRomClassAtomic(J9ROMClassPointer romClass) throws CorruptDataException {
+	public boolean doesRomClassPermitsValue(J9ROMClassPointer romClass) throws CorruptDataException {
 		return false;
 	}
 
@@ -408,6 +413,17 @@ public class ValueTypeHelper {
 	 * @throws CorruptDataException
 	 */
 	public boolean isJ9ClassAValueType(J9ClassPointer clazz) throws CorruptDataException {
+		return false;
+	}
+
+	/**
+	 * Queries if J9Class is a primitive value type
+	 *
+	 * @param clazz clazz to query
+	 * @return true if class is a primitive value type, false otherwise
+	 * @throws CorruptDataException
+	 */
+	public boolean isJ9ClassAPrimitiveValueType(J9ClassPointer clazz) throws CorruptDataException {
 		return false;
 	}
 

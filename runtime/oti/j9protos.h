@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 1991, 2021 IBM Corp. and others
+ * Copyright (c) 1991, 2022 IBM Corp. and others
  *
  * This program and the accompanying materials are made available under
  * the terms of the Eclipse Public License 2.0 which accompanies this
@@ -153,7 +153,7 @@ I_32 numCodeSets (void);
 
 /* X86 for MS compilers, __i386__ for GNU compilers */
 
-#if !defined(J9_SOFT_FLOAT) && (defined(_X86_) || defined (__i386__) || defined(J9HAMMER) || defined(OSX))
+#if !defined(J9_SOFT_FLOAT) && (defined(_X86_) || defined (__i386__) || defined(J9HAMMER) || (defined(OSX) && !defined(J9AARCH64)))
 
 #define 	J9_SETUP_FPU_STATE() helperInitializeFPU()
 
@@ -1148,7 +1148,7 @@ typedef struct J9MethodFromSignatureWalkState {
 /**
  * Cleans up the iterator after matching all methods found.
  *
- * @param state The inlialized iterator state
+ * @param state The initialized iterator state
  */
 extern J9_CFUNC void
 allMethodsFromSignatureEndDo(J9MethodFromSignatureWalkState *state);
@@ -1156,7 +1156,7 @@ allMethodsFromSignatureEndDo(J9MethodFromSignatureWalkState *state);
 /**
  * Advances the iterator looking for the next method matching the exact signature provided during initialization.
  *
- * @param state The inlialized iterator state
+ * @param state The initialized iterator state
  *
  * @return      J9Method matching the exact signature provided during initialization of the iterator in the class loader
  *              if it exists; NULL if no such method is found.
@@ -1332,8 +1332,8 @@ extern J9_CFUNC UDATA  dropPendingSendPushes (J9VMThread *currentThread);
 #define _J9VMJAVAINTERPRETERSTARTUP_
 extern J9_CFUNC void  JNICALL cleanUpAttachedThread (J9VMThread *vmContext);
 extern J9_CFUNC void  JNICALL handleUncaughtException (J9VMThread *vmContext);
-extern J9_CFUNC void  JNICALL sidecarInvokeReflectMethod (J9VMThread *vmContext, jobject methodRef, jobject recevierRef, jobjectArray argsRef);
-extern J9_CFUNC void  JNICALL sidecarInvokeReflectMethodImpl (J9VMThread *vmContext, jobject methodRef, jobject recevierRef, jobjectArray argsRef);
+extern J9_CFUNC void  JNICALL sidecarInvokeReflectMethod (J9VMThread *vmContext, jobject methodRef, jobject receiverRef, jobjectArray argsRef);
+extern J9_CFUNC void  JNICALL sidecarInvokeReflectMethodImpl (J9VMThread *vmContext, jobject methodRef, jobject receiverRef, jobjectArray argsRef);
 extern J9_CFUNC void  JNICALL sendInit (J9VMThread *vmContext, j9object_t object, J9Class *senderClass, UDATA lookupOptions);
 extern J9_CFUNC void  JNICALL printStackTrace (J9VMThread *vmContext, j9object_t exception);
 extern J9_CFUNC void  JNICALL sendLoadClass (J9VMThread *vmContext, j9object_t classLoaderObject, j9object_t classNameObject);
@@ -1350,13 +1350,15 @@ extern J9_CFUNC void  JNICALL initializeAttachedThreadImpl (J9VMThread *vmContex
 extern J9_CFUNC void  JNICALL runStaticMethod (J9VMThread *vmContext, U_8* className, J9NameAndSignature* selector, UDATA argCount, UDATA* arguments);
 extern J9_CFUNC void  JNICALL internalRunStaticMethod (J9VMThread *vmContext, J9Method *method, BOOLEAN returnsObject, UDATA argCount, UDATA* arguments);
 extern J9_CFUNC void  JNICALL sendCheckPackageAccess (J9VMThread *vmContext, J9Class * clazz, j9object_t protectionDomain);
-extern J9_CFUNC void  JNICALL sidecarInvokeReflectConstructor (J9VMThread *vmContext, jobject constructorRef, jobject recevierRef, jobjectArray argsRef);
-extern J9_CFUNC void  JNICALL sidecarInvokeReflectConstructorImpl (J9VMThread *vmContext, jobject constructorRef, jobject recevierRef, jobjectArray argsRef);
+extern J9_CFUNC void  JNICALL sidecarInvokeReflectConstructor (J9VMThread *vmContext, jobject constructorRef, jobject receiverRef, jobjectArray argsRef);
+extern J9_CFUNC void  JNICALL sidecarInvokeReflectConstructorImpl (J9VMThread *vmContext, jobject constructorRef, jobject receiverRef, jobjectArray argsRef);
 extern J9_CFUNC void  JNICALL sendFromMethodDescriptorString (J9VMThread *vmThread, J9UTF8 *descriptor, J9ClassLoader *classLoader, J9Class *appendArgType);
 extern J9_CFUNC void  JNICALL sendResolveMethodHandle (J9VMThread *vmThread, UDATA cpIndex, J9ConstantPool *ramCP, J9Class *definingClass, J9ROMNameAndSignature* nameAndSig);
 extern J9_CFUNC void  JNICALL sendForGenericInvoke (J9VMThread *vmThread, j9object_t methodHandle, j9object_t methodType, UDATA dropFirstArg);
 extern J9_CFUNC void  JNICALL sendResolveOpenJDKInvokeHandle (J9VMThread *vmThread, J9ConstantPool *ramCP, UDATA cpIndex, I_32 refKind, J9Class *resolvedClass, J9ROMNameAndSignature* nameAndSig);
+#if JAVA_SPEC_VERSION >= 11
 extern J9_CFUNC void  JNICALL sendResolveConstantDynamic (J9VMThread *vmThread, J9ConstantPool *ramCP, UDATA cpIndex, J9ROMNameAndSignature* nameAndSig, U_16* bsmData);
+#endif /* JAVA_SPEC_VERSION >= 11 */
 extern J9_CFUNC void  JNICALL sendResolveInvokeDynamic (J9VMThread *vmThread, J9ConstantPool *ramCP, UDATA callSiteIndex, J9ROMNameAndSignature* nameAndSig, U_16* bsmData);
 extern J9_CFUNC void  JNICALL jitFillOSRBuffer (struct J9VMThread *vmContext, void *osrBlock);
 extern J9_CFUNC void  JNICALL sendRunThread(J9VMThread *vmContext, j9object_t tenantContext);
@@ -1375,13 +1377,13 @@ extern J9_CFUNC UDATA  hasMoreInlinedMethods (void * inlinedCallSite);
 extern J9_CFUNC UDATA  getByteCodeIndex (void * inlinedCallSite);
 extern J9_CFUNC void  jitReportDynamicCodeLoadEvents (J9VMThread * currentThread);
 extern J9_CFUNC UDATA  getJitInlineDepthFromCallSite (J9JITExceptionTable *metaData, void *inlinedCallSite);
-extern J9_CFUNC void*  jitGetInlinerMapFromPC (J9JavaVM * javaVM, J9JITExceptionTable * exceptionTable, UDATA jitPC);
-extern J9_CFUNC void*  getStackMapFromJitPC (J9JavaVM * javaVM, struct J9JITExceptionTable * exceptionTable, UDATA jitPC);
+extern J9_CFUNC void*  jitGetInlinerMapFromPC (J9VMThread * currentThread, J9JavaVM * vm, J9JITExceptionTable * exceptionTable, UDATA jitPC);
+extern J9_CFUNC void*  getStackMapFromJitPC (J9VMThread * currentThread, J9JavaVM * vm, struct J9JITExceptionTable * exceptionTable, UDATA jitPC);
 extern J9_CFUNC UDATA  getCurrentByteCodeIndexAndIsSameReceiver (J9JITExceptionTable *metaData, void *stackMap, void *currentInlinedCallSite, UDATA * isSameReceiver);
 extern J9_CFUNC void  clearFPStack (void);
 extern J9_CFUNC void  jitExclusiveVMShutdownPending (J9VMThread *vmThread);
 extern J9_CFUNC void*  getNextInlinedCallSite (J9JITExceptionTable * metaData, void * inlinedCallSite);
-extern J9_CFUNC void*  jitGetStackMapFromPC (J9JavaVM * javaVM, struct J9JITExceptionTable * exceptionTable, UDATA jitPC);
+extern J9_CFUNC void*  jitGetStackMapFromPC (J9VMThread * currentThread, struct J9JITExceptionTable * exceptionTable, UDATA jitPC);
 extern J9_CFUNC void  jitAddPicToPatchOnClassUnload (void *classPointer, void *addressToBePatched);
 #endif /* J9VM_INTERP_NATIVE_SUPPORT */
 #endif /* _J9VMNATIVEHELPERSLARGE_ */

@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2000, 2021 IBM Corp. and others
+ * Copyright (c) 2000, 2022 IBM Corp. and others
  *
  * This program and the accompanying materials are made available under
  * the terms of the Eclipse Public License 2.0 which accompanies this
@@ -596,7 +596,7 @@ void J9::X86::PrivateLinkage::createPrologue(TR::Instruction *cursor)
          //
          cursor = new (trHeapMemory()) TR::X86PaddingInstruction(cursor, minInstructionSize, TR_AtomicNoOpPadding, cg());
          }
-      cursor = new (trHeapMemory()) TR::Instruction(TR::InstOpCode::bad, cursor, cg());
+      cursor = new (trHeapMemory()) TR::Instruction(TR::InstOpCode::INT3, cursor, cg());
       }
 
    // Compute the nature of the preserved regs
@@ -1090,7 +1090,7 @@ J9::X86::PrivateLinkage::buildDirectDispatch(
          {
          if (TR::SimpleRegex::matchIgnoringLocale(r, name))
             {
-            generateInstruction(TR::InstOpCode::bad, callNode, cg());
+            generateInstruction(TR::InstOpCode::INT3, callNode, cg());
             }
          }
       }
@@ -1182,7 +1182,7 @@ TR::X86CallSite::X86CallSite(TR::Node *callNode, TR::Linkage *calleeLinkage)
       //
       TR::Method *interfaceMethod = getMethodSymbol()->getMethod();
       int32_t len = interfaceMethod->classNameLength();
-      char * s = classNameToSignature(interfaceMethod->classNameChars(), len, comp());
+      char * s = TR::Compiler->cls.classNameToSignature(interfaceMethod->classNameChars(), len, comp());
       _interfaceClassOfMethod = fej9->getClassFromSignature(s, len, getSymbolReference()->getOwningMethod(comp()));
       }
 
@@ -1344,12 +1344,11 @@ void TR::X86CallSite::computeProfiledTargets()
                {
                topValue = 0;
                }
-            // We can't do this guarded devirtualization if the profile data is not correct for this context. See defect 98813
             else
                {
                //printf("Checking is instanceof for top %p for %s\n", topValue, methodSymRef->getSymbol()->getResolvedMethodSymbol()->getResolvedMethod()->signature(comp()->trMemory())); fflush(stdout);
-               TR_OpaqueClassBlock *callSiteMethod = methodSymRef->getSymbol()->getResolvedMethodSymbol()->getResolvedMethod()->classOfMethod();
-               if (fej9->isInstanceOf((TR_OpaqueClassBlock *)topValue, callSiteMethod, true, true) != TR_yes)
+               TR_OpaqueClassBlock *callSiteMethodClass = methodSymRef->getSymbol()->getResolvedMethodSymbol()->getResolvedMethod()->classOfMethod();
+               if (!cg()->isProfiledClassAndCallSiteCompatible((TR_OpaqueClassBlock *)topValue, callSiteMethodClass))
                   {
                   topValue = 0;
                   }
@@ -1539,8 +1538,13 @@ bool TR::X86CallSite::resolvedVirtualShouldUseVFTCall()
    TR_J9VMBase *fej9 = (TR_J9VMBase *)(fe());
    TR_ASSERT(getMethodSymbol()->isVirtual() && !getSymbolReference()->isUnresolved(), "assertion failure");
 
+   // WARNING: VPIC doesn't work for resolved calls at the moment, so setting
+   // TR_EnableVPICForResolvedVirtualCalls won't work. The most straightforward
+   // way to get VPIC to support (most) resolved calls is to simply treat them
+   // the same way as unresolved ones, but that isn't allowed when we are
+   // promising isResolvedVirtualDispatchGuaranteed().
    return
-      !fej9->forceUnresolvedDispatch() &&
+      fej9->isResolvedVirtualDispatchGuaranteed(comp()) &&
       (!comp()->getOption(TR_EnableVPICForResolvedVirtualCalls)    ||
        getProfiledTargets()                                        ||
        getCallNode()->isTheVirtualCallNodeForAGuardedInlinedCall() ||
@@ -1744,6 +1748,7 @@ TR::Register *J9::X86::PrivateLinkage::buildIndirectDispatch(TR::Node *callNode)
          switch (method->getMandatoryRecognizedMethod())
             {
             case TR::java_lang_invoke_ComputedCalls_dispatchVirtual:
+            case TR::com_ibm_jit_JITHelpers_dispatchVirtual:
                {
                // Need a j2i thunk for the method that will ultimately be dispatched by this handle call
                char *j2iSignature = fej9->getJ2IThunkSignatureForDispatchVirtual(methodSymbol->getMethod()->signatureChars(), methodSymbol->getMethod()->signatureLength(), comp());
@@ -2139,7 +2144,9 @@ TR::Instruction *J9::X86::PrivateLinkage::buildVFTCall(TR::X86CallSite &site, TR
       TR::Node *callNode = site.getCallNode();
       TR::ResolvedMethodSymbol *resolvedMethodSymbol = callNode->getSymbol()->getResolvedMethodSymbol();
       bool mayReachJ2IThunk = true;
-      if (resolvedMethodSymbol && resolvedMethodSymbol->getRecognizedMethod() == TR::java_lang_invoke_ComputedCalls_dispatchDirect)
+      if (resolvedMethodSymbol &&
+            (resolvedMethodSymbol->getRecognizedMethod() == TR::java_lang_invoke_ComputedCalls_dispatchDirect ||
+            resolvedMethodSymbol->getRecognizedMethod() == TR::com_ibm_jit_JITHelpers_dispatchComputedStaticCall))
          mayReachJ2IThunk = false;
       if (mayReachJ2IThunk && dispatchOp.isCallOp())
          {
@@ -2561,7 +2568,7 @@ void J9::X86::PrivateLinkage::buildInterfaceDispatchUsingLastITable (TR::X86Call
    //
    generateLabelInstruction(TR::InstOpCode::label, callNode, lastITableTestLabel, cg());
    if (breakBeforeInterfaceDispatchUsingLastITable)
-      generateInstruction(TR::InstOpCode::bad, callNode, cg());
+      generateInstruction(TR::InstOpCode::INT3, callNode, cg());
    generateRegMemInstruction(TR::InstOpCode::LRegMem(), callNode, scratchReg, generateX86MemoryReference(vftReg, (int32_t)fej9->getOffsetOfLastITableFromClassField(), cg()), cg());
    bool use32BitInterfacePointers = comp()->target().is32Bit();
    if (comp()->useCompressedPointers() /* actually compressed object headers */)

@@ -52,7 +52,7 @@ public abstract class DataType {
 		structurePackageName = structureReader.getPackageName(PackageNameType.STRUCTURE_PACKAGE_DOT_NAME);
 	}
 
-	// Called via reflection in VMDataFactory.getVMDaata(IProcess)
+	// Called via reflection in VMDataFactory.getVMData(IProcess)
 	public static void setJ9RASPointer(J9RASPointer j9RASPointer) {
 		J9RASPOINTER = j9RASPointer;
 	}

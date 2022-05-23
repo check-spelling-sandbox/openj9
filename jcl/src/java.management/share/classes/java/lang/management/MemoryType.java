@@ -1,6 +1,7 @@
-/*[INCLUDE-IF Sidecar17]*/
-/*******************************************************************************
- * Copyright (c) 2005, 2016 IBM Corp. and others
+/*[INCLUDE-IF JAVA_SPEC_VERSION >= 8]*/
+/*
+ *******************************************************************************
+ * Copyright (c) 2005, 2022 IBM Corp. and others
  *
  * This program and the accompanying materials are made available under
  * the terms of the Eclipse Public License 2.0 which accompanies this
@@ -23,6 +24,8 @@
 package java.lang.management;
 
 /**
+ * Distinguishes various kinds of memory used by the virtual machine.
+ *
  * @since 1.5
  */
 public enum MemoryType {
@@ -34,6 +37,7 @@ public enum MemoryType {
 	 * threads in the virtual machine.
 	 */
 	HEAP,
+
 	/**
 	 * Memory that is not on the heap. This encompasses all other storage used
 	 * by the virtual machine at runtime.

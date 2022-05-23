@@ -42,7 +42,7 @@ public final class DeadlockCoreGenerator {
 	 *
 	 */	
 	
-	public static final long WAIT_TIME_MILIS = 5000; // 5 seconds.
+	public static final long WAIT_TIME_MILLIS = 5000; // 5 seconds.
 	
 	static 
 	{
@@ -84,12 +84,12 @@ public final class DeadlockCoreGenerator {
 		testThread.start();
 				
 		System.out.println("Waiting...");
-		Thread.sleep(WAIT_TIME_MILIS); // This is a guesstimate, but should be long enough to reach the desired state.
+		Thread.sleep(WAIT_TIME_MILLIS); // This is a guesstimate, but should be long enough to reach the desired state.
 		
 		try {
 			throw new HelperExceptionForCoreGeneration();
 		} catch (HelperExceptionForCoreGeneration e) {
-			System.out.println("HelperExceptionForCoreGeneration is thrown and caught successfuly.");
+			System.out.println("HelperExceptionForCoreGeneration is thrown and caught successfully.");
 			System.out.println("Forcefully terminating process.");
 			// In all but the native-only deadlock, the JVM won't quit since not all threads died.
 			System.exit(0); // Note that this will only run once the dump is done (exclusive!).

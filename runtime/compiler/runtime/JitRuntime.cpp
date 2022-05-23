@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2000, 2020 IBM Corp. and others
+ * Copyright (c) 2000, 2022 IBM Corp. and others
  *
  * This program and the accompanying materials are made available under
  * the terms of the Eclipse Public License 2.0 which accompanies this
@@ -347,7 +347,7 @@ extern "C" {
 void J9FASTCALL _jitProfileParseBuffer(uintptr_t vmThread)
    {
    J9VMThread *currentThread = (J9VMThread *)vmThread;
-   J9JITConfig * jitConfg = currentThread->javaVM->jitConfig;
+   J9JITConfig * jitConfig = currentThread->javaVM->jitConfig;
    TR_J9VMBase *fe = NULL;
 
    if (jitConfig)
@@ -900,7 +900,7 @@ void dumpClassStaticsForClass(::FILE *fp, J9Class *clazz, J9VMThread *vmThread)
 void dumpAllClasses(J9VMThread *vmThread)
    {
    J9JavaVM * javaVM = vmThread->javaVM;
-   J9JITConfig * jitConfg = javaVM->jitConfig;
+   J9JITConfig * jitConfig = javaVM->jitConfig;
    PORT_ACCESS_FROM_JAVAVM(javaVM);
    J9ClassWalkState classWalkState;
    ::FILE *fp = NULL;
@@ -1413,7 +1413,7 @@ static void printMethodHandleArgs(j9object_t methodHandle, void **stack, J9VMThr
    if (stack[0] != methodHandle && TR::Options::isAnyVerboseOptionSet())
       {
       int i;
-      TR_VerboseLog::vlogAcquire();; // we want all the following output to appear together in the log
+      TR_VerboseLog::CriticalSection vlogLock; // we want all the following output to appear together in the log
       TR_VerboseLog::writeLine(TR_Vlog_FAILURE, "%p Pointer %p found on stack @ %p does not match MethodHandle %p", vmThread, stack[0], stack, methodHandle);
       TR_VerboseLog::writeLine(TR_Vlog_FAILURE, "%p   Nearby stack slots:", vmThread);
       for (i = -9; i <= 9; i++)
@@ -1428,7 +1428,6 @@ static void printMethodHandleArgs(j9object_t methodHandle, void **stack, J9VMThr
             tag = " <- stack address";
          TR_VerboseLog::writeLine(TR_Vlog_FAILURE, "%p     %p @ %+d: %p%s", vmThread, stack+i, i, slotValue, tag);
          }
-      TR_VerboseLog::vlogRelease();
       }
    TR_ASSERT(stack[0] == methodHandle, "Pointer %p on stack @ %p must match MethodHandle %p", stack[0], stack, methodHandle);
 
@@ -1441,7 +1440,7 @@ static void printMethodHandleArgs(j9object_t methodHandle, void **stack, J9VMThr
 
    if (vlogTag)
       {
-      TR_VerboseLog::vlogAcquire();
+      TR_VerboseLog::CriticalSection vlogLock;
 
       char *curArg;
       int numArgs = 0;
@@ -1477,6 +1476,7 @@ static void printMethodHandleArgs(j9object_t methodHandle, void **stack, J9VMThr
                   break;
                case 'L':
                case '[':
+               case 'Q':
                   TR_VerboseLog::writeLine(vlogTag, "%p     arg " POINTER_PRINTF_FORMAT " %.*s", vmThread, (void*)(*(intptr_t*)stack), nextArg-curArg, curArg);
                   stack -= 1;
                   break;
@@ -1487,8 +1487,6 @@ static void printMethodHandleArgs(j9object_t methodHandle, void **stack, J9VMThr
                }
             }
          }
-
-      TR_VerboseLog::vlogRelease();
       }
 
    }
@@ -1512,7 +1510,7 @@ uint8_t *compileMethodHandleThunk(j9object_t methodHandle, j9object_t arg, J9VMT
 
    if (verbose)
       {
-      TR_VerboseLog::vlogAcquire();
+      TR_VerboseLog::CriticalSection vlogLock;
       TR_VerboseLog::write(TR_Vlog_MH, "%p Starting compileMethodHandleThunk on MethodHandle %p", vmThread, methodHandle);
       if (arg)
          TR_VerboseLog::write(" arg %p", arg);
@@ -1524,7 +1522,6 @@ uint8_t *compileMethodHandleThunk(j9object_t methodHandle, j9object_t arg, J9VMT
             TR_VerboseLog::write(" %s", flagNames[i]);
          }
       TR_VerboseLog::writeLine("");
-      TR_VerboseLog::vlogRelease();
       }
    bool disabled = false;
 #if defined(J9VM_OPT_JITSERVER)

@@ -225,7 +225,7 @@ public class ModularityHelper {
 	 *                      matched by the filter. Will be run on any module that
 	 *                      filter returns true for.
 	 * @param    filterArg  A string that is to be used as additional data for filter.
-	 *                      Will be passed to filter everytime filter is called.
+	 *                      Will be passed to filter every time filter is called.
 	 */
 	public static int iterateModules(PrintStream out, ModuleIteratorFilter filter, ModuleOutput outputter, String filterArg) throws CorruptDataException {
 		int count = 0;
@@ -261,7 +261,7 @@ public class ModularityHelper {
 	 *                      by the filter. Will be run on any module that filter
 	 *                      returns true for.
 	 * @param   filterArg   A string that is to be used as additional data for filter.
-	 *                      Will be passed to filter everytime filter is called.
+	 *                      Will be passed to filter every time filter is called.
 	 */
 	public static int iteratePackages(PrintStream out, PackageIteratorFilter filter, PackageOutput outputter, String filterArg) throws CorruptDataException {
 		int count = 0;
@@ -288,7 +288,7 @@ public class ModularityHelper {
 	 *                      by the filter. Will be run on any packages that filter
 	 *                      returns true for.
 	 * @param   filterArg   A string that is to be used as additional data for filter.
-	 *                      Will be passed to filter everytime filter is called.
+	 *                      Will be passed to filter every time filter is called.
 	 */
 	public static int iterateClassLoaderPackages(PrintStream out, PackageIteratorFilter filter, PackageOutput outputter, String filterArg, J9ClassLoaderPointer classLoaderPtr) throws CorruptDataException {
 		int count = 0;
@@ -321,7 +321,7 @@ public class ModularityHelper {
 	 *                          by the filter. Will be run on any class that filter
 	 *                          returns true for.
 	 * @param    filterArg      A string that is to be used as additional data for filter.
-	 *                          Will be passed to filter everytime filter is called.
+	 *                          Will be passed to filter every time filter is called.
 	 * @param    classLoaderPtr The classloader which will have it's classes traversed.
 	 */
 	public static int iterateClassLoaderClasses(PrintStream out, ClassIteratorFilter filter, ClassOutput outputter, String filterArg, J9ClassLoaderPointer classLoaderPtr) throws CorruptDataException {

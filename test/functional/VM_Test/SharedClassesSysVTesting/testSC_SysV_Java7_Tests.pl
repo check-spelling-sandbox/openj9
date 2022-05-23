@@ -84,13 +84,13 @@ my $java = "./java";
 my $cmd = $java. " -Xshareclasses:cacheDir=".$cacheDirectory.",nonpersistent,name=".$testcachname." -version 2>&1";
 my $cmddumpdisabled = $java. " -Xshareclasses:cacheDir=".$cacheDirectory.",disablecorruptcachedumps,nonpersistent,name=".$testcachname." -version 2>&1";
 my $destroycmd = $java. " -Xshareclasses:cacheDir=".$cacheDirectory.",nonpersistent,name=".$testcachname.",destroy 2>&1";
-my $cmdNonfal = $java. " -Xshareclasses:cacheDir=".$cacheDirectory.",nonpersistent,name=".$testcachname.",nonfatal -version 2>&1";
+my $cmdNonfatal = $java. " -Xshareclasses:cacheDir=".$cacheDirectory.",nonpersistent,name=".$testcachname.",nonfatal -version 2>&1";
 
 #
 # Script argument handling ...
 #
 if ($numargs != 1) {
-	print("Error: incorrect useage!\n");
+	print("Error: incorrect usage!\n");
 	print("\tscriptname.pl zos|aix|linux\n");
 	die ("Invalid arguments!");
 } elsif ($numargs == 1) {
@@ -220,7 +220,7 @@ if (&Test14($osname, $cmd, $numprocs) == 1) {
 
 &cleanupSysV($osname,$verbose);
 &removeCntrlFiles($testcachname);
-if (&Test15($osname, $cmd, $cmdNonfal, $numprocs) == 1) {
+if (&Test15($osname, $cmd, $cmdNonfatal, $numprocs) == 1) {
 	$passedTestCount+=1;
 } else {
 	$failedTestCount+=1;

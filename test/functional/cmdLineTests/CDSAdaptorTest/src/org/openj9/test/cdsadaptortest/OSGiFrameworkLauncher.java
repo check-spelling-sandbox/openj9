@@ -33,7 +33,7 @@ import java.util.Iterator;
 import java.util.ServiceLoader;
 
 /**
- * This class is used to lauch OSGi framework and to install bundles.
+ * This class is used to launch OSGi framework and to install bundles.
  */
 class OSGiFrameworkLauncher {
 	private String frameworkBundleLocation;

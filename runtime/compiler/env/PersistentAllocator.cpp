@@ -175,7 +175,7 @@ PersistentAllocator::allocateFromIndexedListLocked(size_t allocSize)
       block->setPrevious(NULL);
       block->setNextBlockSameSize(NULL);
       }
-   checkIntegrity("allocateFromVariabileSizeListLocked end");
+   checkIntegrity("allocateFromVariableSizeListLocked end");
    return reinterpret_cast<Block*>(block);
    }
 #endif /* defined(J9VM_OPT_JITSERVER) */
@@ -414,7 +414,7 @@ PersistentAllocator::freeBlockToIndexedList(Block * blockToBeFreed)
       _freeBlocks[LARGE_BLOCK_LIST_INDEX] = reinterpret_cast<Block*>(block);
       if (block->next())
          block->next()->setPrevious(block);
-      // Adjust the interval bounderies
+      // Adjust the interval boundaries
       _startInterval[index] = block;
       if (!_endInterval[index])
          _endInterval[index] = block;
@@ -450,7 +450,7 @@ PersistentAllocator::freeBlockToIndexedList(Block * blockToBeFreed)
                TR_ASSERT(blockIterator->previous(), "blockIterator->previous() must exist because we already treated the case where we insert at the beginning of the list");
                blockIterator->previous()->setNext(block);
                blockIterator->setPrevious(block);
-               // Adjust the interval bounderies
+               // Adjust the interval boundaries
                if (_startInterval[index]->size() > block->size())
                   {
                   // block becomes the first entry in this interval
@@ -540,7 +540,7 @@ PersistentAllocator::checkIntegrity(const char msg[])
             {
             TR_ASSERT_FATAL(i > 0, "I cannot be at the first interval");
             index = getInterval(previousBlock->size());
-            TR_ASSERT_FATAL(_endInterval[index] == previousBlock, "Error with intevals");
+            TR_ASSERT_FATAL(_endInterval[index] == previousBlock, "Error with intervals");
             }
          }
       if (_endInterval[i])

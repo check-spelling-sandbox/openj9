@@ -394,27 +394,27 @@ RTABLE   DC   A(RV)                  Labels for arg returns
 
 
 * Begin Call Descriptors
-CDESCRV  DS   0D                     Call decriptor for void rtrn
+CDESCRV  DS   0D                     Call descriptor for void rtrn
          DC   A(FFISYS#C-*)
          DC   BL.3'000',BL.5'00000'
          DC   BL.6'001000',BL.6'000000',BL.6'000000',BL.6'000000'
-CDESCRF  DS   0D                     Call decriptor for float rtrn
+CDESCRF  DS   0D                     Call descriptor for float rtrn
          DC   A(FFISYS#C-*)
          DC   BL.3'000',BL.5'01000'
          DC   BL.6'001000',BL.6'000000',BL.6'000000',BL.6'000000'
-CDESCRD  DS   0D                     Call decriptor for dbl rtrn
+CDESCRD  DS   0D                     Call descriptor for dbl rtrn
          DC   A(FFISYS#C-*)
          DC   BL.3'000',BL.5'01001'
          DC   BL.6'001000',BL.6'000000',BL.6'000000',BL.6'000000'
-CDESCRLD DS   0D                     Call decriptor for long dbl rtrn
+CDESCRLD DS   0D                     Call descriptor for long dbl rtrn
          DC   A(FFISYS#C-*)
          DC   BL.3'000',BL.5'01010'
          DC   BL.6'001000',BL.6'000000',BL.6'000000',BL.6'000000'
-CDESCRI  DS   0D                     Call decriptor for int rtrn
+CDESCRI  DS   0D                     Call descriptor for int rtrn
          DC   A(FFISYS#C-*)
          DC   BL.3'000',BL.5'00001'
          DC   BL.6'001000',BL.6'000000',BL.6'000000',BL.6'000000'
-CDESCRLL DS   0D                     Call decriptor for long long rtrn
+CDESCRLL DS   0D                     Call descriptor for long long rtrn
          DC   A(FFISYS#C-*)
          DC   BL.3'000',BL.5'00010'
          DC   BL.6'001000',BL.6'000000',BL.6'000000',BL.6'000000'

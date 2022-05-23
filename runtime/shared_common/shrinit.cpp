@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2001, 2021 IBM Corp. and others
+ * Copyright (c) 2001, 2022 IBM Corp. and others
  *
  * This program and the accompanying materials are made available under
  * the terms of the Eclipse Public License 2.0 which accompanies this
@@ -411,7 +411,7 @@ typedef struct J9SharedVerifyStringTable {
 } J9SharedCheckStringTable;
 
 
-/* Imples build flag J9VM_OPT_ZIP_SUPPORT - if we don't have this, we're stuffed */
+/* Implies build flag J9VM_OPT_ZIP_SUPPORT - if we don't have this, we're stuffed */
 void
 j9shr_hookZipLoadEvent(J9HookInterface** hook, UDATA eventNum, void* eventData, void* userData)
 {
@@ -1066,7 +1066,7 @@ parseArgs(J9JavaVM* vm, char* options, U_64* runtimeFlags, UDATA* verboseFlags, 
 		case RESULT_DO_INVALIDATE_AOT_METHODS_EQUALS:
 		case RESULT_DO_REVALIDATE_AOT_METHODS_EQUALS:
 		case RESULT_DO_FIND_AOT_METHODS_EQUALS:
-			/* GET_OPTION_VALUES() in shrclsssup.c separate the options by ':' and ',',
+			/* GET_OPTION_VALUES() in shrclssup.c separate the options by ':' and ',',
 			 * However, option values passed within {}, such as {a,b,c} should be treated as one value passed to one option.
 			 */
 			if (true == recoverMethodSpecSeparator(options + strlen(J9SHAREDCLASSESOPTIONS[i].option), optionEnd)) {
@@ -1265,12 +1265,12 @@ j9shr_dump_help(J9JavaVM* vm, UDATA more)
  * Notify the open/close state of jar/zip files so as to force a timestamp check.
  *
  * @param [in] vm The current J9JavaVM
- * @param [in] classPathEntries  A pointer to the J9ClassPathEntry
+ * @param [in] cpePtrArray A pointer array to the J9ClassPathEntries
  * @param [in] entryCount  The count of entries on the classpath
  * @param [in] isOpen  A flag indicating the open state for jar/zip files
  */
 void
-j9shr_updateClasspathOpenState(J9JavaVM* vm, J9ClassPathEntry* classPathEntries, UDATA entryIndex, UDATA entryCount, BOOLEAN isOpen)
+j9shr_updateClasspathOpenState(J9JavaVM* vm, J9ClassPathEntry** cpePtrArray, UDATA entryIndex, UDATA entryCount, BOOLEAN isOpen)
 {
 	J9SharedClassConfig* sharedClassConfig = vm->sharedClassConfig;
 	J9VMThread* currentThread = vm->internalVMFunctions->currentVMThread(vm);
@@ -1280,8 +1280,9 @@ j9shr_updateClasspathOpenState(J9JavaVM* vm, J9ClassPathEntry* classPathEntries,
 	Trc_SHR_INIT_updateClasspathOpenState_entry(currentThread);
 
 	for (i = entryIndex; i< entryCount; i++) {
-		if (CPE_TYPE_JAR == classPathEntries[i].type) {
-			((SH_CacheMap*)(sharedClassConfig->sharedClassCache))->notifyClasspathEntryStateChange(currentThread, (const char*)classPathEntries[i].path, newState);
+		J9ClassPathEntry* classPathEntry = cpePtrArray[i];
+		if (CPE_TYPE_JAR == classPathEntry->type) {
+			((SH_CacheMap*)(sharedClassConfig->sharedClassCache))->notifyClasspathEntryStateChange(currentThread, (const char*)classPathEntry->path, newState);
 		}
 	}
 	Trc_SHR_INIT_updateClasspathOpenState_exit(currentThread);
@@ -1420,10 +1421,13 @@ hookFindSharedClass(J9HookInterface** hookInterface, UDATA eventNum, void* voidD
 	U_64 localRuntimeFlags;
 	UDATA localVerboseFlags;
 	J9SharedClassConfig* sharedClassConfig = vm->sharedClassConfig;
-	bool isBootLoader = false;
-	bool releaseSegmentMutex = false;
+	J9ClassLoader* classloader = eventData->classloader;
+	bool isBootLoader = classloader == vm->systemClassLoader;
 	omrthread_monitor_t classSegmentMutex = vm->classMemorySegments->segmentMutex;
 	IDATA* entryIndex = eventData->foundAtIndex;
+	J9ClassPathEntry** classPathEntries = eventData->classPathEntries;
+	J9ClassPathEntry* firstcpe = NULL;
+	UDATA entryCount = eventData->entryCount;
 
 	/* default values for bootstrap: */
 	IDATA helperID = 0;
@@ -1437,6 +1441,7 @@ hookFindSharedClass(J9HookInterface** hookInterface, UDATA eventNum, void* voidD
 
 	eventData->result = NULL;
 
+	Trc_SHR_Assert_ShouldNotHaveLocalMutex(classSegmentMutex);
 	if (sharedClassConfig==NULL) {
 		/* trace event is at level 1 and trace exit message is at level 2 as per CMVC 155318/157683  */
 		Trc_SHR_INIT_hookFindSharedClass_ConfigNull(currentThread);
@@ -1481,54 +1486,62 @@ hookFindSharedClass(J9HookInterface** hookInterface, UDATA eventNum, void* voidD
 		*currentState = J9VMSTATE_SHAREDCLASS_FIND;
 	}
 
-	if (NULL != eventData->classPathEntries) {
-		cpExtraInfo = eventData->classPathEntries->extraInfo;
+	if (isBootLoader) {
+		entryCount = classloader->classPathEntryCount;
+		issueReadBarrier();
+		/* variable classPathEntries caches classloader->classPathEntries outside of cpEntriesMutex, this is fine because in the case isBootLoader
+		 * is true, classPathEntries is only used in NULL checks in this function.
+		 */
+		classPathEntries = classloader->classPathEntries;
+	}
+
+	if (NULL != classPathEntries) {
+		/*
+		 * class path entries are never freed during j9shr_classStoreTransaction.
+		 * For bootstrap class loader class path entries are never freed.
+		 * For non-bootstrap class loader, its classPathEntries is only used by the shared class code (j9shr_classStoreTransaction, hookFindSharedClass and shared.c).
+		 * They are all protected by SharedClassURLClasspathHelperImpl.urlcpReadWriteLock.
+		 *
+		 * It is safe to cache the first entry pointer.
+		 */
+		if (isBootLoader) {
+			omrthread_rwmutex_enter_read(classloader->cpEntriesMutex);
+			firstcpe = classloader->classPathEntries[0];
+			omrthread_rwmutex_exit_read(classloader->cpEntriesMutex);
+		} else {
+			firstcpe = classPathEntries[0];
+		}
+		cpExtraInfo = firstcpe->extraInfo;
 		infoFound = translateExtraInfo(cpExtraInfo, &helperID, &cpType, &classpath);
 	}
 
 	/* Bootstrap loader does not provide meaningful extraInfo */
 	if (!classpath && !infoFound) {
-		UDATA pathEntryCount = eventData->entryCount;
-
+		UDATA pathEntryCount = entryCount;
 		if (J2SE_VERSION(vm) >= J2SE_V11) {
-			if (eventData->classloader == vm->systemClassLoader) {
-				isBootLoader = true;
+			if (isBootLoader) {
 				pathEntryCount += 1;
-				if (0 == omrthread_monitor_owned_by_self(classSegmentMutex)) {
-					omrthread_monitor_enter(classSegmentMutex);
-					releaseSegmentMutex = true;
-				}
+				omrthread_monitor_enter(classSegmentMutex);
 				classpath = getBootstrapClasspathItem(currentThread, vm->modulesPathEntry, pathEntryCount);
-				if (releaseSegmentMutex) {
-					omrthread_monitor_exit(classSegmentMutex);
-					releaseSegmentMutex = false;
-				}
+				omrthread_monitor_exit(classSegmentMutex);
 			}
 		} else {
-			if (0 == omrthread_monitor_owned_by_self(classSegmentMutex)) {
-				omrthread_monitor_enter(classSegmentMutex);
-				releaseSegmentMutex = true;
-			}
-			classpath = getBootstrapClasspathItem(currentThread, eventData->classPathEntries, pathEntryCount);
-			if (releaseSegmentMutex) {
-				omrthread_monitor_exit(classSegmentMutex);
-				releaseSegmentMutex = false;
-			}
+			omrthread_monitor_enter(classSegmentMutex);
+			classpath = getBootstrapClasspathItem(currentThread, firstcpe, pathEntryCount);
+			omrthread_monitor_exit(classSegmentMutex);
 		}
 	}
 
 	if (!classpath) {
 		/* No cached classpath found. Need to create a new one. */
-		if ((NULL != eventData->classPathEntries) || (eventData->classloader == vm->systemClassLoader)) {
-			if (0 == omrthread_monitor_owned_by_self(classSegmentMutex)) {
-				omrthread_monitor_enter(classSegmentMutex);
-				releaseSegmentMutex = true;
+		if ((NULL != classPathEntries) || (isBootLoader)) {
+			omrthread_monitor_enter(classSegmentMutex);
+			if (isBootLoader) {
+				classpath = createClasspath(currentThread, classloader, NULL, 0, helperID, cpType, infoFound);
+			} else {
+				classpath = createClasspath(currentThread, NULL, classPathEntries, entryCount, helperID, cpType, infoFound);
 			}
-			classpath = createClasspath(currentThread, eventData->classPathEntries, eventData->entryCount, helperID, cpType, infoFound);
-			if (releaseSegmentMutex) {
-				omrthread_monitor_exit(classSegmentMutex);
-				releaseSegmentMutex = false;
-			}
+			omrthread_monitor_exit(classSegmentMutex);
 			if (classpath == NULL) {
 				goto _done;
 			}
@@ -1550,15 +1563,9 @@ hookFindSharedClass(J9HookInterface** hookInterface, UDATA eventNum, void* voidD
 
 	if (eventData->doPreventFind) {
 		if (eventData->doPreventStore) {
-			if (0 == omrthread_monitor_owned_by_self(classSegmentMutex)) {
-				omrthread_monitor_enter(classSegmentMutex);
-				releaseSegmentMutex = true;
-			}
-			registerStoreFilter(vm, eventData->classloader, fixedName, strlen(fixedName), &(sharedClassConfig->classnameFilterPool));
-			if (releaseSegmentMutex) {
-				omrthread_monitor_exit(classSegmentMutex);
-				releaseSegmentMutex = false;
-			}
+			omrthread_monitor_enter(classSegmentMutex);
+			registerStoreFilter(vm, classloader, fixedName, strlen(fixedName), &(sharedClassConfig->classnameFilterPool));
+			omrthread_monitor_exit(classSegmentMutex);
 		}
 		goto _donePostFixedClassname;
 	}
@@ -1567,6 +1574,7 @@ hookFindSharedClass(J9HookInterface** hookInterface, UDATA eventNum, void* voidD
 					currentThread, fixedName, classpath, eventData->partition, sharedClassConfig->modContext, eventData->confirmedCount, entryIndex);
 
 	if ((isBootLoader)
+		&& (J2SE_VERSION(vm) >= J2SE_V11)
 		&& (NULL != eventData->result)
 		&& (NULL != entryIndex)
 	) {
@@ -1585,14 +1593,9 @@ hookFindSharedClass(J9HookInterface** hookInterface, UDATA eventNum, void* voidD
 	}
 
 	if (eventData->doPreventStore && (NULL == eventData->result)) {
-		if (0 == omrthread_monitor_owned_by_self(classSegmentMutex)) {
-			omrthread_monitor_enter(classSegmentMutex);
-			releaseSegmentMutex = true;
-		}
-		registerStoreFilter(vm, eventData->classloader, fixedName, strlen(fixedName), &(sharedClassConfig->classnameFilterPool));
-		if (releaseSegmentMutex) {
-			omrthread_monitor_exit(classSegmentMutex);
-		}
+		omrthread_monitor_enter(classSegmentMutex);
+		registerStoreFilter(vm, classloader, fixedName, strlen(fixedName), &(sharedClassConfig->classnameFilterPool));
+		omrthread_monitor_exit(classSegmentMutex);
 	}
 
 	if (localRuntimeFlags & J9SHR_RUNTIMEFLAG_ENABLE_TRACECOUNT) {
@@ -3413,7 +3416,7 @@ j9shr_init(J9JavaVM *vm, UDATA loadFlags, UDATA* nonfatal)
 			/* Create a new layer */
 		} else {
 			/* layer <= maxLayer */
-			/* An existing shared cache with higer layer number already exists */
+			/* An existing shared cache with higher layer number already exists */
 			/* Use the layer number in the CML, but do not create new cache layer */
 			vm->sharedClassConfig->runtimeFlags |= J9SHR_RUNTIMEFLAG_DO_NOT_CREATE_CACHE;
 		}
@@ -3515,7 +3518,7 @@ j9shr_init(J9JavaVM *vm, UDATA loadFlags, UDATA* nonfatal)
 				SH_CacheMap* cm = (SH_CacheMap*)(vm->sharedClassConfig->sharedClassCache);
 				omrthread_monitor_t tableInternFxMutex;
 
-				/* This monitor is used to control thread access to the internavl tree.
+				/* This monitor is used to control thread access to the internal tree.
 				 * This monitor should always be uncontended, it was added during the investigation
 				 * for CMVC 147834 to check if concurrent access to the string tree was causing
 				 * corruption.
@@ -3669,7 +3672,7 @@ j9shr_init(J9JavaVM *vm, UDATA loadFlags, UDATA* nonfatal)
 		IDATA numMethods = 0;
 
 		*nonfatal = 0;
-		numMethods = j9shr_aotMethodOperation(vm, vm->sharedCacheAPI->methodSpecs, SHR_INVALIDATE_AOT_METHOTHODS);
+		numMethods = j9shr_aotMethodOperation(vm, vm->sharedCacheAPI->methodSpecs, SHR_INVALIDATE_AOT_METHODS);
 		if (numMethods > 0) {
 			if (verboseFlags > 0) {
 				j9tty_printf(PORTLIB, "\n");
@@ -3687,7 +3690,7 @@ j9shr_init(J9JavaVM *vm, UDATA loadFlags, UDATA* nonfatal)
 		IDATA numMethods = 0;
 
 		*nonfatal = 0;
-		numMethods = j9shr_aotMethodOperation(vm, vm->sharedCacheAPI->methodSpecs, SHR_REVALIDATE_AOT_METHOTHODS);
+		numMethods = j9shr_aotMethodOperation(vm, vm->sharedCacheAPI->methodSpecs, SHR_REVALIDATE_AOT_METHODS);
 		if (numMethods > 0) {
 			if (verboseFlags > 0) {
 				j9tty_printf(PORTLIB, "\n");
@@ -3705,7 +3708,7 @@ j9shr_init(J9JavaVM *vm, UDATA loadFlags, UDATA* nonfatal)
 		IDATA numMethods = 0;
 		*nonfatal = 0;
 
-		numMethods = j9shr_aotMethodOperation(vm, vm->sharedCacheAPI->methodSpecs, SHR_FIND_AOT_METHOTHODS);
+		numMethods = j9shr_aotMethodOperation(vm, vm->sharedCacheAPI->methodSpecs, SHR_FIND_AOT_METHODS);
 		if (numMethods > 0) {
 			if (verboseFlags > 0) {
 				j9tty_printf(PORTLIB, "\n");
@@ -4850,9 +4853,9 @@ j9shr_findCompiledMethodEx1(J9VMThread* currentThread, const J9ROMMethod* romMet
  * This function will find the AOT method(s) that match the passed in method specification(s) and perform the required operation
  * @param[in] vm The current J9JavaVM
  * @param[in] string The pointer of the method specifications passed in by "invalidateAotMethods/revalidateAotMethods/findAotMethods=" option
- * @param[in] action SHR_FIND_AOT_METHOTHODS when listing the specified methods
- * 					 SHR_INVALIDATE_AOT_METHOTHODS when invalidating the specified methods
- * 					 SHR_REVALIDATE_AOT_METHOTHODS when revalidating the specified methods
+ * @param[in] action SHR_FIND_AOT_METHODS when listing the specified methods
+ * 					 SHR_INVALIDATE_AOT_METHODS when invalidating the specified methods
+ * 					 SHR_REVALIDATE_AOT_METHODS when revalidating the specified methods
  *
  * @return the number of AOT methods invalidated/revalidated/found on success or -1 on failure
  */
@@ -4911,15 +4914,17 @@ adjustCacheSizes(J9PortLibrary* portlib, UDATA verboseFlags, J9SharedClassPreini
 void
 j9shr_jvmPhaseChange(J9VMThread *currentThread, UDATA phase)
 {
-	if (J9VM_PHASE_NOT_STARTUP == phase) {
-		J9JavaVM* vm = currentThread->javaVM;
+	J9JavaVM* vm = currentThread->javaVM;
 
+	if (J9VM_PHASE_NOT_STARTUP == phase) {
 		/* OpenJ9 issue; https://github.com/eclipse-openj9/openj9/issues/3743
 		 * GC decides whether to calls vm->sharedClassConfig->storeGCHints() to store the GC hints into the shared cache. */
 		storeStartupHintsToSharedCache(currentThread);
 		if (J9_ARE_NO_BITS_SET(vm->sharedClassConfig->runtimeFlags, J9SHR_RUNTIMEFLAG_MPROTECT_PARTIAL_PAGES_ON_STARTUP)) {
 			((SH_CacheMap*)vm->sharedClassConfig->sharedClassCache)->protectPartiallyFilledPages(currentThread);
 		}
+		((SH_CacheMap*)vm->sharedClassConfig->sharedClassCache)->dontNeedMetadata(currentThread);
+	} else if (J9VM_PHASE_LATE_SCC_DISCLAIM == phase) {
 		((SH_CacheMap*)vm->sharedClassConfig->sharedClassCache)->dontNeedMetadata(currentThread);
 	}
 	return;

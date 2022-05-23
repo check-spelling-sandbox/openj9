@@ -1,5 +1,5 @@
 <#--
-Copyright (c) 1998, 2021 IBM Corp. and others
+Copyright (c) 1998, 2022 IBM Corp. and others
 
 This program and the accompanying materials are made available under
 the terms of the Eclipse Public License 2.0 which accompanies this
@@ -57,14 +57,14 @@ ifndef UMA_DO_NOT_OPTIMIZE_CCODE
     UMA_OPTIMIZATION_FLAGS = -O3 -Wc,"ARCH(7)" -Wc,"TUNE(10)"
     UMA_OPTIMIZATION_LINKER_FLAGS = -Wl,compat=ZOSV1R13
   else
-    UMA_OPTIMIZATION_FLAGS = -O3 -Wc,"ARCH(10)" -Wc,"TUNE(10)"
+    UMA_OPTIMIZATION_FLAGS = -O3 -Wc,"ARCH(10)" -Wc,"TUNE(12)"
     UMA_OPTIMIZATION_LINKER_FLAGS = -Wl,compat=ZOSV2R3
   endif
 else
   UMA_OPTIMIZATION_FLAGS = -0
 endif
 
-ifdef j9vm_uma_supportsIpv6
+ifdef j9vm_uma_supportsIPv6
   UMA_ZOS_FLAGS += -DIPv6_FUNCTION_SUPPORT
 endif
 

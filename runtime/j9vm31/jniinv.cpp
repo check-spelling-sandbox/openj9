@@ -144,7 +144,7 @@ JNI_GetCreatedJavaVMs(JavaVM **vmBuf, jsize bufLen, jsize *nVMs)
 	J9_CEL4RO64_ArgType argTypes[NUM_ARGS] = { CEL4RO64_type_uint32_ptr, CEL4RO64_type_jsize, CEL4RO64_type_uint32_ptr };
 
 	/* Allocate a temporary buffer to store the returned JavaVM64 instances.
-	 * Will copy the corresponding 31-bit JavaVM instanes to vmBuf if successful below.
+	 * Will copy the corresponding 31-bit JavaVM instances to vmBuf if successful below.
 	 */
 	uint64_t *tempJavaVM64Buffer = (uint64_t *)malloc(sizeof(jlong) * bufLen);
 	if (NULL == tempJavaVM64Buffer) {
@@ -221,7 +221,7 @@ AttachCurrentThread(JavaVM *vm, void **penv, void *args)
 		fprintf(stderr, "AttachCurrentThread failed. CEL4RO64 rc: %d - %s\n", cel4ro64ReturnCode, j9_cel4ro64_get_error_message(cel4ro64ReturnCode));
 		return JNI_ERR;
 	}
-	/* If successful, we will return the correponding 31-bit JNIEnv. */
+	/* If successful, we will return the corresponding 31-bit JNIEnv. */
 	if (JNI_OK == returnValue) {
 		JNIEnv31* jniEnv31 = getJNIEnv31(JNIEnv64Result);
 		jniEnv31->javaVM31 = (JavaVM31 *)vm;
@@ -266,7 +266,7 @@ GetEnv(JavaVM *vm, void **penv, jint version)
 		fprintf(stderr, "GetEnv failed. CEL4RO64 rc: %d - %s\n", cel4ro64ReturnCode, j9_cel4ro64_get_error_message(cel4ro64ReturnCode));
 		return JNI_ERR;
 	}
-	/* If successful, we will return the correponding 31-bit JNIEnv. */
+	/* If successful, we will return the corresponding 31-bit JNIEnv. */
 	if (JNI_OK == returnValue) {
 		JNIEnv31* jniEnv31 = getJNIEnv31(JNIEnv64Result);
 		jniEnv31->javaVM31 = (JavaVM31 *)vm;
@@ -302,7 +302,7 @@ AttachCurrentThreadAsDaemon(JavaVM *vm, void **penv, void *args)
 		fprintf(stderr, "AttachCurrentThreadAsDaemon failed. CEL4RO64 rc: %d - %s\n", cel4ro64ReturnCode, j9_cel4ro64_get_error_message(cel4ro64ReturnCode));
 		return JNI_ERR;
 	}
-	/* If successful, we will return the correponding 31-bit JNIEnv. */
+	/* If successful, we will return the corresponding 31-bit JNIEnv. */
 	if (JNI_OK == returnValue) {
 		JNIEnv31* jniEnv31 = getJNIEnv31(JNIEnv64Result);
 		jniEnv31->javaVM31 = (JavaVM31 *)vm;

@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 1991, 2021 IBM Corp. and others
+ * Copyright (c) 1991, 2022 IBM Corp. and others
  *
  * This program and the accompanying materials are made available under
  * the terms of the Eclipse Public License 2.0 which accompanies this
@@ -34,6 +34,10 @@
 #include "ObjectAccessBarrierAPI.hpp"
 #include "MethodMetaData.h"
 #include "ut_j9codertvm.h"
+
+#if defined(OSX) && defined(AARCH64)
+#include <pthread.h> // for pthread_jit_write_protect_np
+#endif
 
 #undef DEBUG
 
@@ -378,6 +382,14 @@ setCurrentExceptionFromJIT(J9VMThread *currentThread, UDATA exceptionNumber, j9o
 {
 	TIDY_BEFORE_THROW();
 	currentThread->javaVM->internalVMFunctions->setCurrentException(currentThread, exceptionNumber, (UDATA*)detailMessage);
+	return J9_JITHELPER_ACTION_THROW;
+}
+
+static VMINLINE void*
+setNegativeArraySizeExceptionFromJIT(J9VMThread *currentThread, I_32 size)
+{
+	TIDY_BEFORE_THROW();
+	currentThread->javaVM->internalVMFunctions->setNegativeArraySizeException(currentThread, size);
 	return J9_JITHELPER_ACTION_THROW;
 }
 
@@ -983,7 +995,7 @@ old_fast_jitLoadFlattenableArrayElement(J9VMThread *currentThread)
 	value = (j9object_t) currentThread->javaVM->internalVMFunctions->loadFlattenableArrayElement(currentThread, arrayObject, index, true);
 	if (NULL == value) {
 		J9ArrayClass *arrayObjectClass = (J9ArrayClass *)J9OBJECT_CLAZZ(currentThread, arrayObject);
-		if (J9_IS_J9CLASS_VALUETYPE(arrayObjectClass->componentType)) {
+		if (J9_IS_J9CLASS_PRIMITIVE_VALUETYPE(arrayObjectClass->componentType)) {
 			goto slow;
 		}
 	}
@@ -1050,7 +1062,7 @@ old_fast_jitStoreFlattenableArrayElement(J9VMThread *currentThread)
 		goto slow;
 	}
 	arrayrefClass = (J9ArrayClass *) J9OBJECT_CLAZZ(currentThread, arrayref);
-	if ((J9_IS_J9CLASS_VALUETYPE(arrayrefClass->componentType)) && (NULL == value)) {
+	if ((J9_IS_J9CLASS_PRIMITIVE_VALUETYPE(arrayrefClass->componentType)) && (NULL == value)) {
 		goto slow;
 	}
 	currentThread->javaVM->internalVMFunctions->storeFlattenableArrayElement(currentThread, arrayref, index, value);
@@ -1112,7 +1124,7 @@ slow_jitANewArrayImpl(J9VMThread *currentThread, bool nonZeroTLH)
 	}
 	if (size < 0) {
 		buildJITResolveFrameForRuntimeHelper(currentThread, parmCount);
-		addr = setCurrentExceptionFromJIT(currentThread, J9VMCONSTANTPOOL_JAVALANGNEGATIVEARRAYSIZEEXCEPTION, NULL);
+		addr = setNegativeArraySizeExceptionFromJIT(currentThread, size);
 		goto done;
 	}
 	if (NULL == arrayClass) {
@@ -1218,7 +1230,7 @@ slow_jitNewArrayImpl(J9VMThread *currentThread, bool nonZeroTLH)
 	}
 	if (size < 0) {
 		buildJITResolveFrameForRuntimeHelper(currentThread, parmCount);
-		addr = setCurrentExceptionFromJIT(currentThread, J9VMCONSTANTPOOL_JAVALANGNEGATIVEARRAYSIZEEXCEPTION, NULL);
+		addr = setNegativeArraySizeExceptionFromJIT(currentThread, size);
 		goto done;
 	}
 	buildJITResolveFrameWithPC(currentThread, J9_STACK_FLAGS_JIT_ALLOCATION_RESOLVE | J9_SSF_JIT_RESOLVE, parmCount, true, 0, oldPC);
@@ -1447,7 +1459,7 @@ old_fast_jitCheckCast(J9VMThread *currentThread)
 	OLD_JIT_HELPER_PROLOGUE(2);
 	DECLARE_JIT_CLASS_PARM(castClass, 1);
 	DECLARE_JIT_PARM(j9object_t, object, 2);
-	/* null can be cast to anything, except if castClass is a VT */
+	/* null can be cast to anything, except if castClass is a primitive VT */
 	if (NULL != object) {
 		J9Class *instanceClass = J9OBJECT_CLAZZ(currentThread, object);
 		if (!VM_VMHelpers::inlineCheckCast(instanceClass, castClass)) {
@@ -1457,7 +1469,7 @@ old_fast_jitCheckCast(J9VMThread *currentThread)
 		}
 	}
 #if defined(J9VM_OPT_VALHALLA_VALUE_TYPES)
-	else if (J9_IS_J9CLASS_VALUETYPE(castClass)) {
+	else if (J9_IS_J9CLASS_PRIMITIVE_VALUETYPE(castClass)) {
 		slowPath = (void*)old_slow_jitThrowNullPointerException;
 	}
 #endif /* defined(J9VM_OPT_VALHALLA_VALUE_TYPES) */
@@ -1479,7 +1491,7 @@ old_fast_jitCheckCastForArrayStore(J9VMThread *currentThread)
 	OLD_JIT_HELPER_PROLOGUE(2);
 	DECLARE_JIT_CLASS_PARM(castClass, 1);
 	DECLARE_JIT_PARM(j9object_t, object, 2);
-	/* null can be cast to anything, except if castClass is a VT */
+	/* null can be cast to anything, except if castClass is a primitive VT */
 	if (NULL != object) {
 		J9Class *instanceClass = J9OBJECT_CLAZZ(currentThread, object);
 		if (!VM_VMHelpers::inlineCheckCast(instanceClass, castClass)) {
@@ -1487,7 +1499,7 @@ old_fast_jitCheckCastForArrayStore(J9VMThread *currentThread)
 		}
 	}
 #if defined(J9VM_OPT_VALHALLA_VALUE_TYPES)
-	else if (J9_IS_J9CLASS_VALUETYPE(castClass)) {
+	else if (J9_IS_J9CLASS_PRIMITIVE_VALUETYPE(castClass)) {
 		slowPath = (void*)old_slow_jitThrowNullPointerException;
 	}
 #endif /* defined(J9VM_OPT_VALHALLA_VALUE_TYPES) */
@@ -1606,6 +1618,52 @@ old_fast_jitLookupInterfaceMethod(J9VMThread *currentThread)
 }
 
 void J9FASTCALL
+old_fast_jitLookupDynamicInterfaceMethod(J9VMThread *currentThread)
+{
+	OLD_JIT_HELPER_PROLOGUE(3);
+	DECLARE_JIT_CLASS_PARM(receiverClass, 1);
+	DECLARE_JIT_CLASS_PARM(interfaceClass, 2);
+	DECLARE_JIT_PARM(UDATA, iTableIndex, 3);
+	UDATA iTableOffset = sizeof(struct J9ITable) + (iTableIndex * sizeof(UDATA));
+	UDATA vTableOffset = convertITableOffsetToVTableOffset(currentThread, receiverClass, interfaceClass, iTableOffset);
+	Assert_CodertVM_false(0 == vTableOffset);
+	JIT_RETURN_UDATA(vTableOffset);
+}
+
+void* J9FASTCALL
+old_slow_jitLookupDynamicPublicInterfaceMethod(J9VMThread *currentThread)
+{
+	SLOW_JIT_HELPER_PROLOGUE();
+	J9Method *method = (J9Method*)currentThread->floatTemp1;
+	buildJITResolveFrameForRuntimeHelper(currentThread, parmCount);
+	TIDY_BEFORE_THROW();
+	currentThread->javaVM->internalVMFunctions->setIllegalAccessErrorNonPublicInvokeInterface(currentThread, method);
+	return J9_JITHELPER_ACTION_THROW;
+}
+
+void* J9FASTCALL
+old_fast_jitLookupDynamicPublicInterfaceMethod(J9VMThread *currentThread)
+{
+	void *slowPath = (void*)old_slow_jitLookupDynamicPublicInterfaceMethod;
+	OLD_JIT_HELPER_PROLOGUE(3);
+	DECLARE_JIT_CLASS_PARM(receiverClass, 1);
+	DECLARE_JIT_CLASS_PARM(interfaceClass, 2);
+	DECLARE_JIT_PARM(UDATA, iTableIndex, 3);
+	UDATA iTableOffset = sizeof(struct J9ITable) + (iTableIndex * sizeof(UDATA));
+	UDATA vTableOffset = convertITableOffsetToVTableOffset(currentThread, receiverClass, interfaceClass, iTableOffset);
+	Assert_CodertVM_false(0 == vTableOffset);
+	/* The receiver's implementation is required to be public */
+	J9Method *method = *(J9Method**)((UDATA)receiverClass + vTableOffset);
+	if (J9_ARE_ANY_BITS_SET(J9_ROM_METHOD_FROM_RAM_METHOD(method)->modifiers, J9AccPublic)) {
+		slowPath = NULL;
+		JIT_RETURN_UDATA(vTableOffset);
+	} else {
+		currentThread->floatTemp1 = (void*)method;
+	}
+	return slowPath;
+}
+
+void J9FASTCALL
 old_fast_jitMethodIsNative(J9VMThread *currentThread)
 {
 	OLD_JIT_HELPER_PROLOGUE(1);
@@ -1660,7 +1718,7 @@ slow_jitMonitorEnterImpl(J9VMThread *currentThread, bool forMethod)
 			J9JavaVM *vm = currentThread->javaVM;
 			J9JITExceptionTable *metaData = vm->jitConfig->jitGetExceptionTableFromPC(currentThread, (UDATA)oldPC);
 			Assert_CodertVM_false(NULL == metaData);
-			jitGetMapsFromPC(vm, metaData, (UDATA)oldPC, &stackMap, &inlineMap);
+			jitGetMapsFromPC(currentThread, vm, metaData, (UDATA)oldPC, &stackMap, &inlineMap);
 			Assert_CodertVM_false(NULL == inlineMap);
 			if ((NULL == getJitInlinedCallInfo(metaData)) || (NULL == getFirstInlinedCallSite(metaData, inlineMap))) {
 				J9SFJITResolveFrame *resolveFrame = (J9SFJITResolveFrame*)currentThread->sp;
@@ -2164,6 +2222,9 @@ retry:
 		}
 		goto retry;
 	} else {
+#if defined(OSX) && defined(AARCH64)
+		pthread_jit_write_protect_np(0);
+#endif
 		indexAndLiteralsEA[2] = (UDATA)interfaceClass;
 		UDATA methodIndex = methodIndexAndArgCount >> J9_ITABLE_INDEX_SHIFT;
 		UDATA iTableOffset = 0;
@@ -2182,6 +2243,9 @@ retry:
 			iTableOffset = (methodIndex * sizeof(UDATA)) + sizeof(J9ITable);
 		}
 		indexAndLiteralsEA[3] = iTableOffset;
+#if defined(OSX) && defined(AARCH64)
+		pthread_jit_write_protect_np(1);
+#endif
 		JIT_RETURN_UDATA(1);
 	}
 done:
@@ -2593,7 +2657,7 @@ old_slow_jitRetranslateMethod(J9VMThread *currentThread)
 		 *	- interpreter submits target for compilation
 		 *	- during compilation, a decomp is added for the caller
 		 *	- target is successfully compiled
-		 *	- decomp record is updated such that the savedPCAddres points to where the jitted method would save the RA
+		 *	- decomp record is updated such that the savedPCAddress points to where the jitted method would save the RA
 		 *	- interp transitions to the newly-compiled method with the return address pointing to a decompilation
 		 *
 		 * The decompilation assumes that the target method would run (so it's jitDecompileOnReturn*).
@@ -2797,13 +2861,23 @@ old_fast_jitTypeCheckArrayStoreWithNullCheck(J9VMThread *currentThread)
 }
 
 void J9FASTCALL
-old_fast_jitAcmpHelper(J9VMThread *currentThread)
+old_fast_jitAcmpeqHelper(J9VMThread *currentThread)
 {
 	OLD_JIT_HELPER_PROLOGUE(2);
 	DECLARE_JIT_PARM(j9object_t, lhs, 1);
 	DECLARE_JIT_PARM(j9object_t, rhs, 2);
 
 	JIT_RETURN_UDATA(currentThread->javaVM->internalVMFunctions->valueTypeCapableAcmp(currentThread, lhs, rhs));
+}
+
+void J9FASTCALL
+old_fast_jitAcmpneHelper(J9VMThread *currentThread)
+{
+	OLD_JIT_HELPER_PROLOGUE(2);
+	DECLARE_JIT_PARM(j9object_t, lhs, 1);
+	DECLARE_JIT_PARM(j9object_t, rhs, 2);
+
+	JIT_RETURN_UDATA(!currentThread->javaVM->internalVMFunctions->valueTypeCapableAcmp(currentThread, lhs, rhs));
 }
 
 void* J9FASTCALL
@@ -3521,7 +3595,7 @@ fast_jitCheckCast(J9VMThread *currentThread, J9Class *castClass, j9object_t obje
 //	extern void* slow_jitCheckCast(J9VMThread *currentThread);
 	JIT_HELPER_PROLOGUE();
 	void *slowPath = NULL;
-	/* null can be cast to anything, except if castClass is a VT */
+	/* null can be cast to anything, except if castClass is a primitive VT */
 	if (NULL != object) {
 		J9Class *instanceClass = J9OBJECT_CLAZZ(currentThread, object);
 		if (J9_UNEXPECTED(!VM_VMHelpers::inlineCheckCast(instanceClass, castClass))) {
@@ -3532,7 +3606,7 @@ fast_jitCheckCast(J9VMThread *currentThread, J9Class *castClass, j9object_t obje
 		}
 	}
 #if defined(J9VM_OPT_VALHALLA_VALUE_TYPES)
-	else if (J9_IS_J9CLASS_VALUETYPE(castClass)) {
+	else if (J9_IS_J9CLASS_PRIMITIVE_VALUETYPE(castClass)) {
 		slowPath = (void*)old_slow_jitThrowNullPointerException;
 	}
 #endif /* defined(J9VM_OPT_VALHALLA_VALUE_TYPES) */
@@ -3550,7 +3624,7 @@ fast_jitCheckCastForArrayStore(J9VMThread *currentThread, J9Class *castClass, j9
 //	extern void* slow_jitCheckCastForArrayStore(J9VMThread *currentThread);
 	JIT_HELPER_PROLOGUE();
 	void *slowPath = NULL;
-	/* null can be cast to anything, except if castClass is a VT */
+	/* null can be cast to anything, except if castClass is a primitive VT */
 	if (NULL != object) {
 		J9Class *instanceClass = J9OBJECT_CLAZZ(currentThread, object);
 		if (J9_UNEXPECTED(!VM_VMHelpers::inlineCheckCast(instanceClass, castClass))) {
@@ -3559,7 +3633,7 @@ fast_jitCheckCastForArrayStore(J9VMThread *currentThread, J9Class *castClass, j9
 		}
 	}
 #if defined(J9VM_OPT_VALHALLA_VALUE_TYPES)
-	else if (J9_IS_J9CLASS_VALUETYPE(castClass)) {
+	else if (J9_IS_J9CLASS_PRIMITIVE_VALUETYPE(castClass)) {
 		slowPath = (void*)old_slow_jitThrowNullPointerException;
 	}
 #endif /* defined(J9VM_OPT_VALHALLA_VALUE_TYPES) */
@@ -3667,14 +3741,27 @@ fast_jitTypeCheckArrayStoreWithNullCheck(J9VMThread *currentThread, j9object_t d
 BOOLEAN J9FASTCALL
 #if defined(J9VM_ARCH_X86) || defined(J9VM_ARCH_S390)
 /* TODO Will be cleaned once all platforms adopt the correct parameter order */
-fast_jitAcmpHelper(J9VMThread *currentThread, j9object_t lhs, j9object_t rhs)
+fast_jitAcmpeqHelper(J9VMThread *currentThread, j9object_t lhs, j9object_t rhs)
 #else /* J9VM_ARCH_X86 || J9VM_ARCH_S390*/
-fast_jitAcmpHelper(J9VMThread *currentThread, j9object_t rhs, j9object_t lhs)
+fast_jitAcmpeqHelper(J9VMThread *currentThread, j9object_t rhs, j9object_t lhs)
 #endif /* J9VM_ARCH_X86 || J9VM_ARCH_S390*/
 {
 	JIT_HELPER_PROLOGUE();
 
 	return currentThread->javaVM->internalVMFunctions->valueTypeCapableAcmp(currentThread, lhs, rhs);
+}
+
+BOOLEAN J9FASTCALL
+#if defined(J9VM_ARCH_X86) || defined(J9VM_ARCH_S390)
+/* TODO Will be cleaned once all platforms adopt the correct parameter order */
+fast_jitAcmpneHelper(J9VMThread *currentThread, j9object_t lhs, j9object_t rhs)
+#else /* J9VM_ARCH_X86 || J9VM_ARCH_S390*/
+fast_jitAcmpneHelper(J9VMThread *currentThread, j9object_t rhs, j9object_t lhs)
+#endif /* J9VM_ARCH_X86 || J9VM_ARCH_S390*/
+{
+	JIT_HELPER_PROLOGUE();
+
+	return !currentThread->javaVM->internalVMFunctions->valueTypeCapableAcmp(currentThread, lhs, rhs);
 }
 
 void* J9FASTCALL
@@ -3858,6 +3945,9 @@ initPureCFunctionTable(J9JavaVM *vm)
 	jitConfig->old_fast_jitInstanceOf = (void*)old_fast_jitInstanceOf;
 	jitConfig->old_fast_jitLookupInterfaceMethod = (void*)old_fast_jitLookupInterfaceMethod;
 	jitConfig->old_slow_jitLookupInterfaceMethod = (void*)old_slow_jitLookupInterfaceMethod;
+	jitConfig->old_fast_jitLookupDynamicInterfaceMethod = (void*)old_fast_jitLookupDynamicInterfaceMethod;
+	jitConfig->old_fast_jitLookupDynamicPublicInterfaceMethod = (void*)old_fast_jitLookupDynamicPublicInterfaceMethod;
+	jitConfig->old_slow_jitLookupDynamicPublicInterfaceMethod = (void*)old_slow_jitLookupDynamicPublicInterfaceMethod;
 	jitConfig->old_fast_jitMethodIsNative = (void*)old_fast_jitMethodIsNative;
 	jitConfig->old_fast_jitMethodIsSync = (void*)old_fast_jitMethodIsSync;
 	jitConfig->old_fast_jitMethodMonitorEntry = (void*)old_fast_jitMethodMonitorEntry;
@@ -3942,7 +4032,8 @@ initPureCFunctionTable(J9JavaVM *vm)
 	jitConfig->old_fast_jitPutFlattenableStaticField = (void*) old_fast_jitPutFlattenableStaticField;
 	jitConfig->old_fast_jitLoadFlattenableArrayElement = (void*) old_fast_jitLoadFlattenableArrayElement;
 	jitConfig->old_fast_jitStoreFlattenableArrayElement = (void*) old_fast_jitStoreFlattenableArrayElement;
-	jitConfig->old_fast_jitAcmpHelper = (void*)old_fast_jitAcmpHelper;
+	jitConfig->old_fast_jitAcmpeqHelper = (void*)old_fast_jitAcmpeqHelper;
+	jitConfig->old_fast_jitAcmpneHelper = (void*)old_fast_jitAcmpneHelper;
 	jitConfig->fast_jitNewValue = (void*)fast_jitNewValue;
 	jitConfig->fast_jitNewValueNoZeroInit = (void*)fast_jitNewValueNoZeroInit;
 	jitConfig->fast_jitNewObject = (void*)fast_jitNewObject;

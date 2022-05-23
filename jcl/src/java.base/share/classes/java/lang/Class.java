@@ -1,6 +1,6 @@
 /*[INCLUDE-IF JAVA_SPEC_VERSION >= 8]*/
 /*******************************************************************************
- * Copyright (c) 1998, 2021 IBM Corp. and others
+ * Copyright (c) 1998, 2022 IBM Corp. and others
  *
  * This program and the accompanying materials are made available under
  * the terms of the Eclipse Public License 2.0 which accompanies this
@@ -28,8 +28,10 @@ import java.security.ProtectionDomain;
 import java.security.Permissions;
 /*[IF JAVA_SPEC_VERSION >= 12]*/
 import java.lang.constant.ClassDesc;
-import jdk.internal.reflect.ReflectionFactory;
 /*[ENDIF] JAVA_SPEC_VERSION >= 12*/
+/*[IF JAVA_SPEC_VERSION >= 11]*/
+import jdk.internal.reflect.ReflectionFactory;
+/*[ENDIF] JAVA_SPEC_VERSION >= 11*/
 import java.lang.reflect.*;
 import java.net.URL;
 import java.lang.annotation.*;
@@ -91,6 +93,10 @@ import java.lang.invoke.*;
 import com.ibm.oti.reflect.TypeAnnotationParser;
 import java.security.PrivilegedActionException;
 import sun.security.util.SecurityConstants;
+
+/*[IF JAVA_SPEC_VERSION >= 18]*/
+import jdk.internal.reflect.CallerSensitiveAdapter;
+/*[ENDIF] JAVA_SPEC_VERSION >= 18 */
 
 /**
  * An instance of class Class is the in-image representation
@@ -177,6 +183,9 @@ public final class Class<T> implements java.io.Serializable, GenericDeclaration,
 	/* Cache filename on Class to avoid repeated lookups / allocations in stack traces */
 	private transient String fileNameString;
 
+	/* Cache the packageName of the Class */
+	private transient String packageNameString;
+
 	private static final class AnnotationVars {
 		AnnotationVars() {}
 		static long annotationTypeOffset = -1;
@@ -212,9 +221,9 @@ public final class Class<T> implements java.io.Serializable, GenericDeclaration,
 	/*[PR Jazz 85476] Address locking contention on classRepository in getGeneric*() methods */
 	private transient ClassRepositoryHolder classRepoHolder;
 
-/*[IF JAVA_SPEC_VERSION >= 12]*/
-	private static ReflectionFactory reflectionFactory = null;
-/*[ENDIF] JAVA_SPEC_VERSION >= 12 */
+/*[IF JAVA_SPEC_VERSION >= 11]*/
+	private static ReflectionFactory reflectionFactory;
+/*[ENDIF] JAVA_SPEC_VERSION >= 11 */
 	
 	/* Helper class to hold the ClassRepository. We use a Class with a final 
 	 * field to ensure that we have both safe initialization and safe publication.
@@ -275,6 +284,8 @@ public final class Class<T> implements java.io.Serializable, GenericDeclaration,
 
 	private transient Class<?> cachedEnclosingClass;
 	private static long cachedEnclosingClassOffset = -1;
+
+	private transient boolean cachedCheckInnerClassAttr;
 
 	private static Annotation[] EMPTY_ANNOTATION_ARRAY = new Annotation[0];
 	
@@ -388,7 +399,11 @@ private static void forNameAccessCheck(final SecurityManager sm, final Class<?> 
  * @see			java.lang.Class
  */
 @CallerSensitive
-public static Class<?> forName(String className) throws ClassNotFoundException {
+public static Class<?> forName(String className) throws ClassNotFoundException
+{
+/*[IF JAVA_SPEC_VERSION >= 18]*/
+	return forName(className, getStackClass(1));
+/*[ELSE] JAVA_SPEC_VERSION >= 18
 	@SuppressWarnings("removal")
 	SecurityManager sm = null;
 	/**
@@ -410,7 +425,38 @@ public static Class<?> forName(String className) throws ClassNotFoundException {
 	forNameAccessCheck(sm, caller, c);
 	J9VMInternals.initialize(c);
 	return c;
+/*[ENDIF] JAVA_SPEC_VERSION >= 18 */
 }
+
+/*[IF JAVA_SPEC_VERSION >= 18]*/
+@CallerSensitiveAdapter
+private static Class<?> forName(String className, Class<?> caller) throws ClassNotFoundException
+{
+	@SuppressWarnings("removal")
+	SecurityManager sm = null;
+	/**
+	 * Get the SecurityManager from System.  If the VM has not yet completed bootstrapping (i.e., J9VMInternals.initialized is still false)
+	 * sm is kept as null without referencing System in order to avoid loading System earlier than necessary.
+	 */
+	if (J9VMInternals.initialized) {
+		sm = System.getSecurityManager();
+	}
+	ClassLoader callerClassLoader = null;
+	if (null == sm) {
+		if (null != caller) {
+			callerClassLoader = caller.internalGetClassLoader();
+		}
+		return forNameImpl(className, true, callerClassLoader);
+	}
+	if (null != caller) {
+		callerClassLoader = caller.getClassLoaderImpl();
+	}
+	Class<?> c = forNameImpl(className, false, callerClassLoader);
+	forNameAccessCheck(sm, caller, c);
+	J9VMInternals.initialize(c);
+	return c;
+}
+/*[ENDIF] JAVA_SPEC_VERSION >= 18 */
 
 AnnotationType getAnnotationType() {
 	AnnotationVars localAnnotationVars = getAnnotationVars();
@@ -465,9 +511,12 @@ boolean casAnnotationType(AnnotationType oldType, AnnotationType newType) {
  * @see			java.lang.Class
  */
 @CallerSensitive
-public static Class<?> forName(String className, boolean initializeBoolean, ClassLoader classLoader)
-	throws ClassNotFoundException
+public static Class<?> forName(
+	String className, boolean initializeBoolean, ClassLoader classLoader) throws ClassNotFoundException
 {
+/*[IF JAVA_SPEC_VERSION >= 18]*/
+	return forNameHelper(className, initializeBoolean, classLoader, null, false);
+/*[ELSE] JAVA_SPEC_VERSION >= 18
 	@SuppressWarnings("removal")
 	SecurityManager sm = null;
 	if (J9VMInternals.initialized) {
@@ -493,7 +542,52 @@ public static Class<?> forName(String className, boolean initializeBoolean, Clas
 		J9VMInternals.initialize(c);
 	}
 	return c;
+/*[ENDIF] JAVA_SPEC_VERSION >= 18 */
 }
+
+/*[IF JAVA_SPEC_VERSION >= 18]*/
+@CallerSensitiveAdapter
+private static Class<?> forName(
+	String className, boolean initializeBoolean, ClassLoader classLoader,
+	Class<?> caller) throws ClassNotFoundException
+{
+	return forNameHelper(className, initializeBoolean, classLoader, caller, true);
+}
+
+@CallerSensitive
+private static Class<?> forNameHelper(
+	String className, boolean initializeBoolean, ClassLoader classLoader,
+	Class<?> caller, boolean isAdapter) throws ClassNotFoundException
+{
+	@SuppressWarnings("removal")
+	SecurityManager sm = null;
+	if (J9VMInternals.initialized) {
+		sm = System.getSecurityManager();
+	}
+	if (null == sm) {
+		return forNameImpl(className, initializeBoolean, classLoader);
+	}
+	if (!isAdapter) {
+		caller = getStackClass(2);
+	}
+	/* perform security checks */
+	if (null == classLoader) {
+		if (null != caller) {
+			ClassLoader callerClassLoader = caller.getClassLoaderImpl();
+			if (callerClassLoader != ClassLoader.bootstrapClassLoader) {
+				/* only allowed if caller has RuntimePermission("getClassLoader") permission */
+				sm.checkPermission(SecurityConstants.GET_CLASSLOADER_PERMISSION);
+			}
+		}
+	}
+	Class<?> c = forNameImpl(className, false, classLoader);
+	forNameAccessCheck(sm, caller, c);
+	if (initializeBoolean) {
+		J9VMInternals.initialize(c);
+	}
+	return c;
+}
+/*[ENDIF] JAVA_SPEC_VERSION >= 18 */
 
 /*[IF Sidecar19-SE]*/
 /**
@@ -518,6 +612,9 @@ public static Class<?> forName(String className, boolean initializeBoolean, Clas
 @CallerSensitive
 public static Class<?> forName(Module module, String name)
 {
+/*[IF JAVA_SPEC_VERSION >= 18]*/
+	return forNameHelper(module, name, null, false);
+/*[ELSE] JAVA_SPEC_VERSION >= 18
 	@SuppressWarnings("removal")
 	SecurityManager sm = null;
 	ClassLoader classLoader;
@@ -529,8 +626,69 @@ public static Class<?> forName(Module module, String name)
 	if (J9VMInternals.initialized) {
 		sm = System.getSecurityManager();
 	}
-	Class<?> caller = getStackClass(1);
 	if (null != sm) {
+		Class<?> caller = getStackClass(1);
+		/* If the caller is not the specified module and RuntimePermission("getClassLoader") permission is denied, throw SecurityException */
+		if ((null != caller) && (caller.getModule() != module)) {
+			sm.checkPermission(SecurityConstants.GET_CLASSLOADER_PERMISSION);
+		}
+		classLoader = AccessController.doPrivileged(new PrivilegedAction<ClassLoader>() {
+	        public ClassLoader run() {
+				return module.getClassLoader();
+	        }
+		});
+	} else {
+		classLoader = module.getClassLoader();
+	}
+
+	try {
+		if (classLoader == null) {
+			c = ClassLoader.bootstrapClassLoader.loadClass(module, name);
+		} else {
+			c = classLoader.loadClassHelper(name, false, false, module);
+		}
+	} catch (ClassNotFoundException e) {
+		/* This method returns null on failure rather than throwing a ClassNotFoundException */
+		return null;
+	}
+	if (null != c) {
+		/* If the class loader of the given module defines other modules and
+		 * the given name is a class defined in a different module,
+		 * this method returns null after the class is loaded.
+		 */
+		if (c.getModule() != module) {
+			return null;
+		}
+	}
+	return c;
+/*[ENDIF] JAVA_SPEC_VERSION >= 18 */
+}
+
+/*[IF JAVA_SPEC_VERSION >= 18]*/
+@CallerSensitiveAdapter
+private static Class<?> forName(Module module, String name, Class<?> caller)
+{
+	return forNameHelper(module, name, caller, true);
+}
+
+@CallerSensitive
+private static Class<?> forNameHelper(Module module, String name, Class<?> caller, boolean isAdapter)
+{
+	@SuppressWarnings("removal")
+	SecurityManager sm = null;
+	ClassLoader classLoader;
+	Class<?> c;
+
+	if ((null == module) || (null == name)) {
+		throw new NullPointerException();
+	}
+	if (J9VMInternals.initialized) {
+		sm = System.getSecurityManager();
+	}
+	if (null != sm) {
+		if (!isAdapter) {
+			caller = getStackClass(2);
+		}
 		/* If the caller is not the specified module and RuntimePermission("getClassLoader") permission is denied, throw SecurityException */
 		if ((null != caller) && (caller.getModule() != module)) {
 			sm.checkPermission(SecurityConstants.GET_CLASSLOADER_PERMISSION);
@@ -565,6 +723,7 @@ public static Class<?> forName(Module module, String name)
 	}
 	return c;
 }
+/*[ENDIF] JAVA_SPEC_VERSION >= 18 */
 /*[ENDIF] Sidecar19-SE */
 
 /**
@@ -1291,6 +1450,13 @@ public Class<?> getDeclaringClass() {
 	 */
 	Class<?> declaringClass = cachedDeclaringClass == ClassReflectNullPlaceHolder.class ? null : cachedDeclaringClass;
 	if (declaringClass == null) {
+		if (!cachedCheckInnerClassAttr) {
+			/* Check whether the enclosing class has an valid inner class entry to the current class.
+			 * Note: the entries are populated with the InnerClass attribute when creating ROM class.
+			 */
+			checkInnerClassAttrOfEnclosingClass();
+			cachedCheckInnerClassAttr = true;
+		}
 		return declaringClass;
 	}
 	if (declaringClass.isClassADeclaredClass(this)) {
@@ -1318,7 +1484,23 @@ public Class<?> getDeclaringClass() {
 	
 	/*[MSG "K0555", "incompatible InnerClasses attribute between \"{0}\" and \"{1}\""]*/
 	throw new IncompatibleClassChangeError(
-			com.ibm.oti.util.Msg.getString("K0555", this.getName(),	declaringClass.getName())); //$NON-NLS-1$
+			com.ibm.oti.util.Msg.getString("K0555", this.getName(), declaringClass.getName())); //$NON-NLS-1$
+}
+
+/**
+ * Checks whether the current class exists in the InnerClass attribute of the specified enclosing class
+ * when this class is not defined directly inside the enclosing class (e.g. defined inside a method).
+ *
+ * Note: The direct inner classes of the declaring class is already checked in getDeclaringClass()
+ * when the enclosing class is the declaring class.
+ */
+private void checkInnerClassAttrOfEnclosingClass() {
+	Class<?> enclosingClass = getEnclosingObjectClass();
+	if ((enclosingClass != null) && !enclosingClass.isClassAnEnclosedClass(this)) {
+		/*[MSG "K0555", "incompatible InnerClasses attribute between \"{0}\" and \"{1}\""]*/
+		throw new IncompatibleClassChangeError(
+				com.ibm.oti.util.Msg.getString("K0555", this.getName(), enclosingClass.getName())); //$NON-NLS-1$
+	}
 }
 
 /**
@@ -1339,6 +1521,18 @@ private native boolean isCircularDeclaringClass();
  *
  */
 private native boolean isClassADeclaredClass(Class<?> aClass);
+
+/**
+ * Returns true if the class passed in to the method is an enclosed class of
+ * this class, which includes both the declared classes and the classes defined
+ * inside a method of this class.
+ *
+ * @param		aClass		The class to validate
+ * @return		true if aClass an enclosed class of this class
+ * 				false otherwise.
+ *
+ */
+private native boolean isClassAnEnclosedClass(Class<?> aClass);
 
 /**
  * Answers the class which declared the class represented
@@ -2046,9 +2240,7 @@ public String getName() {
 		return name;
 	}
 	//must have been null to set it
-	name = VM.getClassNameImpl(this).intern();
-	classNameString = name;
-	return name;
+	return VM.getClassNameImpl(this, true);
 }
 
 /**
@@ -2133,26 +2325,33 @@ private static String getNonArrayClassPackageName(Class<?> clz) {
  * @see			#getPackage
  */
 /*[IF Sidecar19-SE]*/
-public 
+public
 /*[ENDIF] Sidecar19-SE */
 String getPackageName() {
+	String packageName = this.packageNameString;
+	if (null == packageName) {
 /*[IF Sidecar19-SE]*/
-	if (isPrimitive()) {
-		return "java.lang"; //$NON-NLS-1$
-	}
-	if (isArray()) {
-		Class<?> componentType = getComponentType();
-		while (componentType.isArray()) {
-			componentType = componentType.getComponentType();
-		}
-		if (componentType.isPrimitive()) {
-			return "java.lang"; //$NON-NLS-1$
+		if (isPrimitive()) {
+			packageName = "java.lang"; //$NON-NLS-1$
+		} else if (isArray()) {
+			Class<?> componentType = getComponentType();
+			while (componentType.isArray()) {
+				componentType = componentType.getComponentType();
+			}
+			if (componentType.isPrimitive()) {
+				packageName = "java.lang"; //$NON-NLS-1$
+			} else {
+				packageName = getNonArrayClassPackageName(componentType);
+			}
 		} else {
-			return getNonArrayClassPackageName(componentType);
+			packageName = getNonArrayClassPackageName(this);
 		}
-	}
+/*[ELSE] Sidecar19-SE */
+		packageName = getNonArrayClassPackageName(this);
 /*[ENDIF] Sidecar19-SE */
-	return getNonArrayClassPackageName(this);
+		this.packageNameString = packageName;
+	}
+	return packageName;
 }
 
 /**
@@ -2404,9 +2603,37 @@ public native boolean isPrimitive();
  * Answers true if the receiver represents a primitive class type. Array classes
  * return false.
  *
- * @return	true if reciever is primitive class type, and false otherwise.
+ * @return	true if receiver is primitive class type, and false otherwise.
  */
 public native boolean isPrimitiveClass();
+
+/**
+ * Answers true if the receiver represents a value class type. Array classes
+ * return false.
+ *
+ * @return	true if receiver is a value class type, and false otherwise.
+ */
+public native boolean isValue();
+
+/**
+ * ToDo: add comments for public methods - https://github.com/eclipse-openj9/openj9/issues/13615
+ */
+public Class<?> asPrimaryType() {
+	// ToDo: this is a temporary implementation - https://github.com/eclipse-openj9/openj9/issues/13615
+	return this;
+}
+public Class<?> asValueType() {
+	// ToDo: this is a temporary implementation - https://github.com/eclipse-openj9/openj9/issues/13615
+	return this;
+}
+public boolean isPrimaryType() {
+	// ToDo: this is a temporary implementation - https://github.com/eclipse-openj9/openj9/issues/13615
+	return true;
+}
+public boolean isPrimitiveValueType() {
+	// ToDo: this is a temporary implementation - https://github.com/eclipse-openj9/openj9/issues/13615
+	return false;
+}
 /*[ENDIF] INLINE-TYPES */
 
 /**
@@ -2446,9 +2673,7 @@ public T newInstance() throws IllegalAccessException, InstantiationException {
 	} else {
 		try {
 			Constructor<?> ctr = getDeclaredConstructor();
-			if (reflectionFactory == null) {
-				reflectionFactory = AccessController.doPrivileged(new ReflectionFactory.GetReflectionFactoryAction());
-			}
+			reflectionFactory = getReflectionFactory();
 			return (T)reflectionFactory.newInstance(ctr, null, callerClazz);
 		} catch (NoSuchMethodException  e) {
 			InstantiationException instantiationEx = new InstantiationException();
@@ -3284,10 +3509,20 @@ private AnnotationCache getAnnotationCache() {
 		if (annotationsData == null) {
 			annotationCacheResult = new AnnotationCache(null, buildAnnotations(null));
 		} else {
+			long offset = Unsafe.ARRAY_BYTE_BASE_OFFSET + ((annotationsData.length * Unsafe.ARRAY_BYTE_INDEX_SCALE) - VM.FJ9OBJECT_SIZE);
+			long ramCPAddr = 0;
+			if (VM.FJ9OBJECT_SIZE == 4) {
+				/* Compressed object refs */
+				ramCPAddr = Integer.toUnsignedLong(unsafe.getInt(annotationsData, offset));
+			} else {
+				ramCPAddr = unsafe.getLong(annotationsData, offset);
+			}
+			Object internalCP = VM.getVMLangAccess().createInternalConstantPool(ramCPAddr);
+
 			Annotation[] directAnnotations = sun.reflect.annotation.AnnotationParser.toArray(
 						sun.reflect.annotation.AnnotationParser.parseAnnotations(
 								annotationsData,
-								getConstantPool(),
+								getConstantPool(internalCP),
 								this));
 			
 			LinkedHashMap<Class<? extends Annotation>, Annotation> directAnnotationsMap = new LinkedHashMap<>(directAnnotations.length * 4 / 3);
@@ -3382,9 +3617,10 @@ public <U> Class<? extends U> asSubclass(Class<U> cls) {
  * @since 1.5
  */
 public T cast(Object object) {
-	if (object != null && !this.isInstance(object))
-/*[MSG "K0336", "Cannot cast {0} to {1}"]*/
-		throw new ClassCastException(com.ibm.oti.util.Msg.getString("K0336", object.getClass(), this)); //$NON-NLS-1$
+	if ((object != null) && !this.isInstance(object)) {
+		/*[MSG "K0336", "Cannot cast {0} to {1}"]*/
+		throw new ClassCastException(com.ibm.oti.util.Msg.getString("K0336", object.getClass().getName(), getName())); //$NON-NLS-1$
+	}
 	return (T)object;
 }
 
@@ -3450,8 +3686,14 @@ Map<String, T> enumConstantDirectory() {
 			/*[MSG "K0564", "{0} is not an Enum"]*/			
 			throw new IllegalArgumentException(com.ibm.oti.util.Msg.getString("K0564", getName())); //$NON-NLS-1$
 		}
-		map = new HashMap<>(enums.length * 4 / 3);
-		for (int i = 0; i < enums.length; i++) {
+		int enumsLength = enums.length;
+		/*[IF JAVA_SPEC_VERSION >= 19]
+		map = HashMap.newHashMap(enumsLength);
+		/*[ELSE] JAVA_SPEC_VERSION >= 19 */
+		// HashMap.DEFAULT_LOAD_FACTOR is 0.75
+		map = new HashMap<>(enumsLength * 4 / 3);
+		/*[ENDIF] JAVA_SPEC_VERSION >= 19 */
+		for (int i = 0; i < enumsLength; i++) {
 			map.put(((Enum<?>) enums[i]).name(), enums[i]);
 		}
 		
@@ -3976,16 +4218,19 @@ private String getParameterTypesSignature(boolean throwException, String name, C
 	return signature.toString();
 }
 
+/*[IF JAVA_SPEC_VERSION == 8]*/
 /*[PR CMVC 114820, CMVC 115873, CMVC 116166] add reflection cache */
 private static Method copyMethod, copyField, copyConstructor;
 private static Field methodParameterTypesField;
 private static Field constructorParameterTypesField;
 private static final Object[] NoArgs = new Object[0];
+/*[ENDIF] JAVA_SPEC_VERSION == 8 */
 
 /*[PR JAZZ 107786] constructorParameterTypesField should be initialized regardless of reflectCacheEnabled or not */
 static void initCacheIds(boolean cacheEnabled, boolean cacheDebug) {
 	reflectCacheEnabled = cacheEnabled;
 	reflectCacheDebug = cacheDebug;
+	/*[IF JAVA_SPEC_VERSION == 8]*/
 	AccessController.doPrivileged(new PrivilegedAction<Void>() {
 		@Override
 		public Void run() {
@@ -3993,10 +4238,12 @@ static void initCacheIds(boolean cacheEnabled, boolean cacheDebug) {
 			return null;
 		}
 	});
+	/*[ENDIF] JAVA_SPEC_VERSION == 8 */
 }
 static void setReflectCacheAppOnly(boolean cacheAppOnly) {
 	reflectCacheAppOnly = cacheAppOnly;
 }
+/*[IF JAVA_SPEC_VERSION == 8]*/
 @SuppressWarnings("nls")
 static void doInitCacheIds() {
 	/*
@@ -4023,6 +4270,7 @@ static void doInitCacheIds() {
 		copyField = getAccessibleMethod(Field.class, "copy");
 	}
 }
+/*[ENDIF] JAVA_SPEC_VERSION == 8 */
 private static Method getAccessibleMethod(Class<?> cls, String name) {
 	try {
 		Method method = cls.getDeclaredMethod(name, EmptyParameters);
@@ -4324,6 +4572,10 @@ private static final class CacheKey {
 }
 
 private static Class<?>[] getParameterTypes(Constructor<?> constructor) {
+/*[IF JAVA_SPEC_VERSION >= 11]*/
+	reflectionFactory = getReflectionFactory();
+	return reflectionFactory.getExecutableSharedParameterTypes(constructor);
+/*[ELSE] JAVA_SPEC_VERSION >= 11*/
 	try {
 		if (null != constructorParameterTypesField)	{
 			return (Class<?>[]) constructorParameterTypesField.get(constructor);
@@ -4333,9 +4585,14 @@ private static Class<?>[] getParameterTypes(Constructor<?> constructor) {
 	} catch (IllegalAccessException | IllegalArgumentException e) {
 		throw newInternalError(e);
 	}
+/*[ENDIF] JAVA_SPEC_VERSION >= 11 */
 }
 
 static Class<?>[] getParameterTypes(Method method) {
+/*[IF JAVA_SPEC_VERSION >= 11]*/
+	reflectionFactory = getReflectionFactory();
+	return reflectionFactory.getExecutableSharedParameterTypes(method);
+/*[ELSE] JAVA_SPEC_VERSION >= 11*/
 	try {
 		if (null != methodParameterTypesField)	{
 			return (Class<?>[]) methodParameterTypesField.get(method);
@@ -4345,6 +4602,7 @@ static Class<?>[] getParameterTypes(Method method) {
 	} catch (IllegalAccessException | IllegalArgumentException e) {
 		throw newInternalError(e);
 	}
+/*[ENDIF] JAVA_SPEC_VERSION >= 11 */
 }
 
 /*[PR 125873] Improve reflection cache */
@@ -4486,9 +4744,18 @@ private Method lookupCachedMethod(String methodName, Class<?>[] parameters) {
 				Class<?>[] orgParams = getParameterTypes(method);
 				// ensure the parameter classes are identical
 				if (sameTypes(parameters, orgParams)) {
+					/*[IF JAVA_SPEC_VERSION >= 11]*/
+					reflectionFactory = getReflectionFactory();
+					return (Method) reflectionFactory.copyMethod(method);
+					/*[ELSE] JAVA_SPEC_VERSION >= 11*/
 					return (Method) copyMethod.invoke(method, NoArgs);
+					/*[ENDIF] JAVA_SPEC_VERSION >= 11 */
 				}
-			} catch (IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {
+			} catch (IllegalArgumentException
+				/*[IF JAVA_SPEC_VERSION == 8]*/
+				| IllegalAccessException | InvocationTargetException
+				/*[ENDIF] JAVA_SPEC_VERSION == 8 */
+			e) {
 				throw newInternalError(e);
 			}
 		}
@@ -4502,7 +4769,9 @@ private Method cacheMethod(Method method) {
 	if (reflectCacheAppOnly && ClassLoader.getStackClassLoader(2) == ClassLoader.bootstrapClassLoader) {
 		return method;
 	}
+	/*[IF JAVA_SPEC_VERSION == 8]*/
 	if (copyMethod == null) return method;
+	/*[ENDIF] JAVA_SPEC_VERSION == 8 */
 	if (reflectCacheDebug) {
 		reflectCacheDebugHelper(null, 0, "cache Method: ", getName(), ".", method.getName());	//$NON-NLS-1$ //$NON-NLS-2$
 	}
@@ -4527,8 +4796,17 @@ private Method cacheMethod(Method method) {
 		} finally {
 			cache.release();
 		}
-		return (Method)copyMethod.invoke(method, NoArgs);
-	} catch (IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {
+		/*[IF JAVA_SPEC_VERSION >= 11]*/
+		reflectionFactory = getReflectionFactory();
+		return (Method) reflectionFactory.copyMethod(method);
+		/*[ELSE] JAVA_SPEC_VERSION >= 11*/
+		return (Method) copyMethod.invoke(method, NoArgs);
+		/*[ENDIF] JAVA_SPEC_VERSION >= 11 */
+	} catch (IllegalArgumentException
+		/*[IF JAVA_SPEC_VERSION == 8]*/
+		| IllegalAccessException | InvocationTargetException
+		/*[ENDIF] JAVA_SPEC_VERSION == 8 */
+	e) {
 		throw newInternalError(e);
 	}
 }
@@ -4544,8 +4822,17 @@ private Field lookupCachedField(String fieldName) {
 		Field field = (Field) cache.find(CacheKey.newFieldKey(fieldName, null));
 		if (field != null) {
 			try {
-				return (Field)copyField.invoke(field, NoArgs);
-			} catch (IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {
+				/*[IF JAVA_SPEC_VERSION >= 11]*/
+				reflectionFactory = getReflectionFactory();
+				return (Field) reflectionFactory.copyField(field);
+				/*[ELSE] JAVA_SPEC_VERSION >= 11*/
+				return (Field) copyField.invoke(field, NoArgs);
+				/*[ENDIF] JAVA_SPEC_VERSION >= 11 */
+			} catch (IllegalArgumentException
+				/*[IF JAVA_SPEC_VERSION == 8]*/
+				| IllegalAccessException | InvocationTargetException
+				/*[ENDIF] JAVA_SPEC_VERSION == 8 */
+			e) {
 				throw newInternalError(e);
 			}
 		}
@@ -4559,7 +4846,9 @@ private Field cacheField(Field field) {
 	if (reflectCacheAppOnly && ClassLoader.getStackClassLoader(2) == ClassLoader.bootstrapClassLoader) {
 		return field;
 	}
+	/*[IF JAVA_SPEC_VERSION == 8]*/
 	if (copyField == null) return field;
+	/*[ENDIF] JAVA_SPEC_VERSION == 8 */
 	if (reflectCacheDebug) {
 		reflectCacheDebugHelper(null, 0, "cache Field: ", getName(), ".", field.getName());	//$NON-NLS-1$ //$NON-NLS-2$
 	}
@@ -4579,8 +4868,17 @@ private Field cacheField(Field field) {
 		cache.release();
 	}
 	try {
+		/*[IF JAVA_SPEC_VERSION >= 11]*/
+		reflectionFactory = getReflectionFactory();
+		return (Field) reflectionFactory.copyField(field);
+		/*[ELSE] JAVA_SPEC_VERSION >= 11*/
 		return (Field) copyField.invoke(field, NoArgs);
-	} catch (IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {
+		/*[ENDIF] JAVA_SPEC_VERSION >= 11 */
+	} catch (IllegalArgumentException
+		/*[IF JAVA_SPEC_VERSION == 8]*/
+		| IllegalAccessException | InvocationTargetException
+		/*[ENDIF] JAVA_SPEC_VERSION == 8 */
+	e) {
 		throw newInternalError(e);
 	}
 }
@@ -4599,9 +4897,18 @@ private Constructor<T> lookupCachedConstructor(Class<?>[] parameters) {
 			try {
 				// ensure the parameter classes are identical
 				if (sameTypes(orgParams, parameters)) {
+					/*[IF JAVA_SPEC_VERSION >= 11]*/
+					reflectionFactory = getReflectionFactory();
+					return (Constructor<T>) reflectionFactory.copyConstructor(constructor);
+					/*[ELSE] JAVA_SPEC_VERSION >= 11*/
 					return (Constructor<T>) copyConstructor.invoke(constructor, NoArgs);
+					/*[ENDIF] JAVA_SPEC_VERSION >= 11 */
 				}
-			} catch (IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {
+			} catch (IllegalArgumentException
+				/*[IF JAVA_SPEC_VERSION == 8]*/
+				| IllegalAccessException | InvocationTargetException
+				/*[ENDIF] JAVA_SPEC_VERSION == 8 */
+			e) {
 				throw newInternalError(e);
 			}
 		}
@@ -4615,7 +4922,9 @@ private Constructor<T> cacheConstructor(Constructor<T> constructor) {
 	if (reflectCacheAppOnly && ClassLoader.getStackClassLoader(2) == ClassLoader.bootstrapClassLoader) {
 		return constructor;
 	}
+	/*[IF JAVA_SPEC_VERSION == 8]*/
 	if (copyConstructor == null) return constructor;
+	/*[ENDIF] JAVA_SPEC_VERSION == 8 */
 	if (reflectCacheDebug) {
 		reflectCacheDebugHelper(constructor.getParameterTypes(), 1, "cache Constructor: ", getName());	//$NON-NLS-1$
 	}
@@ -4627,8 +4936,17 @@ private Constructor<T> cacheConstructor(Constructor<T> constructor) {
 		cache.release();
 	}
 	try {
+		/*[IF JAVA_SPEC_VERSION >= 11]*/
+		reflectionFactory = getReflectionFactory();
+		return (Constructor<T>) reflectionFactory.copyConstructor(constructor);
+		/*[ELSE] JAVA_SPEC_VERSION >= 11*/
 		return (Constructor<T>) copyConstructor.invoke(constructor, NoArgs);
-	} catch (IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {
+		/*[ENDIF] JAVA_SPEC_VERSION >= 11 */
+	} catch (IllegalArgumentException
+		/*[IF JAVA_SPEC_VERSION == 8]*/
+		| IllegalAccessException | InvocationTargetException
+		/*[ENDIF] JAVA_SPEC_VERSION == 8 */
+	e) {
 		throw newInternalError(e);
 	}
 }
@@ -4636,11 +4954,22 @@ private Constructor<T> cacheConstructor(Constructor<T> constructor) {
 private static Method[] copyMethods(Method[] methods) {
 	Method[] result = new Method[methods.length];
 	try {
+		/*[IF JAVA_SPEC_VERSION >= 11]*/
+		reflectionFactory = getReflectionFactory();
+		/*[ENDIF] JAVA_SPEC_VERSION >= 11 */
 		for (int i=0; i<methods.length; i++) {
-			result[i] = (Method)copyMethod.invoke(methods[i], NoArgs);
+			/*[IF JAVA_SPEC_VERSION >= 11]*/
+			result[i] = (Method) reflectionFactory.copyMethod(methods[i]);
+			/*[ELSE] JAVA_SPEC_VERSION >= 11*/
+			result[i] = (Method) copyMethod.invoke(methods[i], NoArgs);
+			/*[ENDIF] JAVA_SPEC_VERSION >= 11 */
 		}
 		return result;
-	} catch (IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {
+	} catch (IllegalArgumentException
+		/*[IF JAVA_SPEC_VERSION == 8]*/
+		| IllegalAccessException | InvocationTargetException
+		/*[ENDIF] JAVA_SPEC_VERSION == 8 */
+	e) {
 		throw newInternalError(e);
 	}
 }
@@ -4667,7 +4996,9 @@ private Method[] cacheMethods(Method[] methods, CacheKey cacheKey) {
 	if (reflectCacheAppOnly && ClassLoader.getStackClassLoader(2) == ClassLoader.bootstrapClassLoader) {
 		return methods;
 	}
+	/*[IF JAVA_SPEC_VERSION == 8]*/
 	if (copyMethod == null) return methods;
+	/*[ENDIF] JAVA_SPEC_VERSION == 8 */
 	if (reflectCacheDebug) {
 		reflectCacheDebugHelper(null, 0, "cache Methods in: ", getName());	//$NON-NLS-1$
 	}
@@ -4707,11 +5038,22 @@ private Method[] cacheMethods(Method[] methods, CacheKey cacheKey) {
 private static Field[] copyFields(Field[] fields) {
 	Field[] result = new Field[fields.length];
 	try {
+		/*[IF JAVA_SPEC_VERSION >= 11]*/
+		reflectionFactory = getReflectionFactory();
+		/*[ENDIF] JAVA_SPEC_VERSION >= 11 */
 		for (int i=0; i<fields.length; i++) {
-			result[i] = (Field)copyField.invoke(fields[i], NoArgs);
+			/*[IF JAVA_SPEC_VERSION >= 11]*/
+			result[i] = (Field) reflectionFactory.copyField(fields[i]);
+			/*[ELSE] JAVA_SPEC_VERSION >= 11*/
+			result[i] = (Field) copyField.invoke(fields[i], NoArgs);
+			/*[ENDIF] JAVA_SPEC_VERSION >= 11 */
 		}
 		return result;
-	} catch (IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {
+	} catch (IllegalArgumentException
+		/*[IF JAVA_SPEC_VERSION == 8]*/
+		| IllegalAccessException | InvocationTargetException
+		/*[ENDIF] JAVA_SPEC_VERSION == 8 */
+	e) {
 		throw newInternalError(e);
 	}
 }
@@ -4738,7 +5080,9 @@ private Field[] cacheFields(Field[] fields, CacheKey cacheKey) {
 	if (reflectCacheAppOnly && ClassLoader.getStackClassLoader(2) == ClassLoader.bootstrapClassLoader) {
 		return fields;
 	}
+	/*[IF JAVA_SPEC_VERSION == 8]*/
 	if (copyField == null) return fields;
+	/*[ENDIF] JAVA_SPEC_VERSION == 8 */
 	if (reflectCacheDebug) {
 		reflectCacheDebugHelper(null, 0, "cache Fields in: ", getName());	//$NON-NLS-1$
 	}
@@ -4778,11 +5122,22 @@ private Field[] cacheFields(Field[] fields, CacheKey cacheKey) {
 private static <T> Constructor<T>[] copyConstructors(Constructor<T>[] constructors) {
 	Constructor<T>[] result = new Constructor[constructors.length];
 	try {
+		/*[IF JAVA_SPEC_VERSION >= 11]*/
+		reflectionFactory = getReflectionFactory();
+		/*[ENDIF] JAVA_SPEC_VERSION >= 11 */
 		for (int i=0; i<constructors.length; i++) {
+			/*[IF JAVA_SPEC_VERSION >= 11]*/
+			result[i] = (Constructor<T>) reflectionFactory.copyConstructor(constructors[i]);
+			/*[ELSE] JAVA_SPEC_VERSION >= 11*/
 			result[i] = (Constructor<T>) copyConstructor.invoke(constructors[i], NoArgs);
+			/*[ENDIF] JAVA_SPEC_VERSION >= 11 */
 		}
 		return result;
-	} catch (IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {
+	} catch (IllegalArgumentException
+		/*[IF JAVA_SPEC_VERSION == 8]*/
+		| IllegalAccessException | InvocationTargetException
+		/*[ENDIF] JAVA_SPEC_VERSION == 8 */
+	e) {
 		throw newInternalError(e);
 	}
 }
@@ -4809,7 +5164,9 @@ private Constructor<T>[] cacheConstructors(Constructor<T>[] constructors, CacheK
 	if (reflectCacheAppOnly && ClassLoader.getStackClassLoader(2) == ClassLoader.bootstrapClassLoader) {
 		return constructors;
 	}
+	/*[IF JAVA_SPEC_VERSION == 8]*/
 	if (copyConstructor == null) return constructors;
+	/*[ENDIF] JAVA_SPEC_VERSION == 8 */
 	if (reflectCacheDebug) {
 		reflectCacheDebugHelper(null, 0, "cache Constructors in: ", getName());	//$NON-NLS-1$
 	}
@@ -4868,8 +5225,8 @@ Object setMethodHandleCache(Object cache) {
 	return result;
 }
 
-ConstantPool getConstantPool() {
-	return SharedSecrets.getJavaLangAccess().getConstantPool(this);
+ConstantPool getConstantPool(Object internalCP) {
+	return VM.getVMLangAccess().getConstantPool(internalCP);
 }
 
 /*[IF Sidecar19-SE]*/
@@ -5260,4 +5617,15 @@ SecurityException {
 		return localPermittedSubclasses;
 	}
 /*[ENDIF] JAVA_SPEC_VERSION >= 16 */
+
+	/*[IF JAVA_SPEC_VERSION >= 11]*/
+	@SuppressWarnings("removal")
+	private static ReflectionFactory getReflectionFactory() {
+		if (reflectionFactory == null) {
+			reflectionFactory = AccessController.doPrivileged(new ReflectionFactory.GetReflectionFactoryAction());
+		}
+		return reflectionFactory;
+	}
+	/*[ENDIF] JAVA_SPEC_VERSION >= 11 */
+
 }

@@ -54,7 +54,7 @@ public class RemoteProcess {
 		try {
 			Thread.sleep(1000);
 		} catch (InterruptedException e) {
-			Assert.fail("Exception occurred while sleepping" + e.getMessage());
+			Assert.fail("Exception occurred while sleeping" + e.getMessage());
 		}
 		lock.notifyEvent("events occurred");
 		lock.waitForEvent("closed JMX connection");

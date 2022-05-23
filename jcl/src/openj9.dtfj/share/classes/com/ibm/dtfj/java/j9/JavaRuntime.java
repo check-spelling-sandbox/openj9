@@ -594,7 +594,7 @@ public class JavaRuntime implements com.ibm.dtfj.java.JavaRuntime
 	}
 
 	public Properties getJITProperties() throws DataUnavailable,	CorruptDataException {
-		throw new DataUnavailable("This implementation of DTFJ does not support getJITProperies");
+		throw new DataUnavailable("This implementation of DTFJ does not support getJITProperties");
 	}
 
 	public long getStartTime() throws DataUnavailable, CorruptDataException {

@@ -46,7 +46,7 @@ static char* getLocalsName(J9VMThread *vmThread, J9ROMMethod *romMethod, U_16 lo
 static char* getMsgWithAllocation(J9VMThread *vmThread, const char *msgTemplate, ...);
 static IDATA initializeNPEMessageData(J9NPEMessageData *npeMsgData);
 static void initStackFromMethodSignature(J9VMThread *vmThread, J9ROMMethod *romMethod, UDATA **stackTopPtr);
-static UDATA* pushViaSiganature(J9VMThread *vmThread, U_8 *signature, UDATA *stackTop, UDATA bcPos);
+static UDATA* pushViaSignature(J9VMThread *vmThread, U_8 *signature, UDATA *stackTop, UDATA bcPos);
 static void setSrcBytecodeOffset(J9BytecodeOffset *bytecodeOffset, UDATA bcPos, UDATA first, UDATA second);
 static char* simulateStack(J9NPEMessageData *npeMsgData);
 
@@ -531,6 +531,17 @@ getCompleteNPEMessage(J9VMThread *vmThread, U_8 *bcCurrentPtr, J9ROMClass *romCl
 			J9UTF8* methodSig = J9ROMNAMEANDSIGNATURE_SIGNATURE(methodNameAndSig);
 			bool npeMsgRequired = true;
 
+#if JAVA_SPEC_VERSION >= 18
+			if (J9UTF8_LITERAL_EQUALS(J9UTF8_DATA(definingClassFullQualifiedName), J9UTF8_LENGTH(definingClassFullQualifiedName), "jdk/internal/reflect/DirectConstructorHandleAccessor")) {
+				if (J9UTF8_LITERAL_EQUALS(J9UTF8_DATA(methodName), J9UTF8_LENGTH(methodName), "invokeImpl")) {
+					/* JEP416 - jdk.internal.reflect.DirectConstructorHandleAccessor.invokeImpl() is invoked by DirectConstructorHandleAccessor.newInstance().
+					 * No message generated for new NullPointerException().getMessage() or new NullPointerException(null).getMessage()
+					 */
+					npeMsgRequired = false;
+					Trc_VM_GetCompleteNPEMessage_Not_Required(vmThread);
+				}
+			} else
+#endif /* JAVA_SPEC_VERSION >= 18 */
 			if (J9UTF8_LITERAL_EQUALS(J9UTF8_DATA(definingClassFullQualifiedName), J9UTF8_LENGTH(definingClassFullQualifiedName), "java/lang/NullPointerException")) {
 				if (J9UTF8_LITERAL_EQUALS(J9UTF8_DATA(methodName), J9UTF8_LENGTH(methodName), "<init>")) {
 					/* No message generated for new NullPointerException().getMessage() or new NullPointerException(null).getMessage() */
@@ -1250,7 +1261,7 @@ getLocalsName(J9VMThread *vmThread, J9ROMMethod *romMethod, U_16 localVar, UDATA
  * @return the stackTop
  */
 static UDATA *
-pushViaSiganature(J9VMThread *vmThread, U_8 *signature, UDATA *stackTop, UDATA bcPos)
+pushViaSignature(J9VMThread *vmThread, U_8 *signature, UDATA *stackTop, UDATA bcPos)
 {
 	if ('V' != *signature) {
 		PUSH(bcPos);
@@ -1258,7 +1269,7 @@ pushViaSiganature(J9VMThread *vmThread, U_8 *signature, UDATA *stackTop, UDATA b
 			PUSH(bcPos);
 		}
 	}
-	Trc_VM_PushViaSiganature_Exit(vmThread, *signature, stackTop, bcPos);
+	Trc_VM_PushViaSignature_Exit(vmThread, *signature, stackTop, bcPos);
 	return stackTop;
 }
 
@@ -1576,7 +1587,7 @@ simulateStack(J9NPEMessageData *npeMsgData)
 				}
 			} else {
 				/* JBgetfield/JBgetstatic - even currentBytecode's */
-				stackTop = pushViaSiganature(vmThread, J9UTF8_DATA(fieldSig), stackTop, bcPos);
+				stackTop = pushViaSignature(vmThread, J9UTF8_DATA(fieldSig), stackTop, bcPos);
 			}
 			break;
 		}
@@ -1623,7 +1634,7 @@ simulateStack(J9NPEMessageData *npeMsgData)
 
 			U_8 *signature = J9UTF8_DATA(classSig);
 			while (*signature++ != ')');
-			stackTop = pushViaSiganature(vmThread, signature, stackTop, bcPos);
+			stackTop = pushViaSignature(vmThread, signature, stackTop, bcPos);
 
 			break;
 		}

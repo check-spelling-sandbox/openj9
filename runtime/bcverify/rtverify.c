@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 1991, 2021 IBM Corp. and others
+ * Copyright (c) 1991, 2022 IBM Corp. and others
  *
  * This program and the accompanying materials are made available under
  * the terms of the Eclipse Public License 2.0 which accompanies this
@@ -162,7 +162,7 @@ j9rtv_verifyBytecodes (J9BytecodeVerificationData *verifyData)
 	J9ROMMethod *romMethod = verifyData->romMethod;
 
 	UDATA oldState = verifyData->vmStruct->omrVMThread->vmState;
-	IDATA result;
+	IDATA result = BCV_SUCCESS;
 
 	verifyData->vmStruct->omrVMThread->vmState = J9VMSTATE_RTVERIFY;
 
@@ -170,28 +170,27 @@ j9rtv_verifyBytecodes (J9BytecodeVerificationData *verifyData)
 			(UDATA) J9UTF8_LENGTH(J9ROMCLASS_CLASSNAME(romClass)),
 			J9UTF8_DATA(J9ROMCLASS_CLASSNAME(romClass)));
 
-	/* Go walk the bytecodes */
-	result = verifyBytecodes (verifyData);
-
-	if ((result == BCV_SUCCESS) && (romMethod->modifiers & CFR_ACC_HAS_EXCEPTION_INFO)) {
+	if (romMethod->modifiers & CFR_ACC_HAS_EXCEPTION_INFO) {
 		result = verifyExceptions (verifyData);
+	}
 
-		if (BCV_SUCCESS != result) {
-			if (BCV_ERR_INSUFFICIENT_MEMORY == result) {
-				Trc_RTV_j9rtv_verifyBytecodes_OutOfMemoryException(verifyData->vmStruct,
-							(UDATA) J9UTF8_LENGTH(J9ROMCLASS_CLASSNAME(romClass)),
-							J9UTF8_DATA(J9ROMCLASS_CLASSNAME(romClass)));
-
-				verifyData->errorModule = J9NLS_BCV_ERR_VERIFY_OUT_OF_MEMORY__MODULE;
-				verifyData->errorCode = J9NLS_BCV_ERR_VERIFY_OUT_OF_MEMORY__ID;
-			} else {
-				verifyData->errorModule = J9NLS_BCV_ERR_NOT_THROWABLE__MODULE;
-				verifyData->errorCode = J9NLS_BCV_ERR_NOT_THROWABLE__ID;
-			}
-		}
+	/* Go walk the bytecodes */
+	if (BCV_SUCCESS == result) {
+		result = verifyBytecodes (verifyData);
 	}
 
 	if (BCV_SUCCESS != result) {
+		if (BCV_ERR_INSUFFICIENT_MEMORY == result) {
+			Trc_RTV_j9rtv_verifyBytecodes_OutOfMemoryException(verifyData->vmStruct,
+						(UDATA) J9UTF8_LENGTH(J9ROMCLASS_CLASSNAME(romClass)),
+						J9UTF8_DATA(J9ROMCLASS_CLASSNAME(romClass)));
+
+			verifyData->errorModule = J9NLS_BCV_ERR_VERIFY_OUT_OF_MEMORY__MODULE;
+			verifyData->errorCode = J9NLS_BCV_ERR_VERIFY_OUT_OF_MEMORY__ID;
+		} else {
+			verifyData->errorModule = J9NLS_BCV_ERR_NOT_THROWABLE__MODULE;
+			verifyData->errorCode = J9NLS_BCV_ERR_NOT_THROWABLE__ID;
+		}
 		Trc_RTV_j9rtv_verifyBytecodes_VerifyError(verifyData->vmStruct, verifyData->errorCode, verifyData->errorPC);
 	}
 
@@ -503,7 +502,7 @@ verifyBytecodes (J9BytecodeVerificationData * verifyData)
 	SAVE_STACKTOP(liveStack, stackTop);
 	liveStack->stackBaseIndex = liveStack->stackTopIndex;
 
-	/* Jazz 105041: Initialize the 1st data slot on 'stack' with 'top' (placeholdler)
+	/* Jazz 105041: Initialize the 1st data slot on 'stack' with 'top' (placeholder)
 	 * to avoid storing garbage data type in the error message buffer
 	 * when stack underflow occurs.
 	 */
@@ -1807,7 +1806,7 @@ _illegalPrimitiveReturn:
 		case RTV_PUSH_NEW:
 			switch (bc) {
 #if defined(J9VM_OPT_VALHALLA_VALUE_TYPES)
-			case JBdefaultvalue:
+			case JBaconst_init:
 				index = PARAM_16(bcIndex, 1);
 				info = &constantPool[index];
 				utf8string = J9ROMSTRINGREF_UTF8DATA((J9ROMStringRef *) info);

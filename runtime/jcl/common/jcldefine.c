@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 1998, 2020 IBM Corp. and others
+ * Copyright (c) 1998, 2021 IBM Corp. and others
  *
  * This program and the accompanying materials are made available under
  * the terms of the Eclipse Public License 2.0 which accompanies this
@@ -107,12 +107,27 @@ defineClassCommon(JNIEnv *env, jobject classLoaderObject,
 			goto done;
 		}
 
-		if (validateName && (CLASSNAME_INVALID == vmFuncs->verifyQualifiedName(currentThread, utf8Name, utf8Length, CLASSNAME_VALID_NON_ARRARY))) {
+		if (validateName && (CLASSNAME_INVALID == vmFuncs->verifyQualifiedName(currentThread, utf8Name, utf8Length, CLASSNAME_VALID_NON_ARRAY))) {
 			/* We don't yet know if the class being defined is exempt. Setting this option tells
 			 * defineClassCommon() to fail if it discovers that the class is not exempt. That failure
 			 * is distinguished by returning NULL with no exception pending.
 			 */
 			*options |= J9_FINDCLASS_FLAG_NAME_IS_INVALID;
+		}
+
+		if (J9_ARE_ANY_BITS_SET(*options, J9_FINDCLASS_FLAG_HIDDEN | J9_FINDCLASS_FLAG_UNSAFE)) {
+			/*
+			 * Prevent generated LambdaForm classes from MethodHandles to be stored to the shared cache.
+			 * When there are a large number of such classes in the shared cache, they trigger a lot of class comparisons.
+			 * Performance can be much worse (compared to shared cache turned off).
+			 */
+#define J9NON_SHARING_CLASS_NAME "java/lang/invoke/LambdaForm$"
+			if ((utf8Length > LITERAL_STRLEN(J9NON_SHARING_CLASS_NAME))
+				&& J9UTF8_LITERAL_EQUALS(utf8Name, LITERAL_STRLEN(J9NON_SHARING_CLASS_NAME), J9NON_SHARING_CLASS_NAME)
+			) {
+				*options |= J9_FINDCLASS_FLAG_DO_NOT_SHARE;
+			}
+#undef J9NON_SHARING_CLASS_NAME
 		}
 	}
 
@@ -161,7 +176,7 @@ retry:
 	/* Try to find classLocation. Ignore return code because there are valid cases where it might not find it (ie. bytecode spinning).
 	 * If the class is not found the default class location is fine.
 	 */
-	dynFuncs->findLocallyDefinedClassFunction(currentThread, NULL, utf8Name, (U_32) utf8Length, classLoader, classLoader->classPathEntries, classLoader->classPathEntryCount, (UDATA) FALSE, &localBuffer);
+	dynFuncs->findLocallyDefinedClassFunction(currentThread, NULL, utf8Name, (U_32) utf8Length, classLoader, (UDATA) FALSE, &localBuffer);
 
 	/* skip if we are anonClass or hidden classes */
 	if (J9_ARE_NO_BITS_SET(*options, J9_FINDCLASS_FLAG_ANON | J9_FINDCLASS_FLAG_HIDDEN)) {

@@ -106,19 +106,19 @@ MM_VLHGCAccessBarrier::postObjectStore(J9VMThread *vmThread, J9Class *destClass,
 }
 
 bool 
-MM_VLHGCAccessBarrier::preBatchObjectStore(J9VMThread *vmThread, J9Object *destObject, bool isVolatile)
+MM_VLHGCAccessBarrier::postBatchObjectStore(J9VMThread *vmThread, J9Object *destObject, bool isVolatile)
 {
-	preBatchObjectStoreImpl(vmThread, destObject);
+	postBatchObjectStoreImpl(vmThread, destObject);
 	
 	return true;
 }
 
 bool 
-MM_VLHGCAccessBarrier::preBatchObjectStore(J9VMThread *vmThread, J9Class *destClass, bool isVolatile)
+MM_VLHGCAccessBarrier::postBatchObjectStore(J9VMThread *vmThread, J9Class *destClass, bool isVolatile)
 {
 	j9object_t destObject = J9VM_J9CLASS_TO_HEAPCLASS(destClass);
 	
-	preBatchObjectStoreImpl(vmThread, destObject);
+	postBatchObjectStoreImpl(vmThread, destObject);
 	
 	return true;
 }
@@ -167,7 +167,7 @@ MM_VLHGCAccessBarrier::postObjectStoreImpl(J9VMThread *vmThread, J9Object *dstOb
  * to optimistically add an object to the remembered set without checking too hard.
  */
 void 
-MM_VLHGCAccessBarrier::preBatchObjectStoreImpl(J9VMThread *vmThread, J9Object *dstObject)
+MM_VLHGCAccessBarrier::postBatchObjectStoreImpl(J9VMThread *vmThread, J9Object *dstObject)
 {
 	MM_EnvironmentVLHGC *env = MM_EnvironmentVLHGC::getEnvironment(vmThread);
 	_extensions->cardTable->dirtyCard(env, dstObject);
@@ -454,7 +454,7 @@ MM_VLHGCAccessBarrier::copyStringCritical(J9VMThread *vmThread, GC_ArrayObjectMo
 			}
 		} else {
 			if (J9_ARE_ANY_BITS_SET(javaVM->runtimeFlags, J9_RUNTIME_STRING_BYTE_ARRAY)) {
-				/* This API determines the stride based on the type of valueObject so in the [B case we must passin the length in bytes */
+				/* This API determines the stride based on the type of valueObject so in the [B case we must pass in the length in bytes */
 				indexableObjectModel->memcpyFromArray(*data, valueObject, 0, (I_32)sizeInBytes);
 			} else {
 				indexableObjectModel->memcpyFromArray(*data, valueObject, 0, length);
@@ -594,7 +594,7 @@ MM_VLHGCAccessBarrier::jniReleaseStringCritical(J9VMThread* vmThread, jstring st
 		} else
 #endif /* J9VM_GC_ENABLE_DOUBLE_MAP */
 		{
-			/* an array having discontiguous extents is another reason to force the critical section to be a copy in case double mapping is desabled */
+			/* an array having discontiguous extents is another reason to force the critical section to be a copy in case double mapping is disabled */
 			freeStringCritical(vmThread, functions, elems);
 		}
 	} else {

@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2000, 2021 IBM Corp. and others
+ * Copyright (c) 2000, 2022 IBM Corp. and others
  *
  * This program and the accompanying materials are made available under
  * the terms of the Eclipse Public License 2.0 which accompanies this
@@ -27,10 +27,6 @@
 #define J9OS_STRNCMP strncasecmp
 #else
 #define J9OS_STRNCMP strncmp
-#endif
-
-#if defined (_MSC_VER) && _MSC_VER < 1900
-#define snprintf _snprintf
 #endif
 
 #include "control/CompilationThread.hpp"
@@ -80,6 +76,7 @@
 #include "infra/CriticalSection.hpp"
 #include "infra/MonitorTable.hpp"
 #include "infra/Monitor.hpp"
+#include "infra/String.hpp"
 #include "ras/InternalFunctions.hpp"
 #include "runtime/asmprotos.h"
 #include "runtime/CodeCache.hpp"
@@ -102,6 +99,7 @@
 #include "control/JITServerCompilationThread.hpp"
 #include "control/JITServerHelpers.hpp"
 #include "runtime/JITClientSession.hpp"
+#include "runtime/JITServerAOTDeserializer.hpp"
 #include "net/ClientStream.hpp"
 #include "net/ServerStream.hpp"
 #include "omrformatconsts.h"
@@ -214,28 +212,11 @@ jitSignalHandler(struct J9PortLibrary *portLibrary, uint32_t gpType, void *gpInf
    TR_MethodToBeCompiled *methodToBeCompiled = NULL;
    J9JITConfig *jitConfig = vmThread->javaVM->jitConfig;
    TR::CompilationInfo *compInfo = TR::CompilationInfo::get(jitConfig);
-   TR::CompilationInfoPerThreadBase *cp = compInfo->getCompInfoForCompOnAppThread();
-
-   // compiling on app thread
-   if (cp)
+   TR::CompilationInfoPerThread *compInfoPT = compInfo->getCompInfoForThread(vmThread);
+   if (compInfoPT)
       {
-      comp = cp->getCompilation();
-      methodToBeCompiled = cp->getMethodBeingCompiled();
-      }
-
-   // probably compiling on separate thread
-   else
-      {
-      // make sure we're really compiling on separate thread
-      if (compInfo->useSeparateCompilationThread())
-         {
-         TR::CompilationInfoPerThread *compInfoPT = compInfo->getCompInfoForThread(vmThread);
-         if (compInfoPT)
-            {
-            comp = compInfoPT->getCompilation();
-            methodToBeCompiled = compInfoPT->getMethodBeingCompiled();
-            }
-         }
+      comp = compInfoPT->getCompilation();
+      methodToBeCompiled = compInfoPT->getMethodBeingCompiled();
       }
 
    const char *sig = (comp && comp->signature() ? comp->signature() : "<unknown>");
@@ -362,7 +343,7 @@ int inflateBuffer(U_8 *buffer, int numberOfBytes, U_8 *outBuffer, int unCompress
  *    level Level of compression
  *
  * \return
- *    If successful, returns Size of data in the deflated bufer
+ *    If successful, returns Size of data in the deflated buffer
  *    else returns COMPRESSION_FAILED
  *
  */
@@ -490,6 +471,14 @@ int32_t TR::CompilationInfo::computeDynamicDumbInlinerBytecodeSizeCutoff(TR::Opt
 // Must have compilation queue monitor in hand when calling this routine
 TR_YesNoMaybe TR::CompilationInfo::shouldActivateNewCompThread()
    {
+#if defined(J9VM_OPT_CRIU_SUPPORT)
+   // If a checkpoint is in progress, don't activate any threads until the restore.
+   if (isCheckpointInProgress())
+      return TR_no;
+#endif
+   if (isInShutdownMode())
+      return TR_no;
+
    // If further compilations have been disabled we could be in a dire situation, for example virtual memory could be
    // really low, there could be failures when attempting to allocate persistent memory, a compilation thread could
    // have crashed, etc. In such situations we never want to activate a new compilation driven by this API.
@@ -560,7 +549,7 @@ TR_YesNoMaybe TR::CompilationInfo::shouldActivateNewCompThread()
          {
          // If the server reached low memory and then recovered to normal,
          // subdue activation of new compilation threads on the client
-         if (_queueWeight > _compThreadActivationThresholdsonStarvation[getNumCompThreadsActive()] << 1)
+         if (_queueWeight > _compThreadActivationThresholdsOnStarvation[getNumCompThreadsActive()] << 1)
             return TR_yes;
          return TR_no;
          }
@@ -573,19 +562,19 @@ TR_YesNoMaybe TR::CompilationInfo::shouldActivateNewCompThread()
 #if defined(J9VM_OPT_JITSERVER)
       else if (getPersistentInfo()->getRemoteCompilationMode() == JITServer::CLIENT && JITServerHelpers::isServerAvailable())
          {
-         
-         // For JITClient let's be more agressive with compilation thread activation
+
+         // For JITClient let's be more aggressive with compilation thread activation
          // because the latencies are larger. Beyond 'numProc-1' we will use the
          // 'starvation activation schedule', but accelerated (divide those thresholds by 2)
          // NOTE: compilation thread activation policy is AGGRESSIVE if we reached this point
-         if (_queueWeight > (_compThreadActivationThresholdsonStarvation[getNumCompThreadsActive()] >> 1))
+         if (_queueWeight > (_compThreadActivationThresholdsOnStarvation[getNumCompThreadsActive()] >> 1))
             return TR_yes;
          }
 #endif /* defined(J9VM_OPT_JITSERVER) */
       else if (_starvationDetected)
          {
          // comp thread starvation; may activate threads beyond 'numCpu-1'
-         if (_queueWeight > _compThreadActivationThresholdsonStarvation[getNumCompThreadsActive()])
+         if (_queueWeight > _compThreadActivationThresholdsOnStarvation[getNumCompThreadsActive()])
             return TR_yes;
          }
       }
@@ -643,13 +632,16 @@ bool TR::CompilationInfo::shouldDowngradeCompReq(TR_MethodToBeCompiled *entry)
       TR_J9VMBase *fe = TR_J9VMBase::get(_jitConfig, NULL);
       const J9ROMMethod * romMethod = methodDetails.getRomMethod(fe);
 
-      // Don't downgrade if method is JSR292. See CMVC 200145
-      if (_J9ROMMETHOD_J9MODIFIER_IS_SET(romMethod, J9AccMethodHasMethodHandleInvokes))
-         {
-         doDowngrade = false;
-         }
-      // similarly don't downgrade a thunk archetype - inlining in these is also vital
-      else if (fe->isThunkArchetype(method))
+      // Don't downgrade if method is JSR292 because inlining in those is vital. See CMVC 200145
+      // However, during start-up phase, allow such downgrades if SCC has been specified on the command line
+      // (the check for J9SHR_RUNTIMEFLAG_ENABLE_CACHE_NON_BOOT_CLASSES prevents the downgrading when
+      // the default SCC is used)
+      if (((_J9ROMMETHOD_J9MODIFIER_IS_SET(romMethod, J9AccMethodHasMethodHandleInvokes)) || fe->isThunkArchetype(method)) &&
+           (_jitConfig->javaVM->phase == J9VM_PHASE_NOT_STARTUP ||
+            !TR::Options::sharedClassCache() ||
+            !J9_ARE_ALL_BITS_SET(jitConfig->javaVM->sharedClassConfig->runtimeFlags, J9SHR_RUNTIMEFLAG_ENABLE_CACHE_NON_BOOT_CLASSES)
+           )
+         )
          {
          doDowngrade = false;
          }
@@ -674,7 +666,7 @@ bool TR::CompilationInfo::shouldDowngradeCompReq(TR_MethodToBeCompiled *entry)
       else
          {
          // We may skip downgrading during grace period
-         if (TR::Options::getCmdLineOptions()->getOption(TR_DontDowgradeToColdDuringGracePeriod) &&
+         if (TR::Options::getCmdLineOptions()->getOption(TR_DontDowngradeToColdDuringGracePeriod) &&
              persistentInfo->getElapsedTime() < (uint64_t)persistentInfo->getClassLoadingPhaseGracePeriod())
             {
             }
@@ -778,7 +770,7 @@ TR::CompilationInfo::createCompilationInfo(J9JITConfig * jitConfig)
          that we do memset this object to 0 */
       memset(alloc, 0, sizeof(TR::CompilationInfo));
       _compilationRuntime = new (alloc) TR::CompilationInfo(jitConfig);
-
+      jitConfig->compilationRuntime = (void*)_compilationRuntime;
       #ifdef DEBUG
          if (debug("traceThreadCompile"))
             _compilationRuntime->_traceCompiling = true;
@@ -804,9 +796,9 @@ TR::CompilationInfo::freeAllCompilationThreads()
       jitPersistentFree(_compThreadSuspensionThresholds);
       }
 
-   if (_compThreadActivationThresholdsonStarvation)
+   if (_compThreadActivationThresholdsOnStarvation)
       {
-      jitPersistentFree(_compThreadActivationThresholdsonStarvation);
+      jitPersistentFree(_compThreadActivationThresholdsOnStarvation);
       }
 
    if (_arrayOfCompilationInfoPerThread)
@@ -823,14 +815,9 @@ TR::CompilationInfo::freeAllCompilationThreads()
 
 void TR::CompilationInfo::freeAllResources()
    {
-   if (_compInfoForCompOnAppThread)
+   if (_interpSampleTrackingInfo)
       {
-      jitPersistentFree(_compInfoForCompOnAppThread);
-      }
-
-   if (_interpSamplTrackingInfo)
-      {
-      jitPersistentFree(_interpSamplTrackingInfo);
+      jitPersistentFree(_interpSampleTrackingInfo);
       }
 
    freeAllCompilationThreads();
@@ -851,6 +838,11 @@ void TR::CompilationInfo::freeCompilationInfo(J9JITConfig *jitConfig)
 
 void TR::CompilationInfoPerThread::freeAllResources()
    {
+   if (_rtLogFile)
+      {
+      j9jit_fclose(_rtLogFile);
+      }
+
 #if defined(J9VM_OPT_JITSERVER)
    if (_classesThatShouldNotBeNewlyExtended)
       {
@@ -867,15 +859,14 @@ TR::CompilationInfoPerThread::getRemoteROMClassIfCached(J9Class *clazz)
    }
 
 J9ROMClass *
-TR::CompilationInfoPerThread::getAndCacheRemoteROMClass(J9Class *clazz, TR_Memory *trMemory)
+TR::CompilationInfoPerThread::getAndCacheRemoteROMClass(J9Class *clazz)
    {
    auto romClass = getRemoteROMClassIfCached(clazz);
    if (romClass == NULL)
       {
       JITServerHelpers::ClassInfoTuple classInfoTuple;
-      TR_Memory *currentMemory = trMemory ? trMemory : TR::comp()->trMemory();
-      romClass = JITServerHelpers::getRemoteROMClass(clazz, getStream(), currentMemory, &classInfoTuple);
-      romClass = JITServerHelpers::cacheRemoteROMClassOrFreeIt(getClientData(), clazz, romClass, &classInfoTuple, currentMemory->trPersistentMemory());
+      romClass = JITServerHelpers::getRemoteROMClass(clazz, getStream(), getClientData()->persistentMemory(), classInfoTuple);
+      romClass = JITServerHelpers::cacheRemoteROMClassOrFreeIt(getClientData(), clazz, romClass, classInfoTuple);
       TR_ASSERT_FATAL(romClass, "ROM class of J9Class=%p must be cached at this point", clazz);
       }
    return romClass;
@@ -1068,6 +1059,28 @@ TR::CompilationInfoPerThread::CompilationInfoPerThread(TR::CompilationInfo &comp
    _lastTimeThreadWasSuspended = 0;
    _lastTimeThreadWentToSleep = 0;
 
+   char *rtLogFileName = ((TR_JitPrivateConfig*)jitConfig->privateConfig)->rtLogFileName;
+   if (rtLogFileName)
+      {
+      char fn[1024];
+
+      bool truncated = TR::snprintfTrunc(fn, sizeof(fn), "%s.%i", rtLogFileName, getCompThreadId());
+
+      if (!truncated)
+         {
+         _rtLogFile = fileOpen(TR::Options::getAOTCmdLineOptions(), jitConfig, fn, "wb", true);
+         }
+      else
+         {
+         fprintf(stderr, "Did not attempt to open comp thread rtlog %s because filename was truncated\n", fn);
+         _rtLogFile = NULL;
+         }
+      }
+   else
+      {
+      _rtLogFile = NULL;
+      }
+
 #if defined(J9VM_OPT_JITSERVER)
    _serverVM = NULL;
    _sharedCacheServerVM = NULL;
@@ -1120,6 +1133,10 @@ TR::CompilationInfo::CompilationInfo(J9JITConfig *jitConfig) :
    _schedulingMonitor = TR::Monitor::create("JIT-SchedulingMonitor");
 #if defined(J9VM_JIT_DYNAMIC_LOOP_TRANSFER)
    _dltMonitor = TR::Monitor::create("JIT-DLTmonitor");
+#endif
+#if defined(J9VM_OPT_CRIU_SUPPORT)
+   _crMonitor = TR::Monitor::create("JIT-CheckpointRestoreMonitor");
+   _checkpointStatus = TR_CheckpointStatus::NO_CHECKPOINT_IN_PROGRESS;
 #endif
    _iprofilerBufferArrivalMonitor = TR::Monitor::create("JIT-IProfilerBufferArrivalMonitor");
    _classUnloadMonitor = TR::MonitorTable::get()->getClassUnloadMonitor(); // by this time this variable is initialized
@@ -1176,7 +1193,7 @@ TR::CompilationInfo::CompilationInfo(J9JITConfig *jitConfig) :
    _cpuEntitlement.init(jitConfig);
    _lowPriorityCompilationScheduler.setCompInfo(this);
    _JProfilingQueue.setCompInfo(this);
-   _interpSamplTrackingInfo = new (PERSISTENT_NEW) TR_InterpreterSamplingTracking(this);
+   _interpSampleTrackingInfo = new (PERSISTENT_NEW) TR_InterpreterSamplingTracking(this);
 #if defined(J9VM_OPT_JITSERVER)
    _clientSessionHT = NULL; // This will be set later when options are processed
    _unloadedClassesTempList = NULL;
@@ -1190,32 +1207,12 @@ TR::CompilationInfo::CompilationInfo(J9JITConfig *jitConfig) :
    _activationPolicy = JITServer::CompThreadActivationPolicy::AGGRESSIVE;
    _sharedROMClassCache = NULL;
    _JITServerAOTCacheMap = NULL;
+   _JITServerAOTDeserializer = NULL;
 #endif /* defined(J9VM_OPT_JITSERVER) */
-   }
-
-bool TR::CompilationInfo::initializeCompilationOnApplicationThread()
-   {
-   if (!_compilationMonitor) return false;
-   OMR::CriticalSection initializingCompInfoForAppThreads(_compilationMonitor);
-   if (!_compInfoForCompOnAppThread)
-      {
-      PORT_ACCESS_FROM_JITCONFIG(_jitConfig);
-
-      // NOTE: _numCompThreads is 0 now because it's not incremented in TR::CompilationInfoPerThreadBase constructor
-      _compInfoForCompOnAppThread = new (PERSISTENT_NEW) TR::CompilationInfoPerThreadBase(*this, _jitConfig, 0, false);
-
-      if (!_compInfoForCompOnAppThread)
-         return false;
-      _compInfoForCompOnAppThread->setCompilationThreadState(COMPTHREAD_ACTIVE);
-      }
-   return true;
    }
 
 TR::CompilationInfoPerThreadBase *TR::CompilationInfo::getCompInfoWithID(int32_t ID)
    {
-   if (_compInfoForCompOnAppThread)
-      return _compInfoForCompOnAppThread;
-
    for (int32_t i = 0; i < getNumTotalCompilationThreads(); i++)
       {
       TR::CompilationInfoPerThread *curCompThreadInfoPT = _arrayOfCompilationInfoPerThread[i];
@@ -1232,9 +1229,6 @@ TR::CompilationInfoPerThreadBase *TR::CompilationInfo::getCompInfoWithID(int32_t
 //
 TR::CompilationInfoPerThread *TR::CompilationInfo::getFirstSuspendedCompilationThread()  // MCT
    {
-   if (_compInfoForCompOnAppThread)
-      return NULL;
-
    for (int32_t i = 0; i < getNumUsableCompilationThreads(); i++)
       {
       TR::CompilationInfoPerThread *curCompThreadInfoPT = _arrayOfCompilationInfoPerThread[i];
@@ -1257,33 +1251,20 @@ TR::Compilation *TR::CompilationInfo::getCompilationWithID(int32_t ID)
 
 void TR::CompilationInfo::setAllCompilationsShouldBeInterrupted()
    {
-   if (_compInfoForCompOnAppThread)
-      _compInfoForCompOnAppThread->setCompilationShouldBeInterrupted(GC_COMP_INTERRUPT);
-   else
+   for (int32_t i = 0; i < getNumUsableCompilationThreads(); i++)
       {
-      for (int32_t i = 0; i < getNumUsableCompilationThreads(); i++)
-         {
-         TR::CompilationInfoPerThread *curCompThreadInfoPT = _arrayOfCompilationInfoPerThread[i];
-         TR_ASSERT(curCompThreadInfoPT, "a thread's compinfo is missing\n");
+      TR::CompilationInfoPerThread *curCompThreadInfoPT = _arrayOfCompilationInfoPerThread[i];
+      TR_ASSERT(curCompThreadInfoPT, "a thread's compinfo is missing\n");
 
-         curCompThreadInfoPT->setCompilationShouldBeInterrupted(GC_COMP_INTERRUPT);
-         }
+      curCompThreadInfoPT->setCompilationShouldBeInterrupted(GC_COMP_INTERRUPT);
       }
 
    _lastCompilationsShouldBeInterruptedTime = getPersistentInfo()->getElapsedTime(); // RAS
    }
 
-bool TR::CompilationInfo::useSeparateCompilationThread()
-   {
-   if (!TR::Options::getCmdLineOptions()->getOption(TR_AOT))
-      return !TR::Options::getCmdLineOptions()->getOption(TR_DisableCompilationThread);
-   return TR::Options::getCmdLineOptions()->getOption(TR_EnableCompilationThread);
-   }
-
 bool TR::CompilationInfo::asynchronousCompilation()
    {
    static bool answer = (!TR::Options::getJITCmdLineOptions()->getOption(TR_DisableAsyncCompilation) &&
-                        useSeparateCompilationThread() &&
                         TR::Options::getJITCmdLineOptions()->getInitialBCount() &&
                         TR::Options::getJITCmdLineOptions()->getInitialCount() &&
                         TR::Options::getAOTCmdLineOptions()->getInitialSCount() &&
@@ -1308,7 +1289,7 @@ TR_YesNoMaybe TR::CompilationInfo::detectCompThreadStarvation()
    // If there are idle cycles on the CPU set where this JVM can run
    // then the compilation threads should be able to use those cycles
    // The following is just an approximation because we look at idle
-   // cyles on the entire machine
+   // cycles on the entire machine
    if (getCpuUtil()->isFunctional() &&
       getCpuUtil()->getAvgCpuIdle() > 5 && // This is for the entire machine
       getCpuUtil()->getVmCpuUsage() + 10 < getJvmCpuEntitlement()) // at least 10% unutilized by this JVM
@@ -1444,7 +1425,7 @@ intptr_t TR::CompilationInfo::waitOnCompMonitorTimed(J9VMThread *vmThread, int64
 
 void TR::CompilationInfo::acquireCompilationLock()
    {
-   if (useSeparateCompilationThread() && _compilationMonitor)
+   if (_compilationMonitor)
       {
       acquireCompMonitor(0);
       debugPrint("\t\texternal user acquiring compilation monitor\n");
@@ -1453,12 +1434,29 @@ void TR::CompilationInfo::acquireCompilationLock()
 
 void TR::CompilationInfo::releaseCompilationLock()
    {
-   if (useSeparateCompilationThread() && _compilationMonitor)
+   if (_compilationMonitor)
       {
-      debugPrint("\t\texternal user releasing compilatoin monitor\n");
+      debugPrint("\t\texternal user releasing compilation monitor\n");
       releaseCompMonitor(0);
       }
    }
+
+#if defined(J9VM_OPT_CRIU_SUPPORT)
+void TR::CompilationInfo::acquireCRMonitor()
+   {
+   getCRMonitor()->enter();
+   }
+
+void TR::CompilationInfo::releaseCRMonitor()
+   {
+   getCRMonitor()->exit();
+   }
+
+void TR::CompilationInfo::waitOnCRMonitor()
+   {
+   getCRMonitor()->wait();
+   }
+#endif
 
 TR::Monitor * TR::CompilationInfo::createLogMonitor()
    {
@@ -1584,10 +1582,10 @@ void TR::CompilationInfo::printMethodNameToVlog(const J9ROMClass* romClass, cons
 #include "infra/Statistics.hpp"
 #undef STATS
 #ifdef STATS
-TR_Stats statBudgetEpoch("Budget len at begining of epoch");
+TR_Stats statBudgetEpoch("Budget len at beginning of epoch");
 TR_Stats statBudgetSmallLag("Budget/comp when smallLag");
 TR_Stats statBudgetMediumLag("Budget/comp when mediumLag");
-TR_Stats statEpochLength("Epoch lengh (ms)");
+TR_Stats statEpochLength("Epoch length (ms)");
 char *eventNames[]={"SyncReq", "SmallLag", "LargeLag", "Medium-NoBudget", "Medium-highBudget", "Medium-LowBudget", "Medium-Idle"};
 TR_StatsEvents<7> statEvents("Scenarios", eventNames, 0);
 char *priorityName[]={"High","Normal"};
@@ -1826,7 +1824,7 @@ int32_t TR::CompilationInfo::getCompBudget() const
    }
 
 void
-TR::CompilationInfo::decNumGCRReqestsQueued(TR_MethodToBeCompiled *entry)
+TR::CompilationInfo::decNumGCRRequestsQueued(TR_MethodToBeCompiled *entry)
    {
    if (entry->_GCRrequest) _numGCRQueued--;
    }
@@ -1838,7 +1836,7 @@ TR::CompilationInfo::incNumGCRRequestsQueued(TR_MethodToBeCompiled *entry)
    }
 
 void
-TR::CompilationInfo::decNumInvReqestsQueued(TR_MethodToBeCompiled *entry)
+TR::CompilationInfo::decNumInvRequestsQueued(TR_MethodToBeCompiled *entry)
    {
    if (entry->_entryIsCountedAsInvRequest)
       {
@@ -1857,8 +1855,8 @@ void
 TR::CompilationInfo::updateCompQueueAccountingOnDequeue(TR_MethodToBeCompiled *entry)
    {
    _numQueuedMethods--; // one less method in the queue
-   decNumGCRReqestsQueued(entry);
-   decNumInvReqestsQueued(entry);
+   decNumGCRRequestsQueued(entry);
+   decNumInvRequestsQueued(entry);
    if (entry->getMethodDetails().isOrdinaryMethod() && entry->_oldStartPC==0)
       {
       _numQueuedFirstTimeCompilations--;
@@ -2139,8 +2137,7 @@ bool TR::CompilationInfo::shouldRetryCompilation(TR_MethodToBeCompiled *entry, T
 
    // when the compilation fails we might retry
    //
-   if (entry->_compErrCode != compilationOK &&
-      useSeparateCompilationThread()) // Retrials for compilation on application thread are not implemented
+   if (entry->_compErrCode != compilationOK)
       {
       if (entry->_compilationAttemptsLeft > 0)
          {
@@ -2148,31 +2145,19 @@ bool TR::CompilationInfo::shouldRetryCompilation(TR_MethodToBeCompiled *entry, T
          TR_PersistentJittedBodyInfo *bodyInfo;
          switch (entry->_compErrCode)
             {
-            case compilationAotValidateFieldFailure:
-            case compilationAotStaticFieldReloFailure:
-            case compilationAotClassReloFailure:
-            case compilationAotThunkReloFailure:
             case compilationAotHasInvokehandle:
             case compilationAotHasInvokeVarHandle:
             case compilationAotPatchedCPConstant:
             case compilationAotHasInvokeSpecialInterface:
-            case compilationAotValidateMethodExitFailure:
-            case compilationAotValidateMethodEnterFailure:
             case compilationAotClassChainPersistenceFailure:
-            case compilationAotValidateStringCompressionFailure:
             case compilationSymbolValidationManagerFailure:
             case compilationAOTNoSupportForAOTFailure:
-            case compilationAOTValidateTMFailure:
             case compilationAOTRelocationRecordGenerationFailure:
-            case compilationAotValidateExceptionHookFailure:
-            case compilationAotBlockFrequencyReloFailure:
-            case compilationAotRecompQueuedFlagReloFailure:
-            case compilationAOTValidateOSRFailure:
+            case compilationRelocationFailure:
                // switch to JIT for these cases (we don't want to relocate again)
                entry->_doNotUseAotCodeFromSharedCache = true;
                tryCompilingAgain = true;
                break;
-            //case compilationAotRelocationFailure:
             case compilationAotTrampolineReloFailure:
             case compilationAotPicTrampolineReloFailure:
             case compilationAotCacheFullReloFailure:
@@ -2191,6 +2176,7 @@ bool TR::CompilationInfo::shouldRetryCompilation(TR_MethodToBeCompiled *entry, T
             case compilationStreamMessageTypeMismatch:
             case compilationStreamVersionIncompatible:
             case compilationStreamLostMessage:
+            case aotCacheDeserializationFailure:
 #endif
             case compilationInterrupted:
             case compilationCodeReservationFailure:
@@ -2275,6 +2261,8 @@ bool TR::CompilationInfo::shouldRetryCompilation(TR_MethodToBeCompiled *entry, T
                   entry->_optimizationPlan->setOptLevel(newHotness);
                   entry->_optimizationPlan->setInsertInstrumentation(false); // prevent profiling
                   entry->_optimizationPlan->setUseSampling(false); // disable recompilation of this method
+                  entry->_optimizationPlan->setDisableEDO(true); // disable EDO to prevent recompilation triggered from native code
+                  entry->_optimizationPlan->setDisableGCR(true); // disable GCR to prevent recompilation triggered from native code
                   }
                break;
             case compilationCHTableCommitFailure:
@@ -2438,7 +2426,7 @@ void TR::CompilationInfoPerThread::suspendCompilationThread()
 
       if (!isDiagnosticThread())
          getCompilationInfo()->decNumCompThreadsActive();
-         
+
       if (TR::Options::getCmdLineOptions()->getVerboseOption(TR_VerboseCompilationThreads))
          {
          TR_VerboseLog::writeLineLocked(TR_Vlog_PERF,"t=%6u Suspension request for compThread %d sleeping=%s",
@@ -2457,52 +2445,40 @@ void TR::CompilationInfoPerThread::suspendCompilationThread()
 // This method may be called when we want all JIT activity to stop temporarily
 // It is called normally by a java thread
 //----------------------------------------------------------------------------
-void TR::CompilationInfo::suspendCompilationThread()
+void TR::CompilationInfo::suspendCompilationThread(bool purgeCompQueue)
    {
-   // if we compile on application thread, there is no compilation
-   // request queue and there is no compilation thread
-   // There can only be one request that is in progress. All the others
-   // will see the SUSPENDED state when they get the application monitor
-   if (!useSeparateCompilationThread())
-      {
-      if (_compInfoForCompOnAppThread->getCompilationThreadState() == COMPTHREAD_ACTIVE)
-         _compInfoForCompOnAppThread->setCompilationThreadState(COMPTHREAD_SUSPENDED); // for compilation on application thread there is only one state
-      }
-   else // compilation on separate thread
-      {
-      TR_ASSERT(_compilationMonitor, "Must have a compilation queue monitor\n");
-      J9JavaVM   *vm       = _jitConfig->javaVM;
-      J9VMThread *vmThread = vm->internalVMFunctions->currentVMThread(vm);
-      if (!vmThread)
-         return; // cannot do it without a vmThread  FIXME: why?
-      acquireCompMonitor(vmThread);
+   TR_ASSERT(_compilationMonitor, "Must have a compilation queue monitor\n");
+   J9JavaVM   *vm       = _jitConfig->javaVM;
+   J9VMThread *vmThread = vm->internalVMFunctions->currentVMThread(vm);
+   if (!vmThread)
+      return; // cannot do it without a vmThread  FIXME: why?
+   acquireCompMonitor(vmThread);
 
-      // Must visit all compilation threads
-      bool stoppedOneCompilationThread = false;
-      for (int32_t i = 0; i < getNumUsableCompilationThreads(); i++)
+   // Must visit all compilation threads
+   bool stoppedOneCompilationThread = false;
+   for (int32_t i = 0; i < getNumUsableCompilationThreads(); i++)
+      {
+      TR::CompilationInfoPerThread *curCompThreadInfoPT = _arrayOfCompilationInfoPerThread[i];
+      TR_ASSERT(curCompThreadInfoPT, "a thread's compinfo is missing\n");
+
+      // Only compilation threads that are active need to be suspended
+      if (curCompThreadInfoPT->compilationThreadIsActive())
          {
-         TR::CompilationInfoPerThread *curCompThreadInfoPT = _arrayOfCompilationInfoPerThread[i];
-         TR_ASSERT(curCompThreadInfoPT, "a thread's compinfo is missing\n");
-
-         // Only compilation threads that are active need to be suspended
-         if (curCompThreadInfoPT->compilationThreadIsActive())
+         curCompThreadInfoPT->setCompilationThreadState(COMPTHREAD_SIGNAL_SUSPEND);
+         decNumCompThreadsActive();
+         // should we try to interrupt the compilation in progress?
+         stoppedOneCompilationThread = true;
+         if (TR::Options::getCmdLineOptions()->getVerboseOption(TR_VerboseCompilationThreads))
             {
-            curCompThreadInfoPT->setCompilationThreadState(COMPTHREAD_SIGNAL_SUSPEND);
-            decNumCompThreadsActive();
-            // should we try to interrupt the compilation in progress?
-            stoppedOneCompilationThread = true;
-            if (TR::Options::getCmdLineOptions()->getVerboseOption(TR_VerboseCompilationThreads))
-               {
-               TR_VerboseLog::writeLineLocked(TR_Vlog_PERF,"t=%6u Suspension request for compThread %d sleeping=%s",
-                  (uint32_t)getPersistentInfo()->getElapsedTime(), curCompThreadInfoPT->getCompThreadId(), curCompThreadInfoPT->getMethodBeingCompiled()?"NO":"YES");
-               }
+            TR_VerboseLog::writeLineLocked(TR_Vlog_PERF,"t=%6u Suspension request for compThread %d sleeping=%s",
+               (uint32_t)getPersistentInfo()->getElapsedTime(), curCompThreadInfoPT->getCompThreadId(), curCompThreadInfoPT->getMethodBeingCompiled()?"NO":"YES");
             }
          }
-      if (stoppedOneCompilationThread)
-         purgeMethodQueue(compilationSuspended);
-      TR_ASSERT(_numCompThreadsActive == 0, "We must have all compilation threads suspended at this point\n");
-      releaseCompMonitor(vmThread);
-      } // endif
+      }
+   if (stoppedOneCompilationThread && purgeCompQueue)
+      purgeMethodQueue(compilationSuspended);
+   TR_ASSERT(_numCompThreadsActive == 0, "We must have all compilation threads suspended at this point\n");
+   releaseCompMonitor(vmThread);
    }
 
 void TR::CompilationInfoPerThread::resumeCompilationThread()
@@ -2543,103 +2519,182 @@ void TR::CompilationInfoPerThread::resumeCompilationThread()
 //-----------------------------------------------------------------------------
 void TR::CompilationInfo::resumeCompilationThread()
    {
-   if (useSeparateCompilationThread())
+   J9JavaVM   *vm       = _jitConfig->javaVM;
+   J9VMThread *vmThread = vm->internalVMFunctions->currentVMThread(vm);
+   acquireCompMonitor(vmThread);
+
+   /*
+    * Count active/suspended threads for sake of sanity.
+    * We can afford to do it because this method is not invoked very often
+    *
+    * FIXME:
+    *    we are now using an array, so there is no linked list to count;
+    *    therefore, we might be able to remove this entirely
+    */
+   int32_t numActiveCompThreads = 0; // RAS purposes
+   int32_t numHot = 0;
+   TR::CompilationInfoPerThread *compInfoPTHot = NULL;
+   for (int32_t i = 0; i < getNumUsableCompilationThreads(); i++)
       {
-      J9JavaVM   *vm       = _jitConfig->javaVM;
-      J9VMThread *vmThread = vm->internalVMFunctions->currentVMThread(vm);
-      acquireCompMonitor(vmThread);
+      TR::CompilationInfoPerThread *curCompThreadInfoPT = _arrayOfCompilationInfoPerThread[i];
+      TR_ASSERT(curCompThreadInfoPT, "a thread's compinfo is missing\n");
 
-      /*
-       * Count active/suspended threads for sake of sanity.
-       * We can afford to do it because this method is not invoked very often
-       *
-       * FIXME:
-       *    we are now using an array, so there is no linked list to count;
-       *    therefore, we might be able to remove this entirely
-       */
-      int32_t numActiveCompThreads = 0; // RAS purposes
-      int32_t numHot = 0;
-      TR::CompilationInfoPerThread *compInfoPTHot = NULL;
-      for (int32_t i = 0; i < getNumUsableCompilationThreads(); i++)
+      CompilationThreadState currentThreadState = curCompThreadInfoPT->getCompilationThreadState();
+      if (currentThreadState == COMPTHREAD_ACTIVE ||
+          currentThreadState == COMPTHREAD_SIGNAL_WAIT ||
+          currentThreadState == COMPTHREAD_WAITING ||
+          currentThreadState == COMPTHREAD_SIGNAL_SUSPEND)
          {
-         TR::CompilationInfoPerThread *curCompThreadInfoPT = _arrayOfCompilationInfoPerThread[i];
-         TR_ASSERT(curCompThreadInfoPT, "a thread's compinfo is missing\n");
-
-         CompilationThreadState currentThreadState = curCompThreadInfoPT->getCompilationThreadState();
-         if (currentThreadState == COMPTHREAD_ACTIVE ||
-             currentThreadState == COMPTHREAD_SIGNAL_WAIT ||
-             currentThreadState == COMPTHREAD_WAITING ||
-             currentThreadState == COMPTHREAD_SIGNAL_SUSPEND)
+         if (curCompThreadInfoPT->compilationThreadIsActive())
+            numActiveCompThreads++;
+         if (curCompThreadInfoPT->getMethodBeingCompiled() &&
+            curCompThreadInfoPT->getMethodBeingCompiled()->_hasIncrementedNumCompThreadsCompilingHotterMethods)
             {
-            if (curCompThreadInfoPT->compilationThreadIsActive())
-               numActiveCompThreads++;
-            if (curCompThreadInfoPT->getMethodBeingCompiled() &&
-               curCompThreadInfoPT->getMethodBeingCompiled()->_hasIncrementedNumCompThreadsCompilingHotterMethods)
+            numHot++;
+            if (currentThreadState == COMPTHREAD_SIGNAL_SUSPEND)
+               compInfoPTHot = curCompThreadInfoPT; // memorize this for later
+            }
+         }
+      }
+
+   // Check that our view about the number of active compilation threads is correct
+   //
+   if (numActiveCompThreads != getNumCompThreadsActive())
+      {
+      TR_ASSERT(false, "Discrepancy regarding active compilation threads: numActiveCompThreads=%d getNumCompThreadsActive()=%d\n", numActiveCompThreads, getNumCompThreadsActive());
+      setNumCompThreadsActive(numActiveCompThreads); // Apply correction
+      }
+   if (getNumCompThreadsCompilingHotterMethods() != numHot)
+      {
+      TR_ASSERT(false, "Inconsistency with hot threads %d %d\n", getNumCompThreadsCompilingHotterMethods(), numHot);
+      setNumCompThreadsCompilingHotterMethods(numHot); // apply correction
+      }
+
+   // If there is a compilation thread executing a hot compilation and the state is
+   // SUSPENDING, activate this thread first (see defect 182392)
+   if (compInfoPTHot)
+      {
+      compInfoPTHot->setCompilationThreadState(COMPTHREAD_ACTIVE);
+      incNumCompThreadsActive();
+      if (TR::Options::getCmdLineOptions()->getVerboseOption(TR_VerboseCompilationThreads))
+         {
+         TR_VerboseLog::writeLineLocked(TR_Vlog_INFO,"t=%6u Resume compThread %d Qweight=%d active=%d",
+            (uint32_t)getPersistentInfo()->getElapsedTime(),
+            compInfoPTHot->getCompThreadId(),
+            getQueueWeight(),
+            getNumCompThreadsActive());
+         }
+      }
+
+   // If dynamicThreadActivation is used, wake compilation threads only as
+   // many as required; otherwise wake them all
+   for (int32_t i = 0; i < getNumUsableCompilationThreads(); i++)
+      {
+      TR::CompilationInfoPerThread *curCompThreadInfoPT = _arrayOfCompilationInfoPerThread[i];
+      TR_ASSERT(curCompThreadInfoPT, "a thread's compinfo is missing\n");
+
+      TR_YesNoMaybe activate = shouldActivateNewCompThread();
+      if (activate == TR_no)
+         break;
+
+      curCompThreadInfoPT->resumeCompilationThread();
+      }
+
+   if (getNumCompThreadsActive() == 0)
+      {
+      TR_VerboseLog::writeLineLocked(TR_Vlog_INFO, "No threads were activated following a resume all compilation threads call");
+      }
+
+   releaseCompMonitor(vmThread);
+   }
+
+#if defined(J9VM_OPT_CRIU_SUPPORT)
+void TR::CompilationInfo::prepareForCheckpoint()
+   {
+   J9JavaVM   *vm       = _jitConfig->javaVM;
+   J9VMThread *vmThread = vm->internalVMFunctions->currentVMThread(vm);
+
+   {
+   OMR::CriticalSection suspendCompThreadsForCheckpoint(getCompilationMonitor());
+
+   if (shouldCheckpointBeInterrupted())
+      return;
+
+   TR_ASSERT_FATAL(!isCheckpointInProgress(), "Checkpoint already in progress!\n");
+
+   /* Set the checkpoint in progress status. */
+   setCheckpointInProgress();
+
+   /* Inform compilation threads to suspend themselves. The compilation
+    * threads will complete any in-progress compilations first.
+    */
+   bool purgeMethodQueue = false;
+   suspendCompilationThread(purgeMethodQueue);
+
+   /* Wait until all compilation threads are suspended. */
+   for (int32_t i = 0; i < getNumTotalCompilationThreads(); i++)
+      {
+      TR::CompilationInfoPerThread *curCompThreadInfoPT = _arrayOfCompilationInfoPerThread[i];
+      if (!curCompThreadInfoPT->isDiagnosticThread())
+         {
+         do
+            {
+            /* Determine whether to wait on the CR Monitor.
+             *
+             * IMPORTANT: There should be no return, or C++ exception thrown, after
+             *            releasing the Comp Monitor below until it is re-acquired.
+             *            The Comp Monitor was acquired in an OMR::CriticalSection
+             *            object; a return, or thrown exception, will destruct this
+             *            object as part leaving the scope, or stack unwinding, which
+             *            will attempt to release the monitor in its destructor.
+             */
+            if (!shouldCheckpointBeInterrupted()
+                && curCompThreadInfoPT->getCompilationThreadState() != COMPTHREAD_SUSPENDED)
                {
-               numHot++;
-               if (currentThreadState == COMPTHREAD_SIGNAL_SUSPEND)
-                  compInfoPTHot = curCompThreadInfoPT; // memorize this for later
+               /* Acquire the CR monitor */
+               acquireCRMonitor();
+
+               /* Release the Comp Monitor before waiting */
+               releaseCompMonitor(vmThread);
+
+               /* Wait until notified */
+               waitOnCRMonitor();
+
+               /* Release CR Monitor and re-acquire the Comp Monitor */
+               releaseCRMonitor();
+               acquireCompMonitor(vmThread);
+               }
+            else
+               {
+               break;
                }
             }
+         while(true);
          }
 
-      // Check that our view about the number of active compilation threads is correct
-      //
-      if (numActiveCompThreads != getNumCompThreadsActive())
-         {
-         TR_ASSERT(false, "Discrepancy regarding active compilation threads: numActiveCompThreads=%d getNumCompThreadsActive()=%d\n", numActiveCompThreads, getNumCompThreadsActive());
-         setNumCompThreadsActive(numActiveCompThreads); // Apply correction
-         }
-      if (getNumCompThreadsCompilingHotterMethods() != numHot)
-         {
-         TR_ASSERT(false, "Inconsistency with hot threads %d %d\n", getNumCompThreadsCompilingHotterMethods(), numHot);
-         setNumCompThreadsCompilingHotterMethods(numHot); // apply correction
-         }
-
-      // If there is a compilation thread executing a hot compilation and the state is
-      // SUSPENDING, activate this thread first (see defect 182392)
-      if (compInfoPTHot)
-         {
-         compInfoPTHot->setCompilationThreadState(COMPTHREAD_ACTIVE);
-         incNumCompThreadsActive();
-         if (TR::Options::getCmdLineOptions()->getVerboseOption(TR_VerboseCompilationThreads))
-            {
-            TR_VerboseLog::writeLineLocked(TR_Vlog_INFO,"t=%6u Resume compThread %d Qweight=%d active=%d",
-               (uint32_t)getPersistentInfo()->getElapsedTime(),
-               compInfoPTHot->getCompThreadId(),
-               getQueueWeight(),
-               getNumCompThreadsActive());
-            }
-         }
-
-      // If dynamicThreadActivation is used, wake compilation threads only as
-      // many as required; otherwise wake them all
-      for (int32_t i = 0; i < getNumUsableCompilationThreads(); i++)
-         {
-         TR::CompilationInfoPerThread *curCompThreadInfoPT = _arrayOfCompilationInfoPerThread[i];
-         TR_ASSERT(curCompThreadInfoPT, "a thread's compinfo is missing\n");
-
-         TR_YesNoMaybe activate = shouldActivateNewCompThread();
-         if (activate == TR_no)
-            break;
-
-         curCompThreadInfoPT->resumeCompilationThread();
-         }
-
-      if (getNumCompThreadsActive() == 0)
-         {
-         TR_VerboseLog::writeLineLocked(TR_Vlog_INFO, "No threads were activated following a resume all compilation threads call");
-         }
-
-      releaseCompMonitor(vmThread);
-      }
-   else // compilation on application thread
-      {
-      if (_compInfoForCompOnAppThread->getCompilationThreadState() == COMPTHREAD_SUSPENDED)
-         _compInfoForCompOnAppThread->setCompilationThreadState(COMPTHREAD_ACTIVE);
+      /* Stop cycling through the threads if checkpointing should be interrupted. */
+      if (shouldCheckpointBeInterrupted())
+         break;
       }
    }
 
+   }
+
+void TR::CompilationInfo::prepareForRestore()
+   {
+
+   {
+   OMR::CriticalSection resumeCompThreadsForRestore(getCompilationMonitor());
+
+   /* Reset the checkpoint in progress flag. */
+   resetCheckpointInProgress();
+
+   /* Resume suspended compilation threads. */
+   resumeCompilationThread();
+   }
+
+   }
+#endif // #if defined(J9VM_OPT_CRIU_SUPPORT)
 
 int TR::CompilationInfo::computeCompilationThreadPriority(J9JavaVM *vm)
    {
@@ -2673,7 +2728,7 @@ TR::CompilationInfoPerThread* TR::CompilationInfo::getCompInfoForThread(J9VMThre
 
 int32_t *TR::CompilationInfo::_compThreadActivationThresholds = NULL;
 int32_t *TR::CompilationInfo::_compThreadSuspensionThresholds = NULL;
-int32_t *TR::CompilationInfo::_compThreadActivationThresholdsonStarvation = NULL;
+int32_t *TR::CompilationInfo::_compThreadActivationThresholdsOnStarvation = NULL;
 
 void TR::CompilationInfo::updateNumUsableCompThreads(int32_t &numUsableCompThreads)
    {
@@ -2717,7 +2772,7 @@ TR::CompilationInfo::allocateCompilationThreads(int32_t numUsableCompThreads)
    {
    if (_compThreadActivationThresholds ||
        _compThreadSuspensionThresholds ||
-       _compThreadActivationThresholdsonStarvation ||
+       _compThreadActivationThresholdsOnStarvation ||
        _arrayOfCompilationInfoPerThread)
       {
       TR_ASSERT_FATAL(false, "Compilation threads have been allocated\n");
@@ -2751,13 +2806,13 @@ TR::CompilationInfo::allocateCompilationThreads(int32_t numUsableCompThreads)
 
    _compThreadActivationThresholds = static_cast<int32_t *>(jitPersistentAlloc((numTotalCompThreads + 1) * sizeof(int32_t)));
    _compThreadSuspensionThresholds = static_cast<int32_t *>(jitPersistentAlloc((numTotalCompThreads + 1) * sizeof(int32_t)));
-   _compThreadActivationThresholdsonStarvation = static_cast<int32_t *>(jitPersistentAlloc((numTotalCompThreads + 1) * sizeof(int32_t)));
+   _compThreadActivationThresholdsOnStarvation = static_cast<int32_t *>(jitPersistentAlloc((numTotalCompThreads + 1) * sizeof(int32_t)));
 
    _arrayOfCompilationInfoPerThread = static_cast<TR::CompilationInfoPerThread **>(jitPersistentAlloc(numTotalCompThreads * sizeof(TR::CompilationInfoPerThread *)));
 
    if (_compThreadActivationThresholds &&
        _compThreadSuspensionThresholds &&
-       _compThreadActivationThresholdsonStarvation &&
+       _compThreadActivationThresholdsOnStarvation &&
        _arrayOfCompilationInfoPerThread)
       {
       // How to read it: the queueWeight has to be over 100 to activate second comp thread
@@ -2765,7 +2820,7 @@ TR::CompilationInfo::allocateCompilationThreads(int32_t numUsableCompThreads)
       // For example:
       // compThreadActivationThresholds[MAX_TOTAL_COMP_THREADS+1] = {-1, 100, 200, 300, 400, 500, 600, 700, 800};
       // compThreadSuspensionThresholds[MAX_TOTAL_COMP_THREADS+1] = {-1,  -1,  10, 110, 210, 310, 410, 510, 610};
-      // compThreadActivationThresholdsonStarvation[MAX_TOTAL_COMP_THREADS+1] = {-1, 800, 1600, 3200, 6400, 12800, 19200, 25600, 32000};
+      // compThreadActivationThresholdsOnStarvation[MAX_TOTAL_COMP_THREADS+1] = {-1, 800, 1600, 3200, 6400, 12800, 19200, 25600, 32000};
       _compThreadActivationThresholds[0] = -1;
       _compThreadActivationThresholds[1] = 100;
       _compThreadActivationThresholds[2] = 200;
@@ -2780,18 +2835,18 @@ TR::CompilationInfo::allocateCompilationThreads(int32_t numUsableCompThreads)
          _compThreadSuspensionThresholds[i] = _compThreadSuspensionThresholds[i-1] + 100;
          }
 
-      _compThreadActivationThresholdsonStarvation[0] = -1;
-      _compThreadActivationThresholdsonStarvation[1] = 800;
+      _compThreadActivationThresholdsOnStarvation[0] = -1;
+      _compThreadActivationThresholdsOnStarvation[1] = 800;
 
       for (int32_t i=2; i<(numTotalCompThreads+1); ++i)
          {
-         if (_compThreadActivationThresholdsonStarvation[i-1] < 12800)
+         if (_compThreadActivationThresholdsOnStarvation[i-1] < 12800)
             {
-            _compThreadActivationThresholdsonStarvation[i] = _compThreadActivationThresholdsonStarvation[i-1] * 2;
+            _compThreadActivationThresholdsOnStarvation[i] = _compThreadActivationThresholdsOnStarvation[i-1] * 2;
             }
          else
             {
-            _compThreadActivationThresholdsonStarvation[i] = _compThreadActivationThresholdsonStarvation[i-1] + 6400;
+            _compThreadActivationThresholdsOnStarvation[i] = _compThreadActivationThresholdsOnStarvation[i-1] + 6400;
             }
          }
 
@@ -3126,18 +3181,6 @@ void TR::CompilationInfo::stopCompilationThreads()
    {
    J9JavaVM   * const vm       = _jitConfig->javaVM;
    J9VMThread * const vmThread = vm->internalVMFunctions->currentVMThread(vm);
-   //fprintf(stderr, "stopCompilationThread\n");
-   // if we compile on application thread, there is no compilation
-   // request queue and there is no compilation thread
-   // The SMALL jit case is already treated separately
-   if (!useSeparateCompilationThread())
-      {
-      acquireCompMonitor(vmThread);
-      _compInfoForCompOnAppThread->setCompilationThreadState(COMPTHREAD_STOPPED);
-      _compInfoForCompOnAppThread->setCompilationShouldBeInterrupted(SHUTDOWN_COMP_INTERRUPT);
-      releaseCompMonitor(vmThread);
-      return;
-      }
 
    static char * printCompStats = feGetEnv("TR_PrintCompStats");
    if (printCompStats)
@@ -3147,9 +3190,9 @@ void TR::CompilationInfo::stopCompilationThreads()
 
       fprintf(stderr, "Number of compilations per level:\n");
       for (int i = 0; i < (int)numHotnessLevels; i++)
-         {	      
+         {
          if (_statsOptLevels[i] > 0)
-            {		 
+            {
             fprintf(stderr, "Level=%d\tnumComp=%d", i, _statsOptLevels[i]);
 #if defined(J9VM_OPT_JITSERVER)
             if (_statsRemoteOptLevels[i] > 0)
@@ -3279,7 +3322,7 @@ void TR::CompilationInfo::stopCompilationThreads()
       fprintf(stderr, "numEntriesFoundInLocalChain: %d\n", aotStats->numEntriesFoundInLocalChain);
       fprintf(stderr, "numEntriesFoundAndValidatedInSharedClass: %d\n", aotStats->numEntriesFoundAndValidatedInSharedClass);
       fprintf(stderr, "numClassChainNotInSharedClass: %d\n", aotStats->numClassChainNotInSharedClass);
-      fprintf(stderr, "numCHInSharedCacheButFailValiation: %d\n", aotStats->numCHInSharedCacheButFailValiation);
+      fprintf(stderr, "numCHInSharedCacheButFailValidation: %d\n", aotStats->numCHInSharedCacheButFailValidation);
       fprintf(stderr, "numInstanceFieldInfoNotUsed: %d\n", aotStats->numInstanceFieldInfoNotUsed);
       fprintf(stderr, "numStaticFieldInfoNotUsed: %d\n", aotStats->numStaticFieldInfoNotUsed);
       fprintf(stderr, "numDefiningClassNotFound: %d\n", aotStats->numDefiningClassNotFound);
@@ -3412,11 +3455,12 @@ void TR::CompilationInfo::stopCompilationThreads()
       {
       if (getPersistentInfo()->getRemoteCompilationMode() == JITServer::SERVER)
          {
-         TR_J9VMBase * vmj9 = (TR_J9VMBase *)(TR_J9VMBase::get(_jitConfig, 0));
+         TR_J9VMBase *vmj9 = (TR_J9VMBase *)TR_J9VMBase::get(_jitConfig, NULL);
          JITServerIProfiler *iProfiler = (JITServerIProfiler *)vmj9->getIProfiler();
          iProfiler->printStats();
          }
       }
+
    static char *printJITServerConnStats = feGetEnv("TR_PrintJITServerConnStats");
    if (printJITServerConnStats)
       {
@@ -3430,6 +3474,15 @@ void TR::CompilationInfo::stopCompilationThreads()
          fprintf(stderr, "Number of connections opened = %u\n", JITServer::ClientStream::getNumConnectionsOpened());
          fprintf(stderr, "Number of connections closed = %u\n", JITServer::ClientStream::getNumConnectionsClosed());
          }
+      }
+
+   static char *printJITServerAOTCacheStats = feGetEnv("TR_PrintJITServerAOTCacheStats");
+   if (printJITServerAOTCacheStats)
+      {
+      if (auto aotCacheMap = getJITServerAOTCacheMap())
+         aotCacheMap->printStats(stderr);
+      if (auto deserializer = getJITServerAOTDeserializer())
+         deserializer->printStats(stderr);
       }
 #endif /* defined(J9VM_OPT_JITSERVER) */
 
@@ -3452,6 +3505,24 @@ void TR::CompilationInfo::stopCompilationThreads()
       }
 #endif
    acquireCompMonitor(vmThread);
+
+   setIsInShutdownMode();
+   getPersistentInfo()->setDisableFurtherCompilation(true);
+
+#if defined(J9VM_OPT_CRIU_SUPPORT)
+   // Set the checkpoint status to interrupted regardless
+   // of whether currently there is a checkpoint in progress.
+   // If a checkpoint is in progress then the thread waiting
+   // on the CR monitor will abort and return from the hook;
+   // otherwise, the thread could (or is en route to) be
+   // blocked on the Comp Monitor and so will abort before
+   // incorrectly attempting to suspend stopping or stopped
+   // compilation threads.
+   interruptCheckpoint();
+   acquireCRMonitor();
+   getCRMonitor()->notifyAll();
+   releaseCRMonitor();
+#endif
 
    // Cycle through all non-diagnostic threads and stop them
    for (int32_t i = 0; i < getNumTotalCompilationThreads(); i++)
@@ -3488,7 +3559,7 @@ void TR::CompilationInfo::stopCompilationThreads()
    // generating a JitDump. Only at this point can we terminate the diagnostic threads. If a compilation thread did
    // crash we will actually never execute code following this comment. This is because the crashed thread will be
    // in an active state, since it has crashed during a compilation, and the we will be waiting on the comp monitor
-   // for the crashed thread in the loop above. However because the diagnostic data is generated on the crashed 
+   // for the crashed thread in the loop above. However because the diagnostic data is generated on the crashed
    // thread this thread will never return to execute the state processing loop, and thus will never terminate.
    // This is ok, because following the dump process in the JVM we will terminate the entire JVM process.
    for (int32_t i = 0; i < getNumTotalCompilationThreads(); i++)
@@ -3556,6 +3627,8 @@ void TR::CompilationInfo::stopCompilationThreads()
          {
          JITServer::ClientStream client(getPersistentInfo());
          client.writeError(JITServer::MessageType::clientSessionTerminate, getPersistentInfo()->getClientUID());
+         if (TR::Options::getVerboseOption(TR_VerboseJITServer))
+            TR_VerboseLog::writeLineLocked(TR_Vlog_JITServer, "Sent clientSessionTerminate message");
          }
       catch (const JITServer::StreamFailure &e)
          {
@@ -3585,7 +3658,7 @@ void TR::CompilationInfo::stopCompilationThread(CompilationInfoPerThread* compIn
       case COMPTHREAD_SIGNAL_WAIT:
       case COMPTHREAD_WAITING:
          compInfoPT->setCompilationThreadState(COMPTHREAD_SIGNAL_TERMINATE);
-         
+
          if (!compInfoPT->isDiagnosticThread())
             decNumCompThreadsActive();
          break;
@@ -3701,7 +3774,7 @@ IDATA J9THREAD_PROC compilationThreadProc(void *entryarg)
 #if defined(J9VM_PORT_SIGNAL_SUPPORT)
    if (!TR_NoStructuredHandler)
       {
-      /* copied the flags from vmthread.c: note that for the JIT we are not really
+      /* copied the flags from vmthread.cpp: note that for the JIT we are not really
          interested in continuing.  We are installing the handler merely to get
          support for crash dumps */
       U_32 flags = J9PORT_SIG_FLAG_SIGALLSYNC | J9PORT_SIG_FLAG_MAY_CONTINUE_EXECUTION;
@@ -3820,6 +3893,11 @@ IDATA J9THREAD_PROC protectedCompilationThreadProc(J9PortLibrary *, TR::Compilat
           (unsigned)(j9thread_get_self_cpu_time(j9thread_self())/1000000));
       }
 
+   if (TR::Options::isAnyVerboseOptionSet())
+      {
+      TR_VerboseLog::writeLineLocked(TR_Vlog_INFO,"Stopping compilation thread, vmThread pointer %p, thread ID %d", compThread, compInfoPT->getCompThreadId());
+      }
+
 #ifdef J9VM_OPT_JAVA_OFFLOAD_SUPPORT
    if ( vm->javaOffloadSwitchOffWithReasonFunc != NULL )
       (* vm->javaOffloadSwitchOffWithReasonFunc)(compThread, J9_JNI_OFFLOAD_SWITCH_JIT_COMPILATION_THREAD);
@@ -3913,13 +3991,34 @@ TR::CompilationInfoPerThread::doSuspend()
    {
    _compInfo.setSuspendThreadDueToLowPhysicalMemory(false);
    getCompThreadMonitor()->enter();
+
+   // Set the new state
    setCompilationThreadState(COMPTHREAD_SUSPENDED);
-   _compInfo.releaseCompMonitor(getCompilationThread());   // release the queue monitor before waiting
+
+#if defined(J9VM_OPT_CRIU_SUPPORT)
+   // Notify the thread waiting in the checkpoint hook.
+   if (_compInfo.isCheckpointInProgress())
+      {
+      _compInfo.acquireCRMonitor();
+      _compInfo.getCRMonitor()->notifyAll();
+      _compInfo.releaseCRMonitor();
+      }
+#endif
+
+   // release the queue monitor before waiting
+   _compInfo.releaseCompMonitor(getCompilationThread());
+
    setLastTimeThreadWasSuspended(_compInfo.getPersistentInfo()->getElapsedTime());
    setVMThreadNameWithFlag(getCompilationThread(), getCompilationThread(), getSuspendedThreadName(), 1);
-   getCompThreadMonitor()->wait(); // wait here until someone notifies us
+
+   // wait here until someone notifies us
+   getCompThreadMonitor()->wait();
+
    setVMThreadNameWithFlag(getCompilationThread(), getCompilationThread(), getActiveThreadName(), 1);
+
    getCompThreadMonitor()->exit();
+
+   // reacquire the queue monitor
    _compInfo.acquireCompMonitor(getCompilationThread());
    }
 
@@ -4115,7 +4214,7 @@ TR::CompilationInfoPerThread::processEntries()
             {
             setCompilationThreadState(COMPTHREAD_SIGNAL_SUSPEND);
             compInfo->decNumCompThreadsActive();
-            if (TR::Options::getVerboseOption(TR_VerboseCompilationThreads) || TR::Options::getVerboseOption(TR_VerbosePerformance))
+            if (TR::Options::isAnyVerboseOptionSet(TR_VerboseCompilationThreads, TR_VerbosePerformance))
                {
                TR_VerboseLog::writeLineLocked(TR_Vlog_PERF,"t=%6u Suspending compilation thread %d due to insufficient resources",
                   (uint32_t)compInfo->getPersistentInfo()->getElapsedTime(), getCompThreadId());
@@ -4129,9 +4228,7 @@ TR::CompilationInfoPerThread::processEntries()
           * Memory is hopelessly fragmented: stop all compilations
           */
          compInfo->getPersistentInfo()->setDisableFurtherCompilation(true);
-         if (TR::Options::getVerboseOption(TR_VerboseCompilationThreads) ||
-             TR::Options::getVerboseOption(TR_VerbosePerformance) ||
-             TR::Options::getVerboseOption(TR_VerboseCompFailure))
+         if (TR::Options::isAnyVerboseOptionSet(TR_VerboseCompilationThreads, TR_VerbosePerformance, TR_VerboseCompFailure))
             {
             TR_VerboseLog::writeLineLocked(TR_Vlog_PERF,"t=%6u Disable further compilation due to OOM while processing compile entries", (uint32_t)compInfo->getPersistentInfo()->getElapsedTime());
             }
@@ -4694,12 +4791,48 @@ TR::CompilationInfo::addMethodToBeCompiled(TR::IlGeneratorMethodDetails & detail
          }
       }
 
-   for (prev = NULL, cur = _methodQueue; cur; prev = cur, cur = cur->_next)
+   J9Method *method = details.getMethod();
+
+   // Ordinary, non-JNI methods that are interpreted have their 'j9method->extra' field
+   // set to J9_JIT_QUEUED_FOR_COMPILATION when they are added to the queue
+   // Thus, we can skip searching the queue if j9method->extra has another value
+   // However, sync compilations do not set method->extra to J9_JIT_QUEUED_FOR_COMPILATION
+   bool skipSearchingForDuplicates = false;
+   static char *disableSkipSearching = feGetEnv("TR_DisableSkipSearchingForRequestDuplicates");
+   if (!disableSkipSearching &&
+       pc == 0 && // Interpreted methods
+       details.isOrdinaryMethod() &&
+       !isJNINative(method) &&
+       !(J9_ROM_METHOD_FROM_RAM_METHOD(method)->modifiers & J9AccNative) &&
+       getJ9MethodVMExtra(method) != J9_JIT_QUEUED_FOR_COMPILATION)
       {
-      numEntries++;
-      queueWeight += cur->_weight;
-      if (cur->getMethodDetails().sameAs(details, fe))
-         break;
+      skipSearchingForDuplicates = true;
+      }
+
+   if (skipSearchingForDuplicates)
+      {
+      // In this case we only have to scan the synchronous requests in the queue
+      for (prev = NULL, cur = _methodQueue; cur; prev = cur, cur = cur->_next)
+         {
+         // Stop the search when we finished with sync entries
+         if (cur->_priority < CP_SYNC_MIN)
+            {
+            cur = NULL; // signal that we didn't find the entry
+            break;
+            }
+         if (cur->getMethodDetails().sameAs(details, fe))
+            break;
+         }
+      }
+   else // Scan the entire queue
+      {
+      for (prev = NULL, cur = _methodQueue; cur; prev = cur, cur = cur->_next)
+         {
+         numEntries++;
+         queueWeight += cur->_weight;
+         if (cur->getMethodDetails().sameAs(details, fe))
+            break;
+         }
       }
 
    // NOTE: we do not need to search the methodPool since we cannot reach here if an entry
@@ -4751,20 +4884,23 @@ TR::CompilationInfo::addMethodToBeCompiled(TR::IlGeneratorMethodDetails & detail
    //
    else
       {
-      if (queueWeight != _queueWeight) //QW
+      // If we skipped searching, we cannot do the validation checks
+      if (!skipSearchingForDuplicates)
          {
-         if (TR::Options::isAnyVerboseOptionSet())
-            TR_VerboseLog::writeLineLocked(TR_Vlog_INFO, "Discrepancy for queue weight while adding to queue: computed=%u recorded=%u\n", queueWeight, _queueWeight);
-         // correction
-         _queueWeight = queueWeight;
+         if (queueWeight != _queueWeight) //QW
+            {
+            if (TR::Options::isAnyVerboseOptionSet())
+               TR_VerboseLog::writeLineLocked(TR_Vlog_INFO, "Discrepancy for queue weight while adding to queue: computed=%u recorded=%u\n", queueWeight, _queueWeight);
+            // correction
+            _queueWeight = queueWeight;
+            }
+         if (numEntries != _numQueuedMethods)
+            {
+            if (TR::Options::isAnyVerboseOptionSet())
+               TR_VerboseLog::writeLineLocked(TR_Vlog_INFO, "Discrepancy for queue size while adding to queue: Before adding numEntries=%d  _numQueuedMethods=%d\n", numEntries, _numQueuedMethods);
+            TR_ASSERT(false, "Discrepancy for queue size while adding to queue");
+            }
          }
-      if (numEntries != _numQueuedMethods)
-         {
-         if (TR::Options::isAnyVerboseOptionSet())
-            TR_VerboseLog::writeLineLocked(TR_Vlog_INFO, "Discrepancy for queue size while adding to queue: Before adding numEntries=%d  _numQueuedMethods=%d\n", numEntries, _numQueuedMethods);
-         TR_ASSERT(false, "Discrepancy for queue size while adding to queue");
-         }
-
       cur = getCompilationQueueEntry();
       if (cur == NULL)  // Memory Allocation Failure.
          return NULL;
@@ -4776,7 +4912,13 @@ TR::CompilationInfo::addMethodToBeCompiled(TR::IlGeneratorMethodDetails & detail
       if (pc)
          {
          J9::PrivateLinkage::LinkageInfo *linkageInfo = J9::PrivateLinkage::LinkageInfo::get(pc);
+#if defined(OSX) && defined(AARCH64)
+         pthread_jit_write_protect_np(0);
+#endif
          linkageInfo->setIsBeingRecompiled(); // mark that we try to compile it
+#if defined(OSX) && defined(AARCH64)
+         pthread_jit_write_protect_np(1);
+#endif
 
          // Update persistentMethodInfo with the level we want to compile to
          //
@@ -4803,9 +4945,8 @@ TR::CompilationInfo::addMethodToBeCompiled(TR::IlGeneratorMethodDetails & detail
          }
       else if (details.isOrdinaryMethod()) // ordinary interpreted methods
          {
-         J9Method *method = details.getMethod();
          isJNINativeMethodRequest = isJNINative(method);
-         if (method && async
+         if (async
             && (getInvocationCount(method) == 0)           // this will filter out JNI natives
             && !(J9_ROM_METHOD_FROM_RAM_METHOD(method)->modifiers & J9AccNative)) // Never change the extra field of a native method
             {
@@ -4814,14 +4955,18 @@ TR::CompilationInfo::addMethodToBeCompiled(TR::IlGeneratorMethodDetails & detail
          _intervalStats._numFirstTimeCompilationsInInterval++;
          _numQueuedFirstTimeCompilations++;
          }
-      cur->_entryTime = getPersistentInfo()->getElapsedTime(); // cheaper version
+      if (TR::Options::getCmdLineOptions()->getVerboseOption(TR_VerbosePerformance))
+         {
+         PORT_ACCESS_FROM_JITCONFIG(_jitConfig);
+         cur->_entryTime = j9time_usec_clock();
+         }
 #if defined(J9VM_INTERP_AOT_RUNTIME_SUPPORT) && defined(J9VM_OPT_SHARED_CLASSES) && (defined(TR_HOST_X86) || defined(TR_HOST_POWER) || defined(TR_HOST_S390) || defined(TR_HOST_ARM) || defined(TR_HOST_ARM64))
       cur->_methodIsInSharedCache = methodIsInSharedCache;
 #endif
       incrementMethodQueueSize(); // one more method added to the queue
       *queued = true; // set the flag that we added a new request to the queue
 
-      Trc_JIT_CompRequest(vmThread, details.getMethod(), pc, !async, optimizationPlan->getOptLevel(), (int)priority, _numQueuedMethods);
+      Trc_JIT_CompRequest(vmThread, method, pc, !async, optimizationPlan->getOptLevel(), (int)priority, _numQueuedMethods);
 
       // Increase the queue weight
       uint8_t entryWeight; // must be less than 256
@@ -4834,7 +4979,6 @@ TR::CompilationInfo::addMethodToBeCompiled(TR::IlGeneratorMethodDetails & detail
          // Compilation may be downgraded to cold during classLoadPhase
          // While we cannot anticipate that classLoadPhase will last till the method
          // is extracted from the queue, this is the best estimate
-         J9Method *method = details.getMethod();
          if (TR::CompilationInfo::isJSR292(method))
             {
             entryWeight = (uint32_t)TR::Options::_weightOfJSR292;
@@ -4920,8 +5064,22 @@ TR::CompilationInfo::addMethodToBeCompiled(TR::IlGeneratorMethodDetails & detail
          {
          // Must find one that is SUSPENDED/SUSPENDING otherwise the logic in shouldActivateNewCompThread is incorrect
          TR::CompilationInfoPerThread *compInfoPT = getFirstSuspendedCompilationThread();
-
-         TR_ASSERT_FATAL(compInfoPT != NULL, "Could not find a suspended/suspending compilation thread");
+         if (compInfoPT == NULL)
+            {
+            if (isInShutdownMode())
+               {
+               fprintf(stderr, "Compilation is in shutdown mode");
+               }
+            fprintf(stderr, "Number of active compilation threads: %d", getNumCompThreadsActive());
+            fprintf(stderr, "Number of usable compilation threads: %d", getNumUsableCompilationThreads());
+            for (int32_t i = 0; i < getNumUsableCompilationThreads(); i++)
+               {
+               TR::CompilationInfoPerThread *curCompThreadInfoPT = _arrayOfCompilationInfoPerThread[i];
+               CompilationThreadState currentState = curCompThreadInfoPT->getCompilationThreadState();
+               fprintf(stderr, "CompThread %d has state %d\n", i, currentState);
+               }
+            TR_ASSERT_FATAL(false, "Could not find a suspended/suspending compilation thread");
+            }
 
          compInfoPT->resumeCompilationThread();
          if (TR::Options::getCmdLineOptions()->getVerboseOption(TR_VerboseCompilationThreads))
@@ -5203,7 +5361,7 @@ TR_MethodToBeCompiled *TR::CompilationInfo::peekNextMethodToBeCompiled()
    else if (getLowPriorityCompQueue().hasLowPriorityRequest() && canProcessLowPriorityRequest())
       // These upgrade requests should not hinder the application too much.
       // If possible, we should decrease the priority of the compilation thread
-      // Note that on LINUX priorities do not work
+      // Note that on Linux priorities do not work
       // If we cannot lower the priority, we should wait for some idle time
       // or space compilations apart. if we return NULL here, the compilation
       // thread will go to sleep and we need a mechanism to wake it up
@@ -5636,7 +5794,7 @@ void *TR::CompilationInfo::compileMethod(J9VMThread * vmThread, TR::IlGeneratorM
    bool verbose = TR::Options::getCmdLineOptions()->getVerboseOption(TR_VerboseCompileRequest);
    if (verbose)
       {
-      TR_VerboseLog::vlogAcquire();
+      TR_VerboseLog::CriticalSection vlogLock;
       TR_VerboseLog::write(TR_Vlog_CR, "%p   Compile request %s", vmThread, details.name());
 
       if (newInstanceThunkDetails)
@@ -5665,7 +5823,6 @@ void *TR::CompilationInfo::compileMethod(J9VMThread * vmThread, TR::IlGeneratorM
          TR_VerboseLog::write(" OBSOLETE class=%p -- request declined", clazz);
          }
       TR_VerboseLog::writeLine("");
-      TR_VerboseLog::vlogRelease();
       }
 
    // Pin the class of the method in case GC wants to unload it
@@ -5686,74 +5843,10 @@ void *TR::CompilationInfo::compileMethod(J9VMThread * vmThread, TR::IlGeneratorM
    // or when compiling a newInstanceThunk (otherwise we're too slow)
    //
    if ( (_jitConfig->runtimeFlags & J9JIT_SCAVENGE_ON_RESOLVE) &&
-       !(_jitConfig->runtimeFlags & J9JIT_TESTMODE) && !requireAsyncCompile &&
+       !(_jitConfig->runtimeFlags & J9JIT_TOSS_CODE) && !requireAsyncCompile &&
         (oldStartPC || newInstanceThunkDetails))
       jitCheckScavengeOnResolve(vmThread);
 #endif
-
-   // A request has been made to compile the method on the given application
-   // thread. The compilation will actually occur either on this thread or a
-   // separate compilation thread depending on startup options.
-
-   // If compiling on this thread acquire the application thread monitor.
-   // This is the monitor that prevents compilation on multiple application
-   // threads at the same time. It is held for the duration of the compilation.
-   //
-   if (!useSeparateCompilationThread())
-      {
-      // If an async compile was required here, then bail out
-      //
-      if (requireAsyncCompile == TR_yes)
-         {
-         if (compErrCode)
-            *compErrCode = compilationFailure;
-
-         // again, why not for AOT?
-         if (!fe->isAOT_DEPRECATED_DO_NOT_USE())
-            if (classPushed)
-               POP_OBJECT_IN_SPECIAL_FRAME(vmThread);
-
-         if (methodHandleThunkDetails)
-            deleteMethodHandleRef(*methodHandleThunkDetails, vmThread, fe);
-
-         return NULL;
-         }
-
-      // Initialize the application thread monitor if not already done
-      //
-      if (!_applicationThreadMonitor)
-         _applicationThreadMonitor = TR::Monitor::create("JIT-ApplicationThreadMonitor");
-
-      if (!_applicationThreadMonitor)
-         {
-         if (compErrCode)
-            *compErrCode = compilationFailure;
-
-         // why not for AOT?
-         if (!fe->isAOT_DEPRECATED_DO_NOT_USE())
-            if (classPushed)
-               POP_OBJECT_IN_SPECIAL_FRAME(vmThread);
-
-         if (methodHandleThunkDetails)
-            deleteMethodHandleRef(*methodHandleThunkDetails, vmThread, fe);
-
-         return NULL;
-         }
-
-      // not for AOT....suspicious looking?
-      if (!fe->isAOT_DEPRECATED_DO_NOT_USE())
-         releaseVMAccess(vmThread);
-
-      _applicationThreadMonitor->enter();
-      // acquire fe access, but ignore any JAVA suspend request until we finish the
-      // compilation and release the JIT-ApplicationThreadMonitor
-      // NOTE: we must not release-acquire fe access during compilation in this
-      // scenario (compileOnApplicationThread)
-
-      // what is the AOT connection here?
-      if (!fe->isAOT_DEPRECATED_DO_NOT_USE())
-         acquireVMAccessNoSuspend(vmThread);
-      }
 
    void *startPC = 0;
    bool needCompile = true;
@@ -5780,7 +5873,7 @@ void *TR::CompilationInfo::compileMethod(J9VMThread * vmThread, TR::IlGeneratorM
          } // if
       else if (oldStartPC) // recompilation case
          {
-         if (!(useSeparateCompilationThread() && !fe->isAOT_DEPRECATED_DO_NOT_USE()))
+         if (fe->isAOT_DEPRECATED_DO_NOT_USE())
             {
             J9::PrivateLinkage::LinkageInfo *linkageInfo = J9::PrivateLinkage::LinkageInfo::get(oldStartPC);
             if (linkageInfo->recompilationAttempted())
@@ -5803,35 +5896,13 @@ void *TR::CompilationInfo::compileMethod(J9VMThread * vmThread, TR::IlGeneratorM
    if (needCompile)
       {
       // AOT goes to application thread?
-      if (useSeparateCompilationThread() && !fe->isAOT_DEPRECATED_DO_NOT_USE())
+      if (!fe->isAOT_DEPRECATED_DO_NOT_USE())
          startPC = compileOnSeparateThread(vmThread, details, oldStartPC, requireAsyncCompile, compErrCode, queued, optimizationPlan);
-      else
-         startPC = compileOnApplicationThread(vmThread, details, oldStartPC, compErrCode, optimizationPlan);
       }
    else
       {
       if (compErrCode)
          *compErrCode = compilationNotNeeded;
-      }
-
-   if (!useSeparateCompilationThread())
-      {
-      _applicationThreadMonitor->exit();
-
-#if defined(DEBUG) || defined(PROD_WITH_ASSUMES)
-      // After releasing the applicationThreadMonitor, let's see if we hold
-      // any other monitors by mistake
-      TR::Monitor * heldMonitor = TR::MonitorTable::get()->monitorHeldByCurrentThread();
-      TR_ASSERT(!heldMonitor, "After taking a longjmp comp thread is holding TR::Monitor %p called %s\n",
-              heldMonitor, ((TR_J9VMBase*)fe)->getJ9MonitorName((J9ThreadMonitor*)heldMonitor->getVMMonitor()));
-#endif // #if defined(DEBUG) || defined(PROD_WITH_ASSUMES)
-
-      if (!fe->isAOT_DEPRECATED_DO_NOT_USE())
-         {
-         // Now, release VM access and re-acquire it looking at the suspend condition
-         releaseVMAccess(vmThread);
-         acquireVMAccess(vmThread);
-         }
       }
 
    if (!fe->isAOT_DEPRECATED_DO_NOT_USE())
@@ -5894,7 +5965,12 @@ void *TR::CompilationInfo::compileOnSeparateThread(J9VMThread * vmThread, TR::Il
    // end this compilation request. The only exception to this case is if we are performing a JitDump compilation,
    // in which case we always want to proceed with the compilation since it will be performed on the diagnostic
    // thread. Note that the diagnostic thread is not counted towards `getNumCompThreadsActive` count.
-   if ((getNumCompThreadsActive() == 0 || getPersistentInfo()->getDisableFurtherCompilation()) && !details.isJitDumpMethod())
+   if ((getNumCompThreadsActive() == 0
+#if defined(J9VM_OPT_CRIU_SUPPORT)
+        || isCheckpointInProgress()
+#endif
+        || getPersistentInfo()->getDisableFurtherCompilation())
+       && !details.isJitDumpMethod())
       {
       bool shouldReturn = true;
 
@@ -6007,6 +6083,35 @@ void *TR::CompilationInfo::compileOnSeparateThread(J9VMThread * vmThread, TR::Il
             if (compErrCode)
                *compErrCode = compilationInProgress;
             return 0; // mark that compilation is not yet done
+            }
+         // When the compilation queue is very large, it may be better to postpone
+         // the asynchronous compilations by replenishing the invocation counter.
+         // This avoids the overhead associated with searching the right place to
+         // insert into the compilation queue (which is a priority queue)
+         if (getMethodQueueSize() >= TR::Options::_qszLimit &&
+             oldStartPC == 0 && // Only look at interpreted methods
+             details.isOrdinaryMethod()) // Do not apply this optimization to DLT
+            {
+            J9ROMMethod *romMethod = J9_ROM_METHOD_FROM_RAM_METHOD(method);
+            if (!(romMethod->modifiers & J9AccNative)) // We are not allowed to change the invocation count for native methods
+               {
+               int32_t newCount = J9ROMMETHOD_HAS_BACKWARDS_BRANCHES(romMethod) ? TR_DEFAULT_INITIAL_BCOUNT : TR_DEFAULT_INITIAL_COUNT;
+               bool success = TR::CompilationInfo::replenishInvocationCountIfExpired(method, newCount);
+               if (success)
+                  {
+                  if (TR::Options::getCmdLineOptions()->getVerboseOption(TR_VerbosePerformance))
+                     {
+                     TR_VerboseLog::writeLineLocked(TR_Vlog_PERF, "Reencoding count=%d for j9m=%p because Q_SZ is too large", newCount, method);
+                     }
+                  // Release the compilation lock and return
+                  debugPrint(vmThread, "\tapplication thread releasing compilation monitor - comp.req. in progress\n");
+                  debugPrint(vmThread, "-CM\n");
+                  releaseCompMonitor(vmThread);
+                  if (compErrCode)
+                     *compErrCode = compilationNotNeeded;
+                  return 0; // mark that compilation is not yet done
+                  }
+               }
             }
          }
       }
@@ -6383,7 +6488,7 @@ void *TR::CompilationInfo::compileOnSeparateThread(J9VMThread * vmThread, TR::Il
          {
          void *currOldStartPC = startPCIfAlreadyCompiled(vmThread, details, startPC);
          // If currOldStartPC is NULL, the method body defined by startPC has not been
-         // recompiled. We will queue the second remote aync compilation here. Otherwise,
+         // recompiled. We will queue the second remote async compilation here. Otherwise,
          // another thread is doing the recompilation and will take care of queueing
          // the second compilation.
          if (!currOldStartPC)
@@ -6448,96 +6553,6 @@ void *TR::CompilationInfo::compileOnSeparateThread(J9VMThread * vmThread, TR::Il
    return startPC;
    }
 
-void *TR::CompilationInfo::compileOnApplicationThread(J9VMThread * vmThread, TR::IlGeneratorMethodDetails & details,
-                                                     void *oldStartPC, TR_CompilationErrorCode *compErrCode,
-                                                     TR_OptimizationPlan * optimizationPlan)
-   {
-   // Assert that compilation is not recursive (for single compilation thread)
-   //
-   TR_ASSERT(!_compInfoForCompOnAppThread->_methodBeingCompiled, "assertion failure");
-
-   void *startPC = NULL;
-
-   if (_compInfoForCompOnAppThread->getCompilationThreadState() == COMPTHREAD_ACTIVE)
-      {
-      TR_MethodToBeCompiled methodEntry;
-      methodEntry._freeTag = ENTRY_IN_POOL_FREE;
-      methodEntry._monitor = NULL;
-      methodEntry.initialize(details, oldStartPC, CP_SYNC_NORMAL, optimizationPlan);
-      methodEntry._numThreadsWaiting = 1;
-      methodEntry._optimizationPlan = optimizationPlan;
-      methodEntry._jitStateWhenQueued = getPersistentInfo()->getJitState();
-      _compInfoForCompOnAppThread->_methodBeingCompiled = &methodEntry;
-
-      J9Method *method = details.getMethod();
-
-      // For newInstance thunks, we to stuff the class pointer
-      // into the "extra" field of the RAMMethod before calling the JIT. This is
-      // a convention that allows the same RAMMethod to be used to compile
-      // different newInstance thunks.
-      //
-      if (details.isNewInstanceThunk())
-         setJ9MethodVMExtra(method,
-                            reinterpret_cast<uintptr_t>(
-                               static_cast<J9::NewInstanceThunkDetails &>(details).classNeedingThunk()
-                               ) | J9_STARTPC_NOT_TRANSLATED);
-
-      if (getPersistentInfo()->isClassLoadingPhase() &&
-          !TR::Options::getCmdLineOptions()->getOption(TR_DontDowngradeToCold) &&
-          !isCompiled(method))
-         TR::CompilationController::getCompilationStrategy()->adjustOptimizationPlan(&methodEntry, -1);// decrease opt level
-
-#if defined(J9VM_INTERP_AOT_RUNTIME_SUPPORT) && defined(J9VM_OPT_SHARED_CLASSES) && (defined(TR_HOST_X86) || defined(TR_HOST_POWER) || defined(TR_HOST_S390) || defined(TR_HOST_ARM) || defined(TR_HOST_ARM64))
-      // Check to see if we find the method in the shared cache
-      //
-      methodEntry._methodIsInSharedCache = TR_no;
-
-      if (vmThread && TR::Options::sharedClassCache() && !TR::Options::getAOTCmdLineOptions()->getOption(TR_NoLoadAOT)
-          && details.isOrdinaryMethod() && !isJNINative(method) && !isCompiled(method))
-         {
-         TR_J9SharedCacheVM *fe = (TR_J9SharedCacheVM *) TR_J9VMBase::get(jitConfig, vmThread, TR_J9VMBase::AOT_VM);
-         if (vmThread->javaVM->sharedClassConfig->existsCachedCodeForROMMethod(vmThread, fe->getROMMethodFromRAMMethod(method))
-             && (static_cast<TR_JitPrivateConfig *>(jitConfig->privateConfig)->aotValidHeader == TR_yes
-                 || (static_cast<TR_JitPrivateConfig *>(jitConfig->privateConfig)->aotValidHeader == TR_maybe
-                     && _sharedCacheReloRuntime.validateAOTHeader(fe, vmThread))))
-            {
-            methodEntry._methodIsInSharedCache = TR_yes;
-            }
-         }
-#endif // defined(J9VM_INTERP_AOT_RUNTIME_SUPPORT) && defined(J9VM_OPT_SHARED_CLASSES) && (defined(TR_HOST_X86) || defined(TR_HOST_POWER) || defined(TR_HOST_S390) || defined(TR_HOST_ARM) || defined(TR_HOST_ARM64))
-
-      if (oldStartPC)
-         {
-         TR_PersistentJittedBodyInfo *bodyInfo = TR::Recompilation::getJittedBodyInfoFromPC(oldStartPC);
-         if (bodyInfo)
-            bodyInfo->getMethodInfo()->setNextCompileLevel(optimizationPlan->getOptLevel(), optimizationPlan->insertInstrumentation());
-         }
-
-      J9::SegmentAllocator scratchSegmentProvider(MEMORY_TYPE_JIT_SCRATCH_SPACE | MEMORY_TYPE_VIRTUAL, *_jitConfig->javaVM);
-      startPC = _compInfoForCompOnAppThread->compile(vmThread, &methodEntry, scratchSegmentProvider);
-
-      if (compErrCode)
-         *compErrCode = (TR_CompilationErrorCode)methodEntry._compErrCode; // communicate the error code to the caller
-
-      // the above call returns with the compilation monitor in hand
-
-      _compInfoForCompOnAppThread->_methodBeingCompiled = NULL;
-      }
-   else // Compilation is not active
-      {
-      acquireCompMonitor(vmThread);
-      startPC = compilationEnd(vmThread, details, _jitConfig, 0, oldStartPC);
-      if (compErrCode)
-         *compErrCode = compilationSuspended;
-      }
-
-   // Release the monitor
-   //
-   releaseCompMonitor(vmThread);
-
-   return startPC;
-   }
-
 #ifdef TR_HOST_S390
 void
 TR::CompilationInfoPerThreadBase::outputVerboseMMapEntry(
@@ -6591,7 +6606,7 @@ TR::CompilationInfoPerThreadBase::outputVerboseMMapEntries(
    struct tm date;
    if (!localtime_r(&time.tv_sec, &date)) return;
 
-   TR_VerboseLog::vlogAcquire();
+   TR_VerboseLog::CriticalSection vlogLock;
    outputVerboseMMapEntry(
       compilee,
       date,
@@ -6613,7 +6628,6 @@ TR::CompilationInfoPerThreadBase::outputVerboseMMapEntries(
          profiledString,
          compileString
          );
-   TR_VerboseLog::vlogRelease();
    }
 #endif // ifdef TR_HOST_S390
 
@@ -6650,6 +6664,7 @@ TR::CompilationInfoPerThreadBase::installAotCachedMethod(
 
    TR_MethodMetaData *metaData;
    int32_t returnCode = 0;
+   TR_RelocationErrorCode reloErrorCode = TR_RelocationErrorCode::relocationOK;
 
    if (_compInfo.getPersistentInfo()->isRuntimeInstrumentationEnabled())
       {
@@ -6668,11 +6683,12 @@ TR::CompilationInfoPerThreadBase::installAotCachedMethod(
                                                            compilee);
    setMetadata(metaData);
    returnCode = reloRuntime()->returnCode();
+   reloErrorCode = reloRuntime()->getReloErrorCode();
 
    if (TR::Options::getVerboseOption(TR_VerboseCompilationDispatch))
       TR_VerboseLog::writeLineLocked(TR_Vlog_DISPATCH,
-         "prepareRelocateAOTCodeAndData results: j9method=%p metaData=%p returnCode=%d method=%s",
-         method, metaData, returnCode, compiler->signature());
+         "prepareRelocateAOTCodeAndData results: j9method=%p metaData=%p returnCode=%d reloErrorCode=%s method=%s",
+         method, metaData, returnCode, reloRuntime()->getReloErrorCodeName(reloErrorCode), compiler->signature());
 
    if (_compInfo.getPersistentInfo()->isRuntimeInstrumentationEnabled())
       {
@@ -6681,12 +6697,14 @@ TR::CompilationInfoPerThreadBase::installAotCachedMethod(
 
    if (metaData)
       {
-      UDATA reloTime = 0;
+      uintptr_t currentTime = 0;
+      uintptr_t reloTime = 0;
 
       if (TrcEnabled_Trc_JIT_AotLoadEnd)
          {
          PORT_ACCESS_FROM_JITCONFIG(_jitConfig);
-         reloTime = j9time_usec_clock() - reloRuntime()->reloStartTime();
+         currentTime = j9time_usec_clock();
+         reloTime = currentTime - reloRuntime()->reloStartTime();
 
          Trc_JIT_AotLoadEnd(vmThread, compiler->signature(),
               metaData->startPC, metaData->endWarmPC, metaData->startColdPC, metaData->endPC,
@@ -6700,25 +6718,26 @@ TR::CompilationInfoPerThreadBase::installAotCachedMethod(
          if (reloTime == 0)
             {
             PORT_ACCESS_FROM_JITCONFIG(_jitConfig);
-            reloTime = j9time_usec_clock() - reloRuntime()->reloStartTime();
+            currentTime = j9time_usec_clock();
+            reloTime = currentTime - reloRuntime()->reloStartTime();
             }
 
-         TR_VerboseLog::vlogAcquire();
+         TR_VerboseLog::CriticalSection vlogLock;
          TR_VerboseLog::write(TR_Vlog_COMP, "(AOT load) ");
          CompilationInfo::printMethodNameToVlog(method);
          TR_VerboseLog::write(" @ " POINTER_PRINTF_FORMAT "-" POINTER_PRINTF_FORMAT, metaData->startPC, metaData->endWarmPC);
-         TR_VerboseLog::write(" Q_SZ=%d Q_SZI=%d QW=%d j9m=%p bcsz=%u", _compInfo.getMethodQueueSize(), _compInfo.getNumQueuedFirstTimeCompilations(),
-                                _compInfo.getQueueWeight(), method, _compInfo.getMethodBytecodeSize(method));
+         TR_VerboseLog::write(" Q_SZ=%d Q_SZI=%d QW=%d j9m=%p bcsz=%u",
+                              _compInfo.getMethodQueueSize(), _compInfo.getNumQueuedFirstTimeCompilations(),
+                              _compInfo.getQueueWeight(), method, _compInfo.getMethodBytecodeSize(method));
 
          if (TR::Options::getVerboseOption(TR_VerbosePerformance))
-            {
-            TR_VerboseLog::write(" time=%dus", (uint32_t)reloTime);
-            }
+            TR_VerboseLog::write(" time=%zuus", reloTime);
          if (entry)
             TR_VerboseLog::write(" compThreadID=%d", getCompThreadId());
+         if (TR::Options::getVerboseOption(TR_VerbosePerformance))
+            TR_VerboseLog::write(" queueTime=%zuus", currentTime - entry->_entryTime);
 
          TR_VerboseLog::writeLine("");
-         TR_VerboseLog::vlogRelease();
          }
 
 #if defined(TR_HOST_S390)
@@ -6765,18 +6784,14 @@ TR::CompilationInfoPerThreadBase::installAotCachedMethod(
          // fact that AOT methods are loaded at a lower count than when they were compiled so the JVM is given less opportunity to resolve things.
          // The new hint tells us that a previous relocation failed a validation so specify a higher scount for the next run to give it more chance
          // to resolve things.
-         switch (returnCode)
+         if (reloRuntime()->isValidationError(reloErrorCode))
             {
-            case compilationAotValidateFieldFailure:
-            case compilationAotStaticFieldReloFailure:
-            case compilationAotClassReloFailure:
-               if ((options->getInitialBCount() != 0) &&
-                   (options->getInitialCount() != 0))
-                  {
-                  TR_J9SharedCache *sc = (TR_J9SharedCache *) (compiler->fej9()->sharedCache());
-                  sc->addHint(method, TR_HintFailedValidation);
-                  }
-                break;
+            if ((options->getInitialBCount() != 0) &&
+                (options->getInitialCount() != 0))
+               {
+               TR_J9SharedCache *sc = (TR_J9SharedCache *) (compiler->fej9()->sharedCache());
+               sc->addHint(method, TR_HintFailedValidation);
+               }
             }
          }
       }
@@ -6880,7 +6895,11 @@ void TR::CompilationInfo::queueForcedAOTUpgrade(TR_MethodToBeCompiled *originalE
    methodInfo->setReasonForRecompilation(TR_PersistentMethodInfo::RecompDueToForcedAOTUpgrade);
    _statNumForcedAotUpgrades++;
 
-   cur->_entryTime = getPersistentInfo()->getElapsedTime(); // cheaper version
+   if (TR::Options::getCmdLineOptions()->getVerboseOption(TR_VerbosePerformance))
+      {
+      PORT_ACCESS_FROM_JITCONFIG(_jitConfig);
+      cur->_entryTime = j9time_usec_clock();
+      }
    incrementMethodQueueSize(); // one more method added to the queue
    // No need to increment _numQueuedFirstTimeCompilations because this is a recompilation
 
@@ -6941,10 +6960,10 @@ TR::CompilationInfoPerThreadBase::generatePerfToolEntry()
       static const int maxPerfFilenameSize = 15 + sizeof(jvmPid)* 3; // "/tmp/perf-%ld.map"
       char perfFilename[maxPerfFilenameSize] = { 0 };
 
-      int numCharsWritten = snprintf(perfFilename, maxPerfFilenameSize, "/tmp/perf-%ld.map", jvmPid);
-      if (numCharsWritten > 0 && numCharsWritten < maxPerfFilenameSize)
+      bool truncated = TR::snprintfTrunc(perfFilename, maxPerfFilenameSize, "/tmp/perf-%ld.map", jvmPid);
+      if (!truncated)
          {
-         TR::CompilationInfoPerThreadBase::_perfFile = j9jit_fopen(perfFilename, "a", true, false);
+         TR::CompilationInfoPerThreadBase::_perfFile = j9jit_fopen(perfFilename, "a", true);
          }
       if (!getPerfFile()) // couldn't open the file
          {
@@ -7040,7 +7059,7 @@ TR::CompilationInfoPerThreadBase::isMemoryCheapCompilation(uint32_t bcsz, TR_Hot
    if (freePhysicalMemorySizeB < 20 * 1024 * 1024) // 10MB <= freeMem < 20MB
       {
       // Very small methods at cold (expected to take 1MB max)
-      return (optLevel <= cold) && (bcsz <= 4); 
+      return (optLevel <= cold) && (bcsz <= 4);
       }
    if (freePhysicalMemorySizeB < 100 * 1024 * 1024) // 20MB <= freeMem < 100MB
       {
@@ -7073,7 +7092,7 @@ TR::CompilationInfoPerThreadBase::isCPUCheapCompilation(uint32_t bcsz, TR_Hotnes
          }
       // If we have CPU available we could keep local even medium sized cold compilations
       CpuUtilization *cpuUtil = _compInfo.getCpuUtil();
-      if (cpuUtil->isFunctional() && 
+      if (cpuUtil->isFunctional() &&
           _compInfo.getPersistentInfo()->getElapsedTime() >= TR::Options::_classLoadingPhaseInterval && // For first 0.5 sec we don't have valid data
           cpuUtil->getCpuIdle() >= 15 && // There is idle CPU to use
           cpuUtil->getVmCpuUsage() + 15 <= cpuEntitlement) // I am allowed to use 15% more CPU
@@ -7084,7 +7103,7 @@ TR::CompilationInfoPerThreadBase::isCPUCheapCompilation(uint32_t bcsz, TR_Hotnes
    if (cpuEntitlement < 350.0) // [150, 350)
       {
       // Medium sized methods at noOpt/cold
-      return (optLevel <= cold) && (bcsz <= 31); 
+      return (optLevel <= cold) && (bcsz <= 31);
       }
 
    // CPU Entitlement >= 350%
@@ -7093,36 +7112,28 @@ TR::CompilationInfoPerThreadBase::isCPUCheapCompilation(uint32_t bcsz, TR_Hotnes
    }
 
 bool
-TR::CompilationInfoPerThreadBase::shouldPerformLocalComp(const TR_MethodToBeCompiled *entry, bool &forcedLocal)
+TR::CompilationInfoPerThreadBase::cannotPerformRemoteComp()
+   {
+   return !JITServer::ClientStream::isServerCompatible(OMRPORT_FROM_J9PORT(_jitConfig->javaVM->portLibrary)) ||
+          (!JITServerHelpers::isServerAvailable() && !JITServerHelpers::shouldRetryConnection(OMRPORT_FROM_J9PORT(_jitConfig->javaVM->portLibrary))) ||
+          (TR::Compiler->target.cpu.isPower() && _jitConfig->inlineFieldWatches); // Power codegen is missing some FieldWatch relocation support
+   }
+
+bool
+TR::CompilationInfoPerThreadBase::preferLocalComp(const TR_MethodToBeCompiled *entry)
    {
    // As a heuristic, cold compilations could be performed locally because
    // they are supposed to be cheap with respect to memory and CPU, but
    // only if we think we have enough resources
-   if (!JITServer::ClientStream::isServerCompatible(OMRPORT_FROM_J9PORT(_jitConfig->javaVM->portLibrary)) ||
-       (!JITServerHelpers::isServerAvailable() && !JITServerHelpers::shouldRetryConnection(OMRPORT_FROM_J9PORT(_jitConfig->javaVM->portLibrary))))
+   //
+   if (TR::Options::getCmdLineOptions()->getOption(TR_EnableJITServerHeuristics))
       {
-      forcedLocal = true; // Inform the caller that remote compilation is not possible
-      return true; // I really cannot do a remote compilation
+      TR_Hotness optLevel = entry->_optimizationPlan->getOptLevel();
+      J9Method *method = entry->getMethodDetails().getMethod();
+      uint32_t bcsz = TR::CompilationInfo::getMethodBytecodeSize(method);
+      return isMemoryCheapCompilation(bcsz, optLevel) && isCPUCheapCompilation(bcsz, optLevel);
       }
-
-   // Do a local compile because the Power codegen is missing some FieldWatch relocation support.
-   if (TR::Compiler->target.cpu.isPower() && _jitConfig->inlineFieldWatches)
-      return true;
-
-   // AOT compilations are expensive, so don't keep them local
-   if (entry->_useAotCompilation)
-      return false;
-
-   // Only do local compilations if the options indicate so
-   static char *localColdCompilations = feGetEnv("TR_LocalColdCompilations");
-   if (!TR::Options::getCmdLineOptions()->getOption(TR_EnableJITServerHeuristics) &&  !localColdCompilations)
-      return false;
-
-   TR_Hotness optLevel = entry->_optimizationPlan->getOptLevel();
-   J9Method *method = entry->getMethodDetails().getMethod();
-   uint32_t bcsz = TR::CompilationInfo::getMethodBytecodeSize(method);
-  
-   return (isMemoryCheapCompilation(bcsz, optLevel) && isCPUCheapCompilation(bcsz, optLevel));
+   return false;
    }
 
 void
@@ -7172,7 +7183,7 @@ TR::CompilationInfoPerThreadBase::downgradeLocalCompilationIfLowPhysicalMemory(T
                 TR_VerboseCompilationDispatch,
                 TR_VerbosePerformance,
                 TR_VerboseCompFailure))
-            TR_VerboseLog::writeLineLocked(TR_Vlog_JITServer, "t=%6u Downgraded a forced local compilation to cold due to low memory: j9method=%p", 
+            TR_VerboseLog::writeLineLocked(TR_Vlog_JITServer, "t=%6u Downgraded a forced local compilation to cold due to low memory: j9method=%p",
                                            (uint32_t)_compInfo.getPersistentInfo()->getElapsedTime(), method);
          entry->_optimizationPlan->setOptLevel(cold);
          entry->_optimizationPlan->setOptLevelDowngraded(true);
@@ -7349,6 +7360,9 @@ TR::CompilationInfoPerThreadBase::preCompilationTasks(J9VMThread * vmThread,
             }
          }
       }
+#if defined(J9VM_OPT_JITSERVER)
+   bool cannotDoRemoteCompilation = cannotPerformRemoteComp();
+#endif /* defined(J9VM_OPT_JITSERVER) */
 
    if (!entry->isAotLoad()) // We don't/can't relocate this method
       {
@@ -7446,13 +7460,40 @@ TR::CompilationInfoPerThreadBase::preCompilationTasks(J9VMThread * vmThread,
             {
             canDoRelocatableCompile = true;
             }
-         else
+         else // Use AOT heuristics
             {
-            // Heuristic: generate AOT only for downgraded compilations in the second run
+            // Heuristic: generate AOT only for downgraded compilations in the first run
             if ((!isSecondAOTRun && entry->_optimizationPlan->isOptLevelDowngraded()) ||
                 entry->getMethodDetails().isJitDumpAOTMethod())
                {
                canDoRelocatableCompile = true;
+               }
+            else
+               {
+#if defined(J9VM_OPT_JITSERVER)
+               // We also want AOT compilations for JITServer clients that are attached to a
+               // JITServer with an AOT cache, because those can be served relatively fast
+               if (_compInfo.getPersistentInfo()->getRemoteCompilationMode() == JITServer::CLIENT &&
+                   _compInfo.getPersistentInfo()->getJITServerUseAOTCache() && // Ideally we would check if the options allow us to use the AOT cache for this method
+                   !cannotDoRemoteCompilation) // Make sure remote compilations are possible (no strong guarantees)
+                  {
+                  if (!preferLocalComp(entry))
+                     {
+                     // Even if this compilation is too expensive to be performed locally,
+                     // we may still want to refrain from generating too many remote AOT
+                     // compilations, because of the negative effect of GCR. Smaller methods
+                     // can be jitted remotely (no AOT) because the server would not save too
+                     // much CPU by using its AOT cache.
+                     //
+                     J9ROMMethod * romMethod = J9_ROM_METHOD_FROM_RAM_METHOD(method);
+                     if (J9ROMMETHOD_HAS_BACKWARDS_BRANCHES(romMethod) ||
+                         TR::CompilationInfo::getMethodBytecodeSize(method) >= TR::Options::_smallMethodBytecodeSizeThresholdForJITServerAOTCache)
+                        {
+                        canDoRelocatableCompile = true;
+                        }
+                     }
+                  }
+#endif /* defined(J9VM_OPT_JITSERVER) */
                }
             }
          }
@@ -7465,20 +7506,23 @@ TR::CompilationInfoPerThreadBase::preCompilationTasks(J9VMThread * vmThread,
       entry->_useAotCompilation = true;
 #if defined(J9VM_OPT_JITSERVER)
       if (entry->isOutOfProcessCompReq())
+         {
          _vm = TR_J9VMBase::get(_jitConfig, vmThread, TR_J9VMBase::J9_SHARED_CACHE_SERVER_VM);
+         }
       else
 #endif /* defined(J9VM_OPT_JITSERVER) */
+         {
          _vm = TR_J9VMBase::get(_jitConfig, vmThread, TR_J9VMBase::AOT_VM);
 #if defined(J9VM_OPT_JITSERVER)
-      if (_compInfo.getPersistentInfo()->getRemoteCompilationMode() == JITServer::CLIENT)
-         {
-         bool forcedLocal = false;
-         if (!shouldPerformLocalComp(entry, forcedLocal))
-            entry->setRemoteCompReq();
-         else if (forcedLocal)
-            downgradeLocalCompilationIfLowPhysicalMemory(entry);
-         }
+         if (_compInfo.getPersistentInfo()->getRemoteCompilationMode() == JITServer::CLIENT)
+            {
+            if (cannotDoRemoteCompilation)
+               downgradeLocalCompilationIfLowPhysicalMemory(entry);
+            else // AOT compilations are more expensive, so they should all be done remotely
+               entry->setRemoteCompReq();
+            }
 #endif /* defined(J9VM_OPT_JITSERVER) */
+         }
       }
    else if (entry->isOutOfProcessCompReq())
       {
@@ -7498,7 +7542,7 @@ TR::CompilationInfoPerThreadBase::preCompilationTasks(J9VMThread * vmThread,
           TR::Options::canJITCompile())
          {
          bool forcedLocal = false;
-         bool doLocalCompilation = shouldPerformLocalComp(entry, forcedLocal);
+         bool doLocalCompilation = entry->isAotLoad() || cannotDoRemoteCompilation || preferLocalComp(entry);
 
          // If this is a remote sync compilation, change it to a local sync compilation.
          // After the local compilation is completed successfully, a remote async compilation
@@ -7507,9 +7551,11 @@ TR::CompilationInfoPerThreadBase::preCompilationTasks(J9VMThread * vmThread,
          if (!doLocalCompilation &&
              !entry->_async &&
              !entry->isJNINative() &&
+             entry->_optimizationPlan->getOptLevel() > cold &&
              !details.isNewInstanceThunk() &&
              !details.isMethodHandleThunk() &&
-             TR::Options::getCmdLineOptions()->getOption(TR_EnableJITServerHeuristics) &&
+             (TR::Options::getCmdLineOptions()->getOption(TR_EnableJITServerHeuristics) ||
+             _compInfo.getPersistentInfo()->isLocalSyncCompiles()) &&
              !TR::Options::getCmdLineOptions()->getOption(TR_DisableUpgradingColdCompilations) &&
              TR::Options::getCmdLineOptions()->allowRecompilation())
             {
@@ -7522,29 +7568,12 @@ TR::CompilationInfoPerThreadBase::preCompilationTasks(J9VMThread * vmThread,
                TR_VerboseLog::writeLineLocked(TR_Vlog_DISPATCH, "Changed the remote sync compilation to a local sync cold compilation: j9method=%p",
                entry->getMethodDetails().getMethod());
             }
-         // In another heuristic we could downgrade all first time compilations
-         // that happen during startup.
-         if (false)
-            {
-            if (!TR::CompilationInfo::isCompiled(method) &&  //recompilations should be sent remotely
-               !TR::Options::getCmdLineOptions()->getOption(TR_DontDowngradeToCold) &&
-               !TR::Options::getCmdLineOptions()->getOption(TR_DisableUpgradingColdCompilations) &&
-               TR::Options::getCmdLineOptions()->allowRecompilation() &&
-               entry->_optimizationPlan->getOptLevel() == warm)
-               {
-               doLocalCompilation = true;
-               entry->_optimizationPlan->setOptLevel(cold);
-               entry->_optimizationPlan->setOptLevelDowngraded(true);
-               // JITServer TODO: queue a remote upgrade right away, but at a lower priority
-               // If so, disable GCR trees for those cold compilations.
-               }
-            }
 
          if (!doLocalCompilation)
             {
             entry->setRemoteCompReq();
             }
-         else if (forcedLocal)
+         else if (cannotDoRemoteCompilation)
             {
             downgradeLocalCompilationIfLowPhysicalMemory(entry);
             }
@@ -7742,13 +7771,15 @@ TR::CompilationInfoPerThreadBase::postCompilationTasks(J9VMThread * vmThread,
       if (!metaData && !entry->_oldStartPC && // First time compilation failed
          !entry->isOutOfProcessCompReq())
          {
-         if (TR::Options::getCmdLineOptions()->getVerboseOption(TR_VerboseCompFailure))
+         // If we didn't compile the method because filters disallowed it,
+         // then do not consider this compilation a failure
+         TR_VlogTag vlogTag = (entry->_compErrCode == compilationRestrictedMethod) ? TR_Vlog_INFO : TR_Vlog_FAILURE;
+         if (TR::Options::isAnyVerboseOptionSet(TR_VerboseCompFailure, TR_VerbosePerformance))
             {
-            TR_VerboseLog::vlogAcquire();
-            TR_VerboseLog::write(TR_Vlog_COMP, "Method ");
+            TR_VerboseLog::CriticalSection vlogLock;
+            TR_VerboseLog::write(vlogTag, "Method ");
             CompilationInfo::printMethodNameToVlog(method);
             TR_VerboseLog::writeLine(" will continue as interpreted");
-            TR_VerboseLog::vlogRelease();
             }
          if (entry->_compErrCode != compilationRestrictedMethod && // do not look at methods excluded by filters
              entry->_compErrCode != compilationExcessiveSize) // do not look at failures due to code cache size
@@ -7942,8 +7973,7 @@ TR::CompilationInfoPerThreadBase::compile(J9VMThread * vmThread,
 
    TR_RelocationRuntime *reloRuntime = NULL;
 #if defined(J9VM_INTERP_AOT_RUNTIME_SUPPORT) && defined(J9VM_OPT_SHARED_CLASSES) && (defined(TR_HOST_X86) || defined(TR_HOST_POWER) || defined(TR_HOST_S390) || defined(TR_HOST_ARM) || defined(TR_HOST_ARM64))
-   TR::CompilationInfoPerThreadBase *cp = _compInfo.getCompInfoForCompOnAppThread();
-   reloRuntime = cp ? cp->reloRuntime() : entry->_compInfoPT->reloRuntime();
+   reloRuntime = entry->_compInfoPT->reloRuntime();
 #endif
 
    UDATA oldState = vmThread->omrVMThread->vmState;
@@ -8028,13 +8058,13 @@ TR::CompilationInfoPerThreadBase::compile(J9VMThread * vmThread,
             TR::CompilationInfoPerThreadBase::UninterruptibleOperation jitDumpRecompilation(*this);
 
             protectedResult = j9sig_protect(wrappedCompile, static_cast<void*>(&compParam),
-                                                jitDumpSignalHandler, 
+                                                jitDumpSignalHandler,
                                                 vmThread, flags, &result);
             }
          else
             {
             protectedResult = j9sig_protect(wrappedCompile, static_cast<void*>(&compParam),
-                                                jitSignalHandler, 
+                                                jitSignalHandler,
                                                 vmThread, flags, &result);
             }
 
@@ -8180,7 +8210,8 @@ TR::CompilationInfoPerThreadBase::wrappedCompile(J9PortLibrary *portLib, void * 
             options = TR::Options::getAOTCmdLineOptions();
          if (options->getVerboseOption(TR_VerboseCompileExclude))
             {
-            TR_VerboseLog::writeLineLocked(TR_Vlog_COMPFAIL, "%s cannot be translated", compilee->signature(p->trMemory()));
+            TR_VerboseLog::writeLineLocked(TR_Vlog_COMPFAIL, "%s j9m=%p cannot be translated compThreadID=%d",
+                                           compilee->signature(p->trMemory()), method, that->getCompThreadId());
             }
          Trc_JIT_noAttemptToJit(vmThread, compilee->signature(p->trMemory()));
 
@@ -8191,9 +8222,10 @@ TR::CompilationInfoPerThreadBase::wrappedCompile(J9PortLibrary *portLib, void * 
          // Optimization to disable future first time compilations from reaching the queue
          that->getCompilationInfo()->getPersistentInfo()->setDisableFurtherCompilation(true);
 
-         if (TR::Options::isAnyVerboseOptionSet(TR_VerboseCompileEnd, TR_VerboseCompFailure))
+         if (TR::Options::isAnyVerboseOptionSet(TR_VerboseCompileEnd, TR_VerboseCompFailure, TR_VerbosePerformance))
             {
-            TR_VerboseLog::writeLineLocked(TR_Vlog_INFO,"<WARNING: JIT CACHES FULL> Disable further compilation");
+            TR_VerboseLog::writeLineLocked(TR_Vlog_PERF,"t=%6u <WARNING: JIT CACHES FULL> Disable further compilation",
+               (uint32_t)that->getCompilationInfo()->getPersistentInfo()->getElapsedTime());
             }
          if (jitConfig->runtimeFlags & J9JIT_CODE_CACHE_FULL)
             Trc_JIT_cacheFull(vmThread);
@@ -8321,8 +8353,6 @@ TR::CompilationInfoPerThreadBase::wrappedCompile(J9PortLibrary *portLib, void * 
             // Adjust Options for AOT compilation
             if (vm->isAOT_DEPRECATED_DO_NOT_USE())
                {
-               options->setOption(TR_AOT);
-
                // Disable dynamic literal pool for AOT because of an unresolved data snippet patching issue in which
                // the "Address Of Ref. Instruction" in the unresolved data snippet points to the wrong load instruction
                options->setOption(TR_DisableOnDemandLiteralPoolRegister);
@@ -8340,10 +8370,13 @@ TR::CompilationInfoPerThreadBase::wrappedCompile(J9PortLibrary *portLib, void * 
 
                TR_ASSERT(vm->isAOT_DEPRECATED_DO_NOT_USE(), "assertion failure");
 
-               // Do not delay relocations for JITServer
-               // FIXME: JITServer does not reach this code
-               //if (that->getCompilationInfo()->getPersistentInfo()->getRemoteCompilationMode() == JITServer::SERVER)
-               //   options->setOption(TR_DisableDelayRelocationForAOTCompilations);
+               // Do not delay relocations for JITServer client when server side AOT caching is used (gives better performance)
+               // Testing the presence of the deserializer is sufficient, because the deserializer
+               // is only created at the client and only if server side AOT caching is enabled
+#if defined(J9VM_OPT_JITSERVER)
+               if (that->getCompilationInfo()->getJITServerAOTDeserializer())
+                  options->setOption(TR_DisableDelayRelocationForAOTCompilations);
+#endif /* defined(J9VM_OPT_JITSERVER) */
                }
 
             if (that->_methodBeingCompiled->_optimizationPlan->disableCHOpts())
@@ -8351,6 +8384,9 @@ TR::CompilationInfoPerThreadBase::wrappedCompile(J9PortLibrary *portLib, void * 
 
             if (that->_methodBeingCompiled->_optimizationPlan->disableGCR())
                options->setOption(TR_DisableGuardedCountingRecompilations);
+
+            if (that->_methodBeingCompiled->_optimizationPlan->getDisableEDO())
+               options->setOption(TR_DisableEDO);
 
             if (options->getOption(TR_DisablePrexistenceDuringGracePeriod))
                {
@@ -8430,7 +8466,7 @@ TR::CompilationInfoPerThreadBase::wrappedCompile(J9PortLibrary *portLib, void * 
                         }
                      if (options->getOption(TR_UseSamplingJProfilingForInterpSampledMethods))
                         {
-                        int32_t skippedCount = that->getCompilationInfo()->getInterpSamplTrackingInfo()->findAndDelete(method);
+                        int32_t skippedCount = that->getCompilationInfo()->getInterpSampleTrackingInfo()->findAndDelete(method);
                         if (skippedCount > 0)
                            {
                            // Enable SamplingJProfiling
@@ -8692,6 +8728,17 @@ TR::CompilationInfoPerThreadBase::wrappedCompile(J9PortLibrary *portLib, void * 
 
             TR_ASSERT(TR::comp() == NULL, "there seems to be a current TLS TR::Compilation object %p for this thread. At this point there should be no current TR::Compilation object", TR::comp());
 
+            // Under -Xtune:throughput we allow huge methods for compilations above warm
+            if (TR::Options::getAggressivityLevel() ==  TR::Options::TR_AggressivenessLevel::AGGRESSIVE_THROUGHPUT &&
+                options->getOptLevel() > warm &&
+                !options->getOption(TR_ProcessHugeMethods))
+               {
+               static char *dontAcceptHugeMethods = feGetEnv("TR_DontAcceptHugeMethods");
+               if (!dontAcceptHugeMethods)
+                  {
+                  options->setOption(TR_ProcessHugeMethods);
+                  }
+               }
             }
 
          uint64_t proposedScratchMemoryLimit = static_cast<uint64_t>(TR::Options::getScratchSpaceLimit());
@@ -8821,6 +8868,9 @@ TR::CompilationInfoPerThreadBase::wrappedCompile(J9PortLibrary *portLib, void * 
             // Create the KOT by default at the server as long as it is not disabled at the client.
             compiler->getOrCreateKnownObjectTable();
             compiler->setClientData(that->getClientData());
+            compiler->setStream(that->_methodBeingCompiled->_stream);
+            auto compInfoPTRemote = static_cast<TR::CompilationInfoPerThreadRemote *>(that);
+            compiler->setAOTCacheStore(compInfoPTRemote->isAOTCacheStore());
             }
 #endif /* defined(J9VM_OPT_JITSERVER) */
 
@@ -8845,6 +8895,19 @@ TR::CompilationInfoPerThreadBase::wrappedCompile(J9PortLibrary *portLib, void * 
 
                // Try to increase scratch space limit for JSR292 compilations
                proposedScratchMemoryLimit *= TR::Options::getScratchSpaceFactorWhenJSR292Workload();
+
+#if defined(J9VM_OPT_OPENJDK_METHODHANDLE)
+               // Allow larger methods to be inlined into scorching bodies for JSR292 methods.
+               //
+               compiler->getOptions()->setBigCalleeScorchingOptThreshold(1024);
+#endif
+               }
+            // Under -Xtune:throughput, increase the scratch space limit for hot/scorching compilations
+            else if (TR::Options::getAggressivityLevel() ==  TR::Options::TR_AggressivenessLevel::AGGRESSIVE_THROUGHPUT &&
+                     compiler->getOptions()->getOptLevel() > warm &&
+                     TR::Options::getScratchSpaceLimitForHotCompilations() > proposedScratchMemoryLimit) // Make sure we don't decrease the value proposed so far
+               {
+               proposedScratchMemoryLimit = TR::Options::getScratchSpaceLimitForHotCompilations();
                }
 #if defined(J9VM_OPT_JITSERVER)
             else if (compiler->isOutOfProcessCompilation())
@@ -9108,7 +9171,7 @@ TR::CompilationInfoPerThreadBase::wrappedCompile(J9PortLibrary *portLib, void * 
    catch (const std::exception &e)
       {
       // Catch-all case to handle any potential failures not related to JITServer
-      // At this point we have compiled method successfuly but failed to add hints.
+      // At this point we have compiled method successfully but failed to add hints.
       // We will ignore this exception and continue hoping that compilation can be finished.
       }
    return metaData;
@@ -9162,6 +9225,10 @@ TR::CompilationInfoPerThreadBase::performAOTLoad(
          compiler->getHotnessName()
          );
       }
+
+#if defined(OSX) && defined(AARCH64)
+   pthread_jit_write_protect_np(0);
+#endif
    TR_MethodMetaData *metaData = installAotCachedMethod(
       vmThread,
       _methodBeingCompiled->_aotCodeToBeRelocated,
@@ -9172,6 +9239,10 @@ TR::CompilationInfoPerThreadBase::performAOTLoad(
       _methodBeingCompiled,
       compiler
       );
+#if defined(OSX) && defined(AARCH64)
+   pthread_jit_write_protect_np(1);
+#endif
+
    _methodBeingCompiled->_newStartPC = metaData ? reinterpret_cast<void *>(metaData->startPC) : 0;
 
    if (!metaData) // Failed to relocate!
@@ -9307,7 +9378,7 @@ TR::CompilationInfoPerThreadBase::compile(
       if (TR::Options::isAnyVerboseOptionSet(TR_VerbosePerformance, TR_VerboseCompileStart))
          {
          char compilationTypeString[15]={0};
-         snprintf(compilationTypeString, sizeof(compilationTypeString), "%s%s",
+         TR::snprintfNoTrunc(compilationTypeString, sizeof(compilationTypeString), "%s%s",
                  vm.isAOT_DEPRECATED_DO_NOT_USE() ? "AOT " : "",
                  compiler->isProfilingCompilation() ? "profiled " : ""
                 );
@@ -9318,13 +9389,14 @@ TR::CompilationInfoPerThreadBase::compile(
             {
             TR_VerboseLog::writeLineLocked(
                TR_Vlog_COMPSTART,
-               "(%s%s) Compiling %s %s %s j9m=%p t=%llu compThreadID=%d memLimit=%zu KB freePhysicalMemory=%llu MB",
+               "(%s%s) Compiling %s %s %s j9m=%p %s t=%llu compThreadID=%d memLimit=%zu KB freePhysicalMemory=%llu MB",
                compilationTypeString,
                compiler->getHotnessName(compiler->getMethodHotness()),
                compiler->signature(),
                compiler->isDLT() ? "DLT" : "",
                details.name(),
                method,
+               _methodBeingCompiled->isRemoteCompReq() ? "remote" : "",
                _compInfo.getPersistentInfo()->getElapsedTime(),
                compiler->getCompThreadID(),
                scratchSegmentProvider.allocationLimit() >> 10,
@@ -9567,9 +9639,8 @@ TR::CompilationInfoPerThreadBase::compile(
          {
          if (compiler->getMaxYieldInterval() > TR::Options::_compYieldStatsThreshold)
             {
-            TR_VerboseLog::vlogAcquire();
+            TR_VerboseLog::CriticalSection vlogLock;
             compiler->printCompYieldStats();
-            TR_VerboseLog::vlogRelease();
             }
          }
 
@@ -9638,6 +9709,10 @@ TR::CompilationInfoPerThreadBase::compile(
                );
             }
 
+
+#if defined(OSX) && defined(AARCH64)
+         pthread_jit_write_protect_np(0);
+#endif
          // Put a metaData pointer into the Code Cache Header(s).
          //
          uint8_t *warmMethodHeader = compiler->cg()->getBinaryBufferStart() - sizeof(OMR::CodeCacheMethodHeader);
@@ -9655,6 +9730,9 @@ TR::CompilationInfoPerThreadBase::compile(
          // and in fact it would be wrong to do so because code during chtable.commit is
          // expecting something in the compiler object
          }
+#if defined(OSX) && defined(AARCH64)
+         pthread_jit_write_protect_np(1);
+#endif
 
       setMetadata(metaData);
 
@@ -9671,11 +9749,12 @@ TR::CompilationInfoPerThreadBase::compile(
          _compInfo.getHWProfiler()->registerRecords(metaData, compiler);
          }
 
+      TR_CHTable *chTable = compiler->getCHTable();
+      if (chTable && !chTable->canSkipCommit(compiler))
          {
          TR::ClassTableCriticalSection chTableCommit(&vm);
          TR_ASSERT(!chTableCommit.acquiredVMAccess(), "We should have already acquired VM access at this point.");
-         TR_CHTable *chTable = compiler->getCHTable();
-         if (chTable && chTable->commit(compiler) == false)
+         if (chTable->commit(compiler) == false)
             {
             // If we created a TR_PersistentMethodInfo, fix the next compilation level
             // because if we retry the compilation we will fail an assume later on
@@ -9736,7 +9815,7 @@ TR::CompilationInfoPerThreadBase::compile(
       }
 
    // At this point the compilation has either succeeded and compilation cannot be
-   // interrupted anymore, or it has failed. In either case _compilationShouldBeinterrupted flag
+   // interrupted anymore, or it has failed. In either case _compilationShouldBeInterrupted flag
    // is not needed anymore
    setCompilationShouldBeInterrupted(0);
 
@@ -10111,10 +10190,11 @@ TR::CompilationInfo::compilationEnd(J9VMThread * vmThread, TR::IlGeneratorMethod
                      if (TR::Options::isAnyVerboseOptionSet(TR_VerboseCompileEnd, TR_VerbosePerformance, TR_VerboseCompFailure))
                         {
                         TR_VerboseLog::writeLineLocked(TR_Vlog_FAILURE,
-                                                          "Failure while relocating for %s, return code = %d [%s]\n",
+                                                          "Failure while relocating for %s, return code = %d [%s], relo error code = %s\n",
                                                           comp->signature(),
                                                           returnCode,
-                                                          (returnCode >= 0) && (returnCode < compilationMaxError) ? compilationErrorNames[returnCode] : "unknown error");
+                                                          (returnCode >= 0) && (returnCode < compilationMaxError) ? compilationErrorNames[returnCode] : "unknown error",
+                                                          comp->reloRuntime()->getReloErrorCodeName(comp->reloRuntime()->getReloErrorCode()));
                         }
                      }
                   }
@@ -10154,15 +10234,9 @@ TR::CompilationInfo::compilationEnd(J9VMThread * vmThread, TR::IlGeneratorMethod
                   // Reservation will be cancelled at end of compilation
 
                   // Inform that metadata is now NULL
-                  if (compInfo->getCompInfoForCompOnAppThread())
-                     {
-                     compInfo->getCompInfoForCompOnAppThread()->setMetadata(NULL);
-                     }
-                  else
-                     {
-                     if (entry->_compInfoPT)
-                        entry->_compInfoPT->setMetadata(NULL);
-                     }
+                  if (entry->_compInfoPT)
+                     entry->_compInfoPT->setMetadata(NULL);
+
                   // mark that compilation failed
                   startPC = oldStartPC;
                   }
@@ -10195,7 +10269,11 @@ TR::CompilationInfo::compilationEnd(J9VMThread * vmThread, TR::IlGeneratorMethod
             }
          else // Non-AOT compilation or remote JIT/AOT compilations (at the JITClient)
             {
-            if (trvm->isAOT_DEPRECATED_DO_NOT_USE() && !TR::CompilationInfo::canRelocateMethod(comp))
+            if ((trvm->isAOT_DEPRECATED_DO_NOT_USE()
+#if defined(J9VM_OPT_JITSERVER)
+                || comp->isDeserializedAOTMethod()
+#endif /* defined(J9VM_OPT_JITSERVER) */
+                ) && !TR::CompilationInfo::canRelocateMethod(comp))
                {
                // Handle the case when relocations are delayed.
                // Delete any assumptions that might still exist in persistent memory
@@ -10414,8 +10492,9 @@ void TR::CompilationInfoPerThreadBase::logCompilationSuccess(
          }
 
       PORT_ACCESS_FROM_JITCONFIG(_jitConfig);
-      UDATA translationTime = j9time_usec_clock() - getTimeWhenCompStarted();
-      if (TR::Options::_largeTranslationTime > 0 && translationTime > (UDATA)(TR::Options::_largeTranslationTime))
+      uintptr_t currentTime = j9time_usec_clock();
+      uintptr_t translationTime = currentTime - getTimeWhenCompStarted();
+      if (TR::Options::_largeTranslationTime > 0 && translationTime > (uintptr_t)TR::Options::_largeTranslationTime)
          {
          if (compiler->getOutFile() != NULL)
             trfprintf(compiler->getOutFile(), "Compilation took %d usec\n", (int32_t)translationTime);
@@ -10423,12 +10502,12 @@ void TR::CompilationInfoPerThreadBase::logCompilationSuccess(
          }
       if (_onSeparateThread)
          {
-         TR::CompilationInfoPerThread *cipt = (TR::CompilationInfoPerThread*)this;
+         TR::CompilationInfoPerThread *cipt = (TR::CompilationInfoPerThread *)this;
          cipt->setLastCompilationDuration(translationTime / 1000);
          }
 
-      UDATA gcDataBytes = _jitConfig->lastGCDataAllocSize;
-      UDATA atlasBytes = _jitConfig->lastExceptionTableAllocSize;
+      uintptr_t gcDataBytes = _jitConfig->lastGCDataAllocSize;
+      uintptr_t atlasBytes = _jitConfig->lastExceptionTableAllocSize;
 
       // Statistics for number of aoted methods that were recompiled
       //
@@ -10465,14 +10544,14 @@ void TR::CompilationInfoPerThreadBase::logCompilationSuccess(
       if (_methodBeingCompiled->_reqFromJProfilingQueue)
          _compInfo._statNumMethodsFromJProfilingQueue++;
 
-      if (_jitConfig->runtimeFlags & J9JIT_TESTMODE)
+      if (_jitConfig->runtimeFlags & J9JIT_TOSS_CODE)
          {
          TR_VerboseLog::writeLineLocked(TR_Vlog_INFO, "JIT %s OK\n", compiler->signature());
          }
       else
          {
          char compilationTypeString[15] = { 0 };
-         snprintf(compilationTypeString, sizeof(compilationTypeString), "%s%s",
+         TR::snprintfNoTrunc(compilationTypeString, sizeof(compilationTypeString), "%s%s",
             vm.isAOT_DEPRECATED_DO_NOT_USE() ? "AOT " : "",
             compiler->isProfilingCompilation() ? "profiled " : "");
 
@@ -10504,12 +10583,12 @@ void TR::CompilationInfoPerThreadBase::logCompilationSuccess(
 
          const char * prexString = compiler->usesPreexistence() ? " prex" : "";
 
-         int32_t profilingCount = 0, profilingFrequencey = 0, counter = 0;
+         int32_t profilingCount = 0, profilingFrequency = 0, counter = 0;
          if (compiler->isProfilingCompilation())
             {
             TR::Recompilation *recompInfo = compiler->getRecompilationInfo();
             profilingCount      = recompInfo->getProfilingCount();
-            profilingFrequencey = recompInfo->getProfilingFrequency();
+            profilingFrequency = recompInfo->getProfilingFrequency();
             counter             = recompInfo->getJittedBodyInfo()->getCounter(); // profiling invocation count
             }
 
@@ -10563,7 +10642,7 @@ void TR::CompilationInfoPerThreadBase::logCompilationSuccess(
             {
             const uint32_t bytecodeSize = TR::CompilationInfo::getMethodBytecodeSize(method);
             const bool isJniNative = compilee->isJNINative();
-            TR_VerboseLog::vlogAcquire();
+            TR_VerboseLog::CriticalSection vlogLock;
             TR_VerboseLog::write(TR_Vlog_COMP,"(%s%s) %s @ " POINTER_PRINTF_FORMAT "-" POINTER_PRINTF_FORMAT,
                compilationTypeString,
                hotnessString,
@@ -10589,7 +10668,7 @@ void TR::CompilationInfoPerThreadBase::logCompilationSuccess(
 
             TR_VerboseLog::write(" j9m=%p bcsz=%u", method, bytecodeSize);
 
-            if (_compInfo.useSeparateCompilationThread() && !_methodBeingCompiled->_async)
+            if (!_methodBeingCompiled->_async)
                TR_VerboseLog::write(" sync"); // flag the synchronous compilations
 
             if (isJniNative)
@@ -10613,8 +10692,14 @@ void TR::CompilationInfoPerThreadBase::logCompilationSuccess(
             if (_methodBeingCompiled->_reqFromJProfilingQueue)
                TR_VerboseLog::write(" JPQ");
 
+#if defined(J9VM_OPT_JITSERVER)
             if (_methodBeingCompiled->isRemoteCompReq())
+               {
                TR_VerboseLog::write(" remote");
+               if (compiler->isDeserializedAOTMethod())
+                  TR_VerboseLog::write(" deserialized");
+               }
+#endif /* defined(J9VM_OPT_JITSERVER) */
 
             if (TR::Options::getVerboseOption(TR_VerboseGc))
                {
@@ -10644,7 +10729,7 @@ void TR::CompilationInfoPerThreadBase::logCompilationSuccess(
 #endif
             if (TR::Options::getVerboseOption(TR_VerboseRecompile))
                {
-               TR_VerboseLog::write("%s [profiling c(%d), f(%d), ivc(%d)]", prexString, profilingCount, profilingFrequencey, counter);
+               TR_VerboseLog::write("%s [profiling c(%d), f(%d), ivc(%d)]", prexString, profilingCount, profilingFrequency, counter);
                }
 
             if (compiler->getOption(TR_CountOptTransformations) && compiler->getOption(TR_VerboseOptTransformations))
@@ -10668,40 +10753,36 @@ void TR::CompilationInfoPerThreadBase::logCompilationSuccess(
             if (cpuUtil->isFunctional())
                {
                TR_VerboseLog::write(" CpuLoad=%d%%(%d%%avg) JvmCpu=%d%%",
-               cpuUtil->getCpuUsage(),
-               cpuUtil->getAvgCpuUsage(),
-               cpuUtil->getVmCpuUsage());
+                                    cpuUtil->getCpuUsage(), cpuUtil->getAvgCpuUsage(), cpuUtil->getVmCpuUsage());
                }
 
             if (TR::Options::getVerboseOption(TR_VerboseCompilationThreads) && _onSeparateThread)
                {
                // CPU spent in comp thread is quite coarse (updated every 0.5 sec)
                // We could use getCpuTimeNow() if we wanted to be more accurate
-               TR::CompilationInfoPerThread *cipt = (TR::CompilationInfoPerThread*)this;
+               TR::CompilationInfoPerThread *cipt = (TR::CompilationInfoPerThread *)this;
                int32_t cpuUtil = cipt->getCompThreadCPU().getThreadLastCpuUtil();
                if (cpuUtil >= 0)
                   TR_VerboseLog::write(" compCPU=%d%%", cpuUtil);
                }
 
+            // Print total compilation request latency (including queuing time and failed attempts)
+            if (TR::Options::getVerboseOption(TR_VerbosePerformance))
+               TR_VerboseLog::write(" queueTime=%zuus", currentTime - _methodBeingCompiled->_entryTime);
+
             TR_VerboseLog::writeLine("");
-            TR_VerboseLog::vlogRelease();
             }
 
          char compilationAttributes[40] = { 0 };
-         snprintf(compilationAttributes, sizeof(compilationAttributes), "%s %s %s %s %s %s %s",
+         TR::snprintfNoTrunc(compilationAttributes, sizeof(compilationAttributes), "%s %s %s %s %s %s %s",
                       prexString,
-                      (_compInfo.useSeparateCompilationThread() && !_methodBeingCompiled->_async) ? "sync" : "",
+                      !_methodBeingCompiled->_async ? "sync" : "",
                       compilee->isJNINative()? "JNI" : "",
                       compiler->getOption(TR_EnableOSR) ? "OSR" : "",
                       (compiler->getRecompilationInfo() && compiler->getRecompilationInfo()->getJittedBodyInfo()->getUsesGCR()) ? "GCR" : "",
                       compiler->isDLT() ? "DLT" : "",
                       TR::CompilationInfo::isJSR292(method) ? "JSR292" : ""
                       );
-#if defined (_MSC_VER) && _MSC_VER < 1900
-         // Microsoft has a compliant version of snprintf only starting with Visual Studio 2015
-         // We should add the null terminator just in case
-         * (compilationAttributes + sizeof(compilationAttributes)-1) = '\0';
-#endif
 
          Trc_JIT_compileEnd15(vmThread, compilationTypeString, hotnessString, compiler->signature(),
                                startPC, endWarmPC, startColdPC, endPC,
@@ -10779,9 +10860,8 @@ TR::CompilationInfoPerThreadBase::processException(
       {
       if (compiler->getMaxYieldInterval() > TR::Options::_compYieldStatsThreshold)
          {
-         TR_VerboseLog::vlogAcquire();
+         TR_VerboseLog::CriticalSection vlogLock;
          compiler->printCompYieldStats();
-         TR_VerboseLog::vlogRelease();
          }
       }
 
@@ -10948,12 +11028,23 @@ TR::CompilationInfoPerThreadBase::processException(
       if (TR::Options::isAnyVerboseOptionSet(TR_VerbosePerformance, TR_VerboseCompileEnd, TR_VerboseCompFailure))
          {
          uintptr_t translationTime = j9time_usec_clock() - getTimeWhenCompStarted(); //get the time it took to fail the compilation
+         char compilationTypeString[15] = { 0 };
+         TR::snprintfNoTrunc(compilationTypeString, sizeof(compilationTypeString), "%s%s",
+            compiler->fej9()->isAOT_DEPRECATED_DO_NOT_USE() ? "AOT " : "",
+            compiler->isProfilingCompilation() ? "profiled " : "");
          TR_VerboseLog::writeLineLocked(
             TR_Vlog_COMPFAIL,
-            "%s time=%dus %s",
+            "(%s%s) %s Q_SZ=%d Q_SZI=%d QW=%d j9m=%p time=%dus %s compThreadID=%d",
+            compilationTypeString,
+            compiler->getHotnessName(compiler->getMethodHotness()),
             compiler->signature(),
+            _compInfo.getMethodQueueSize(),
+            _compInfo.getNumQueuedFirstTimeCompilations(),
+            _compInfo.getQueueWeight(),
+            _methodBeingCompiled->getMethodDetails().getMethod(),
             translationTime,
-            "Class chain persistence failure"
+            "Class chain persistence failure",
+            getCompThreadId()
             );
          }
       Trc_JIT_compilationFailed(vmThread, compiler->signature(), -1);
@@ -10964,12 +11055,23 @@ TR::CompilationInfoPerThreadBase::processException(
       if (TR::Options::isAnyVerboseOptionSet(TR_VerbosePerformance, TR_VerboseCompileEnd, TR_VerboseCompFailure))
          {
          uintptr_t translationTime = j9time_usec_clock() - getTimeWhenCompStarted(); //get the time it took to fail the compilation
+         char compilationTypeString[15] = { 0 };
+         TR::snprintfNoTrunc(compilationTypeString, sizeof(compilationTypeString), "%s%s",
+            compiler->fej9()->isAOT_DEPRECATED_DO_NOT_USE() ? "AOT " : "",
+            compiler->isProfilingCompilation() ? "profiled " : "");
          // This assertion will only be generated in production, when softFailOnAssumes is set.
          TR_VerboseLog::writeLineLocked(
             TR_Vlog_COMPFAIL,
-            "Assertion Failure: %s time=%dus",
+            "(%s%s) %s Q_SZ=%d Q_SZI=%d QW=%d j9m=%p time=%dus Assertion Failure compThreadID=%d",
+            compilationTypeString,
+            compiler->getHotnessName(compiler->getMethodHotness()),
             compiler->signature(),
-            translationTime
+            _compInfo.getMethodQueueSize(),
+            _compInfo.getNumQueuedFirstTimeCompilations(),
+            _compInfo.getQueueWeight(),
+            _methodBeingCompiled->getMethodDetails().getMethod(),
+            translationTime,
+            getCompThreadId()
             );
          }
          Trc_JIT_compilationFailed(vmThread, compiler->signature(), -1);
@@ -11008,6 +11110,10 @@ TR::CompilationInfoPerThreadBase::processException(
       // no need to set error code here because error code is set
       // in remoteCompile at JITClient when the compilation failed.
       }
+   catch (const J9::AOTCacheDeserializationFailure &e)
+      {
+      // error code was already set in remoteCompile()
+      }
 #endif /* defined(J9VM_OPT_JITSERVER) */
    catch (...)
       {
@@ -11015,7 +11121,7 @@ TR::CompilationInfoPerThreadBase::processException(
       }
 
    if (shouldProcessExceptionCommonTasks)
-      processExceptionCommonTasks(vmThread, scratchSegmentProvider, compiler, exceptionName);
+      processExceptionCommonTasks(vmThread, scratchSegmentProvider, compiler, exceptionName, _methodBeingCompiled);
 
    TR::IlGeneratorMethodDetails & details = _methodBeingCompiled->getMethodDetails();
    J9Method *method = details.getMethod();
@@ -11027,7 +11133,8 @@ TR::CompilationInfoPerThreadBase::processExceptionCommonTasks(
    J9VMThread *vmThread,
    TR::SegmentAllocator const &scratchSegmentProvider,
    TR::Compilation * compiler,
-   const char *exceptionName
+   const char *exceptionName,
+   TR_MethodToBeCompiled *entry
    )
    {
    PORT_ACCESS_FROM_JITCONFIG(_jitConfig);
@@ -11035,54 +11142,63 @@ TR::CompilationInfoPerThreadBase::processExceptionCommonTasks(
    if (TR::Options::isAnyVerboseOptionSet(TR_VerbosePerformance, TR_VerboseCompileEnd, TR_VerboseCompFailure))
       {
       uintptr_t translationTime = j9time_usec_clock() - getTimeWhenCompStarted(); //get the time it took to fail the compilation
-      
+
       char compilationTypeString[15] = { 0 };
-      snprintf(compilationTypeString, sizeof(compilationTypeString), "%s%s",
-         compiler->fej9()->isAOT_DEPRECATED_DO_NOT_USE() ? "AOT " : "",
-         compiler->isProfilingCompilation() ? "profiled " : "");
+      bool isProfiledComp = compiler->isProfilingCompilation();
+      bool isAOTComp = compiler->compileRelocatableCode() || entry->isAotLoad();
+      TR::snprintfNoTrunc(compilationTypeString, sizeof(compilationTypeString), "%s%s",
+         isAOTComp ? "AOT " : "",
+         isProfiledComp ? "profiled " : "");
 
-      const char *hotnessString = compiler->getHotnessName(compiler->getMethodHotness());
+      const char *hotnessString = entry->isAotLoad() ? "load" : compiler->getHotnessName(compiler->getMethodHotness());
 
-      TR_VerboseLog::vlogAcquire();
+      TR_VerboseLog::CriticalSection vlogLock;
       if (_methodBeingCompiled->_compErrCode != compilationFailure)
          {
-         if ((_jitConfig->runtimeFlags & J9JIT_TESTMODE) && _methodBeingCompiled->_compErrCode == compilationInterrupted)
-            TR_VerboseLog::write(TR_Vlog_FAILURE, "Translating %s -- Interrupted because of %s", compiler->signature(), exceptionName);
+         if ((_jitConfig->runtimeFlags & J9JIT_TOSS_CODE) && _methodBeingCompiled->_compErrCode == compilationInterrupted)
+            {
+            TR_VerboseLog::write(TR_Vlog_FAILURE, "Translating %s j9m=%p time=%dus-- Interrupted because of %s",
+                                 compiler->signature(), _methodBeingCompiled->getMethodDetails().getMethod(), translationTime, exceptionName);
+            }
          else
             {
-            bool incomplete;
-            uint64_t freePhysicalMemorySizeB = _compInfo.computeAndCacheFreePhysicalMemory(incomplete);
-            if (freePhysicalMemorySizeB != OMRPORT_MEMINFO_NOT_AVAILABLE)
+            TR_VerboseLog::write(TR_Vlog_COMPFAIL, "(%s%s) %s Q_SZ=%d Q_SZI=%d QW=%d j9m=%p time=%dus %s",
+                                 compilationTypeString,
+                                 hotnessString,
+                                 compiler->signature(),
+                                 _compInfo.getMethodQueueSize(),
+                                 _compInfo.getNumQueuedFirstTimeCompilations(),
+                                 _compInfo.getQueueWeight(),
+                                 _methodBeingCompiled->getMethodDetails().getMethod(),
+                                 translationTime,
+                                 compilationErrorNames[_methodBeingCompiled->_compErrCode]);
+            if (entry->isAotLoad())
                {
-               TR_VerboseLog::write(TR_Vlog_COMPFAIL, "(%s%s) %s time=%dus %s memLimit=%zu KB freePhysicalMemory=%llu MB",
-                                           compilationTypeString,
-                                           hotnessString,
-                                           compiler->signature(),
-                                           translationTime,
-                                           compilationErrorNames[_methodBeingCompiled->_compErrCode],
-                                           scratchSegmentProvider.allocationLimit() >> 10,
-                                           freePhysicalMemorySizeB >> 20);
+               TR_RelocationRuntime *reloRuntime = compiler->reloRuntime();
+               if (reloRuntime)
+                  TR_VerboseLog::write(" (%s)", reloRuntime->getReloErrorCodeName(reloRuntime->getReloErrorCode()));
                }
-            else
+            TR_VerboseLog::write(" memLimit=%zu KB", scratchSegmentProvider.allocationLimit() >> 10);
+
+            if (TR::Options::getVerboseOption(TR_VerbosePerformance))
                {
-               TR_VerboseLog::write(TR_Vlog_COMPFAIL, "(%s%s) %s time=%dus %s memLimit=%zu KB",
-                                           compilationTypeString,
-                                           hotnessString,
-                                           compiler->signature(),
-                                           translationTime,
-                                           compilationErrorNames[_methodBeingCompiled->_compErrCode],
-                                           scratchSegmentProvider.allocationLimit() >> 10);
+               bool incomplete;
+               uint64_t freePhysicalMemorySizeB = _compInfo.computeAndCacheFreePhysicalMemory(incomplete);
+               if (freePhysicalMemorySizeB != OMRPORT_MEMINFO_NOT_AVAILABLE)
+                  TR_VerboseLog::write(" freePhysicalMemory=%llu MB", freePhysicalMemorySizeB >> 20);
                }
             }
          }
       else
          {
-         uintptr_t translationTime = j9time_usec_clock() - getTimeWhenCompStarted(); //get the time it took to fail the compilation
-         TR_VerboseLog::write(TR_Vlog_COMPFAIL, "(%s%s) %s compThreadID=%d time=%dus <TRANSLATION FAILURE: %s>",
+         TR_VerboseLog::write(TR_Vlog_COMPFAIL, "(%s%s) %s Q_SZ=%d Q_SZI=%d QW=%d j9m=%p time=%dus <TRANSLATION FAILURE: %s>",
                                         compilationTypeString,
                                         hotnessString,
                                         compiler->signature(),
-                                        compiler->getCompThreadID(),
+                                        _compInfo.getMethodQueueSize(),
+                                        _compInfo.getNumQueuedFirstTimeCompilations(),
+                                        _compInfo.getQueueWeight(),
+                                        _methodBeingCompiled->getMethodDetails().getMethod(),
                                         translationTime,
                                         exceptionName);
          }
@@ -11094,9 +11210,7 @@ TR::CompilationInfoPerThreadBase::processExceptionCommonTasks(
             static_cast<unsigned long long>(scratchSegmentProvider.regionBytesAllocated())/1024,
             static_cast<unsigned long long>(scratchSegmentProvider.systemBytesAllocated())/1024);
          }
-
-      TR_VerboseLog::writeLine("");
-      TR_VerboseLog::vlogRelease();
+      TR_VerboseLog::writeLine(" compThreadID=%d", compiler->getCompThreadID());
       }
 
    if(_methodBeingCompiled->_compErrCode == compilationFailure)
@@ -11125,7 +11239,7 @@ TR::CompilationInfo::debugPrint(char * debugString)
    {
    if (!_traceCompiling)
       return;
-   fprintf(stderr, debugString);
+   fprintf(stderr, "%s", debugString);
    }
 
 void
@@ -11133,8 +11247,8 @@ TR::CompilationInfo::debugPrint(J9VMThread * vmThread, char * debugString)
    {
    if (!_traceCompiling)
       return;
-   fprintf(stderr, "%8x:", vmThread);
-   fprintf(stderr, debugString);
+   fprintf(stderr, "%8" OMR_PRIxPTR ":", (uintptr_t)vmThread);
+   fprintf(stderr, "%s", debugString);
    }
 
 void
@@ -11150,7 +11264,7 @@ TR::CompilationInfo::debugPrint(J9VMThread * vmThread, char * debugString, IDATA
    {
    if (!_traceCompiling)
       return;
-   fprintf(stderr, "%8x:", vmThread);
+   fprintf(stderr, "%8" OMR_PRIxPTR ":", (uintptr_t)vmThread);
    fprintf(stderr, debugString, val);
    }
 
@@ -11188,7 +11302,7 @@ TR::CompilationInfo::debugPrint(char * debugString, TR::IlGeneratorMethodDetails
    {
    if (!_traceCompiling)
       return;
-   fprintf(stderr, "%8x:", vmThread);
+   fprintf(stderr, "%8" OMR_PRIxPTR ":", (uintptr_t)vmThread);
    if (details.isNewInstanceThunk())
       {
       J9Class *classForNewInstance = static_cast<J9::NewInstanceThunkDetails &>(details).classNeedingThunk();
@@ -11211,7 +11325,7 @@ TR::CompilationInfo::debugPrint(J9VMThread * vmThread, char * msg, TR_MethodToBe
    {
    if (!_traceCompiling)
       return;
-   fprintf(stderr, "%8x:%s%d\n", vmThread, msg, entry->_index);
+   fprintf(stderr, "%8" OMR_PRIxPTR ":%s%d\n", (uintptr_t)vmThread, msg, entry->_index);
    }
 
 // This method must be called with the Compilation Monitor in hand
@@ -11412,36 +11526,43 @@ TR::CompilationInfo::computeFreePhysicalLimitAndAbortCompilationIfLow(TR::Compil
    }
 
 void
-TR::CompilationInfo::replenishInvocationCount(J9Method* method, TR::Compilation* comp)
+TR::CompilationInfo::replenishInvocationCount(J9Method *method, TR::Compilation *comp)
    {
    // Replenish the counts of the method
    // We are holding the compilation monitor at this point
-   //
    J9ROMMethod *romMethod = J9_ROM_METHOD_FROM_RAM_METHOD(method);
-   if (!(romMethod->modifiers & J9AccNative))// Never change the extra field of a native method
-      {
-      int32_t methodVMExtra = TR::CompilationInfo::getJ9MethodVMExtra(method);
-      if (methodVMExtra == 1 || methodVMExtra == J9_JIT_QUEUED_FOR_COMPILATION)
-         {
-         // We want to use high counts unless the user specified counts on the command line
-         // or he used useLowerMethodCounts (or Xquickstart)
-         int32_t count;
-         if (TR::Options::getCountsAreProvidedByUser() || TR::Options::startupTimeMatters() == TR_yes)
-            count = getCount(romMethod, comp->getOptions(), comp->getOptions());
-         else
-            count = J9ROMMETHOD_HAS_BACKWARDS_BRANCHES(romMethod) ? TR_DEFAULT_INITIAL_BCOUNT : TR_DEFAULT_INITIAL_COUNT;
+   if (romMethod->modifiers & J9AccNative)// Never change the extra field of a native method
+      return;
 
-         TR::CompilationInfo::setInvocationCount(method, count);
-         if (TR::Options::getCmdLineOptions()->getVerboseOption(TR_VerbosePerformance))
-            {
-            // compiler must exist because startPC != NULL
-            TR_VerboseLog::writeLineLocked(TR_Vlog_PERF, "Reencoding count=%d for %s j9m=%p ", count, comp->signature(), method);
-            }
-         }
+   int32_t methodVMExtra = TR::CompilationInfo::getJ9MethodVMExtra(method);
+   if ((methodVMExtra == 1) || (methodVMExtra == J9_JIT_QUEUED_FOR_COMPILATION))
+      {
+      int32_t count;
+#if defined(J9VM_OPT_JITSERVER)
+      // Even if the option to disable AOT relocation delay was specified, we need to delay relocation of deserialized
+      // AOT methods using SVM received from the JITServer AOT cache until the next interpreted invocation. Such methods
+      // cannot be immediately relocated in the current implementation; see CompilationInfo::canRelocateMethod().
+      if (comp->isDeserializedAOTMethodUsingSVM() && comp->getOption(TR_DisableDelayRelocationForAOTCompilations))
+         count = 0;
       else
+#endif /* defined(J9VM_OPT_JITSERVER) */
+      // We want to use high counts unless the user specified counts on the command line
+      // or used useLowerMethodCounts (or -Xquickstart)
+      if (TR::Options::getCountsAreProvidedByUser() || (TR::Options::startupTimeMatters() == TR_yes))
+         count = getCount(romMethod, comp->getOptions(), comp->getOptions());
+      else
+         count = J9ROMMETHOD_HAS_BACKWARDS_BRANCHES(romMethod) ? TR_DEFAULT_INITIAL_BCOUNT : TR_DEFAULT_INITIAL_COUNT;
+
+      TR::CompilationInfo::setInvocationCount(method, count);
+      if (TR::Options::getCmdLineOptions()->getVerboseOption(TR_VerbosePerformance))
          {
-         TR_ASSERT(false, "Unexpected value for method->extra = %p (method=%p)\n", TR::CompilationInfo::getJ9MethodExtra(method), method);
+         // compiler must exist because startPC != NULL
+         TR_VerboseLog::writeLineLocked(TR_Vlog_PERF, "Reencoding count=%d for %s j9m=%p ", count, comp->signature(), method);
          }
+      }
+   else
+      {
+      TR_ASSERT(false, "Unexpected value for method->extra = %p (method=%p)\n", TR::CompilationInfo::getJ9MethodExtra(method), method);
       }
    }
 
@@ -11577,7 +11698,7 @@ TR::CompilationInfo::storeAOTInSharedCache(
                 * TODO: We will always query the shared class cache to get full data for stored AOT compiled method
                 * that is combined meta data and code data. Even if compression of AOT bytes is disabled, we do not need
                 * to send two different buffers to store in cache and also as no one queries either code data / metadata for
-                * method, clean up the share classs cache API.
+                * method, clean up the share class cache API.
                 */
                const J9JITDataCacheHeader *aotMethodHeader = reinterpret_cast<const J9JITDataCacheHeader *>(dataStart);
                TR_AOTMethodHeader *aotMethodHeaderEntry = const_cast<TR_AOTMethodHeader *>(reinterpret_cast<const TR_AOTMethodHeader *>(aotMethodHeader + 1));
@@ -11956,7 +12077,7 @@ void TR_LowPriorityCompQueue::printStats() const
 
    fprintf(stderr, "   Conflicts        = %4u (tried to cache j9method that didn't have space)\n", _STAT_conflict);
    fprintf(stderr, "   Stale entries    = %4u\n", _STAT_staleScrubbed); // we want very few of these, hopefully 0
-   fprintf(stderr, "   Bypass ocurrences= %4u (normal comp req hapened before the fast LPQ comp req)\n", _STAT_bypass);
+   fprintf(stderr, "   Bypass occurrences= %4u (normal comp req happened before the fast LPQ comp req)\n", _STAT_bypass);
    }
 
 void TR_LowPriorityCompQueue::invalidateRequestsForUnloadedMethods(J9Class * unloadedClass)
@@ -12629,22 +12750,27 @@ bool TR::CompilationInfo::canProcessJProfilingRequest()
 bool
 TR::CompilationInfo::canRelocateMethod(TR::Compilation *comp)
    {
-   bool canRelocateMethod = true;
-   // Prevent the relocation if specific option is given
+   // Delay relocation by default, unless this option is enabled
    if (!comp->getOption(TR_DisableDelayRelocationForAOTCompilations))
-      {
-      canRelocateMethod = false;
-      }
-   else
-      {
-      TR_Debug *debug = TR::Options::getDebug();
-      if (debug)
-         {
-         TR_FilterBST *filter = NULL;
-         canRelocateMethod = debug->methodSigCanBeRelocated(comp->signature(), filter);
-         }
-      }
-   return canRelocateMethod;
+      return false;
+
+#if defined(J9VM_OPT_JITSERVER)
+   // Delay relocation if this is a deserialized AOT method using SVM received from the JITServer AOT cache.
+   // Such methods cannot be immediately relocated in the current implementation. An immediate AOT+SVM load
+   // uses the ID-symbol mapping created during compilation. This mapping is missing when the client receives
+   // a serialized AOT method from the server, and trying to load the deserialized method immediately
+   // triggers fatal assertions in SVM validation in certain cases. As a workaround, we delay the AOT load
+   // until the next interpreted invocation of the method; see CompilationInfo::replenishInvocationCounter().
+   //
+   //TODO: Avoid the overhead of rescheduling this compilation request by handling the deserialized AOT load as if
+   //      the method came from the local SCC, rather than as if it was freshly AOT-compiled at the JITServer.
+   if (comp->isDeserializedAOTMethodUsingSVM())
+      return false;
+#endif /* defined(J9VM_OPT_JITSERVER) */
+
+   TR_Debug *debug = TR::Options::getDebug();
+   TR_FilterBST *filter = NULL;
+   return debug ? debug->methodSigCanBeRelocated(comp->signature(), filter) : true;
    }
 
 #if defined(J9VM_OPT_JITSERVER)
@@ -12661,7 +12787,11 @@ TR::CompilationInfo::addOutOfProcessMethodToBeCompiled(JITServer::ServerStream *
       // Initialize the entry with defaults (some, like methodDetails, are bogus)
       TR::IlGeneratorMethodDetails details;
       entry->initialize(details, NULL, CP_SYNC_NORMAL, NULL);
-      entry->_entryTime = getPersistentInfo()->getElapsedTime(); // Cheaper version
+      if (TR::Options::getCmdLineOptions()->getVerboseOption(TR_VerbosePerformance))
+         {
+         PORT_ACCESS_FROM_JITCONFIG(_jitConfig);
+         entry->_entryTime = j9time_usec_clock();
+         }
       entry->_stream = stream; // Add the stream to the entry
       incrementMethodQueueSize(); // One more method added to the queue
       _numQueuedFirstTimeCompilations++; // Otherwise an assert triggers when we dequeue

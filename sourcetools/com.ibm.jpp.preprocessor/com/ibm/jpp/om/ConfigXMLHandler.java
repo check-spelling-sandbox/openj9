@@ -527,7 +527,7 @@ public class ConfigXMLHandler implements IXMLDocumentHandler {
 					currentConfig.addOption(attributes.get("name"), attributes.get("value"));
 				}
 			}
-			/* [PR 118829] Desing 894: Core.JCL : Support for compiler options in preprocessor plugin */
+			/* [PR 118829] Design 894: Core.JCL : Support for compiler options in preprocessor plugin */
 		} else if (elementName.equals("coption")) {
 			currentConfig.addCompilerOption(attributes.get("name"), attributes.get("value"));
 		} else if (elementName.equals("classpathentry")) {

@@ -90,7 +90,7 @@ JIT'd body circular linked list. If it is, a walk of that linked list is done
 removing all dead entries from that list. Once completed the dead assumption is
 removed from the bucket linked list.
 
-This staged approach allows us to amortize the clean-up of the assumptions over
+This stagged approach allows us to amortize the clean-up of the assumptions over
 time and minimizes the amount of clean-up done during any single period where
 execution is stopped. Prior to the conversion to lazy removal you could have 
 long pauses when the assumption table had to eagerly clean up all of the dead
@@ -113,7 +113,7 @@ value) must be atomic in the context of an executing instruction which
 generally imposes very strict patchability requirements. The stop-the-world 
 assumptions are much less strict. The assumption in the JIT will be that 
 any these guards can only be tripped at treetops that return true to 
-canGCAndReturn or canGCAndExecpt, and that while at one of these trees and 
+canGCAndReturn or canGCAndExcept, and that while at one of these trees and 
 execution is halted guards may be patched. This is a much looser patching 
 requirement (you can overwrite multiple instructions for example on x86). 
 Currently HCR assumptions and OSR assumptions are considered 

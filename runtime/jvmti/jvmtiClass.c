@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 1991, 2021 IBM Corp. and others
+ * Copyright (c) 1991, 2022 IBM Corp. and others
  *
  * This program and the accompanying materials are made available under
  * the terms of the Eclipse Public License 2.0 which accompanies this
@@ -1034,11 +1034,11 @@ fixWatchedFields(J9JavaVM *vm, J9HashTable *classHashTable)
 /**
  * Update the method ordering table for an interface class. The cases are:
  *
- * 1) A reodering is required and none exists yet
+ * 1) A reordering is required and none exists yet
  *		Assign the remap array to the interface class
- * 2) A reordring is not required, and the class already has one
+ * 2) A reordering is not required, and the class already has one
  *		Free and NULL the interface class ordering array
- * 3) A reodering is required and the class already has one
+ * 3) A reordering is required and the class already has one
  *		Copy the method remap over the existing ordering in the class
  * 4) No reordering required and the class does not have one
  *		Do nothing
@@ -1165,6 +1165,16 @@ redefineClassesCommon(jvmtiEnv* env,
 		vm->internalVMFunctions->acquireExclusiveVMAccess(currentThread);
 	}
 
+	if (J9_ARE_ANY_BITS_SET(vm->runtimeFlags, J9_RUNTIME_DYNAMIC_HEAPIFICATION)) {
+		/* Look for stack-allocated objects only if the JIT is enabled and not running in FSD mode */
+		if ((NULL != vm->jitConfig) && !J9_FSD_ENABLED(vm)) {
+			rc = heapifyStackAllocatedObjects(currentThread, safePoint);
+			if (JVMTI_ERROR_NONE != rc) {
+				goto failedWithVMAccess;
+			}
+		}
+	}
+
 	/* Determine all ROM classes which need a new RAM class, and pair them with their current RAM class */
 
 	rc = determineClassesToRecreate(currentThread, class_count, specifiedClasses, &classPairs,
@@ -1213,7 +1223,7 @@ redefineClassesCommon(jvmtiEnv* env,
 			vm->hotSwapCount += 1;
 
 			/* Notify the JIT about redefined classes */
-			jitClassRedefineEvent(currentThread, &jitEventData, FALSE);
+			jitClassRedefineEvent(currentThread, &jitEventData, FALSE, FALSE);
 
 		} else {
 
@@ -1283,7 +1293,7 @@ redefineClassesCommon(jvmtiEnv* env,
 
 #ifdef J9VM_INTERP_NATIVE_SUPPORT
 			/* Notify the JIT about redefined classes */
-			jitClassRedefineEvent(currentThread, &jitEventData, extensionsEnabled);
+			jitClassRedefineEvent(currentThread, &jitEventData, extensionsEnabled, extensionsUsed);
 #endif
 		}
 		notifyGCOfClassReplacement(currentThread, classPairs, !extensionsEnabled);

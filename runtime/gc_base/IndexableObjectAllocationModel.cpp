@@ -313,7 +313,7 @@ MM_IndexableObjectAllocationModel::layoutDiscontiguousArraylet(MM_EnvironmentBas
 
 #if defined(J9VM_GC_ENABLE_DOUBLE_MAP)
 #if !((defined(LINUX) || defined(OSX)) && defined(J9VM_ENV_DATA64))
-/* Double map is only supported on LINUX 64 bit Systems for now */
+/* Double map is only supported on Linux 64 bit Systems for now */
 #error "Platform not supported by Double Map API"
 #endif /* !((defined(LINUX) || defined(OSX)) && defined(J9VM_ENV_DATA64)) */
 void * 
@@ -364,7 +364,7 @@ MM_IndexableObjectAllocationModel::doubleMapArraylets(MM_EnvironmentBase *env, J
 	/* For now we double map the entire region of all arraylet leaves. This might change in the future if hybrid regions are introduced. */
 	uintptr_t byteAmount = arrayletLeafSize * arrayletLeafCount;
 
-	/* Get heap and from there call an OMR API that will doble map everything */
+	/* Get heap and from there call an OMR API that will double map everything */
 	result = heap->doubleMapRegions(env, arrayletLeaveAddrs, count, arrayletLeafSize, byteAmount,
 				&firstLeafRegionDescriptor->_arrayletDoublemapID,
 				pageSize,

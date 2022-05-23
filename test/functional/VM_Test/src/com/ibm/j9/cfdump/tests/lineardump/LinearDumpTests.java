@@ -43,7 +43,7 @@ public class LinearDumpTests extends LinearDumpTestCase {
 	public void testPresenceOfSections() throws Exception {
 		for (Class<?> clazz : classesToTest) {
 			Process cfdump = Utils.invokeCfdumpOnClass(clazz, "-dr");
-			List<Field> fields = parseLinearRomClassDumperOuput(cfdump);
+			List<Field> fields = parseLinearRomClassDumperOutput(cfdump);
 			assertTrue(fields.size() > 0);
 
 			Map<String, Field> map = createFieldMap(fields);

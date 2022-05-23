@@ -87,7 +87,7 @@ private:
 	 * @param rememberedSet the value of a J9ClassLoader's gcRememberedSet field
 	 * @return true if the remembered set is overflowed
 	 */
-	MMINLINE bool isOverflowedRemememberedSet(UDATA rememberedSet) { return UDATA_MAX == rememberedSet; } 
+	MMINLINE bool isOverflowedRememberedSet(UDATA rememberedSet) { return UDATA_MAX == rememberedSet; } 
 
 	/**
 	 * Determine if the specified gcRememberedSet field value represents a tagged region index.

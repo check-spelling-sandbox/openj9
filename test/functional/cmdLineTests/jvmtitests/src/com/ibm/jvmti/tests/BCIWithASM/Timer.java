@@ -32,13 +32,13 @@ public class Timer {
 	private static ThreadLocal timerQueue_threadLocal = new ThreadLocal();
 	
 	/*HashMap for statistics */
-	private static ThreadLocal profilinigStats_threadLocal = new ThreadLocal();
+	private static ThreadLocal profilingStats_threadLocal = new ThreadLocal();
 	
 	/**
 	 * Initialize the Timer
 	 */
 	public static synchronized void init() {
-		profilinigStats_threadLocal.set( new HashMap<String,Long>() );
+		profilingStats_threadLocal.set( new HashMap<String,Long>() );
 		timerQueue_threadLocal.set( new LinkedList<Long>() );
 	}
 	
@@ -64,11 +64,11 @@ public class Timer {
 		long executionTime = System.currentTimeMillis() - timerQueue.pop();
 		timerQueue_threadLocal.set( timerQueue );
 		
-		HashMap<String,Long> profilingStats = (HashMap<String,Long>)profilinigStats_threadLocal.get();
+		HashMap<String,Long> profilingStats = (HashMap<String,Long>)profilingStats_threadLocal.get();
 		
 		if ( profilingStats.keySet().contains( Thread.currentThread().getName()+signature) == false ) {
 			profilingStats.put( Thread.currentThread().getName()+signature, executionTime );
-			profilinigStats_threadLocal.set( profilingStats );
+			profilingStats_threadLocal.set( profilingStats );
 		}
 	}
 	
@@ -76,7 +76,7 @@ public class Timer {
 	 * Prints the overall statistics - a list of all profiled methods with their execution time.
 	 */
 	public static void printStats() {
-		HashMap<String,Long> profilingStats = (HashMap<String,Long>)profilinigStats_threadLocal.get();
+		HashMap<String,Long> profilingStats = (HashMap<String,Long>)profilingStats_threadLocal.get();
 		Iterator<String> keyIterator = profilingStats.keySet().iterator();
 		
 		System.out.println( Thread.currentThread().getName() + " - Printing method execution statistics:");
@@ -89,7 +89,7 @@ public class Timer {
 	}
 	
 	public static boolean isMethodAccountedFor( String signature ) {
-		HashMap<String,Long> profilingStats = (HashMap<String,Long>)profilinigStats_threadLocal.get();
+		HashMap<String,Long> profilingStats = (HashMap<String,Long>)profilingStats_threadLocal.get();
 		Set<String> keySet = profilingStats.keySet();
 		
 		Iterator<String> keySetIterator = keySet.iterator();

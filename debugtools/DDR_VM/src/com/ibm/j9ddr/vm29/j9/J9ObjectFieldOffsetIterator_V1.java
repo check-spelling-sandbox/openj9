@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 1991, 2021 IBM Corp. and others
+ * Copyright (c) 1991, 2022 IBM Corp. and others
  *
  * This program and the accompanying materials are made available under
  * the terms of the Eclipse Public License 2.0 which accompanies this
@@ -155,17 +155,24 @@ public class J9ObjectFieldOffsetIterator_V1 extends J9ObjectFieldOffsetIterator 
 
 		if (walkHiddenFields && hiddenInstanceFieldWalkIndex != 0) {
 			/* Note: hiddenInstanceFieldWalkIndex is the index of the last hidden instance field that was returned. */
-			HiddenInstanceField hiddenField = hiddenInstanceFieldList.get(--hiddenInstanceFieldWalkIndex);
 
-			field = hiddenField.shape();
-			isHidden = true;
-			/*
-			 * This function returns offsets relative to the end of the object header,
-			 * whereas fieldOffset is relative to the start of the header.
-			 */
-			offset = new UDATA(hiddenField.fieldOffset().intValue() - J9ObjectHelper.headerSize());
-			/* Hidden fields do not have a valid JVMTI index. */
-			index = new UDATA(-1);
+			while (hiddenInstanceFieldWalkIndex != 0) {
+				HiddenInstanceField hiddenField = hiddenInstanceFieldList.get(--hiddenInstanceFieldWalkIndex);
+				if (!walkFlags.allBitsIn(J9VM_FIELD_OFFSET_WALK_ONLY_OBJECT_SLOTS)
+				|| hiddenField.shape().modifiers().allBitsIn(J9FieldFlagObject)
+				) {
+					/* If we are only looking for o-slots we've found one, or we can return anything */
+					field = hiddenField.shape();
+					isHidden = true;
+					/*
+					 * This function returns offsets relative to the end of the object header,
+					 * whereas fieldOffset is relative to the start of the header.
+					 */
+					offset = new UDATA(hiddenField.fieldOffset().intValue() - J9ObjectHelper.headerSize());
+					/* Hidden fields do not have a valid JVMTI index. */
+					index = new UDATA(-1);
+				}
+			}
 		}
 	}
 
@@ -222,8 +229,7 @@ public class J9ObjectFieldOffsetIterator_V1 extends J9ObjectFieldOffsetIterator 
 									if (valueTypeHelper.classRequires4BytePrePadding(fieldClass)) {
 										instanceSize = instanceSize.sub(U32.SIZEOF);
 									}
-									forceDoubleAlignment = (modifiers.allBitsIn(J9JavaAccessFlags.J9AccVolatile) || valueTypeHelper.isRomClassAtomic(fieldClass.romClass()))
-											&& instanceSize.eq(doubleSize);
+									forceDoubleAlignment = (modifiers.allBitsIn(J9JavaAccessFlags.J9AccVolatile) && instanceSize.eq(doubleSize));
 								} else {
 									forceDoubleAlignment = true;
 								}
@@ -373,7 +379,7 @@ public class J9ObjectFieldOffsetIterator_V1 extends J9ObjectFieldOffsetIterator 
 
 		finalizeLinkOffset = new UDATA(0);
 		if (!superClazz.isNull() && !superClazz.finalizeLinkOffset().isZero()) {
-			/* Superclass is finalizeable */
+			/* Superclass is finalizable */
 			finalizeLinkOffset = superClazz.finalizeLinkOffset();
 		} else {
 			/*
@@ -385,7 +391,7 @@ public class J9ObjectFieldOffsetIterator_V1 extends J9ObjectFieldOffsetIterator 
 			 * we need the field to be in the shape of the existing objects
 			 */
 
-			/* Superclass is not finalizeable */
+			/* Superclass is not finalizable */
 			if (J9ROMClassHelper.finalizeNeeded(romClass)) {
 				extraHiddenFields.addFirst(new HiddenInstanceField(vm.hiddenFinalizeLinkFieldShape()));
 			}

@@ -56,7 +56,7 @@ public class DDRExtTesterBase extends TestCase {
 	 */
 	protected String exec(String ddrExtCmd, String[] arg) {
 		String output = null;
-		if (SetupConfig.getDDRContxt() != null) { // this means we are
+		if (SetupConfig.getDDRContext() != null) { // this means we are
 			// running from ddr
 			// plugin
 			DDROutputStream mps = SetupConfig.getPrintStream();
@@ -69,7 +69,7 @@ public class DDRExtTesterBase extends TestCase {
 				ddrExtCmd = "!" + ddrExtCmd;
 			}
 			currentCommand = "'" + ddrExtCmd + " " + argStr + "'";
-			SetupConfig.getDDRContxt().execute(ddrExtCmd, arg,
+			SetupConfig.getDDRContext().execute(ddrExtCmd, arg,
 					SetupConfig.getPrintStream());
 			output = mps.getOutBuffer().toString();
 			mps.clear();
@@ -102,7 +102,7 @@ public class DDRExtTesterBase extends TestCase {
 				output = mps.getOutBuffer().toString();
 				mps.clear();
 			} else {
-				fail("DDRInterative is null. Please check CoreFilePath in ddrext.properties file.");
+				fail("DDRInteractive is null. Please check CoreFilePath in ddrext.properties file.");
 				return null;
 			}
 		}
@@ -264,7 +264,7 @@ public class DDRExtTesterBase extends TestCase {
 							+ parentCmd);
 					for (int i = 0; i < structuresToRun.size(); i++) {
 						currentCommand = structuresToRun.get(i);
-						log.info("Runing structure test with : !"
+						log.info("Running structure test with : !"
 								+ currentCommand);
 						String[] tokens = currentCommand.trim().split(" ");
 						String cmd = tokens[0];

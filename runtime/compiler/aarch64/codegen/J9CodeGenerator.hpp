@@ -74,7 +74,7 @@ public:
     * @param[in] cursor : instruction cursor
     * @param[in] node : node
     * @param[in] omitLink : use `b` instruction if true
-    * @return Endoded BL (or B) instruction
+    * @return Encoded BL (or B) instruction
     */
    uint32_t encodeHelperBranchAndLink(TR::SymbolReference *symRef, uint8_t *cursor, TR::Node *node, bool omitLink = false);
 

@@ -170,7 +170,7 @@ public class MethodHandleTest{
 	 */
 	@Test(groups = { "level.extended" })
 	public void test_asCollector_TypeCompatibility_Array_Object() throws Throwable {
-		MethodHandle mh  = MethodHandles.lookup().findVirtual(SamePackageExample.class,"toOjectArrayString",MethodType.methodType(String.class,Object.class));
+		MethodHandle mh  = MethodHandles.lookup().findVirtual(SamePackageExample.class,"toObjectArrayString",MethodType.methodType(String.class,Object.class));
 		SamePackageExample g = new SamePackageExample();
 		mh = mh.bindTo(g);
 		mh = mh.asCollector(Object[].class, 6);
@@ -393,7 +393,7 @@ public class MethodHandleTest{
 	 */
 	@Test(groups = { "level.extended" })
 	public void test_asVarargsCollector_TypeCompatibility_Array_Object() throws Throwable {
-		MethodHandle mh  = MethodHandles.lookup().findVirtual(SamePackageExample.class,"toOjectArrayString",MethodType.methodType(String.class,Object.class));
+		MethodHandle mh  = MethodHandles.lookup().findVirtual(SamePackageExample.class,"toObjectArrayString",MethodType.methodType(String.class,Object.class));
 		SamePackageExample g = new SamePackageExample();
 		mh = mh.bindTo(g);
 		mh = mh.asVarargsCollector(Object[].class);
@@ -938,7 +938,7 @@ public class MethodHandleTest{
 	 * @throws Throwable
 	 */
 	@Test(expectedExceptions = WrongMethodTypeException.class, groups = { "level.extended" })
-	public void test_asFixedArity_SamePackage_Static_VarialbeInput() throws Throwable {
+	public void test_asFixedArity_SamePackage_Static_VariableInput() throws Throwable {
 		MethodHandle mh = MethodHandles.lookup().findStatic(SamePackageExample.class, "getLengthStatic", MethodType.methodType(int.class,String[].class));
 		mh = mh.asVarargsCollector(String[].class);
 		

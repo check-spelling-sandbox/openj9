@@ -113,7 +113,7 @@ CPPFLAGS += -DLINUX -D_REENTRANT
 CFLAGS += -fPIC
 CXXFLAGS += -fPIC
 
-ifdef j9vm_uma_supportsIpv6
+ifdef j9vm_uma_supportsIPv6
   CFLAGS +=
   CXXFLAGS +=
   CPPFLAGS +=

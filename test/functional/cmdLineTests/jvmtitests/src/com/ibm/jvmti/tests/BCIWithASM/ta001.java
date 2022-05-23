@@ -36,9 +36,9 @@ public class ta001 {
 		Source preState = new Source();
 		int preStateResult = preState.returnOne();
 
-		byte[] trasnformedClassBytes = ASMTransformer.trasnform_injectNPELogic( Source.class );
+		byte[] transformedClassBytes = ASMTransformer.transform_injectNPELogic( Source.class );
 		
-		boolean transformed = redefineClass( Source.class, trasnformedClassBytes.length, trasnformedClassBytes );
+		boolean transformed = redefineClass( Source.class, transformedClassBytes.length, transformedClassBytes );
 		
 		Source postState = new Source();
 		
@@ -57,7 +57,7 @@ public class ta001 {
 		}
 		
 		if ( !NPEThrown ) {
-			System.out.println( "Class instrumentation error, expceted NPE not received" );
+			System.out.println( "Class instrumentation error, expected NPE not received" );
 			return false;
 		} else {
 			System.out.println( "Expected NullPointerException received" );
@@ -76,9 +76,9 @@ public class ta001 {
 		Source2 preState = new Source2();
 		int preStateResult = preState.process(2);
 
-		byte[] trasnformedClassBytes = ASMTransformer.trasnform_injectNewIfBlock( Source2.class );
+		byte[] transformedClassBytes = ASMTransformer.transform_injectNewIfBlock( Source2.class );
 		
-		boolean transformed = redefineClass( Source2.class, trasnformedClassBytes.length, trasnformedClassBytes );
+		boolean transformed = redefineClass( Source2.class, transformedClassBytes.length, transformedClassBytes );
 		
 		Source2 postState = new Source2();
 		
@@ -117,15 +117,15 @@ public class ta001 {
 		}
 
 		if ( !NPEThrown ) {
-			System.out.println( "Expceted NPE not received" );
+			System.out.println( "Expected NPE not received" );
 			return false;
 		} else {
 			System.out.println( "Expected NullPointerException received" );
 		}
 
-		byte[] trasnformedClassBytes = ASMTransformer.trasnform_injectCatchAndThrowNewAIOBE( Source3.class );
+		byte[] transformedClassBytes = ASMTransformer.transform_injectCatchAndThrowNewAIOBE( Source3.class );
 		
-		boolean transformed = redefineClass( Source3.class, trasnformedClassBytes.length, trasnformedClassBytes );
+		boolean transformed = redefineClass( Source3.class, transformedClassBytes.length, transformedClassBytes );
 		
 		Source3 postState = new Source3();
 		
@@ -136,7 +136,7 @@ public class ta001 {
 		}
 		
 		if ( !AIOBEThrown ) {
-			System.out.println( "Class instrumentation error, expceted ArrayIndexOutOfBoundsException not received" );
+			System.out.println( "Class instrumentation error, expected ArrayIndexOutOfBoundsException not received" );
 			return false;
 		} else {
 			System.out.println( "Expected ArrayIndexOutOfBoundsException received" );
@@ -162,15 +162,15 @@ public class ta001 {
 		}
 
 		if ( !NPEThrown ) {
-			System.out.println( "Expceted NPE not received" );
+			System.out.println( "Expected NPE not received" );
 			return false;
 		} else {
 			System.out.println( "Expected NullPointerException received" );
 		}
 
-		byte[] trasnformedClassBytes = ASMTransformer.trasnform_injectCatchAndThrowNewAIOBE_catchAIOBEAndThrowNewAE( Source4.class );
+		byte[] transformedClassBytes = ASMTransformer.transform_injectCatchAndThrowNewAIOBE_catchAIOBEAndThrowNewAE( Source4.class );
 		
-		boolean transformed = redefineClass( Source4.class, trasnformedClassBytes.length, trasnformedClassBytes );
+		boolean transformed = redefineClass( Source4.class, transformedClassBytes.length, transformedClassBytes );
 		
 		Source4 postState = new Source4();
 		
@@ -202,15 +202,15 @@ public class ta001 {
 		int preStateResult = preState.returnOne();
 		
 		if ( preStateResult != 0 ) {
-			System.out.println( "Expceted pre-transform result not received" );
+			System.out.println( "Expected pre-transform result not received" );
 			return false;
 		} else {
 			System.out.println( "Expected pre-transform result received" );
 		}
 
-		byte[] trasnformedClassBytes = ASMTransformer.trasnform_inject_Catch2CatchJump( Source5.class );
+		byte[] transformedClassBytes = ASMTransformer.transform_inject_Catch2CatchJump( Source5.class );
 		
-		boolean transformed = redefineClass( Source5.class, trasnformedClassBytes.length, trasnformedClassBytes );
+		boolean transformed = redefineClass( Source5.class, transformedClassBytes.length, transformedClassBytes );
 		
 		Source5 postState = new Source5();
 		
@@ -238,15 +238,15 @@ public class ta001 {
 		int preStateResult = preState.returnOne();
 		
 		if ( preStateResult != 0 ) {
-			System.out.println( "Expceted pre-transform result not received" );
+			System.out.println( "Expected pre-transform result not received" );
 			return false;
 		} else {
 			System.out.println( "Expected pre-transform result received" );
 		}
 
-		byte[] trasnformedClassBytes = ASMTransformer.trasnform_inject_CatchWithSelfGOTO( Source6.class );
+		byte[] transformedClassBytes = ASMTransformer.transform_inject_CatchWithSelfGOTO( Source6.class );
 		
-		boolean transformed = redefineClass( Source6.class, trasnformedClassBytes.length, trasnformedClassBytes );
+		boolean transformed = redefineClass( Source6.class, transformedClassBytes.length, transformedClassBytes );
 		
 		Source6 postState = new Source6();
 		
@@ -274,15 +274,15 @@ public class ta001 {
 		int preStateResult = preState.returnOne();
 		
 		if ( preStateResult != 10 ) {
-			System.out.println( "Expceted pre-transform result not received" );
+			System.out.println( "Expected pre-transform result not received" );
 			return false;
 		} else {
 			System.out.println( "Expected pre-transform result received" );
 		}
 
-		byte[] trasnformedClassBytes = ASMTransformer.trasnform_inject_ParallelCatchJump( Source9.class );
+		byte[] transformedClassBytes = ASMTransformer.transform_inject_ParallelCatchJump( Source9.class );
 		
-		boolean transformed = redefineClass( Source9.class, trasnformedClassBytes.length, trasnformedClassBytes );
+		boolean transformed = redefineClass( Source9.class, transformedClassBytes.length, transformedClassBytes );
 		
 		Source9 postState = new Source9();
 		
@@ -310,15 +310,15 @@ public class ta001 {
 		int preStateResult = preState.returnOne();
 		
 		if ( preStateResult != 5 ) {
-			System.out.println( "Expceted pre-transform result not received" );
+			System.out.println( "Expected pre-transform result not received" );
 			return false;
 		} else {
 			System.out.println( "Expected pre-transform result received" );
 		}
 
-		byte[] trasnformedClassBytes = ASMTransformer.trasnform_inject_Loop2Loop_Jump( Source10.class );
+		byte[] transformedClassBytes = ASMTransformer.transform_inject_Loop2Loop_Jump( Source10.class );
 		
-		boolean transformed = redefineClass( Source10.class, trasnformedClassBytes.length, trasnformedClassBytes );
+		boolean transformed = redefineClass( Source10.class, transformedClassBytes.length, transformedClassBytes );
 		
 		Source10 postState = new Source10();
 		
@@ -354,14 +354,14 @@ public class ta001 {
 				
 				/*Test with first source*/
 
-				byte[] trasnformedClassBytes = ASMTransformer.inject_call_to_timerMethod ( Source12.class );
-				boolean transformed = redefineClass( Source12.class, trasnformedClassBytes.length, trasnformedClassBytes );
+				byte[] transformedClassBytes = ASMTransformer.inject_call_to_timerMethod ( Source12.class );
+				boolean transformed = redefineClass( Source12.class, transformedClassBytes.length, transformedClassBytes );
 				
 				Source12 postState12 = new Source12();
 				postState12.method1();
 				
 				if ( !Timer.isMethodAccountedFor( Source12.class.getCanonicalName() + "#method1") ) {
-					System.out.println( Thread.currentThread().getName() + " : Expceted post-transform result not received after Source12.method1()" );
+					System.out.println( Thread.currentThread().getName() + " : Expected post-transform result not received after Source12.method1()" );
 					testPassed = false;
 				} else {
 					System.out.println( Thread.currentThread().getName() + " : Expected post-transform result received after Source12.method1()" );
@@ -370,7 +370,7 @@ public class ta001 {
 				postState12.method2();
 				
 				if ( !Timer.isMethodAccountedFor( Source12.class.getCanonicalName() + "#method2") ) {
-					System.out.println( Thread.currentThread().getName() + " : Expceted post-transform result not received after Source12.method2()" );
+					System.out.println( Thread.currentThread().getName() + " : Expected post-transform result not received after Source12.method2()" );
 					testPassed = false;
 				} else {
 					System.out.println( Thread.currentThread().getName() + " : Expected post-transform result received after Source12.method2()" );
@@ -378,15 +378,15 @@ public class ta001 {
 
 				/*Test with second source*/
 		
-				trasnformedClassBytes = ASMTransformer.inject_call_to_timerMethod( Source13.class );
-				transformed = redefineClass( Source13.class, trasnformedClassBytes.length, trasnformedClassBytes );
+				transformedClassBytes = ASMTransformer.inject_call_to_timerMethod( Source13.class );
+				transformed = redefineClass( Source13.class, transformedClassBytes.length, transformedClassBytes );
 				
 				Source13 postState13 = new Source13();
 				
 				postState13.method1();
 				
 				if ( !Timer.isMethodAccountedFor( Source13.class.getCanonicalName() + "#method1") ) {
-					System.out.println( Thread.currentThread().getName() + " : Expceted post-transform result not received after Source13.method1()" );
+					System.out.println( Thread.currentThread().getName() + " : Expected post-transform result not received after Source13.method1()" );
 					testPassed = false;
 				} else {
 					System.out.println( Thread.currentThread().getName() + " : Expected post-transform result received after Source13.method1()" );
@@ -395,7 +395,7 @@ public class ta001 {
 				postState13.method2();
 				
 				if ( !Timer.isMethodAccountedFor( Source13.class.getCanonicalName() + "#method2") ) {
-					System.out.println( Thread.currentThread().getName() + " : Expceted post-transform result not received after Source13.method2()" );
+					System.out.println( Thread.currentThread().getName() + " : Expected post-transform result not received after Source13.method2()" );
 					testPassed = false;
 				} else {
 					System.out.println( Thread.currentThread().getName() + " : Expected post-transform result received after Source13.method2()" );
@@ -404,7 +404,7 @@ public class ta001 {
 				postState13.method3();
 				
 				if ( !Timer.isMethodAccountedFor( Source13.class.getCanonicalName() + "#method3") ) {
-					System.out.println( Thread.currentThread().getName() + " : Expceted post-transform result not received after Source13.method3()" );
+					System.out.println( Thread.currentThread().getName() + " : Expected post-transform result not received after Source13.method3()" );
 					testPassed = false;
 				} else {
 					System.out.println( Thread.currentThread().getName() + " : Expected post-transform result received after Source13.method3()" );
@@ -448,7 +448,7 @@ public class ta001 {
 	}
 	
 	public String helpBCIUsingASM_inject_call_to_timer_method() {
-		return "Tests class redefinition where the redefined class is an ASM generated byte-code engineered version of the original class where a inject calls to timer methods at methodEnter and methoExit points";
+		return "Tests class redefinition where the redefined class is an ASM generated byte-code engineered version of the original class where a inject calls to timer methods at methodEnter and methodExit points";
 	}
 	
 	public boolean testBCIUsingASM_inject_stackValueUsage_After_Branch_Using_MethodCall() {
@@ -461,15 +461,15 @@ public class ta001 {
 		System.out.println("pre : " + preStateResult );
 		
 		if ( preStateResult != 10.0 ) {
-			System.out.println( "Expceted pre-transform result not received" );
+			System.out.println( "Expected pre-transform result not received" );
 			return false;
 		} else {
 			System.out.println( "Expected pre-transform result received" );
 		}
 
-		byte[] trasnformedClassBytes = ASMTransformer.trasnform_inject_stackValueUsage_After_Branch_Using_MethodCall( Source14.class );
+		byte[] transformedClassBytes = ASMTransformer.transform_inject_stackValueUsage_After_Branch_Using_MethodCall( Source14.class );
 		
-		boolean transformed = redefineClass( Source14.class, trasnformedClassBytes.length, trasnformedClassBytes );
+		boolean transformed = redefineClass( Source14.class, transformedClassBytes.length, transformedClassBytes );
 		
 		Source14 postState = new Source14();
 		
@@ -478,7 +478,7 @@ public class ta001 {
 		System.out.println("post : " + postStateResult );
 		
 		if ( postStateResult != 0.1 ) {
-			System.out.println( "Expceted post-transform result not received" );
+			System.out.println( "Expected post-transform result not received" );
 			return false;
 		} else {
 			System.out.println( "Expected post-transform result received" );
@@ -501,15 +501,15 @@ public class ta001 {
 		System.out.println("pre : " + preStateResult );
 		
 		if ( preStateResult != 2 ) {
-			System.out.println( "Expceted pre-transform result not received" );
+			System.out.println( "Expected pre-transform result not received" );
 			return false;
 		} else {
 			System.out.println( "Expected pre-transform result received" );
 		}
 
-		byte[] trasnformedClassBytes = ASMTransformer.trasnform_inject_stackValueUsage_After_Branch_Using_IfCompare( Source16.class );
+		byte[] transformedClassBytes = ASMTransformer.transform_inject_stackValueUsage_After_Branch_Using_IfCompare( Source16.class );
 		
-		boolean transformed = redefineClass( Source16.class, trasnformedClassBytes.length, trasnformedClassBytes );
+		boolean transformed = redefineClass( Source16.class, transformedClassBytes.length, transformedClassBytes );
 		
 		Source16 postState = new Source16();
 		
@@ -518,7 +518,7 @@ public class ta001 {
 		System.out.println("post : " + postStateResult );
 		
 		if ( postStateResult != 5 ) {
-			System.out.println( "Expceted post-transform result not received" );
+			System.out.println( "Expected post-transform result not received" );
 			return false;
 		} else {
 			System.out.println( "Expected post-transform result received" );
@@ -541,15 +541,15 @@ public class ta001 {
 		System.out.println("pre : " + preStateResult );
 		
 		if ( preStateResult != 4 ) {
-			System.out.println( "Expceted pre-transform result not received" );
+			System.out.println( "Expected pre-transform result not received" );
 			return false;
 		} else {
 			System.out.println( "Expected pre-transform result received" );
 		}
 
-		byte[] trasnformedClassBytes = ASMTransformer.trasnform_inject_unverifiable_dead_code( Source17.class );
+		byte[] transformedClassBytes = ASMTransformer.transform_inject_unverifiable_dead_code( Source17.class );
 		
-		boolean transformed = redefineClass( Source17.class, trasnformedClassBytes.length, trasnformedClassBytes );
+		boolean transformed = redefineClass( Source17.class, transformedClassBytes.length, transformedClassBytes );
 		
 		Source17 postState = new Source17();
 		
@@ -558,7 +558,7 @@ public class ta001 {
 		System.out.println("post : " + postStateResult );
 		
 		if ( postStateResult != 2 ) {
-			System.out.println( "Expceted post-transform result not received" );
+			System.out.println( "Expected post-transform result not received" );
 			return false;
 		} else {
 			System.out.println( "Expected post-transform result received" );
@@ -581,15 +581,15 @@ public class ta001 {
 		System.out.println("pre : " + preStateResult );
 		
 		if ( preStateResult != 3 ) {
-			System.out.println( "Expceted pre-transform result not received" );
+			System.out.println( "Expected pre-transform result not received" );
 			return false;
 		} else {
 			System.out.println( "Expected pre-transform result received" );
 		}
 
-		byte[] trasnformedClassBytes = ASMTransformer.trasnform_inject_unclean_return( Source18.class );
+		byte[] transformedClassBytes = ASMTransformer.transform_inject_unclean_return( Source18.class );
 		
-		boolean transformed = redefineClass( Source18.class, trasnformedClassBytes.length, trasnformedClassBytes );
+		boolean transformed = redefineClass( Source18.class, transformedClassBytes.length, transformedClassBytes );
 		
 		Source18 postState = new Source18();
 		
@@ -598,7 +598,7 @@ public class ta001 {
 		System.out.println("post : " + postStateResult );
 		
 		if ( postStateResult != 5 ) {
-			System.out.println( "Expceted post-transform result not received" );
+			System.out.println( "Expected post-transform result not received" );
 			return false;
 		} else {
 			System.out.println( "Expected post-transform result received" );

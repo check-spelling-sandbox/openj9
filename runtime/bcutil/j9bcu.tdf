@@ -153,7 +153,7 @@ TraceExit=Trc_BCU_findLocallyDefinedClass_Failed Noenv Overhead=1 Level=3 Templa
 TraceExit=Trc_BCU_findLocallyDefinedClass_Exit Noenv Overhead=1 Level=3 Template="BCU j9bcutil_findLocallyDefinedClass: <found %s in: %s>"
 TraceEvent=Trc_BCU_findLocallyDefinedClass_UnknownCPE Noenv Overhead=1 Level=3 Template="BCU j9bcutil_findLocallyDefinedClass: <error initializing class path entry %s type %i>"
 TraceEvent=Trc_BCU_loadZip_vmZipCachePoolHookInterfaceInitFailure Noenv Overhead=1 Level=3 Template="BCU j9bcutil_loadZip: Failed to init vmZipCachePoolHookInterface"
-TraceEvent=Trc_BCU_loadZip_vmZipCachePoolHookInterfaceInitSuccess Noenv Overhead=1 Level=3 Template="BCU j9bcutil_loadZip: vmZipCachePoolHookInterface initiliazed"
+TraceEvent=Trc_BCU_loadZip_vmZipCachePoolHookInterfaceInitSuccess Noenv Overhead=1 Level=3 Template="BCU j9bcutil_loadZip: vmZipCachePoolHookInterface initialized"
 TraceException=Trc_BCU_loadJXE_loadJXEfileIOerror Noenv Overhead=1 Level=3 Template="BCU j9bcutil_loadJXE: %s: IVE_RELO_RC_FILE_ERROR"
 TraceException=Trc_BCU_loadJXE_loadJXEunknownDataError Noenv Overhead=1 Level=3 Template="BCU j9bcutil_loadJXE: %s: IVE_RELO_RC_UNKNOWN_DATA"
 TraceException=Trc_BCU_loadJXE_loadJXEimageHeaderCorruption Noenv Overhead=1 Level=3 Template="BCU j9bcutil_loadJXE: %s: ROM image header corruption"
@@ -174,13 +174,13 @@ TraceEvent=Trc_BCU_addNodeToStringTable_RemovingFromTree Noenv Overhead=1 Level=
 TraceEvent=Trc_BCU_addNodeToStringTable_RemovingFromPool Noenv Overhead=1 Level=3 Template="BCU addNodeToStringTable: Removing node %p from pool"
 TraceExit=Trc_BCU_addNodeToStringTable_Exit Noenv Overhead=1 Level=3 Template="BCU addNodeToStringTable: Exiting"
 
-TraceEntry=Trc_BCU_replaceWithInteredString_Enter Noenv Overhead=1 Level=3 Template="BCU replaceWithInteredString: Entering with translationBuffers=%p, cpConstant=%p, classLoader=%p, canModifyStringTable=%d"
-TraceEvent=Trc_BCU_replaceWithInteredString_FoundNode Noenv Overhead=1 Level=3 Template="BCU replaceWithInteredString: Found node in string table, node=%p"
-TraceExit=Trc_BCU_replaceWithInteredString_ExitOutOfRange Noenv Overhead=1 Level=3 Template="BCU replaceWithInteredString: Failed as SRP would be out of range"
-TraceExit=Trc_BCU_replaceWithInteredString_ExitSuccess Noenv Overhead=1 Level=3 Template="BCU replaceWithInteredString: Succeeded - added interned string %d to cpConstant"
-TraceExit=Trc_BCU_replaceWithInteredString_ExitNotFound Noenv Overhead=1 Level=3 Template="BCU replaceWithInteredString: Failed as string not found in table"
-TraceExit=Trc_BCU_replaceWithInteredString_ExitUntwizzledShared Noenv Overhead=1 Level=3 Template="BCU replaceWithInteredString: ERROR: Found untwizzled node in shared string table"
-TraceExit=Trc_BCU_replaceWithInteredString_ExitUntwizzledNodeForSharedClassLoader Noenv Overhead=1 Level=3 Template="BCU replaceWithInteredString: Exit due to untwizzled node found for shared class"
+TraceEntry=Trc_BCU_replaceWithInternedString_Enter Noenv Overhead=1 Level=3 Template="BCU replaceWithInternedString: Entering with translationBuffers=%p, cpConstant=%p, classLoader=%p, canModifyStringTable=%d"
+TraceEvent=Trc_BCU_replaceWithInternedString_FoundNode Noenv Overhead=1 Level=3 Template="BCU replaceWithInternedString: Found node in string table, node=%p"
+TraceExit=Trc_BCU_replaceWithInternedString_ExitOutOfRange Noenv Overhead=1 Level=3 Template="BCU replaceWithInternedString: Failed as SRP would be out of range"
+TraceExit=Trc_BCU_replaceWithInternedString_ExitSuccess Noenv Overhead=1 Level=3 Template="BCU replaceWithInternedString: Succeeded - added interned string %d to cpConstant"
+TraceExit=Trc_BCU_replaceWithInternedString_ExitNotFound Noenv Overhead=1 Level=3 Template="BCU replaceWithInternedString: Failed as string not found in table"
+TraceExit=Trc_BCU_replaceWithInternedString_ExitUntwizzledShared Noenv Overhead=1 Level=3 Template="BCU replaceWithInternedString: ERROR: Found untwizzled node in shared string table"
+TraceExit=Trc_BCU_replaceWithInternedString_ExitUntwizzledNodeForSharedClassLoader Noenv Overhead=1 Level=3 Template="BCU replaceWithInternedString: Exit due to untwizzled node found for shared class"
 
 TraceEvent=Trc_BCU_createRomClassEndian_Subset Noenv Overhead=1 Level=3 Template="BCU j9bcutil_createROMClassEndian: Setting J9AccSubset flag on ROMClass %p"
 
@@ -275,7 +275,7 @@ TraceEvent=Trc_BCU_stringInternTableNotCreated NoEnv Overhead=1 Level=3 Template
 
 TraceEvent=Trc_BCU_internalDefineClass_FullData Overhead=1 Level=7 Template="BCU Trc_BCU_internalDefineClass_FullData: data=%.*s, classLoader=%p"
 
-TraceAssert=Trc_BCU_Assert_ShouldNeverHappen_CompressionMissmatch NoEnv Overhead=1 Level=1 Assert="(0)"
+TraceAssert=Trc_BCU_Assert_ShouldNeverHappen_CompressionMismatch NoEnv Overhead=1 Level=1 Assert="(0)"
 TraceAssert=Trc_BCU_Assert_CorrectLineNumbersCount NoEnv Overhead=1 Level=1 Assert="(P1 == P2)"
 TraceAssert=Trc_BCU_Assert_Compression_OutOfMemory NoEnv Overhead=1 Level=1 Assert="(0)"
 

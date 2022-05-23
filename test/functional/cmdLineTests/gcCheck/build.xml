@@ -27,10 +27,11 @@
 		Build cmdLineTests GCCheck
 	</description>
 
-    <!-- set properties for this build -->
+	<import file="${TEST_ROOT}/functional/cmdLineTests/buildTools.xml"/>
+
+	<!-- set properties for this build -->
 	<property name="DEST" value="${BUILD_ROOT}/functional/cmdLineTests/gcCheck" />
 	<property name="src" location="./src"/>
-	<property name="allocator" location="${TEST_ROOT}/functional/Java8andUp/src/org/openj9/test/nogc"/>
 	<property name="build" location="./bin"/>
 
 	<target name="init">
@@ -47,7 +48,9 @@
 		<echo>===destdir:                      ${DEST}</echo>
 		<javac destdir="${build}" debug="true" fork="true" executable="${compiler.javac}" includeAntRuntime="false" encoding="ISO-8859-1">
 			<src path="${src}" />
-			<include name="${TEST_ROOT}/functional/Java8andUp/src/org/openj9/test/nogc/Allocator.java"/>
+			<src path="${TEST_ROOT}/functional/Java8andUp/src" />
+			<include name="org/openj9/test/nogc/Allocator.java" />
+			<include name="org/openj9/test/nogc/Main.java" />
 		</javac>
 	</target>
 
@@ -66,7 +69,7 @@
 		<delete dir="${build}" />
 	</target>
 
-	<target name="build" >
+	<target name="build" depends="buildCmdLineTestTools">
 		<if>
 			<or>
 				<equals arg1="${JDK_IMPL}" arg2="ibm"  />

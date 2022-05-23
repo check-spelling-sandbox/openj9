@@ -190,7 +190,7 @@ public class IndyTest {
 		}
 		
 		if ( bootstrapMethodErrorThrown == false ) {
-			Assert.fail( "BootstrapMethodError not thrown when bootstrap method tries to create method handle for a non-existant method" );
+			Assert.fail( "BootstrapMethodError not thrown when bootstrap method tries to create method handle for a nonexistent method" );
 		}
 	}
 	
@@ -366,9 +366,9 @@ public class IndyTest {
 	
 	// Test to ensure coverage of MethodType resolving code in Java_java_lang_invoke_MethodHandle_getCPMethodTypeAt()
 	@Test(groups = { "level.extended" })
-	public void test_boostrap_return_constant_MethodType() {
+	public void test_bootstrap_return_constant_MethodType() {
 		MethodType expected = MethodType.methodType(String.class, String.class, String.class, int.class);
-		MethodType mt = com.ibm.j9.jsr292.indyn.GenIndyn.test_boostrap_return_constant_MethodType();
+		MethodType mt = com.ibm.j9.jsr292.indyn.GenIndyn.test_bootstrap_return_constant_MethodType();
 		AssertJUnit.assertEquals(expected, mt);
 		AssertJUnit.assertTrue(expected == mt);
 	}

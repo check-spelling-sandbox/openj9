@@ -260,7 +260,7 @@ public:
 #elif defined(J9VM_ARCH_S390)
 		/* The vtable index is always in the register */
 #elif defined(J9VM_ARCH_RISCV)
-		/* To be implmeneted in JIT */
+		/* To be implemented in JIT */
 #else
 #error UNKNOWN PROCESSOR
 #endif

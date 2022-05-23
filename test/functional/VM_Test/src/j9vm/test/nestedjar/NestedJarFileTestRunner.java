@@ -179,7 +179,7 @@ public class NestedJarFileTestRunner extends Runner {
 		} else if (2 == commandIndex) {
 			boolean loadedTestB1 = false;
 			while (line != null) {
-				if (line.indexOf("loadded TestB1") != -1) {
+				if (line.indexOf("loaded TestB1") != -1) {
 					loadedTestB1 = true;
 				}
 				line = in.readLine();

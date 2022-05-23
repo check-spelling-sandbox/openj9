@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 1991, 2021 IBM Corp. and others
+ * Copyright (c) 1991, 2022 IBM Corp. and others
  *
  * This program and the accompanying materials are made available under
  * the terms of the Eclipse Public License 2.0 which accompanies this
@@ -157,6 +157,15 @@ MM_ParallelGlobalMarkTask::setup(MM_EnvironmentBase *envBase)
 	}
 	env->_markVLHGCStats.clear();
 	env->_workPacketStats.clear();
+
+	/*
+	 * Get gc threads cpu time for when mark started, and add it to the stats structure.
+	 * If the current platform does not support this operation, there are failsafes in place - no need for an else condition here
+	 */
+	int64_t gcThreadCpuTime = omrthread_get_cpu_time(env->getOmrVMThread()->_os_thread);
+	if (-1 != gcThreadCpuTime) {
+		env->_markVLHGCStats._concurrentGCThreadsCPUStartTimeSum += gcThreadCpuTime;
+	}
 	
 	/* record that this thread is participating in this cycle */
 	env->_markVLHGCStats._gcCount = MM_GCExtensions::getExtensions(env)->globalVLHGCStats.gcCount;
@@ -168,9 +177,19 @@ MM_ParallelGlobalMarkTask::cleanup(MM_EnvironmentBase *envBase)
 {
 	MM_EnvironmentVLHGC *env = MM_EnvironmentVLHGC::getEnvironment(envBase);
 	PORT_ACCESS_FROM_ENVIRONMENT(env);
-	
+
+	/*
+	 * Get gc threads cpu time for when mark finished, and add it to the stats structure
+	 * If the current platform does not support this operation, there are failsafes in place - no need for an else condition here
+	 */
+	int64_t gcThreadCpuTime = omrthread_get_cpu_time(env->getOmrVMThread()->_os_thread);
+	if (-1 != gcThreadCpuTime) {
+		env->_markVLHGCStats._concurrentGCThreadsCPUEndTimeSum += gcThreadCpuTime;
+	}
+
 	static_cast<MM_CycleStateVLHGC*>(env->_cycleState)->_vlhgcIncrementStats._markStats.merge(&env->_markVLHGCStats);
 	static_cast<MM_CycleStateVLHGC*>(env->_cycleState)->_vlhgcIncrementStats._workPacketStats.merge(&env->_workPacketStats);
+
 	if(!env->isMainThread()) {
 		env->_cycleState = NULL;
 	}
@@ -824,6 +843,12 @@ MM_GlobalMarkingScheme::scanClassLoaderObject(MM_EnvironmentVLHGC *env, J9Object
 					rememberReferenceIfRequired(env, classLoaderObject, module->version);
 				}
 				modulePtr = (J9Module**)hashTableNextDo(&walkState);
+			}
+
+			if (classLoader == _javaVM->systemClassLoader) {
+				Assert_MM_true(NULL != _javaVM->unamedModuleForSystemLoader->moduleObject);
+				markObject(env, _javaVM->unamedModuleForSystemLoader->moduleObject);
+				rememberReferenceIfRequired(env, classLoaderObject, _javaVM->unamedModuleForSystemLoader->moduleObject);
 			}
 		}
 	}

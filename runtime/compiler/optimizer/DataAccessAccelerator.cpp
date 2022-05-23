@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2000, 2021 IBM Corp. and others
+ * Copyright (c) 2000, 2022 IBM Corp. and others
  *
  * This program and the accompanying materials are made available under
  * the terms of the Eclipse Public License 2.0 which accompanies this
@@ -406,31 +406,31 @@ int32_t TR_DataAccessAccelerator::performOnBlock(TR::Block* block, TreeTopContai
 
                   // DAA Packed Decimal comparison methods
                case TR::com_ibm_dataaccess_PackedDecimal_lessThanPackedDecimal_:
-                  if (genComparisionIntrinsic(treeTop, callNode, TR::pdcmplt))
+                  if (genComparisonIntrinsic(treeTop, callNode, TR::pdcmplt))
                      {
                      ++result;
                      }
                   break;
                case TR::com_ibm_dataaccess_PackedDecimal_lessThanOrEqualsPackedDecimal_:
-                  if (genComparisionIntrinsic(treeTop, callNode, TR::pdcmple))
+                  if (genComparisonIntrinsic(treeTop, callNode, TR::pdcmple))
                      {
                      ++result;
                      }
                   break;
                case TR::com_ibm_dataaccess_PackedDecimal_greaterThanPackedDecimal_:
-                  if (genComparisionIntrinsic(treeTop, callNode, TR::pdcmpgt))
+                  if (genComparisonIntrinsic(treeTop, callNode, TR::pdcmpgt))
                      {
                      ++result;
                      }
                   break;
                case TR::com_ibm_dataaccess_PackedDecimal_greaterThanOrEqualsPackedDecimal_:
-                  if (genComparisionIntrinsic(treeTop, callNode, TR::pdcmpge))
+                  if (genComparisonIntrinsic(treeTop, callNode, TR::pdcmpge))
                      {
                      ++result;
                      }
                   break;
                case TR::com_ibm_dataaccess_PackedDecimal_equalsPackedDecimal_:
-                  if (genComparisionIntrinsic(treeTop, callNode, TR::pdcmpeq))
+                  if (genComparisonIntrinsic(treeTop, callNode, TR::pdcmpeq))
                      {
                      ++result;
                      }
@@ -1150,7 +1150,7 @@ TR::Node* TR_DataAccessAccelerator::constructAddressNode(TR::Node* callNode, TR:
    return arrayAddressNode;
    }
 
-bool TR_DataAccessAccelerator::genComparisionIntrinsic(TR::TreeTop* treeTop, TR::Node* callNode, TR::ILOpCodes ops)
+bool TR_DataAccessAccelerator::genComparisonIntrinsic(TR::TreeTop* treeTop, TR::Node* callNode, TR::ILOpCodes ops)
    {
    if (!isChildConst(callNode, 2) || !isChildConst(callNode, 5))
       {
@@ -2511,7 +2511,7 @@ bool TR_DataAccessAccelerator::generateUD2PD(TR::TreeTop* treeTop, TR::Node* cal
       pdstoreNode->setSymbolReference(symRefStore);
       pdstoreNode->setDecimalPrecision(prec);
 
-      //set up bndchks, and null chks
+      //set up bndchecks, and null checks
       TR::Node * pdPassThroughNode = TR::Node::create(TR::PassThrough, 1, pdNode);
       TR::Node * decimalPassThroughNode = TR::Node::create(TR::PassThrough, 1, decimalNode);
 
@@ -2693,7 +2693,7 @@ bool TR_DataAccessAccelerator::generatePD2UD(TR::TreeTop* treeTop, TR::Node* cal
          TR_ASSERT(false, "unsupported decimalType.\n");
          }
 
-      TR::Node * pd2decimalNode;
+      TR::Node * pd2decimalNode = NULL;
       if (isPD2UD || type == 1)
          {
          pd2decimalNode = TR::Node::create(op, 1, pdload);
@@ -2716,7 +2716,7 @@ bool TR_DataAccessAccelerator::generatePD2UD(TR::TreeTop* treeTop, TR::Node* cal
       decimalStore->setSymbolReference(symRefDecimalStore);
       decimalStore->setDecimalPrecision(precNode->getInt());
 
-      //set up bndchks, and null chks
+      //set up bndchecks, and null checks
       TR::Node * pdPassThroughNode = TR::Node::create(TR::PassThrough, 1, pdNode);
       TR::Node * decimalPassThroughNode = TR::Node::create(TR::PassThrough, 1, decimalNode);
       int elementSize = isPD2UD ? TR::DataType::getUnicodeElementSize() : TR::DataType::getZonedElementSize();

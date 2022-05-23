@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2000, 2021 IBM Corp. and others
+ * Copyright (c) 2000, 2022 IBM Corp. and others
  *
  * This program and the accompanying materials are made available under
  * the terms of the Eclipse Public License 2.0 which accompanies this
@@ -1076,8 +1076,8 @@ int32_t TR_EscapeAnalysis::performAnalysisOnce()
                traceMsg(comp(), "   Make [%p] non-local because we can't have locking when candidate escapes in cold blocks\n", candidate->_node);
             }
 
-         // Value type fields of objects created with a NEW bytecode must be initialized
-         // with their default values.  EA is not yet set up to perform such iniitialization
+         // Primitive value type fields of objects created with a NEW bytecode must be initialized
+         // with their default values.  EA is not yet set up to perform such initialization
          // if the value type's own fields have not been inlined into the class that
          // has a field of that type, so remove the candidate from consideration.
          if (candidate->_kind == TR::New)
@@ -1087,7 +1087,7 @@ int32_t TR_EscapeAnalysis::performAnalysisOnce()
             if (!TR::Compiler->cls.isZeroInitializable(clazz))
                {
                if (trace())
-                  traceMsg(comp(), "   Fail [%p] because the candidate is not zero initializable (that is, it has a field of a value type whose fields have not been inlined into this candidate's class)\n", candidate->_node);
+                  traceMsg(comp(), "   Fail [%p] because the candidate is not zero initializable (that is, it has a field of a primitive value type whose fields have not been inlined into this candidate's class)\n", candidate->_node);
                rememoize(candidate);
                _candidates.remove(candidate);
                continue;
@@ -1174,7 +1174,7 @@ int32_t TR_EscapeAnalysis::performAnalysisOnce()
          {
          // Array Candidates for contiguous allocation that have unresolved
          // base classes must be rejected, since we cannot initialize the array
-         // header.  If the component type is a value type, reject the array
+         // header.  If the component type is a primitive value type, reject the array
          // as we can't initialize the elements to the default value yet.
          //
          if (candidate->isContiguousAllocation())
@@ -1192,10 +1192,10 @@ int32_t TR_EscapeAnalysis::performAnalysisOnce()
                {
                TR_OpaqueClassBlock *clazz = (TR_OpaqueClassBlock*)classNode->getSymbol()->castToStaticSymbol()->getStaticAddress();
 
-               if (TR::Compiler->cls.isValueTypeClass(clazz))
+               if (TR::Compiler->cls.isPrimitiveValueTypeClass(clazz))
                   {
                   if (trace())
-                     traceMsg(comp(), "   Fail [%p] because array has value type elements\n", candidate->_node);
+                     traceMsg(comp(), "   Fail [%p] because array has primitive value type elements\n", candidate->_node);
                   rememoize(candidate);
                   _candidates.remove(candidate);
                   }
@@ -4898,7 +4898,7 @@ void TR_EscapeAnalysis::checkEscapeViaCall(TR::Node *node, TR::NodeChecklist& vi
                TR::MethodSymbol *sym = symRef->getSymbol()->castToMethodSymbol();
                TR::Method * originalMethod = sym->getMethod();
                int32_t len = originalMethod->classNameLength();
-               char *s = classNameToSignature(originalMethod->classNameChars(), len, comp());
+               char *s = TR::Compiler->cls.classNameToSignature(originalMethod->classNameChars(), len, comp());
                TR_OpaqueClassBlock *originalMethodClass = comp()->fej9()->getClassFromSignature(s, len, owningMethod);
                TR_OpaqueClassBlock *thisType = (TR_OpaqueClassBlock *) candidate->_node->getFirstChild()->getSymbol()->castToStaticSymbol()->getStaticAddress();
                int32_t offset = -1;
@@ -5145,7 +5145,7 @@ int32_t TR_EscapeAnalysis::sniffCall(TR::Node *callNode, TR::ResolvedMethodSymbo
        *
        * Once EA finishes the postEscapeAnalysis pass will clean-up all
        * eaEscapeHelper calls. Code will only remain in the taken side of the
-       * guard if candidtes were stack allocated and required heapficiation.
+       * guard if candidates were stack allocated and required heapficiation.
        *
        * This code transformation is protected with a perform transformation at
        * the site of tree manipulation at the end of this pass of EA.
@@ -6241,7 +6241,7 @@ TR::Node *TR_EscapeAnalysis::createConst(TR::Compilation *comp, TR::Node *node, 
 
    if (type.isVector())
       {
-      result = TR::Node::create(node, TR::vsplats, 1);
+      result = TR::Node::create(node, TR::ILOpCode::createVectorOpCode(OMR::vsplats, type), 1);
       result->setAndIncChild(0, TR::Node::create(node, comp->il.opCodeForConst(type), value));
       }
    else
@@ -6358,7 +6358,7 @@ bool TR_EscapeAnalysis::fixupFieldAccessForNonContiguousAllocation(TR::Node *nod
          TR_ASSERT(i >= 0, "element 0 should exist\n");
 
          if (!newOpType.isVector())
-            newOpType = newOpType.scalarToVector();
+            newOpType = newOpType.scalarToVector(TR::VectorLength128); // TODO: use best vector length available
 
          TR_ASSERT(newOpType != TR::NoType, "wrong type at node %p\n", node);
          }
@@ -6387,11 +6387,16 @@ bool TR_EscapeAnalysis::fixupFieldAccessForNonContiguousAllocation(TR::Node *nod
             TR::Node::recreate(node, newOpCode);
             node->setSymbolReference(autoSymRef);
             }
-         if (autoSymRef->getSymbol()->getDataType().isVector() &&
+
+         TR::DataType autoSymRefDataType = autoSymRef->getSymbol()->getDataType();
+
+         if (autoSymRefDataType.isVector() &&
              !node->getDataType().isVector())
             {
-            TR::Node::recreate(node, node->getDataType() == TR::VectorDouble ? TR::vdgetelem : TR::vigetelem);
-            node->setAndIncChild(0, TR::Node::create(node, TR::vload, 0));
+            TR::Node::recreate(node,
+                               (autoSymRefDataType.getVectorElementType() == TR::Double)
+                               ? TR::vdgetelem : TR::vigetelem);
+            node->setAndIncChild(0, TR::Node::create(node, TR::ILOpCode::createVectorOpCode(OMR::vload, autoSymRefDataType), 0));
             node->setNumChildren(2);
             node->getFirstChild()->setSymbolReference(autoSymRef);
             node->setAndIncChild(1, TR::Node::create(node, TR::iconst, 0, elem-1));
@@ -6433,13 +6438,17 @@ bool TR_EscapeAnalysis::fixupFieldAccessForNonContiguousAllocation(TR::Node *nod
             node->setSymbolReference(autoSymRef);
             }
 
-         if (autoSymRef->getSymbol()->getDataType().isVector() &&
+         TR::DataType autoSymRefDataType = autoSymRef->getSymbol()->getDataType();
+
+         if (autoSymRefDataType.isVector() &&
              !node->getDataType().isVector())
             {
-            TR::Node::recreate(node, TR::vstore);
+            TR::Node::recreate(node, TR::ILOpCode::createVectorOpCode(OMR::vstore, autoSymRefDataType));
             TR::Node *value = node->getFirstChild();
-            TR::Node *newValue = TR::Node::create(node, node->getDataType() == TR::VectorDouble ? TR::vdsetelem : TR::visetelem, 3);
-            newValue->setAndIncChild(0, TR::Node::create(node, TR::vload, 0));
+            TR::Node *newValue = TR::Node::create(node,
+                                                  (node->getDataType().getVectorElementType() == TR::Double)
+                                                  ? TR::vdsetelem : TR::visetelem, 3);
+            newValue->setAndIncChild(0, TR::Node::create(node, TR::ILOpCode::createVectorOpCode(OMR::vload, autoSymRefDataType), 0));
             newValue->getFirstChild()->setSymbolReference(autoSymRef);
             newValue->setChild(1, value);
             newValue->setAndIncChild(2, TR::Node::create(node, TR::iconst, 0, elem-1));
@@ -8166,8 +8175,11 @@ static TR_DependentAllocations *getDependentAllocationsFor(Candidate *c, List<TR
 static Candidate *getCandidate(TR_LinkHead<Candidate> *candidates, FlushCandidate *flushCandidate)
    {
    Candidate *candidate = flushCandidate->getCandidate();
-   if (candidate)
+   if (candidate || flushCandidate->getIsKnownToLackCandidate())
+      {
       return candidate;
+      }
+
    for (candidate = candidates->getFirst(); candidate; candidate = candidate->getNext())
       {
       if (flushCandidate->getAllocation() == candidate->_node)
@@ -8175,6 +8187,11 @@ static Candidate *getCandidate(TR_LinkHead<Candidate> *candidates, FlushCandidat
          flushCandidate->setCandidate(candidate);
          break;
          }
+      }
+
+   if (!candidate)
+      {
+      flushCandidate->setIsKnownToLackCandidate(true);
       }
 
    return candidate;

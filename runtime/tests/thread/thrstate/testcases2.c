@@ -29,7 +29,7 @@
 /* vmthread blocked, osthread started */
 
 
-/* no blockingenterobject */
+/* no blocking enterobject */
 UDATA
 test_vBz_nSt(JNIEnv *env, BOOLEAN ignoreExpectedFailures)
 {

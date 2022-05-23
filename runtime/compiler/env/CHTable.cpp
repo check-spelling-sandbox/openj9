@@ -250,6 +250,16 @@ void TR_CHTable::cleanupNewlyExtendedInfo(TR::Compilation *comp)
       }
    }
 
+
+bool TR_CHTable::canSkipCommit(TR::Compilation *comp)
+   {
+   return comp->compileRelocatableCode() ||
+         (comp->getVirtualGuards().empty() &&
+          comp->getSideEffectGuardPatchSites()->empty() &&
+          !_preXMethods && !_classes && !_classesThatShouldNotBeNewlyExtended);
+   }
+
+
 // Returning false here will fail this compilation!
 //
 bool TR_CHTable::commit(TR::Compilation *comp)
@@ -260,14 +270,11 @@ bool TR_CHTable::commit(TR::Compilation *comp)
       return true; // Handled in outOfProcessCompilationEnd instead
       }
 #endif /* defined(J9VM_OPT_JITSERVER) */
+   if (canSkipCommit(comp))
+      return true;
 
    TR::list<TR_VirtualGuard*> &vguards = comp->getVirtualGuards();
    TR::list<TR_VirtualGuardSite*> *sideEffectPatchSites = comp->getSideEffectGuardPatchSites();
-
-   if (comp->fej9()->isAOT_DEPRECATED_DO_NOT_USE())
-      return true;
-   if (vguards.empty() && sideEffectPatchSites->empty() && !_preXMethods && !_classes && !_classesThatShouldNotBeNewlyExtended)
-      return true;
 
    cleanupNewlyExtendedInfo(comp);
    if (comp->getFailCHTableCommit())
@@ -379,7 +386,7 @@ bool TR_CHTable::commit(TR::Compilation *comp)
          {
          if (TR::Options::isAnyVerboseOptionSet(TR_VerboseRuntimeAssumptions, TR_VerboseCompileEnd, TR_VerbosePerformance, TR_VerboseCompFailure))
             {
-            TR_VerboseLog::writeLineLocked(TR_Vlog_FAILURE, "Failure while commiting static final field assumption for class %p for %s", clazz, comp->signature());
+            TR_VerboseLog::writeLineLocked(TR_Vlog_FAILURE, "Failure while committing static final field assumption for class %p for %s", clazz, comp->signature());
             }
          comp->failCompilation<TR::CompilationInterrupted>("Compilation interrupted: Static final field of a class has been modified");
          }
@@ -868,10 +875,10 @@ TR_CHTable::computeDataForCHTableCommit(TR::Compilation *comp)
 #endif /* defined(J9VM_OPT_JITSERVER) */
 
 // class used to collect all different implementations of a method
-class CollectImplementors : public TR_SubclassVisitor
+class CollectImplementers : public TR_SubclassVisitor
    {
 public:
-   CollectImplementors(TR::Compilation * comp, TR_OpaqueClassBlock *topClassId, TR_ResolvedMethod **implArray, int32_t maxCount,
+   CollectImplementers(TR::Compilation * comp, TR_OpaqueClassBlock *topClassId, TR_ResolvedMethod **implArray, int32_t maxCount,
                        TR_ResolvedMethod *callerMethod, int32_t slotOrIndex, TR_YesNoMaybe useGetResolvedInterfaceMethod = TR_maybe) : TR_SubclassVisitor(comp)
       {
       _comp          = comp;
@@ -892,7 +899,7 @@ public:
    bool isInterface();
 
 protected:
-   bool addImplementor(TR_ResolvedMethod *implementor);
+   bool addImplementer(TR_ResolvedMethod *implementer);
 
    TR_OpaqueClassBlock * _topClassId;
    TR_ResolvedMethod **  _implArray;
@@ -904,10 +911,10 @@ protected:
    int32_t               _maxNumVisitedSubClasses;
    int32_t               _numVisitedSubClasses;
    TR_YesNoMaybe         _useGetResolvedInterfaceMethod;
-   };// end of class CollectImplementors
+   };// end of class CollectImplementers
 
 bool
-CollectImplementors::isInterface()
+CollectImplementers::isInterface()
    {
    bool useGetResolvedInterfaceMethod = _topClassIsInterface;
 
@@ -918,7 +925,7 @@ CollectImplementors::isInterface()
    }
 
 bool
-CollectImplementors::visitSubclass(TR_PersistentClassInfo *cl)
+CollectImplementers::visitSubclass(TR_PersistentClassInfo *cl)
    {
    TR_OpaqueClassBlock *classId = cl->getClassId();
    // verify that our subclass meets all conditions
@@ -946,36 +953,36 @@ CollectImplementors::visitSubclass(TR_PersistentClassInfo *cl)
          return false;
          }
 
-      bool added = addImplementor(method);
+      bool added = addImplementer(method);
       if (added && _count >= _maxCount)
          stopTheWalk();
       }
    return true;
    }
 
-bool 
-CollectImplementors::addImplementor(TR_ResolvedMethod *implementor)
+bool
+CollectImplementors::addImplementer(TR_ResolvedMethod *implementer)
    {
-   TR_ASSERT_FATAL(_count < _maxCount, "Max implementor count exceeded: _maxCount = %d, _count = %d", _maxCount, _count);
+   TR_ASSERT_FATAL(_count < _maxCount, "Max implementer count exceeded: _maxCount = %d, _count = %d", _maxCount, _count);
 
-   // cannot add an unresolved implementor
-   if (!implementor)
+   // cannot add an unresolved implementer
+   if (!implementer)
       return false;
    // check to see if there are any duplicates
    int32_t i;
    for (i = 0; i < _count; ++i)
-      if (implementor->isSameMethod(_implArray[i]))
+      if (implementer->isSameMethod(_implArray[i]))
          return false;  // we already listed this method
-   // brand new implementor
-   _implArray[_count++] = implementor;
+   // brand new implementer
+   _implArray[_count++] = implementer;
    return true;
    }
 
-class CollectCompiledImplementors : public CollectImplementors
+class CollectCompiledImplementers : public CollectImplementers
    {
    public:
-   CollectCompiledImplementors(TR::Compilation * comp, TR_OpaqueClassBlock *topClassId, TR_ResolvedMethod **implArray, int32_t maxCount,
-                       TR_ResolvedMethod *callerMethod, int32_t slotOrIndex, TR_Hotness hotness, TR_YesNoMaybe useGetResolvedInterfaceMethod = TR_maybe) : CollectImplementors(comp, topClassId, implArray, maxCount+1, callerMethod, slotOrIndex, useGetResolvedInterfaceMethod)
+   CollectCompiledImplementers(TR::Compilation * comp, TR_OpaqueClassBlock *topClassId, TR_ResolvedMethod **implArray, int32_t maxCount,
+                       TR_ResolvedMethod *callerMethod, int32_t slotOrIndex, TR_Hotness hotness, TR_YesNoMaybe useGetResolvedInterfaceMethod = TR_maybe) : CollectImplementers(comp, topClassId, implArray, maxCount+1, callerMethod, slotOrIndex, useGetResolvedInterfaceMethod)
       {
       _hotness = hotness;
       }
@@ -984,10 +991,10 @@ class CollectCompiledImplementors : public CollectImplementors
    TR_Hotness _hotness;
    };
 
-bool CollectCompiledImplementors::visitSubclass(TR_PersistentClassInfo *cl)
+bool CollectCompiledImplementers::visitSubclass(TR_PersistentClassInfo *cl)
    {
    int32_t currentCount = _count;
-   if (CollectImplementors::visitSubclass(cl))
+   if (CollectImplementers::visitSubclass(cl))
       {
       if (currentCount < _count)
          {
@@ -1028,7 +1035,7 @@ TR_ClassQueries::getSubClasses(TR_PersistentClassInfo *clazz,
 // NOTE: if the number is larger than maxCount, it means that the collection failed
 // and we should not check the content of the implArray as it may contain bogus data
 int32_t
-TR_ClassQueries::collectImplementorsCapped(TR_PersistentClassInfo *clazz,
+TR_ClassQueries::collectImplementersCapped(TR_PersistentClassInfo *clazz,
                                            TR_ResolvedMethod **implArray,
                                            int32_t maxCount, int32_t slotOrIndex,
                                            TR_ResolvedMethod *callerMethod,
@@ -1041,7 +1048,7 @@ TR_ClassQueries::collectImplementorsCapped(TR_PersistentClassInfo *clazz,
 #if defined(J9VM_OPT_JITSERVER)
    if (comp->isOutOfProcessCompilation())
       {
-      return static_cast<TR_ResolvedJ9JITServerMethod *>(callerMethod)->collectImplementorsCapped(
+      return static_cast<TR_ResolvedJ9JITServerMethod *>(callerMethod)->collectImplementersCapped(
          clazz->getClassId(),
          maxCount,
          slotOrIndex,
@@ -1049,14 +1056,14 @@ TR_ClassQueries::collectImplementorsCapped(TR_PersistentClassInfo *clazz,
          implArray);
       }
 #endif
-   CollectImplementors collector(comp, clazz->getClassId(), implArray, maxCount, callerMethod, slotOrIndex, useGetResolvedInterfaceMethod);
+   CollectImplementers collector(comp, clazz->getClassId(), implArray, maxCount, callerMethod, slotOrIndex, useGetResolvedInterfaceMethod);
    collector.visitSubclass(clazz);
    collector.visit(clazz->getClassId(), locked);
    return collector.getCount(); // return the number of implementers in the implArray
    }
 
 int32_t
-TR_ClassQueries::collectCompiledImplementorsCapped(TR_PersistentClassInfo *clazz,
+TR_ClassQueries::collectCompiledImplementersCapped(TR_PersistentClassInfo *clazz,
                                            TR_ResolvedMethod **implArray,
                                            int32_t maxCount, int32_t slotOrIndex,
                                            TR_ResolvedMethod *callerMethod,
@@ -1066,7 +1073,7 @@ TR_ClassQueries::collectCompiledImplementorsCapped(TR_PersistentClassInfo *clazz
    {
    if (comp->getOption(TR_DisableCHOpts))
       return maxCount+1; // fail the collection
-   CollectCompiledImplementors collector(comp, clazz->getClassId(), implArray, maxCount, callerMethod, slotOrIndex, hotness, useGetResolvedInterfaceMethod);
+   CollectCompiledImplementers collector(comp, clazz->getClassId(), implArray, maxCount, callerMethod, slotOrIndex, hotness, useGetResolvedInterfaceMethod);
    collector.visitSubclass(clazz);
    collector.visit(clazz->getClassId(), locked);
    return collector.getCount();

@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2000, 2021 IBM Corp. and others
+ * Copyright (c) 2000, 2022 IBM Corp. and others
  *
  * This program and the accompanying materials are made available under
  * the terms of the Eclipse Public License 2.0 which accompanies this
@@ -100,9 +100,6 @@ struct TR_SignatureCountPair
    int32_t count;
 };
 
-#ifndef J9_INVOCATION_COUNT_MASK
-#define J9_INVOCATION_COUNT_MASK                   0x00000000FFFFFFFF
-#endif
 
 class TR_LowPriorityCompQueue
    {
@@ -392,6 +389,15 @@ public:
       UNDEFINED_ACTION
       };
 
+#if defined(J9VM_OPT_CRIU_SUPPORT)
+   enum TR_CheckpointStatus
+      {
+      NO_CHECKPOINT_IN_PROGRESS,
+      CHECKPOINT_IN_PROGRESS,
+      INTERRUPT_CHECKPOINT
+      };
+#endif
+
    struct DLT_record
       {
       DLT_record         *_next;
@@ -448,7 +454,6 @@ public:
    static bool shouldRetryCompilation(TR_MethodToBeCompiled *entry, TR::Compilation *comp);
    static bool shouldAbortCompilation(TR_MethodToBeCompiled *entry, TR::PersistentInfo *persistentInfo);
    static bool canRelocateMethod(TR::Compilation * comp);
-   static bool useSeparateCompilationThread();
    static int computeCompilationThreadPriority(J9JavaVM *vm);
    static void *compilationEnd(J9VMThread *context, TR::IlGeneratorMethodDetails & details, J9JITConfig *jitConfig, void * startPC,
                                void *oldStartPC, TR_FrontEnd *vm=0, TR_MethodToBeCompiled *entry=NULL, TR::Compilation *comp=NULL);
@@ -514,6 +519,8 @@ public:
       // and so we don't have to care if the VM has a FastJNI version
       return (((uintptr_t)method->constantPool) & J9_STARTPC_JNI_NATIVE) != 0;
       }
+
+   static const intptr_t J9_INVOCATION_COUNT_MASK = 0xffffffff;
 
    static int32_t getInvocationCount(J9Method *method)
       {
@@ -601,8 +608,6 @@ public:
       TR_ASSERT_FATAL(!TR::CompilationInfo::getStream(), "not yet implemented for JITServer");
 #endif /* defined(J9VM_OPT_JITSERVER) */
       intptr_t oldValue = (intptr_t)method->extra;
-      //intptr_t newValue = oldValue & (intptr_t)~J9_INVOCATION_COUNT_MASK;
-      //newValue |= (intptr_t)value;
       intptr_t newValue = (intptr_t)value;
       return setJ9MethodExtraAtomic(method, oldValue, newValue);
       }
@@ -645,6 +650,25 @@ public:
          }
       return success;
       }
+   // If the invocation count is 0, set it to the value indicated by newCount
+   static bool replenishInvocationCountIfExpired(J9Method *method, int32_t newCount)
+      {
+      intptr_t oldMethodExtra = (intptr_t) method->extra;
+      if ((oldMethodExtra & J9_STARTPC_NOT_TRANSLATED) == 0)
+         return false; // Do not touch compiled methods
+
+      int32_t oldCount = (int32_t)oldMethodExtra;
+      if (oldCount < 0)
+         return false; // Do not touch uncountable methods
+      oldCount >>= 1; // Eliminate the J9_STARTPC_NOT_TRANSLATED bit
+      if (oldCount != 0)
+         return false; // Only replenish invocation count if it expired
+      // Prepare the new method->extra
+      intptr_t oldMethodExtraUpperPart = oldMethodExtra & (~J9_INVOCATION_COUNT_MASK);
+      newCount = (newCount << 1) | J9_STARTPC_NOT_TRANSLATED;
+      intptr_t newMethodExtra = oldMethodExtraUpperPart | newCount;
+      return setJ9MethodExtraAtomic(method, oldMethodExtra, newMethodExtra);
+      }
    static void setInitialInvocationCountUnsynchronized(J9Method *method, int32_t value)
       {
 #if defined(J9VM_OPT_JITSERVER)
@@ -675,6 +699,24 @@ public:
    void releaseCompMonitor(J9VMThread *vmThread); // used when we know we have a compilation monitor
    void waitOnCompMonitor(J9VMThread *vmThread);
    intptr_t waitOnCompMonitorTimed(J9VMThread *vmThread, int64_t millis, int32_t nanos);
+
+#if defined(J9VM_OPT_CRIU_SUPPORT)
+   /* The CR Monitor (Checkpoint/Restore Monitor) must always be acquired with the Comp Monitor
+    * in hand. If waiting on the CR Monitor, the Comp Monitor should be released. After being
+    * notified, the CR Monitor should be released before re-acquiring the Comp Monitor.
+    */
+   TR::Monitor *getCRMonitor() { return _crMonitor; }
+   void acquireCRMonitor();
+   void releaseCRMonitor();
+   void waitOnCRMonitor();
+
+   /* The following APIs should only be invoked with the Comp Monitor in hand. */
+   bool isCheckpointInProgress()        { return _checkpointStatus != TR_CheckpointStatus::NO_CHECKPOINT_IN_PROGRESS; }
+   void setCheckpointInProgress()       {        _checkpointStatus  = TR_CheckpointStatus::CHECKPOINT_IN_PROGRESS;    }
+   void resetCheckpointInProgress()     {        _checkpointStatus  = TR_CheckpointStatus::NO_CHECKPOINT_IN_PROGRESS; }
+   bool shouldCheckpointBeInterrupted() { return _checkpointStatus == TR_CheckpointStatus::INTERRUPT_CHECKPOINT;      }
+   void interruptCheckpoint()           {        _checkpointStatus  = TR_CheckpointStatus::INTERRUPT_CHECKPOINT;      }
+#endif
 
    TR_PersistentMemory *     persistentMemory() { return _persistentMemory; }
 
@@ -719,30 +761,166 @@ public:
    void freeAllResources();
 
    uintptr_t startCompilationThread(int32_t priority, int32_t id, bool isDiagnosticThread);
-   bool initializeCompilationOnApplicationThread();
    bool  asynchronousCompilation();
    void stopCompilationThreads();
 
    /**
-    * \brief
+    * @brief
     *    Stops a compilation thread by issuing an interruption request at the threads next yield point and by changing
     *    its state to signal termination. Note that there can be a delay between making this request and the thread
     *    state changing to `COMPTHREAD_STOPPED`.
-    * 
-    * \param compInfoPT
+    *
+    * @param compInfoPT
     *    The thread to be stopped.
     */
    void stopCompilationThread(CompilationInfoPerThread* compInfoPT);
-   
-   void suspendCompilationThread();
+
+   /**
+    * @brief Suspends all compilation threads. By default it also purges the comp queue.
+    *
+    * @param purgeCompQueue bool to determine whether or not to purge the comp queue.
+    */
+   void suspendCompilationThread(bool purgeCompQueue = true);
+
+   /**
+    * @brief Resumes suspended compilation threads; the number of threads that are
+    *        resumed depends on several factors, such as the queue size and available
+    *        CPU resources.
+    */
    void resumeCompilationThread();
+
+#if defined(J9VM_OPT_CRIU_SUPPORT)
+   /**
+    * @brief Work that is necessary prior to taking a snapshot. This includes:
+    *        - Setting the _checkpointStatus state.
+    *        - Suspending all compilation threads.
+    *        - Waiting until all compilation threads are suspended.
+    *
+    * Normal Execution (steps 5&6 can be interchanged)
+    * ================================================
+    * 1. Hook Thread acquires Comp Monitor
+    * 2. Hook Thread signals Comp Threads to suspend
+    * 3. Hook Thread acquires CR Monitor, releases Comp Monitor, and waits on
+    *    CR Monitor
+    * 4. Comp Threads acquire Comp Monitor and CompThread Monitor, and change
+    *    state to COMPTHREAD_SUSPENDED
+    * 5. Comp Threads acquire CR Monitor, call notifyAll, and release CR
+    *    Monitor
+    * 6. Hook Thread wakes up with CR Monitor in hand, releases CR Monitor, and
+    *    blocks on Comp Monitor
+    * 7. Comp Threads release Comp Monitor and wait on CompThread Monitor
+    * 8. Hook Thread acquires Comp Monitor, ensures state has changed to
+    *    COMPTHREAD_SUSPENDED for the current compInfoPT
+    * 9. Hook Thread checks the next compInfoPT, waiting on the CR Monitor if
+    *    needed (it will release the Comp Monitor prior to waiting)
+    * 10. Hook Thread releases Comp Monitor, returns from the hook
+    *
+    *
+    * JIT Dump
+    * ========
+    * - Crash on application thread:
+    *    - Hook Thread running prepareForCheckpoint will run as normal
+    *       - Comp Threads will suspend themselves
+    *       - Hook Thread will wait till all Comp Threads are suspended
+    *       - Hook Thread will return from the jit hook
+    *       - VM will need to ensure it doesn't invoke criu API
+    *
+    * - Crash on compilation thread:
+    *    - Crashing Comp Thread will return to the VM and terminate process
+    *      (https://github.com/eclipse-openj9/openj9/blob/500e0a26e2c5be6ead0f838495ae8d8cc34821e1/runtime/compiler/control/CompilationThread.cpp#L3442-L3447)
+    *    - Possible scenarios for Hook Thread:
+    *       1. Hook Thread will try to acquire the Comp Monitor to signal Comp
+    *          Threads to suspend but will end up blocking until the JVM
+    *          terminates
+    *       2. Hook Thread will manage to signal Comp Threads to suspend, but
+    *          will remain waiting on the CR Monitor for the crashed Comp
+    *          Thread to suspend until the JVM terminates
+    *    - VM will need to ensure it doesn't invoke criu API
+    *
+    *
+    * Normal Shutdown
+    * ===============
+    * - Scenario 1
+    *    1. Hook Thread waits on CR Monitor
+    *    2. Comp Thread goes to suspend, already has Comp Monitor in hand
+    *    3. Shutdown Thread blocks on the Comp Monitor
+    *    4. Comp Thread updates state to COMPTHREAD_SUSPENDED, acquires CR
+    *       Monitor, and calls notifyAll
+    *    5. Comp Thread releases CR Monitor, releases Comp Monitor, and waits
+    *       on CompThread Monitor
+    *    6. Hook Thread wakes up with CR Monitor in hand, releases CR Monitor,
+    *       acquires Comp Monitor and continues on to next thread
+    *    7. Hook Thread checks state and moves onto the next threads possibly
+    *       finding them all suspended.
+    *    8. Hook Thread release Comp Monitor and returns from hook
+    *    9. Shutdown Thread goes through the sequence of stopping all threads
+    *
+    * - Scenario 2
+    *    Repeat steps 1-5 from Scenario 1
+    *    6. Shutdown Thread acquires Comp Monitor
+    *    7. Hook Thread wakes up with CR Monitor in hand, releases CR Monitor
+    *       and blocks on the Comp Monitor
+    *    8. Shutdown Thread sets checkpoint to be interrupted flag.
+    *       Additionally (though irrelevant in this scenario) it also
+    *       acquires the CR Monitor, calls notify, and releases CR Monitor.
+    *    9. Shutdown Thread finishes stopping all threads, releases Comp
+    *       Monitor
+    *    10. Hook Thread acquires Comp Monitor, sees that the checkpoint should
+    *        be interrupted
+    *    11. Hook Thread breaks out of the loops, releases Comp Monitor, and
+    *        returns from hook
+    *
+    * - Scenario 3
+    *    1. Hook Thread waits on CR Monitor
+    *    2. Shutdown Thread acquires Comp Monitor
+    *    3. Comp Thread blocks on the Comp Monitor in order to (eventually)
+    *       suspend itself
+    *    4. Shutdown Thread sets checkpoint to be interrupted flag, acquires CR
+    *       Monitor, calls notify, and releases CR Monitor
+    *    5. Shutdown Thread goes about the task of stopping Comp Threads
+    *    6. Hook Thread wakes up with CR Monitor in hand, releases CR Monitor
+    *       and blocks on the Comp Monitor
+    *    7. Shutdown Thread finishes stopping all threads, releases Comp
+    *       Monitor (steps 5 & 6 can be interchanged with the same following
+    *       steps)
+    *    8. Hook Thread acquires Comp Monitor, sees that the checkpoint should
+    *       be interrupted
+    *    9. Hook Thread breaks out of the loops, releases Comp Monitor, and
+    *       returns from hook
+    *
+    * It should be noted that when the Hook Thread runs prepareForCheckpoint,
+    * either it will succeed in signalling the Comp Threads to suspend, or it
+    * will wait indefinitely on the Comp Monitor (in the case of a JIT Dump) or
+    * it will abort after acquiring the Comp Monitor if the Shutdown Thread
+    * already finished its task. Once the Hook Thread reaches the point where
+    * it waits on the CR Monitor, the scenarios above can occur.
+    *
+    *
+    * Shutdown during JIT Dump
+    * ========================
+    * - Crash on application thread
+    *    - same as Normal Shutdown
+    *
+    * - Crash on compilation thread
+    *    - In all of the above scenarios:
+    *       - Hook Thread remains waiting on CR Monitor
+    *       - Shutdown Thread blocks on the Comp Monitor
+    *       - Comp Thread returns to VM and terminates the process
+    */
+   void prepareForCheckpoint();
+
+   /**
+    * @brief Work that is necessary after the JVM has been restored. This includes:
+    *        - Resetting the _checkpointStatus state.
+    *        - Resuming all suspended compilation threads.
+    */
+   void prepareForRestore();
+#endif
+
    void purgeMethodQueue(TR_CompilationErrorCode errorCode);
    void *compileMethod(J9VMThread * context, TR::IlGeneratorMethodDetails &details, void *oldStartPC,
       TR_YesNoMaybe async, TR_CompilationErrorCode *, bool *queued, TR_OptimizationPlan *optPlan);
 
-   void *compileOnApplicationThread(J9VMThread * context, TR::IlGeneratorMethodDetails &details, void *oldStartPC,
-                                    TR_CompilationErrorCode *,
-                                    TR_OptimizationPlan *optPlan);
    void *compileOnSeparateThread(J9VMThread * context, TR::IlGeneratorMethodDetails &details, void *oldStartPC,
                                  TR_YesNoMaybe async, TR_CompilationErrorCode*,
                                  bool *queued, TR_OptimizationPlan *optPlan);
@@ -787,10 +965,10 @@ public:
    void incrementMethodQueueSize();
    int32_t getPeakMethodQueueSize() const { return _maxQueueSize; }
    int32_t getNumQueuedFirstTimeCompilations() const { return _numQueuedFirstTimeCompilations; }
-   void decNumGCRReqestsQueued(TR_MethodToBeCompiled *entry);
+   void decNumGCRRequestsQueued(TR_MethodToBeCompiled *entry);
    void incNumGCRRequestsQueued(TR_MethodToBeCompiled *entry);
    int32_t getNumGCRRequestsQueued() const { return _numGCRQueued; }
-   void decNumInvReqestsQueued(TR_MethodToBeCompiled *entry);
+   void decNumInvRequestsQueued(TR_MethodToBeCompiled *entry);
    void incNumInvRequestsQueued(TR_MethodToBeCompiled *entry);
    void updateCompQueueAccountingOnDequeue(TR_MethodToBeCompiled *entry);
    int32_t getNumCompThreadsActive() const { return _numCompThreadsActive; }
@@ -835,6 +1013,9 @@ public:
    bool              isInZOSSupervisorState() {return _flags.testAny(IsInZOSSupervisorState);}
    void              setIsInZOSSupervisorState() { _flags.set(IsInZOSSupervisorState);}
 
+   bool              isInShutdownMode() {return _isInShutdownMode;}
+   void              setIsInShutdownMode() {_isInShutdownMode = true;}
+
    TR_LinkHead0<TR_ClassHolder> *getListOfClassesToCompile() { return &_classesToCompileList; }
    int32_t getCompilationLag();
    int32_t getCompilationLagUnlocked() { return getCompilationLag(); } // will go away
@@ -867,7 +1048,6 @@ public:
    void    incrementNumMethodsFoundInSharedCache() { _numMethodsFoundInSharedCache++; }
    int32_t numMethodsFoundInSharedCache() { return _numMethodsFoundInSharedCache; }
    int32_t getNumInvRequestsInCompQueue() const { return _numInvRequestsInCompQueue; }
-   TR::CompilationInfoPerThreadBase *getCompInfoForCompOnAppThread() const { return _compInfoForCompOnAppThread; }
    J9JITConfig *getJITConfig() { return _jitConfig; }
    TR::CompilationInfoPerThread *getCompInfoForThread(J9VMThread *vmThread);
    int32_t getNumUsableCompilationThreads() const { return _numCompThreads; }
@@ -1006,7 +1186,7 @@ public:
    TR_JProfilingQueue &getJProfilingCompQueue() { return _JProfilingQueue; }
 
    TR_JitSampleInfo &getJitSampleInfoRef() { return _jitSampleInfo; }
-   TR_InterpreterSamplingTracking *getInterpSamplTrackingInfo() const { return _interpSamplTrackingInfo; }
+   TR_InterpreterSamplingTracking *getInterpSampleTrackingInfo() const { return _interpSampleTrackingInfo; }
 
    int32_t getAppSleepNano() const { return _appSleepNano; }
    void setAppSleepNano(int32_t t) { _appSleepNano = t; }
@@ -1125,11 +1305,10 @@ private:
 
    static int32_t *_compThreadActivationThresholds;
    static int32_t *_compThreadSuspensionThresholds;
-   static int32_t *_compThreadActivationThresholdsonStarvation;
+   static int32_t *_compThreadActivationThresholdsOnStarvation;
 
    TR::CompilationInfoPerThread **_arrayOfCompilationInfoPerThread; // First NULL entry means end of the array
    TR::CompilationInfoPerThread *_compInfoForDiagnosticCompilationThread; // compinfo for dump compilation thread
-   TR::CompilationInfoPerThreadBase *_compInfoForCompOnAppThread; // This is NULL for separate compilation thread
    TR_MethodToBeCompiled *_methodQueue;
    TR_MethodToBeCompiled *_methodPool;
    int32_t                _methodPoolSize; // shouldn't this and _methodPool be static?
@@ -1147,10 +1326,14 @@ private:
 #endif
    DLTTracking           *_dltHT;
 
+#if defined(J9VM_OPT_CRIU_SUPPORT)
+   TR::Monitor *_crMonitor;
+   TR_CheckpointStatus _checkpointStatus;
+#endif
+
    TR::Monitor *_vlogMonitor;
    TR::Monitor *_rtlogMonitor;
    TR::Monitor *_iprofilerBufferArrivalMonitor;
-   TR::Monitor *_applicationThreadMonitor;
    TR::MonitorTable *_j9MonitorTable; // used only for RAS (debuggerExtensions); no accessor; use TR_J9MonitorTable::get() everywhere else
    TR_LinkHead0<TR_ClassHolder> _classesToCompileList; // used by compileClasses; adjusted by unload hooks
    intptr_t               _numSyncCompilations;
@@ -1232,6 +1415,7 @@ private:
 #ifdef DEBUG
    bool                   _traceCompiling;
 #endif
+   bool                   _isInShutdownMode;
    int32_t                _numCompThreads; // Number of usable compilation threads that does not include the diagnostic thread
    int32_t                _numDiagnosticThreads;
    int32_t                _iprofilerMaxCount;
@@ -1264,7 +1448,7 @@ private:
    // It is reset when a compilation thread is suspended, thus possibly
    // freeing scratch segments it holds to
    bool _suspendThreadDueToLowPhysicalMemory;
-   TR_InterpreterSamplingTracking *_interpSamplTrackingInfo;
+   TR_InterpreterSamplingTracking *_interpSampleTrackingInfo;
 
 #if defined(J9VM_OPT_JITSERVER)
    ClientSessionHT               *_clientSessionHT; // JITServer hashtable that holds session information about JITClients

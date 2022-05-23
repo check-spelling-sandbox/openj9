@@ -52,7 +52,7 @@ public class DumpSegregatedStatsCommand extends Command
 {
 	public DumpSegregatedStatsCommand()
 	{
-		addCommand("dumpsegregatedstats", "", "Print segregated heap statistics, similiar to -XXgc:gcbugheap");
+		addCommand("dumpsegregatedstats", "", "Print segregated heap statistics, similar to -XXgc:gcbugheap");
 	}
 	
 	/**

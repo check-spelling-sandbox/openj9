@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2001, 2021 IBM Corp. and others
+ * Copyright (c) 2001, 2022 IBM Corp. and others
  *
  * This program and the accompanying materials are made available under
  * the terms of the Eclipse Public License 2.0 which accompanies this
@@ -35,6 +35,7 @@
 #include "exelib_api.h"
 #include "j9exelibnls.h"
 #include "j9arch.h"
+#include "jvminit.h"
 #include <string.h>
 #include <stdlib.h>
 #include <ctype.h>
@@ -180,10 +181,10 @@ static BOOLEAN parseGCPolicy(char *buffer, int *value);
  */
 static void
 truncatePath(char *inputPath, BOOLEAN keepSlashChar) {
-	char *lastOccurence = strrchr(inputPath, DIR_SLASH_CHAR);
+	char *lastOccurrence = strrchr(inputPath, DIR_SLASH_CHAR);
 	/* strrchr() returns NULL if it cannot find the character */
-	if (NULL != lastOccurence) {
-		lastOccurence[keepSlashChar ? 1 : 0] = '\0';
+	if (NULL != lastOccurrence) {
+		lastOccurrence[keepSlashChar ? 1 : 0] = '\0';
 	}
 }
 
@@ -475,24 +476,24 @@ checkEnvOptions(char *envOptions, int *gcPolicy, char **xcompressedstr, char **x
 		parseGCPolicy(gcPolicyString + LENGTH_GC_POLICY_OPTION, gcPolicy);
 	}
 
-	if (hasEnvOption(envOptions, "-Xcompressedrefs")) {
+	if (hasEnvOption(envOptions, VMOPT_XCOMPRESSEDREFS)) {
 		xcompressed = 0;
-		*xcompressedstr = "-Xcompressedrefs";
+		*xcompressedstr = VMOPT_XCOMPRESSEDREFS;
 	}
-	if (hasEnvOption(envOptions, "-XX:+UseCompressedOops")) {
+	if (hasEnvOption(envOptions, VMOPT_XXUSECOMPRESSEDOOPS)) {
 		xcompressed = 0;
-		*xcompressedstr = "-XX:+UseCompressedOops";
+		*xcompressedstr = VMOPT_XXUSECOMPRESSEDOOPS;
 	}
-	if (hasEnvOption(envOptions, "-Xnocompressedrefs")) {
+	if (hasEnvOption(envOptions, VMOPT_XNOCOMPRESSEDREFS)) {
 		xnocompressed = 0;
-		*xnocompressedstr = "-Xnocompressedrefs";
+		*xnocompressedstr = VMOPT_XNOCOMPRESSEDREFS;
 	}
-	if (hasEnvOption(envOptions, "-XX:-UseCompressedOops")) {
+	if (hasEnvOption(envOptions, VMOPT_XXNOUSECOMPRESSEDOOPS)) {
 		xnocompressed = 0;
-		*xnocompressedstr = "-XX:-UseCompressedOops";
+		*xnocompressedstr = VMOPT_XXNOUSECOMPRESSEDOOPS;
 	}
 	
-	*xjvmstr = strstr(envOptions, "-Xjvm:");
+	*xjvmstr = strstr(envOptions, VMOPT_XJVM);
 	if (NULL != *xjvmstr) {
 		char *space = NULL;
 
@@ -565,13 +566,13 @@ chooseJVM(JavaVMInitArgs *args, char *retBuffer, size_t bufferLength)
 	}
 
 	for( i=0; i < args->nOptions; i++ ) {
-		if ( 0 == strcmp(args->options[i].optionString, "-Xcompressedrefs") || 0 == strcmp(args->options[i].optionString, "-XX:+UseCompressedOops") ) {
+		if ( 0 == strcmp(args->options[i].optionString, VMOPT_XCOMPRESSEDREFS) || 0 == strcmp(args->options[i].optionString, VMOPT_XXUSECOMPRESSEDOOPS) ) {
 			xcompressed = i+1;
 			xcompressedstr = args->options[i].optionString;
-		} else if( 0 == strcmp(args->options[i].optionString, "-Xnocompressedrefs")  || 0 == strcmp(args->options[i].optionString, "-XX:-UseCompressedOops") ) {
+		} else if( 0 == strcmp(args->options[i].optionString, VMOPT_XNOCOMPRESSEDREFS)  || 0 == strcmp(args->options[i].optionString, VMOPT_XXNOUSECOMPRESSEDOOPS) ) {
 			xnocompressed = i+1;
 			xnocompressedstr = args->options[i].optionString;
-		} else if( 0 == strncmp(args->options[i].optionString, "-Xjvm:", 6) ) {
+		} else if( 0 == strncmp(args->options[i].optionString, VMOPT_XJVM, 6) ) {
 			if ( (NULL != xjvmstr) && (0 != strcmp(xjvmstr, args->options[i].optionString)) ) {
 				fprintf( stdout, "incompatible options specified: %s %s\n", xjvmstr, args->options[i].optionString );
 				exit(-1);
@@ -910,23 +911,28 @@ JNI_GetDefaultJavaVMInitArgs(void *vm_args)
 	if(globalInitArgs) {
 		return globalInitArgs(vm_args);
 	} else {
-		UDATA jniVersion = (UDATA)((JDK1_1InitArgs *)vm_args)->version;
+		jint jniVersion = ((JavaVMInitArgs *)vm_args)->version;
 
-		if ((jniVersion == JNI_VERSION_1_2)
-			|| (jniVersion == JNI_VERSION_1_4)
-			|| (jniVersion == JNI_VERSION_1_6)
-			|| (jniVersion == JNI_VERSION_1_8)
+		switch (jniVersion) {
+		case JNI_VERSION_1_1:
+#if defined(OPENJ9_BUILD)
+			((JDK1_1InitArgs *)vm_args)->javaStackSize = J9_OS_STACK_SIZE;
+#endif /* defined(OPENJ9_BUILD) */
+			break;
+		case JNI_VERSION_1_2:
+		case JNI_VERSION_1_4:
+		case JNI_VERSION_1_6:
+		case JNI_VERSION_1_8:
 #if JAVA_SPEC_VERSION >= 9
-			|| (jniVersion == JNI_VERSION_9)
+		case JNI_VERSION_9:
 #endif /* JAVA_SPEC_VERSION >= 9 */
 #if JAVA_SPEC_VERSION >= 10
-			|| (jniVersion == JNI_VERSION_10)
+		case JNI_VERSION_10:
 #endif /* JAVA_SPEC_VERSION >= 10 */
-		) {
 			return JNI_OK;
-		} else {
-			return JNI_EVERSION;
 		}
+
+		return JNI_EVERSION;
 	}
 }
 
@@ -1411,10 +1417,10 @@ findDirContainingFile(J9StringBuffer *buffer, char *paths, char pathSeparator, c
 }
 
 J9StringBuffer*
-findDirUplevelToDirContainingFile(J9StringBuffer *buffer, char *pathEnvar, char pathSeparator, char *fileInPath, int upLevels)
+findDirUplevelToDirContainingFile(J9StringBuffer *buffer, char *pathEnvVar, char pathSeparator, char *fileInPath, int upLevels)
 {
 	/* Get the list of paths */
-	char *paths = getenv(pathEnvar);
+	char *paths = getenv(pathEnvVar);
 	if (NULL == paths) {
 		return NULL;
 	}

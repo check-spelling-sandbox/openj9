@@ -196,7 +196,7 @@ public class HashedObject {
 
 	/**
 	 * recursively walk the tree and verify that the current hashcode is the same as the original.
-	 * @return null if all nodes in theis subtree are correct; reference to the failing node if not.
+	 * @return null if all nodes in this subtree are correct; reference to the failing node if not.
 	 */
 	public HashedObject verifyHashCode() {
 		newHash = hashCode();

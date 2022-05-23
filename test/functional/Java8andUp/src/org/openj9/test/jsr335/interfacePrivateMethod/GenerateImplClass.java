@@ -43,15 +43,15 @@ public class GenerateImplClass {
 	 * This class does not declare any methods.
 	 * 
 	 * @param className						Name of the class to be created
-	 * @param implementatedInterfaceName	Array of interfaces which the class implements
+	 * @param implementedInterfaceName	Array of interfaces which the class implements
 	 * @return								byte[] containing bytecodes for the class created
 	 */
-	public static byte[] dump (String className, String[] implementatedInterfaceName) {
+	public static byte[] dump (String className, String[] implementedInterfaceName) {
 
 		ClassWriter cw = new ClassWriter(0);
 		MethodVisitor mv;
 		
-		cw.visit(V1_8, ACC_PUBLIC + ACC_SUPER, className, null, "java/lang/Object", implementatedInterfaceName);
+		cw.visit(V1_8, ACC_PUBLIC + ACC_SUPER, className, null, "java/lang/Object", implementedInterfaceName);
 		{
 			mv = cw.visitMethod(ACC_PUBLIC, "<init>", "()V", null, null);
 			mv.visitCode();
@@ -70,15 +70,15 @@ public class GenerateImplClass {
 	 * This class contains a simple implementation of method <code>public void m()</code>.
 	 * 
 	 * @param className						Name of the class to be created
-	 * @param implementatedInterfaceName	Array of interfaces which the class implements
+	 * @param implementedInterfaceName	Array of interfaces which the class implements
 	 * @return								byte[] containing bytecodes for the class created
 	 */
-	public static byte[] dumpWithDefaultImplementation (String className, String[] implementatedInterfaceName) {
+	public static byte[] dumpWithDefaultImplementation (String className, String[] implementedInterfaceName) {
 
 		ClassWriter cw = new ClassWriter(0);
 		MethodVisitor mv;
 		
-		cw.visit(V1_8, ACC_PUBLIC + ACC_SUPER, className, null, "java/lang/Object", implementatedInterfaceName);
+		cw.visit(V1_8, ACC_PUBLIC + ACC_SUPER, className, null, "java/lang/Object", implementedInterfaceName);
 		{
 			mv = cw.visitMethod(ACC_PUBLIC, "<init>", "()V", null, null);
 			mv.visitCode();

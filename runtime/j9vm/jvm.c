@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2002, 2021 IBM Corp. and others
+ * Copyright (c) 2002, 2022 IBM Corp. and others
  *
  * This program and the accompanying materials are made available under
  * the terms of the Eclipse Public License 2.0 which accompanies this
@@ -68,6 +68,80 @@
 #include "jitserver_error.h"
 #endif /* J9VM_OPT_JITSERVER */
 
+#if defined(AIXPPC)
+#include <procinfo.h>
+#include <sys/types.h>
+#include <unistd.h>
+#endif /* defined(AIXPPC) */
+
+#if defined(J9ZOS390)
+#include <stdlib.h>
+
+/*
+ * These offsets and constants are found in "Language Environment Vendor Interfaces", downloaded from
+ * https://www.ibm.com/servers/resourcelink/svc00100.nsf/pages/zosV2R4SA380688/$file/ceev100_v2r4.pdf
+ */
+#if defined(J9VM_ENV_DATA64)
+#define OFFSET_CAA_CEDB 0x348
+#define OFFSET_CEDB_LANG 0x18
+#else /* defined(J9VM_ENV_DATA64) */
+#define OFFSET_CAA_CEDB 0x218
+#define OFFSET_CEDB_LANG 0x10
+#endif /* defined(J9VM_ENV_DATA64) */
+
+/* An enclave data block should begin with this eye-catcher. */
+#pragma convlit(suspend)
+static const char cedb_eye[4] = "CEDB";
+#pragma convlit(resume)
+
+/*
+ * Determine whether the mainline language is C/C++.
+ */
+static BOOLEAN
+mainlineLanguageIsC(void)
+{
+	BOOLEAN result = FALSE;
+	/* Locate the common anchor area. */
+	const char *caa = (const char *)_gtca();
+	/* Fetch the pointer to the C/C++ environment data block. */
+	const char *cedb = *(const char * const *)(caa + OFFSET_CAA_CEDB);
+
+	/* Do some basic checking of the cedb pointer. */
+	if ((NULL != cedb) && (0 == memcmp(cedb, cedb_eye, sizeof(cedb_eye)))) {
+		int16_t language = *(const int16_t *)(cedb + OFFSET_CEDB_LANG);
+
+		/* The code for C/C++ is 3. */
+		if (3 == language) {
+			result = TRUE;
+		}
+	}
+
+	return result;
+}
+
+struct arg_string
+{
+	uint32_t length; /* length of value, including NUL terminator */
+	char value[];
+};
+
+struct arg_list
+{
+	uint32_t argc; /* number of command-line arguments */
+	uint32_t env_size; /* number of environment variables */
+	const struct arg_string *string[];
+};
+#endif /* defined(J9ZOS390) */
+
+#if defined(OSX)
+#include <sys/types.h>
+#include <sys/sysctl.h>
+#endif /* defined(OSX) */
+
+#if defined(WIN32)
+#include <processenv.h>
+#include <stdlib.h>
+#endif /* defined(WIN32) */
 
 /* Must include this after j9vm_internal.h */
 #include <string.h>
@@ -107,16 +181,12 @@ _syscall5(int, _llseek, uint, fd, ulong, hi, ulong, lo, loff_t *, res, uint, wh)
 /* DIR_SEPARATOR is defined in j9comp.h */
 #define jclSeparator DIR_SEPARATOR
 
-#define CALL_BUNDLED_FUNCTIONS_DIRECTLY 0
-
-#if !CALL_BUNDLED_FUNCTIONS_DIRECTLY
 #define CREATE_JAVA_VM_ENTRYPOINT "J9_CreateJavaVM"
 #define GET_JAVA_VMS_ENTRYPOINT "J9_GetCreatedJavaVMs"
 
 typedef jint (JNICALL *CreateVM)(JavaVM ** p_vm, void ** p_env, J9CreateJavaVMParams *createparams);
 typedef jint (JNICALL *GetVMs)(JavaVM**, jsize, jsize*);
 typedef jint (JNICALL *DetachThread)(JavaVM *);
-#endif /* !CALL_BUNDLED_FUNCTIONS_DIRECTLY */
 
 typedef jint (JNICALL *DestroyVM)(JavaVM *);
 typedef int (*SigAction) (int signum, const struct sigaction *act, struct sigaction *oldact);
@@ -128,7 +198,6 @@ typedef jint (JNICALL *pNewStringPlatform)(JNIEnv*, const char*, jstring *, cons
 typedef jint (JNICALL *p_a2e_vsprintf)(char *, const char *, va_list);
 #endif
 
-#if !CALL_BUNDLED_FUNCTIONS_DIRECTLY
 typedef UDATA* (*ThreadGlobal)(const char* name);
 typedef IDATA (*ThreadAttachEx)(omrthread_t *handle, omrthread_attr_t *attr);
 typedef void (*ThreadDetach)(omrthread_t thread);
@@ -149,7 +218,6 @@ typedef UDATA (*PortGetSize)(struct J9PortLibraryVersion *version);
 typedef I_32 (*PortGetVersion)(struct J9PortLibrary *portLibrary, struct J9PortLibraryVersion *version);
 
 typedef void* (*J9GetInterface)(J9_INTERFACE_SELECTOR interfaceSelector, J9PortLibrary* portLib, void *userData);
-#endif /* !CALL_BUNDLED_FUNCTIONS_DIRECTLY */
 
 #if defined(J9ZOS390)
 #define ZOS_THR_WEIGHT_NOT_FOUND   ((UDATA) 0U)
@@ -177,12 +245,10 @@ static J9StringBuffer * j9libvmBuffer = NULL;
 static J9StringBuffer * j9Buffer = NULL;
 static BOOLEAN jvmInSubdir=TRUE;
 
-#if !CALL_BUNDLED_FUNCTIONS_DIRECTLY
 static CreateVM globalCreateVM;
 static GetVMs globalGetVMs;
 
-static 	J9GetInterface f_j9_GetInterface = NULL;
-#endif /* !CALL_BUNDLED_FUNCTIONS_DIRECTLY */
+static J9GetInterface f_j9_GetInterface = NULL;
 
 static DestroyVM globalDestroyVM;
 
@@ -193,7 +259,6 @@ static pNewStringPlatform globalNewStringPlatform;
 static p_a2e_vsprintf global_a2e_vsprintf;
 #endif
 
-#if !CALL_BUNDLED_FUNCTIONS_DIRECTLY
 static ThreadGlobal f_threadGlobal;
 static ThreadAttachEx f_threadAttachEx;
 static ThreadDetach f_threadDetach;
@@ -211,7 +276,6 @@ static PortGetVersion portGetVersionFn;
 static ThreadLibControl f_threadLibControl;
 static SetCategory f_setCategory;
 static LibEnableCPUMonitor f_libEnableCPUMonitor;
-#endif /* !CALL_BUNDLED_FUNCTIONS_DIRECTLY */
 
 static UDATA monitor = 0;
 static J9InternalVMFunctions globalInvokeInterface;
@@ -279,7 +343,7 @@ static UDATA protectedStrerror(J9PortLibrary* portLib, void* savedErrno);
 static UDATA strerrorSignalHandler(struct J9PortLibrary* portLibrary, U_32 gpType, void* gpInfo, void* userData);
 static void throwNewUnsatisfiedLinkError(JNIEnv *env, char *message);
 static int findDirContainingFile(J9StringBuffer **result, char *paths, char pathSeparator, char *fileToFind, int elementsToSkip);
-static int findDirUplevelToDirContainingFile(J9StringBuffer **result, char *pathEnvar, char pathSeparator, char *fileInPath, int upLevels, int elementsToSkip);
+static int findDirUplevelToDirContainingFile(J9StringBuffer **result, char *pathEnvVar, char pathSeparator, char *fileInPath, int upLevels, int elementsToSkip);
 static void truncatePath(char *inputPath);
 
 #if defined(WIN32)
@@ -452,6 +516,254 @@ static const J9SignalMapping signalMap[] = {
 	{NULL, J9_SIG_ERR}
 };
 
+/*
+ * Attempt to update or remove the value of OPENJ9_JAVA_COMMAND_LINE in the
+ * environment. Passing NULL is equivalent to providing an empty string which
+ * indicates that the environment variable should be removed. The function
+ * returns whether the change was successfully applied.
+ *
+ * @param value the value to be stored; "" or NULL if the variable should be removed
+ *
+ * @return TRUE if successful, FALSE otherwise
+ */
+#if defined(WIN32)
+static BOOLEAN
+storeCommandLine(const wchar_t *value)
+{
+	return 0 == _wputenv_s(L"OPENJ9_JAVA_COMMAND_LINE", (NULL != value) ? value : L"");
+}
+#else /* defined(WIN32) */
+static BOOLEAN
+storeCommandLine(const char *value)
+{
+#if defined(J9ZOS390)
+#pragma convlit(suspend)
+#endif /* defined(J9ZOS390) */
+	return 0 == setenv("OPENJ9_JAVA_COMMAND_LINE", (NULL != value) ? value : "", 1 /* overwrite */);
+#if defined(J9ZOS390)
+#pragma convlit(resume)
+#endif /* defined(J9ZOS390) */
+}
+#endif /* defined(WIN32) */
+
+/*
+ * Attempt to capture the command line of this process in the environment
+ * variable 'OPENJ9_JAVA_COMMAND_LINE'. If the command line is not available,
+ * try to remove that variable to avoid possibly incorrect information.
+ */
+static void
+captureCommandLine(void)
+{
+	BOOLEAN captured = FALSE;
+
+#if defined(AIXPPC)
+	long int bufferSize = sysconf(_SC_ARG_MAX);
+
+	if (bufferSize > 0) {
+		char *buffer = malloc(bufferSize);
+
+		if (NULL != buffer) {
+#if defined(J9VM_ENV_DATA64)
+			struct procsinfo64 info;
+#else /* defined(J9VM_ENV_DATA64) */
+			struct procsinfo info;
+#endif /* defined(J9VM_ENV_DATA64) */
+
+			memset(&info, '\0', sizeof(info));
+			info.pi_pid = getpid();
+
+			if (0 == getargs(&info, sizeof(info), buffer, bufferSize)) {
+				char *cursor = buffer;
+
+				/* replace the internal NULs with spaces */
+				for (;; ++cursor) {
+					if ('\0' == *cursor) {
+						if ('\0' == cursor[1]) {
+							/* the list ends with two NUL characters */
+							break;
+						}
+						*cursor = ' ';
+					}
+				}
+
+				captured = storeCommandLine(buffer);
+			}
+
+			free(buffer);
+		}
+	}
+#elif defined(J9ZOS390) /* defined(AIXPPC) */
+#pragma convlit(suspend)
+	/*
+	 * First, make sure the mainline language is C/C++ which uses parameter passing
+	 * style 3 as described by [1]; other mainlines may use different styles.
+	 *
+	 * [1] https://www.ibm.com/docs/en/zos/2.4.0?topic=formats-c-c-parameter-passing-considerations
+	 */
+	if (mainlineLanguageIsC()) {
+		void *plist = __osplist;
+		if (NULL != plist) {
+			const struct arg_list *args = *(const struct arg_list **)plist;
+			uint32_t argc = args->argc;
+			uint32_t i = 0;
+			size_t length = 0;
+			char *buffer = NULL;
+
+			for (i = 0; i < argc; ++i) {
+				length += args->string[i]->length;
+			}
+
+			buffer = malloc(length);
+			if (NULL != buffer) {
+				char *cursor = buffer;
+
+				for (i = 0; i < argc; ++i) {
+					const struct arg_string *arg = args->string[i];
+					if (0 != i) {
+						*cursor = ' ';
+						cursor += 1;
+					}
+					memcpy(cursor, arg->value, arg->length - 1);
+					cursor += arg->length - 1;
+				}
+
+				*cursor = '\0';
+
+				captured = storeCommandLine(buffer);
+				free(buffer);
+			}
+		}
+	}
+#pragma convlit(resume)
+#elif defined(LINUX) /* defined(AIXPPC) */
+	int fd = open("/proc/self/cmdline", O_RDONLY, 0);
+
+	if (fd >= 0) {
+		char *buffer = NULL;
+		size_t length = 0;
+		for (;;) {
+			char small_buffer[512];
+			ssize_t count = read(fd, small_buffer, sizeof(small_buffer));
+			if (count <= 0) {
+				break;
+			}
+			length += (size_t)count;
+		}
+		if (length < 2) {
+			goto done;
+		}
+		/* final NUL is already included in length */
+		buffer = malloc(length);
+		if (NULL == buffer) {
+			goto done;
+		}
+		if ((off_t)-1 == lseek(fd, 0, SEEK_SET)) {
+			goto done;
+		}
+		if (read(fd, buffer, length) != length) {
+			goto done;
+		}
+		/* replace the internal NULs with spaces */
+		for (length -= 2;; length -= 1) {
+			if (0 == length) {
+				break;
+			}
+			if ('\0' == buffer[length]) {
+				buffer[length] = ' ';
+			}
+		}
+		captured = storeCommandLine(buffer);
+done:
+		if (NULL != buffer) {
+			free(buffer);
+		}
+		close(fd);
+	}
+#elif defined(OSX) /* defined(AIXPPC) */
+	int argmax = 0;
+	size_t length = 0;
+	int mib[3];
+
+	/* query the argument space limit */
+	mib[0] = CTL_KERN;
+	mib[1] = KERN_ARGMAX;
+	length = sizeof(argmax);
+	if (0 == sysctl(mib, 2, &argmax, &length, NULL, 0)) {
+		char *buffer = malloc(argmax);
+
+		if (NULL != buffer) {
+			int argc = 0;
+			int pid = getpid();
+
+			/* query the argument count */
+			mib[0] = CTL_KERN;
+			mib[1] = KERN_PROCARGS2;
+			mib[2] = pid;
+			length = argmax;
+			if ((argmax >= sizeof(argc)) && (0 == sysctl(mib, 3, buffer, &length, NULL, 0))) {
+				memcpy(&argc, buffer, sizeof(argc));
+
+				/* retrieve the arguments */
+				mib[0] = CTL_KERN;
+				mib[1] = KERN_PROCARGS;
+				mib[2] = pid;
+				length = argmax;
+				if (0 == sysctl(mib, 3, buffer, &length, NULL, 0)) {
+					char *cursor = buffer;
+					char *start = NULL;
+					char *limit = buffer + length;
+
+					for (; (cursor < limit) && ('\0' != *cursor); ++cursor) {
+						/* skip past the program path */
+					}
+
+					for (; (cursor < limit) && ('\0' == *cursor); ++cursor) {
+						/* skip past the padding after the program path */
+					}
+
+					/*
+					 * remember the start of the first argument (this is the beginning
+					 * of argv[0] which is often the same as the path we skipped above)
+					 */
+					start = cursor;
+
+					/* replace the internal NULs with spaces */
+					for (; cursor < limit; ++cursor) {
+						if ('\0' == *cursor) {
+							argc -= 1;
+							if (0 == argc) {
+								break;
+							}
+							*cursor = ' ';
+						}
+					}
+
+					captured = storeCommandLine(buffer);
+				}
+			}
+
+			free(buffer);
+		}
+	}
+#elif defined(WIN32) /* defined(AIXPPC) */
+	const wchar_t *commandLine = GetCommandLineW();
+
+	if (NULL != commandLine) {
+		captured = storeCommandLine(commandLine);
+	}
+#endif /* defined(AIXPPC) */
+
+	if (!captured) {
+		/*
+		 * If we were unable to find the command line or store it in the
+		 * environment, try to remove any existing value (which is unlikely
+		 * to be correct). It's not fatal if this fails, so don't bother
+		 * checking.
+		 */
+		storeCommandLine(NULL);
+	}
+}
+
 static void freeGlobals(void)
 {
 	free(newPath);
@@ -557,11 +869,9 @@ jint JNICALL DestroyJavaVM(JavaVM * javaVM)
 static BOOLEAN
 librariesLoaded(void)
 {
-#if !CALL_BUNDLED_FUNCTIONS_DIRECTLY
-	if ((globalCreateVM  == NULL)||(globalGetVMs == NULL)) {
+	if ((NULL == globalCreateVM) || (NULL == globalGetVMs)) {
 		return FALSE;
 	}
-#endif
 	return TRUE;
 }
 
@@ -666,7 +976,6 @@ preloadLibraries(void)
 	DBG_MSG(("j9libvmBuffer = <%s>\n", jvmBufferData(j9libvmBuffer)));
 	DBG_MSG(("j9Buffer      = <%s>\n", jvmBufferData(j9Buffer)));
 
-#if !CALL_BUNDLED_FUNCTIONS_DIRECTLY
 	vmDLL = (HINSTANCE) preloadLibrary(vmDllName, TRUE);
 	preloadLibrary(J9_HOOKABLE_DLL_NAME, TRUE);
 
@@ -721,7 +1030,6 @@ preloadLibraries(void)
 	}
 	preloadLibrary(J9_ZIP_DLL_NAME, TRUE);
 
-#endif /* !CALL_BUNDLED_FUNCTIONS_DIRECTLY */
 	/* CMVC 152702: with other JVM on the path this library can get loaded from the wrong
 	 * location if not preloaded. */
 	return TRUE;
@@ -1232,6 +1540,7 @@ typedef struct J9SpecialArguments {
 	UDATA *argEncoding;
 	IDATA *ibmMallocTraceSet;
 	const char *executableJarPath;
+	BOOLEAN captureCommandLine;
 } J9SpecialArguments;
 /**
  * Look for special options:
@@ -1277,6 +1586,10 @@ initialArgumentScan(JavaVMInitArgs *args, J9SpecialArguments *specialArgs)
 			*(specialArgs->argEncoding) = ARG_ENCODING_UTF;
 		} else if (0 == strcmp(args->options[argCursor].optionString, VMOPT_XARGENCODINGLATIN)) {
 			*(specialArgs->argEncoding) = ARG_ENCODING_LATIN;
+		} else if (0 == strcmp(args->options[argCursor].optionString, VMOPT_XXOPENJ9COMMANDLINEENV)) {
+			specialArgs->captureCommandLine = TRUE;
+		} else if (0 == strcmp(args->options[argCursor].optionString, VMOPT_XXNOOPENJ9COMMANDLINEENV)) {
+			specialArgs->captureCommandLine = FALSE;
 		}
 	}
 
@@ -1643,19 +1956,27 @@ JNI_CreateJavaVM_impl(JavaVM **pvm, void **penv, void *vm_args, BOOLEAN isJITSer
 	specialArgs.argEncoding = &argEncoding;
 	specialArgs.executableJarPath = NULL;
 	specialArgs.ibmMallocTraceSet = &ibmMallocTraceSet;
+	specialArgs.captureCommandLine = TRUE;
+#if defined(J9ZOS390)
+	/*
+	 * Temporarily disable capturing the command line on z/OS.
+	 * See the discussion in https://github.com/eclipse-openj9/openj9/pull/14634.
+	 */
+	specialArgs.captureCommandLine = FALSE;
+#endif /* defined(J9ZOS390) */
 #ifdef J9ZTPF
 
-    result = tpf_eownrc(TPF_SET_EOWNR, "IBMRT4J                        ");
+	result = tpf_eownrc(TPF_SET_EOWNR, "IBMRT4J                        ");
 
-    if (result < 0)  {
-        fprintf(stderr, "Failed to issue tpf_eownrc.");
-        return JNI_ERR;
-    }
-    result = tmslc(TMSLC_ENABLE+TMSLC_HOLD, "IBMRT4J");
-    if (result < 0)  {
-        fprintf(stderr, "Failed to start time slicing.");
-        return JNI_ERR;
-    }
+	if (result < 0)  {
+		fprintf(stderr, "Failed to issue tpf_eownrc.");
+		return JNI_ERR;
+	}
+	result = tmslc(TMSLC_ENABLE+TMSLC_HOLD, "IBMRT4J");
+	if (result < 0)  {
+		fprintf(stderr, "Failed to start time slicing.");
+		return JNI_ERR;
+	}
 #endif /* defined(J9ZTPF) */
 	/*
 	 * Linux uses LD_LIBRARY_PATH
@@ -1776,24 +2097,14 @@ JNI_CreateJavaVM_impl(JavaVM **pvm, void **penv, void *vm_args, BOOLEAN isJITSer
 	printf("cwd = %s\n", cwd);
 #endif
 
-#if CALL_BUNDLED_FUNCTIONS_DIRECTLY
-	if (0 != omrthread_attach_ex(&attachedThread, J9THREAD_ATTR_DEFAULT)) {
-		result = JNI_ERR;
-	}
-#else /* CALL_BUNDLED_FUNCTIONS_DIRECTLY */
 	if (0 != f_threadAttachEx(&attachedThread, J9THREAD_ATTR_DEFAULT)) {
 		result = JNI_ERR;
 	}
-#endif /* CALL_BUNDLED_FUNCTIONS_DIRECTLY */
 	if (JNI_OK != result) {
 		goto exit;
 	}
 
-#if CALL_BUNDLED_FUNCTIONS_DIRECTLY
-	omrthread_lib_enable_cpu_monitor(attachedThread);
-#else /* CALL_BUNDLED_FUNCTIONS_DIRECTLY */
 	f_libEnableCPUMonitor(attachedThread);
-#endif /* CALL_BUNDLED_FUNCTIONS_DIRECTLY */
 
 #if defined(J9ZOS390)
 	/*
@@ -1815,33 +2126,21 @@ JNI_CreateJavaVM_impl(JavaVM **pvm, void **penv, void *vm_args, BOOLEAN isJITSer
 	J9PORT_SET_VERSION(&portLibraryVersion, J9PORT_CAPABILITY_MASK);
 
 	expectedLibrarySize = sizeof(J9PortLibrary);
-#if CALL_BUNDLED_FUNCTIONS_DIRECTLY
-	portLibraryInitStatus = j9port_init_library(&j9portLibrary, &portLibraryVersion, expectedLibrarySize);
-#else
 	portLibraryInitStatus = portInitLibrary(&j9portLibrary, &portLibraryVersion, expectedLibrarySize);
-#endif /* CALL_BUNDLED_FUNCTIONS_DIRECTLY */
 
 	if (0 != portLibraryInitStatus) {
 		J9PortLibraryVersion actualVersion;
 		/* port lib init failure */
 		switch (portLibraryInitStatus) {
 		case J9PORT_ERROR_INIT_WRONG_MAJOR_VERSION: {
-#if CALL_BUNDLED_FUNCTIONS_DIRECTLY
-			j9port_getVersion(&j9portLibrary, &actualVersion);
-#else
 			portGetVersionFn(&j9portLibrary, &actualVersion);
-#endif /* CALL_BUNDLED_FUNCTIONS_DIRECTLY */
 
 			fprintf(stderr,"Error: Port Library failed to initialize: expected major version %u, actual version is %u\n",
 					portLibraryVersion.majorVersionNumber, actualVersion.majorVersionNumber);
 			break;
 		}
 		case J9PORT_ERROR_INIT_WRONG_SIZE: {
-#if CALL_BUNDLED_FUNCTIONS_DIRECTLY
-			UDATA actualSize = j9port_getSize(&portLibraryVersion);
-#else
 			UDATA actualSize = portGetSizeFn(&portLibraryVersion);
-#endif /* CALL_BUNDLED_FUNCTIONS_DIRECTLY */
 			fprintf(stderr,"Error: Port Library failed to initialize: expected library size %" OMR_PRIuPTR ", actual size is %" OMR_PRIuPTR "\n",
 					expectedLibrarySize, actualSize);
 			break;
@@ -1867,11 +2166,7 @@ JNI_CreateJavaVM_impl(JavaVM **pvm, void **penv, void *vm_args, BOOLEAN isJITSer
 
 	/* Get the thread library memory categories */
 	{
-#if CALL_BUNDLED_FUNCTIONS_DIRECTLY
-		IDATA threadCategoryResult = omrthread_lib_control(J9THREAD_LIB_CONTROL_GET_MEM_CATEGORIES, (UDATA)&j9MainMemCategorySet);
-#else
 		IDATA threadCategoryResult = f_threadLibControl(J9THREAD_LIB_CONTROL_GET_MEM_CATEGORIES, (UDATA)&j9MainMemCategorySet);
-#endif /* CALL_BUNDLED_FUNCTIONS_DIRECTLY */
 
 		if (threadCategoryResult) {
 			fprintf(stderr,"Error: Couldn't get memory categories from thread library.\n");
@@ -1911,6 +2206,13 @@ JNI_CreateJavaVM_impl(JavaVM **pvm, void **penv, void *vm_args, BOOLEAN isJITSer
 	if (VERBOSE_INIT == localVerboseLevel) {
 		createParams.flags |= J9_CREATEJAVAVM_VERBOSE_INIT;
 	}
+
+	/* [RTC 147146] Allow a Java option to disable capturing command line
+	 * in the OPENJ9_JAVA_COMMAND_LINE environment variable.
+	 */
+	if (specialArgs.captureCommandLine) {
+		captureCommandLine();
+	}
 #if defined(J9VM_OPT_JITSERVER)
 	if (isJITServer) {
 		createParams.flags |= J9_CREATEJAVAVM_START_JITSERVER;
@@ -1942,7 +2244,6 @@ JNI_CreateJavaVM_impl(JavaVM **pvm, void **penv, void *vm_args, BOOLEAN isJITSer
 		vmArgumentsList.head = NULL;
 		vmArgumentsList.tail = NULL;
 		if (NULL != specialArgs.executableJarPath) {
-#if !CALL_BUNDLED_FUNCTIONS_DIRECTLY
 			if (NULL == f_j9_GetInterface) {
 #ifdef WIN32
 				f_j9_GetInterface = (J9GetInterface) GetProcAddress (j9vm_dllHandle, (LPCSTR) "J9_GetInterface");
@@ -1952,9 +2253,6 @@ JNI_CreateJavaVM_impl(JavaVM **pvm, void **penv, void *vm_args, BOOLEAN isJITSer
 			}
 			/* j9binBuffer->data is null terminated */
 			zipFuncs = (J9ZipFunctionTable*) f_j9_GetInterface(IF_ZIPSUP, &j9portLibrary, j9binBuffer->data);
-#else /* CALL_BUNDLED_FUNCTIONS_DIRECTLY */
-			zipFuncs = (J9ZipFunctionTable*) J9_GetInterface(IF_ZIPSUP, &j9portLibrary, j9binBuffer);
-#endif /* CALL_BUNDLED_FUNCTIONS_DIRECTLY */
 #if defined(WIN32)
 			{
 				BOOLEAN conversionSucceed = FALSE;
@@ -2067,11 +2365,7 @@ JNI_CreateJavaVM_impl(JavaVM **pvm, void **penv, void *vm_args, BOOLEAN isJITSer
 	}
 	createParams.vm_args = j9ArgList;
 
-#if CALL_BUNDLED_FUNCTIONS_DIRECTLY
-	result = J9_CreateJavaVM((JavaVM**)&BFUjavaVM, penv, &createParams);
-#else
 	result = globalCreateVM((JavaVM**)&BFUjavaVM, penv, &createParams);
-#endif /* CALL_BUNDLED_FUNCTIONS_DIRECTLY  */
 
 #ifdef DEBUG
 	fprintf(stdout,"Finished, result %d, env %llx\n", result, (long long)*penv);
@@ -2141,23 +2435,13 @@ JNI_CreateJavaVM_impl(JavaVM **pvm, void **penv, void *vm_args, BOOLEAN isJITSer
 		J9JavaVM *env = (J9JavaVM *) BFUjavaVM;
 		J9VMThread *currentThread = env->mainThread;
 		omrthread_t thread = currentThread->osThread;
-#if CALL_BUNDLED_FUNCTIONS_DIRECTLY
-		omrthread_set_category(thread, J9THREAD_CATEGORY_APPLICATION_THREAD, J9THREAD_TYPE_SET_MODIFY);
-#else
 		f_setCategory(thread, J9THREAD_CATEGORY_APPLICATION_THREAD, J9THREAD_TYPE_SET_MODIFY);
-#endif /* CALL_BUNDLED_FUNCTIONS_DIRECTLY */
 	}
 
 exit:
-#if CALL_BUNDLED_FUNCTIONS_DIRECTLY
-	if (NULL != attachedThread) {
-		omrthread_detach(attachedThread);
-	}
-#else /* CALL_BUNDLED_FUNCTIONS_DIRECTLY */
 	if (NULL != attachedThread) {
 		f_threadDetach(attachedThread);
 	}
-#endif /* CALL_BUNDLED_FUNCTIONS_DIRECTLY */
 #if defined(WIN32)
 	if (NULL != executableJarPath) {
 		PORT_ACCESS_FROM_PORT(&j9portLibrary);
@@ -2201,12 +2485,8 @@ JNI_GetCreatedJavaVMs(JavaVM **vmBuf, jsize bufLen, jsize *nVMs)
 	 * However, if the libraries have not already been preloaded then we know that no vms have been created and
 	 * can return the right answer
 	 */
-	if(librariesLoaded()){
-#if CALL_BUNDLED_FUNCTIONS_DIRECTLY
-		result = J9_GetCreatedJavaVMs(vmBuf, bufLen, nVMs);
-#else
+	if (librariesLoaded()) {
 		result = globalGetVMs(vmBuf, bufLen, nVMs);
-#endif /* CALL_BUNDLED_FUNCTIONS_DIRECTLY */
 	} else {
 		/* simply return that there have been no JVMs created */
 		result = JNI_OK;
@@ -2233,9 +2513,14 @@ JNI_GetCreatedJavaVMs(JavaVM **vmBuf, jsize bufLen, jsize *nVMs)
  */
 
 jint JNICALL JNI_GetDefaultJavaVMInitArgs(void *vm_args) {
-	UDATA requestedVersion = (UDATA)((JDK1_1InitArgs *)vm_args)->version;
+	jint requestedVersion = ((JavaVMInitArgs *)vm_args)->version;
 
 	switch (requestedVersion) {
+	case JNI_VERSION_1_1:
+#if defined(OPENJ9_BUILD)
+		((JDK1_1InitArgs *)vm_args)->javaStackSize = J9_OS_STACK_SIZE;
+#endif /* defined(OPENJ9_BUILD) */
+		break;
 	case JNI_VERSION_1_2:
 	case JNI_VERSION_1_4:
 	case JNI_VERSION_1_6:
@@ -2447,12 +2732,12 @@ int findDirContainingFile(J9StringBuffer **result, char *paths, char pathSeparat
 
 
 
-int findDirUplevelToDirContainingFile(J9StringBuffer **result, char *pathEnvar, char pathSeparator, char *fileInPath, int upLevels, int elementsToSkip) {
+int findDirUplevelToDirContainingFile(J9StringBuffer **result, char *pathEnvVar, char pathSeparator, char *fileInPath, int upLevels, int elementsToSkip) {
 	char *paths;
 	int   rc;
 
 	/* Get the list of paths */
-	paths = getenv(pathEnvar);
+	paths = getenv(pathEnvVar);
 	if (!paths) {
 		return FALSE;
 	}
@@ -2469,36 +2754,23 @@ int findDirUplevelToDirContainingFile(J9StringBuffer **result, char *pathEnvar, 
 			truncatePath(jvmBufferData(*result));
 		}
 	}
-   return rc;
+	return rc;
 }
 
 
 void
 exitHook(J9JavaVM *vm)
 {
-#if CALL_BUNDLED_FUNCTIONS_DIRECTLY
-	while (omrthread_monitor_enter(vm->vmThreadListMutex), vm->sidecarExitFunctions)
-#else
-	while (f_monitorEnter(vm->vmThreadListMutex), vm->sidecarExitFunctions)
-#endif /* CALL_BUNDLED_FUNCTIONS_DIRECTLY */
-	{
+	while (f_monitorEnter(vm->vmThreadListMutex), vm->sidecarExitFunctions) {
 		J9SidecarExitFunction * current = vm->sidecarExitFunctions;
 
 		vm->sidecarExitFunctions = current->next;
-#if CALL_BUNDLED_FUNCTIONS_DIRECTLY
-		omrthread_monitor_exit(vm->vmThreadListMutex);
-#else
 		f_monitorExit(vm->vmThreadListMutex);
-#endif /* CALL_BUNDLED_FUNCTIONS_DIRECTLY */
 		current->func();
 		free(current);
 	}
 
-#if CALL_BUNDLED_FUNCTIONS_DIRECTLY
-	omrthread_monitor_exit(vm->vmThreadListMutex);
-#else
 	f_monitorExit(vm->vmThreadListMutex);
-#endif /* CALL_BUNDLED_FUNCTIONS_DIRECTLY */
 }
 
 static void*
@@ -3120,7 +3392,7 @@ testBackupAndRestoreLibpath(void)
 	}
 
 	/* Multiple empty paths plus a single colon at the start stays ahead of the backup path */
-	printf("TESTCASE_17: Multiple empty paths plus a single colon at the start stays ahead of the backup patht\n");
+	printf("TESTCASE_17: Multiple empty paths plus a single colon at the start stays ahead of the backup path\n");
 	setLibpath("x:y");
 	backupLibpath(&bkp, 0);
 	setLibpath(":abc::def::x:y");
@@ -3477,12 +3749,12 @@ strerrorSignalHandler(struct J9PortLibrary* portLibrary, U_32 gpType, void* gpIn
 }
 
 static void
-throwNewUnsatisfiedLinkError(JNIEnv *env, char *message) {
+throwNewUnsatisfiedLinkError(JNIEnv *env, char *message)
+{
 	jclass exceptionClass = (*env)->FindClass(env, "java/lang/UnsatisfiedLinkError");
 	if (NULL != exceptionClass) {
 		(*env)->ThrowNew(env, exceptionClass, message);
- 	}
- 	return;
+	}
 }
 
 /*
@@ -3490,10 +3762,10 @@ throwNewUnsatisfiedLinkError(JNIEnv *env, char *message) {
  */
 static void
 truncatePath(char *inputPath) {
-	char *lastOccurence = strrchr(inputPath, DIR_SEPARATOR);
+	char *lastOccurrence = strrchr(inputPath, DIR_SEPARATOR);
 	/* strrchr() returns NULL if it cannot find the character */
-	if (NULL != lastOccurence) {
-		*lastOccurence = '\0';
+	if (NULL != lastOccurrence) {
+		*lastOccurrence = '\0';
 	}
 }
 
@@ -3523,20 +3795,12 @@ JVM_OnExit(void (*func)(void))
 	if (newFunc) {
 		newFunc->func = func;
 
-#if CALL_BUNDLED_FUNCTIONS_DIRECTLY
-		omrthread_monitor_enter(BFUjavaVM->vmThreadListMutex);
-#else
 		f_monitorEnter(BFUjavaVM->vmThreadListMutex);
-#endif /* CALL_BUNDLED_FUNCTIONS_DIRECTLY */
 
 		newFunc->next = BFUjavaVM->sidecarExitFunctions;
 		BFUjavaVM->sidecarExitFunctions = newFunc;
 
-#if CALL_BUNDLED_FUNCTIONS_DIRECTLY
-		omrthread_monitor_exit(BFUjavaVM->vmThreadListMutex);
-#else
 		f_monitorExit(BFUjavaVM->vmThreadListMutex);
-#endif /* CALL_BUNDLED_FUNCTIONS_DIRECTLY */
 
 		BFUjavaVM->sidecarExitHook = &exitHook;
 	} else {
@@ -3559,11 +3823,8 @@ JVM_OnExit(void (*func)(void))
 void* JNICALL
 JVM_LoadSystemLibrary(const char *libName)
 {
-	JNIEnv *env;
-	char errMsg[512];
-
 #ifdef WIN32
-	UDATA dllHandle;
+	UDATA dllHandle = 0;
 	size_t libNameLen = strlen(libName);
 	UDATA flags = 0;
 
@@ -3582,11 +3843,10 @@ JVM_LoadSystemLibrary(const char *libName)
 		Trc_SC_LoadSystemLibrary_Exit(dllHandle);
 		return (void *)dllHandle;
 	}
-
 #endif
 
 #if defined(J9UNIX) || defined(J9ZOS390)
-	void *dllHandle;
+	void *dllHandle = NULL;
 
 	Trc_SC_LoadSystemLibrary_Entry(libName);
 
@@ -3602,9 +3862,9 @@ JVM_LoadSystemLibrary(const char *libName)
 	 * time. We can then call dlopen() as per normal and the just loaded library will be found.
 	 * */
 	loadAndInit((char *)libName, L_RTLD_LOCAL, NULL);
-#endif
-	dllHandle = dlopen( (char *)libName, RTLD_LAZY );
-	if(NULL != dllHandle ) {
+#endif /* defined(AIXPPC) */
+	dllHandle = dlopen((char *)libName, RTLD_LAZY);
+	if (NULL != dllHandle) {
 		Trc_SC_LoadSystemLibrary_Exit(dllHandle);
 		return dllHandle;
 	}
@@ -3615,11 +3875,13 @@ JVM_LoadSystemLibrary(const char *libName)
 	Trc_SC_LoadSystemLibrary_LoadFailed(libName);
 
 	if (NULL != BFUjavaVM) {
-		JavaVM *vm = (JavaVM *) BFUjavaVM;
-		(*vm)->GetEnv(vm, (void **) &env, JNI_VERSION_1_2);
+		JNIEnv *env = NULL;
+		JavaVM *vm = (JavaVM *)BFUjavaVM;
+		(*vm)->GetEnv(vm, (void **)&env, JNI_VERSION_1_2);
 		if (NULL != env) {
+			char errMsg[512];
 			jio_snprintf(errMsg, sizeof(errMsg), "Failed to load library \"%s\"", libName);
-			errMsg[sizeof(errMsg)-1] = '\0';
+			errMsg[sizeof(errMsg) - 1] = '\0';
 			throwNewUnsatisfiedLinkError(env, errMsg);
 		}
 	}
@@ -3628,40 +3890,45 @@ JVM_LoadSystemLibrary(const char *libName)
 	return NULL;
 }
 
-
-
 /**
- *  void * JNICALL JVM_LoadLibrary(char *libName)
+ * Prior to jdk11:
+ *   void * JNICALL JVM_LoadLibrary(char *libName)
  *
- *	Attempts to load the shared library specified by libName.  If
- *	successful, returns the file handle, otherwise returns NULL.
+ * Beginning in jdk11:
+ *   void * JNICALL JVM_LoadLibrary(char *libName, jboolean throwOnFailure)
  *
- *	@param libName a null terminated string containing the libName.
- *	  For Windows platform, this incoming libName is encoded as J9STR_CODE_WINDEFAULTACP,
- *	  and is required to be converted to J9STR_CODE_MUTF8 for internal usages.
+ * Attempts to load the shared library specified by libName.
+ * If successful, returns the file handle, otherwise returns NULL or throws
+ * UnsatisfiedLinkError if throwOnFailure.
  *
- *	@return the shared library's handle if successful, throws java/lang/UnsatisfiedLinkError on failure
+ * @param libName a null terminated string containing the libName.
+ *   For Windows platform, this incoming libName is encoded as J9STR_CODE_WINDEFAULTACP,
+ *   and is required to be converted to J9STR_CODE_MUTF8 for internal usages.
  *
- *	DLL: jvm
+ * @return the shared library's handle if successful, throws java/lang/UnsatisfiedLinkError on failure
+ *
+ * DLL: jvm
+ *
+ * NOTE this is required by jdk15+ jdk.internal.loader.NativeLibraries.load().
+ * It is only invoked by jdk.internal.loader.BootLoader.loadLibrary().
  */
-
-/* NOTE this is required by JDK15+ jdk.internal.loader.NativeLibraries.load().
- *  it is only invoked by jdk.internal.loader.BootLoader.loadLibrary().
- */
-
-void* JNICALL
+void * JNICALL
+#if JAVA_SPEC_VERSION < 11
 JVM_LoadLibrary(const char *libName)
+#else /* JAVA_SPEC_VERSION < 11 */
+JVM_LoadLibrary(const char *libName, jboolean throwOnFailure)
+#endif /* JAVA_SPEC_VERSION < 11 */
 {
 	void *result = NULL;
-	J9JavaVM *javaVM = (J9JavaVM*)BFUjavaVM;
+	J9JavaVM *javaVM = (J9JavaVM *)BFUjavaVM;
+	PORT_ACCESS_FROM_JAVAVM(javaVM);
 
 #if defined(WIN32)
 	char *libNameConverted = NULL;
 	UDATA libNameLen = strlen(libName);
-	PORT_ACCESS_FROM_JAVAVM(javaVM);
 	UDATA libNameLenConverted = j9str_convert(J9STR_CODE_WINDEFAULTACP, J9STR_CODE_MUTF8, libName, libNameLen, NULL, 0);
 	if (libNameLenConverted > 0) {
-		libNameLenConverted += 1; /* adding an extra byte for null */
+		libNameLenConverted += 1; /* an extra byte for null */
 		libNameConverted = j9mem_allocate_memory(libNameLenConverted, OMRMEM_CATEGORY_VM);
 		if (NULL != libNameConverted) {
 			libNameLenConverted = j9str_convert(J9STR_CODE_WINDEFAULTACP, J9STR_CODE_MUTF8, libName, libNameLen, libNameConverted, libNameLenConverted);
@@ -3674,21 +3941,7 @@ JVM_LoadLibrary(const char *libName)
 	if (libName == libNameConverted) {
 #endif /* defined(WIN32) */
 		Trc_SC_LoadLibrary_Entry(libName);
-		if (NULL == javaVM->applicationClassLoader) {
-			J9NativeLibrary *nativeLibrary = NULL;
-			J9InternalVMFunctions *vmFuncs = javaVM->internalVMFunctions;
-			J9VMThread *currentThread = vmFuncs->currentVMThread(javaVM);
-			Assert_SC_notNull(currentThread);
-			vmFuncs->internalEnterVMFromJNI(currentThread);
-			vmFuncs->internalReleaseVMAccess(currentThread);
-			if (vmFuncs->registerBootstrapLibrary(currentThread, libName, &nativeLibrary, FALSE) == J9NATIVELIB_LOAD_OK) {
-				result = (void*)nativeLibrary->handle;
-			}
-			vmFuncs->internalAcquireVMAccess(currentThread);
-			vmFuncs->internalExitVMToJNI(currentThread);
-			Trc_SC_LoadLibrary_BootStrap(libName);
-		} else {
-			PORT_ACCESS_FROM_JAVAVM(javaVM);
+		{
 			UDATA handle = 0;
 			UDATA flags = J9_ARE_ANY_BITS_SET(javaVM->extendedRuntimeFlags, J9_EXTENDED_RUNTIME_LAZY_SYMBOL_RESOLUTION) ? J9PORT_SLOPEN_LAZY : 0;
 			UDATA slOpenResult = j9sl_open_shared_library((char *)libName, &handle, flags);
@@ -3699,7 +3952,7 @@ JVM_LoadLibrary(const char *libName)
 				Trc_SC_LoadLibrary_OpenShared_Decorate(libName);
 			}
 			if (0 == slOpenResult) {
-				result = (void*)handle;
+				result = (void *)handle;
 			}
 		}
 #if defined(WIN32)
@@ -3708,6 +3961,21 @@ JVM_LoadLibrary(const char *libName)
 		j9mem_free_memory(libNameConverted);
 	}
 #endif /* defined(WIN32) */
+
+#if JAVA_SPEC_VERSION >= 17
+	if ((NULL == result) && throwOnFailure) {
+		JNIEnv *env = NULL;
+		JavaVM *vm = (JavaVM *)javaVM;
+		(*vm)->GetEnv(vm, (void **)&env, JNI_VERSION_1_2);
+		if (NULL != env) {
+			char errMsg[512];
+			jio_snprintf(errMsg, sizeof(errMsg), "Failed to load library \"%s\"", libName);
+			errMsg[sizeof(errMsg) - 1] = '\0';
+			throwNewUnsatisfiedLinkError(env, errMsg);
+		}
+	}
+#endif /* JAVA_SPEC_VERSION >= 17 */
+
 	Trc_SC_LoadLibrary_Exit(result);
 
 	return result;
@@ -4156,9 +4424,9 @@ JVM_Open(const char* filename, jint flags, jint mode)
 
 	doUnlink = (flags & O_TEMPORARY);
 #if !defined(J9ZTPF)
-    flags &= (O_CREAT | O_APPEND | O_RDONLY | O_RDWR | O_TRUNC | O_WRONLY | O_EXCL | O_NOCTTY | O_NONBLOCK | O_NDELAY | O_SYNC | O_DSYNC);
+	flags &= (O_CREAT | O_APPEND | O_RDONLY | O_RDWR | O_TRUNC | O_WRONLY | O_EXCL | O_NOCTTY | O_NONBLOCK | O_NDELAY | O_SYNC | O_DSYNC);
 #else /* !defined(J9ZTPF) */
-    flags &= (O_CREAT | O_APPEND | O_RDONLY | O_RDWR | O_TRUNC | O_WRONLY | O_EXCL | O_NOCTTY | O_NONBLOCK | O_SYNC | O_DSYNC);
+	flags &= (O_CREAT | O_APPEND | O_RDONLY | O_RDWR | O_TRUNC | O_WRONLY | O_EXCL | O_NOCTTY | O_NONBLOCK | O_SYNC | O_DSYNC);
 #endif /* !defined(J9ZTPF) */
 #endif /* defined(J9UNIX) || defined(J9ZOS390) */
 
@@ -4392,7 +4660,7 @@ isSignalReservedByJVM(jint sigNum)
  * via JVM_RegisterSignal.
  *
  * isSignalUsedForShutdown lists all signals characterized as shutdown signals.
- * Do not raise a shutdown signal if the -Xrs or the -Xrs:async cmdnline option
+ * Do not raise a shutdown signal if the -Xrs or the -Xrs:async cmdline option
  * is specified. If a shutdown signal is ignored by the OS, do not raise that
  * shutdown signal. Only raise a shutdown signal if the previous two conditions
  * are false.
@@ -4453,7 +4721,7 @@ JVM_RaiseSignal(jint sigNum)
  *
  * isSignalUsedForShutdown lists all signals characterized as shutdown signals.
  * This function shouldn't register a handler for shutdown signals if
- * the -Xrs or the -Xrs:async cmdnline option is specified. If a shutdown
+ * the -Xrs or the -Xrs:async cmdline option is specified. If a shutdown
  * signal is ignored by the OS, this function shouldn't register a handler
  * for that shutdown signal. Only register a handler for shutdown signals if
  * the previous two conditions are false.
@@ -4777,14 +5045,9 @@ JVM_TraceMethodCalls(jboolean on)
 void JNICALL
 JVM_RawMonitorDestroy(void* mon)
 {
-
 	Trc_SC_RawMonitorDestroy_Entry(mon);
 
-#if CALL_BUNDLED_FUNCTIONS_DIRECTLY
-	omrthread_monitor_destroy((omrthread_monitor_t) mon);
-#else
 	f_monitorDestroy((omrthread_monitor_t) mon);
-#endif /* CALL_BUNDLED_FUNCTIONS_DIRECTLY */
 
 	Trc_SC_RawMonitorDestroy_Exit();
 }
@@ -4801,11 +5064,7 @@ JVM_RawMonitorEnter(void* mon)
 {
 	Trc_SC_RawMonitorEnter_Entry(mon);
 
-#if CALL_BUNDLED_FUNCTIONS_DIRECTLY
-	omrthread_monitor_enter((omrthread_monitor_t)mon);
-#else
 	f_monitorEnter((omrthread_monitor_t)mon);
-#endif /* CALL_BUNDLED_FUNCTIONS_DIRECTLY */
 
 	Trc_SC_RawMonitorEnter_Exit();
 
@@ -4818,15 +5077,12 @@ JVM_RawMonitorEnter(void* mon)
  *
  * @param mon pointer of the monitor
  */
-void JNICALL JVM_RawMonitorExit(void* mon) {
-
+void JNICALL
+JVM_RawMonitorExit(void* mon)
+{
 	Trc_SC_RawMonitorExit_Entry(mon);
 
-#if CALL_BUNDLED_FUNCTIONS_DIRECTLY
-	omrthread_monitor_exit((omrthread_monitor_t)mon);
-#else
 	f_monitorExit((omrthread_monitor_t)mon);
-#endif /* CALL_BUNDLED_FUNCTIONS_DIRECTLY */
 
 	Trc_SC_RawMonitorExit_Exit();
 }
@@ -4844,12 +5100,7 @@ JVM_RawMonitorCreate(void)
 
 	Trc_SC_RawMonitorCreate_Entry();
 
-#if CALL_BUNDLED_FUNCTIONS_DIRECTLY
-	if(omrthread_monitor_init_with_name(&newMonitor, 0, "JVM_RawMonitor"))
-#else
-	if(f_monitorInit(&newMonitor, 0, "JVM_RawMonitor"))
-#endif /* CALL_BUNDLED_FUNCTIONS_DIRECTLY */
-	{
+	if (f_monitorInit(&newMonitor, 0, "JVM_RawMonitor")) {
 		Trc_SC_RawMonitorCreate_Error();
 		printf("error initializing raw monitor\n");
 		exit(1);
@@ -5273,11 +5524,11 @@ JVM_Timeout(jint descriptor, jint timeout)
 #if defined(WIN32)
 	result = select(0, &fdset, 0, 0, &tval);
 #elif defined(J9ZTPF) /* defined(WIN32) */
-        if (-1 == timeout)  {
-                result = select(0, &fdset, 0, 0, NULL);
-        } else  {
-                result = select(0, &fdset, 0, 0, &tval);
-        }
+	if (-1 == timeout)  {
+		result = select(0, &fdset, 0, 0, NULL);
+	} else  {
+		result = select(0, &fdset, 0, 0, &tval);
+	}
 #elif defined(J9UNIX) || defined(J9ZOS390) /* defined(WIN32) */
 	do {
 		crazyCntr--;
@@ -6076,23 +6327,11 @@ setZOSThrWeight(void)
 
 	if (ZOS_THR_WEIGHT_NOT_FOUND != jvmZOSTW) {
 		omrthread_t thandle = NULL;
-		IDATA trc = 0;
-
 		/* Attach so that we can use omrthread_global() below */
-#if CALL_BUNDLED_FUNCTIONS_DIRECTLY
-		trc = omrthread_attach_ex(&thandle, J9THREAD_ATTR_DEFAULT);
-#else
-		trc = f_threadAttachEx(&thandle, J9THREAD_ATTR_DEFAULT);
-#endif /* CALL_BUNDLED_FUNCTIONS_DIRECTLY */
+		IDATA trc = f_threadAttachEx(&thandle, J9THREAD_ATTR_DEFAULT);
 
 		if (0 == trc) {
-			UDATA * gtw = NULL;
-
-#if CALL_BUNDLED_FUNCTIONS_DIRECTLY
-			gtw = omrthread_global("thread_weight");
-#else
-			gtw = f_threadGlobal("thread_weight");
-#endif /* CALL_BUNDLED_FUNCTIONS_DIRECTLY */
+			UDATA *gtw = f_threadGlobal("thread_weight");
 
 			if (NULL != gtw) {
 				if (ZOS_THR_WEIGHT_HEAVY == jvmZOSTW) {
@@ -6103,11 +6342,7 @@ setZOSThrWeight(void)
 				success = TRUE;
 			}
 
-#if CALL_BUNDLED_FUNCTIONS_DIRECTLY
-			omrthread_detach(thandle);
-#else
 			f_threadDetach(thandle);
-#endif /* CALL_BUNDLED_FUNCTIONS_DIRECTLY */
 		}
 	} else {
 		success = TRUE;
@@ -6154,4 +6389,3 @@ JVM_BeforeHalt()
 {
 	/* To be implemented via https://github.com/eclipse-openj9/openj9/issues/1459 */
 }
-

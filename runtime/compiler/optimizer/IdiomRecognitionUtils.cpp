@@ -716,7 +716,7 @@ getThreeNodesForArray(TR_CISCNode *top, TR_CISCNode **ixloadORstore, TR_CISCNode
 
 
 //*****************************************************************************************
-// It returns isDcrement and modification length by analyzing if-opcode
+// It returns isDecrement and modification length by analyzing if-opcode
 //*****************************************************************************************
 bool
 testExitIF(int opcode, bool *isDecrement, int32_t *modLength, int32_t *modStartIdx)

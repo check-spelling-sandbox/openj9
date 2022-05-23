@@ -1,5 +1,5 @@
 //*******************************************************************************
-// Copyright (c) 2021, 2021 IBM Corp. and others
+// Copyright (c) 2021, 2022 IBM Corp. and others
 //
 // This program and the accompanying materials are made available under
 // the terms of the Eclipse Public License 2.0 which accompanies this
@@ -29,3 +29,11 @@ TraceAssert=Assert_CRIU_false noEnv Overhead=1 Level=1 Assert="!(P1)"
 TraceAssert=Assert_CRIU_notNull noEnv Overhead=1 Level=1 Assert="(P1) != NULL"
 TraceAssert=Assert_CRIU_mustHaveVMAccess noEnv Overhead=1 Level=1 Assert="(P1)->publicFlags & J9_PUBLIC_FLAGS_VM_ACCESS"
 TraceAssert=Assert_CRIU_mustNotHaveVMAccess noEnv Overhead=1 Level=1 Assert="0 == ((P1)->publicFlags & J9_PUBLIC_FLAGS_VM_ACCESS)"
+
+TraceException=Trc_CRIU_getNativeString_getStringSizeFail Overhead=1 Level=1 Template="Failed to get Java string size: mutf8String=%s mutf8StringSize=%zu"
+TraceException=Trc_CRIU_getNativeString_convertFail Overhead=1 Level=1 Template="Failed to convert Java string: mutf8String=%s mutf8StringSize=%zu requiredConvertedStringSize=%zd"
+
+TraceEvent=Trc_CRIU_before_checkpoint Overhead=1 Level=2 Template="Before checkpoint criu_dump(), beforeCheckpoint = %lld"
+TraceEvent=Trc_CRIU_after_checkpoint Overhead=1 Level=2 Template="After checkpoint criu_dump(), afterRestore = %lld, checkpointRestoreTimeDelta = %lld"
+TraceEntry=Trc_CRIU_checkpointJVMImpl_Entry Overhead=1 Level=2 Template="Java_org_eclipse_openj9_criu_CRIUSupport_checkpointJVMImpl"
+TraceExit=Trc_CRIU_checkpointJVMImpl_Exit Overhead=1 Level=2 Template="Java_org_eclipse_openj9_criu_CRIUSupport_checkpointJVMImpl"

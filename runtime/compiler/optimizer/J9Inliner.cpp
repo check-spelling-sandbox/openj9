@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2000, 2021 IBM Corp. and others
+ * Copyright (c) 2000, 2022 IBM Corp. and others
  *
  * This program and the accompanying materials are made available under
  * the terms of the Eclipse Public License 2.0 which accompanies this
@@ -48,8 +48,11 @@
 #include "runtime/J9Profiler.hpp"
 #include "runtime/J9ValueProfiler.hpp"
 #include "codegen/CodeGenerator.hpp"
+#include "ilgen/J9ByteCode.hpp"
+#include "ilgen/J9ByteCodeIterator.hpp"
 
 #define OPT_DETAILS "O^O INLINER: "
+const float MIN_PROFILED_CALL_FREQUENCY = (.65f); // lowered this from .80f since opportunities were being missed in WAS; in those cases getting rid of the call even in 65% of the cases was beneficial probably due to the improved icache impact
 
 extern int32_t          *NumInlinedMethods;  // Defined in Inliner.cpp
 extern int32_t          *InlinedSizes;       // Defined in Inliner.cpp
@@ -542,6 +545,33 @@ TR_OpaqueClassBlock* TR_J9VirtualCallSite::getClassFromMethod ()
    return _initialCalleeMethod->classOfMethod();
    }
 
+// Ensure the call site is a basic invokevirtual; the bytecode is an 'invokevirtual' and the
+// cpIndex is the same as the call site _cpIndex. This will insure that the call site is not
+// some type of transformed call site that may not be a valid case for allowing an isInstanceOf()
+// call during AOT compiles
+bool TR_J9VirtualCallSite::isBasicInvokeVirtual()
+   {
+   TR_OpaqueMethodBlock *method = ((TR_ResolvedJ9Method*)_initialCalleeMethod->owningMethod())->getPersistentIdentifier();
+   int32_t methodSize = TR::Compiler->mtd.bytecodeSize(method);
+   uintptr_t methodStart = TR::Compiler->mtd.bytecodeStart(method);
+
+   TR_ASSERT_FATAL(_bcInfo.getByteCodeIndex() >= 0 && _bcInfo.getByteCodeIndex()+2 < methodSize, "Bytecode index can't be less than zero or higher than the methodSize");
+
+   uint8_t *pc = (uint8_t *)(methodStart + _bcInfo.getByteCodeIndex());
+   TR_J9ByteCode bytecode = TR_J9ByteCodeIterator::convertOpCodeToByteCodeEnum(*pc);
+   //fprintf( stderr, "method %p, size %d, start %p, PC %p, BC: %d==%d? (%d)\n", method, methodSize, methodStart, pc, bytecode, J9BCinvokevirtual, (bytecode==J9BCinvokevirtual));
+   if (bytecode==J9BCinvokevirtual)
+      {
+      uint16_t cpIndex = *(uint16_t*)(pc + 1);
+      //fprintf( stderr, "BC cpIndex %d, callSite cpIndex %d\n", cpIndex, _cpIndex );
+      if (_cpIndex==cpIndex)
+         {
+         return true;
+         }
+      }
+   return false;
+   }
+
 bool TR_J9VirtualCallSite::findCallSiteTarget(TR_CallStack *callStack, TR_InlinerBase* inliner)
    {
    if (hasFixedTypeArgInfo())
@@ -570,34 +600,60 @@ bool TR_J9VirtualCallSite::findCallSiteTarget(TR_CallStack *callStack, TR_Inline
    // When we have an invokevirtual on an abstract method defined in an interface class,
    // the call site's class will be more concrete than class of method.
    // This happens when an abstract class implements an interface class without providing
-   // implementation for the given method, and the call site is refering to the method of
+   // implementation for the given method, and the call site is referring to the method of
    // the abstract class, the cp entry of the method ref will be resolved to j9method of
    // the interface class. However, the class ref from cp will be resolved to the abstract
    // class, which is more concrete
    //
-   if (_cpIndex != -1 && _receiverClass && TR::Compiler->cls.isInterfaceClass(comp(), _receiverClass))
+   if (_cpIndex != -1 && _receiverClass && TR::Compiler->cls.isInterfaceClass(comp(), _receiverClass) && isBasicInvokeVirtual())
       {
       TR_ResolvedMethod* owningMethod = _initialCalleeMethod->owningMethod();
-      int32_t classRefCPIndex = owningMethod->classCPIndexOfMethod(_cpIndex);
-      TR_OpaqueClassBlock* callSiteClass = owningMethod->getClassFromConstantPool(comp(), classRefCPIndex);
-      if (callSiteClass &&
-          callSiteClass != _receiverClass &&
-          fe()->isInstanceOf(callSiteClass, _receiverClass, true, true, false) == TR_yes)
+      TR_ResolvedJ9Method* j9OwningMethod = (TR_ResolvedJ9Method*)owningMethod;
+      int32_t nameLen=0, sigLen=0;
+      char *cpMethodName = j9OwningMethod->getMethodNameFromConstantPool(_cpIndex, nameLen);
+      char *cpMethodSig  = j9OwningMethod->getMethodSignatureFromConstantPool(_cpIndex, sigLen);
+      char *methodName   = _initialCalleeMethod->nameChars();
+      char *methodSig    = _initialCalleeMethod->signatureChars();
+      if (nameLen && nameLen == _initialCalleeMethod->nameLength() && sigLen && sigLen == _initialCalleeMethod->signatureLength() &&
+         strncmp(cpMethodName, methodName, nameLen)==0 && strncmp(cpMethodSig, methodSig, sigLen)==0)
          {
-         if (comp()->trace(OMR::inlining))
+         int32_t classRefCPIndex = owningMethod->classCPIndexOfMethod(_cpIndex);
+         TR_OpaqueClassBlock* callSiteClass = owningMethod->getClassFromConstantPool(comp(), classRefCPIndex, true);
+         if (callSiteClass && callSiteClass != _receiverClass)
             {
-            char* oldClassSig = TR::Compiler->cls.classSignature(comp(), _receiverClass, comp()->trMemory());
-            char* callSiteClassSig = TR::Compiler->cls.classSignature(comp(), callSiteClass, comp()->trMemory());
-            traceMsg(comp(), "Receiver type %p sig %s is class of an interface method for invokevirtual, improve it to call site receiver type %p sig %s\n", _receiverClass, oldClassSig, callSiteClass, callSiteClassSig);
-            }
+            if (comp()->fej9()->isJavaLangObject(callSiteClass))
+               _isCallingObjectMethod = TR_yes;
+            else
+               {
+               // Verify subtyping against the defining interface rather than
+               // _receiverClass, since the latter could have been refined to a
+               // more specific interface.
+               TR_OpaqueClassBlock *defInterface = getClassFromMethod();
+               TR_YesNoMaybe callSiteClassOk = fe()->isInstanceOf(
+                  callSiteClass, defInterface, true, true, true);
 
-         // Update receiver class
-         _receiverClass = callSiteClass;
+               TR_ASSERT_FATAL(
+                  callSiteClassOk == TR_yes,
+                  "class %p inherits a method from interface %p without implementing it",
+                  callSiteClass,
+                  defInterface);
+
+               _isCallingObjectMethod = TR_no;
+               if (comp()->trace(OMR::inlining))
+                  {
+                  char* oldClassSig = TR::Compiler->cls.classSignature(comp(), _receiverClass, comp()->trMemory());
+                  char* callSiteClassSig = TR::Compiler->cls.classSignature(comp(), callSiteClass, comp()->trMemory());
+                  traceMsg(comp(), "Receiver type %p sig %s is class of an interface method for invokevirtual, improve it to call site receiver type %p sig %s\n", _receiverClass, oldClassSig, callSiteClass, callSiteClassSig);
+                  }
+               // Update receiver class
+               _receiverClass = callSiteClass;
+               }
+            }
          }
       }
 
-   if (addTargetIfMethodIsNotOverriden(inliner) ||
-      addTargetIfMethodIsNotOverridenInReceiversHierarchy(inliner) ||
+   if (addTargetIfMethodIsNotOverridden(inliner) ||
+      addTargetIfMethodIsNotOverriddenInReceiversHierarchy(inliner) ||
       findCallSiteForAbstractClass(inliner) ||
       addTargetIfThereIsSingleImplementer(inliner))
       {
@@ -623,7 +679,7 @@ static TR_ResolvedMethod * findSingleImplementer(
       }
 
    TR_ResolvedMethod *implArray[2]; // collect maximum 2 implementers if you can
-   int32_t implCount = TR_ClassQueries::collectImplementorsCapped(classInfo, implArray, 2, cpIndexOrVftSlot, callerMethod, comp, locked, useGetResolvedInterfaceMethod);
+   int32_t implCount = TR_ClassQueries::collectImplementersCapped(classInfo, implArray, 2, cpIndexOrVftSlot, callerMethod, comp, locked, useGetResolvedInterfaceMethod);
    return (implCount == 1 ? implArray[0] : 0);
    }
 */
@@ -658,7 +714,7 @@ bool TR_J9InterfaceCallSite::findCallSiteTarget (TR_CallStack *callStack, TR_Inl
    if (!_receiverClass)
       {
       int32_t len = _interfaceMethod->classNameLength();
-      char * s = classNameToSignature(_interfaceMethod->classNameChars(), len, comp());
+      char * s = TR::Compiler->cls.classNameToSignature(_interfaceMethod->classNameChars(), len, comp());
       _receiverClass = comp()->fej9()->getClassFromSignature(s, len, _callerResolvedMethod, true);
       }
 
@@ -689,7 +745,7 @@ bool TR_J9InterfaceCallSite::findCallSiteTarget (TR_CallStack *callStack, TR_Inl
 TR_OpaqueClassBlock* TR_J9InterfaceCallSite::getClassFromMethod ()
    {
    int32_t len = _interfaceMethod->classNameLength();
-   char * s = classNameToSignature(_interfaceMethod->classNameChars(), len, comp());
+   char * s = TR::Compiler->cls.classNameToSignature(_interfaceMethod->classNameChars(), len, comp());
    return comp()->fej9()->getClassFromSignature(s, len, _callerResolvedMethod, true);
    }
 
@@ -960,6 +1016,14 @@ void TR_ProfileableCallSite::findSingleProfiledReceiver(ListIterator<TR_ExtraAdd
          {
          TR_OpaqueClassBlock* callSiteClass = _receiverClass ? _receiverClass : getClassFromMethod();
 
+         if (callSiteClass && !isInterface() && TR::Compiler->cls.isInterfaceClass(comp(), callSiteClass) && isCallingObjectMethod() != TR_yes)
+            {
+            // TR_J9VirtualCallSite::findCallSiteTarget() should have refined the _receiverClass, but it must have failed, we need to abort this inlining
+            if (comp()->trace(OMR::inlining))
+               traceMsg(comp(), "inliner: callSiteClass [%p] is an interface making it impossible to confirm correct context of the profiled class [%p]\n", callSiteClass, tempreceiverClass);
+            callSiteClass = 0;
+            }
+
          bool profiledClassIsNotInstanceOfCallSiteClass = true;
          if (callSiteClass)
             {
@@ -1015,7 +1079,7 @@ void TR_ProfileableCallSite::findSingleProfiledReceiver(ListIterator<TR_ExtraAdd
                 !fej9->canRememberClass(callSiteClass))
                {
                if (comp()->trace(OMR::inlining))
-                  traceMsg(comp(), "inliner: profiled class [%p] or callSiteClass [%p] cannot be rememberd in shared cache\n", tempreceiverClass, callSiteClass);
+                  traceMsg(comp(), "inliner: profiled class [%p] or callSiteClass [%p] cannot be remembered in shared cache\n", tempreceiverClass, callSiteClass);
                continue;
                }
             }
@@ -1030,7 +1094,7 @@ void TR_ProfileableCallSite::findSingleProfiledReceiver(ListIterator<TR_ExtraAdd
          // don't apply the optimization
          TR_ByteCodeInfo &bcInfo = _bcInfo;  //callNode->getByteCodeInfo();
          if (valueInfo->getTopProbability() == 1.0f && valueInfo->getProfiler()->getSource() < LastProfiler)
-            guard->setIsHighProbablityProfiledGuard();
+            guard->setIsHighProbabilityProfiledGuard();
 
          heuristicTrace(inliner->tracer(),"Creating a profiled call. callee Symbol %p frequencyadjustment %f",_initialCalleeSymbol, val);
          addTarget(comp()->trMemory(),inliner,guard,targetMethod,tempreceiverClass,heapAlloc,val);
@@ -1064,8 +1128,14 @@ void TR_ProfileableCallSite::findSingleProfiledMethod(ListIterator<TR_ExtraAddre
       return;
       }
    TR_OpaqueClassBlock* callSiteClass = _receiverClass ? _receiverClass : getClassFromMethod();
-   if (!callSiteClass)
+   TR_ASSERT_FATAL(!isInterface(), "Interface call site called TR_ProfileableCallSite::findSingleProfiledMethod()");
+   if (!callSiteClass || (TR::Compiler->cls.isInterfaceClass(comp(), callSiteClass) && isCallingObjectMethod() != TR_yes))
+      {
+      // TR_J9VirtualCallSite::findCallSiteTarget() should refine the _receiverClass, but if it failed, we need to abort this inlining
+      if (callSiteClass && comp()->trace(OMR::inlining))
+         traceMsg(comp(), "callSiteClass [%p] is an interface making it impossible to confirm correct context for any profiled class\n", callSiteClass);
       return;
+      }
 
    // first let's do sanity test on all profiled targets
    if (comp()->trace(OMR::inlining))

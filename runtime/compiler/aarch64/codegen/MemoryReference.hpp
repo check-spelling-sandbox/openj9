@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2019, 2020 IBM Corp. and others
+ * Copyright (c) 2019, 2022 IBM Corp. and others
  *
  * This program and the accompanying materials are made available under
  * the terms of the Eclipse Public License 2.0 which accompanies this
@@ -23,6 +23,7 @@
 #ifndef TR_MEMORYREFERENCE_INCL
 #define TR_MEMORYREFERENCE_INCL
 
+#include "codegen/ARM64ShiftCode.hpp"
 #include "codegen/J9MemoryReference.hpp"
 
 namespace TR { class Snippet; }
@@ -32,7 +33,7 @@ namespace TR
 
 class OMR_EXTENSIBLE MemoryReference : public J9::MemoryReferenceConnector
    {
-   public:
+   private:
 
    MemoryReference(TR::CodeGenerator *cg)
       : J9::MemoryReferenceConnector(cg) {}
@@ -66,6 +67,14 @@ class OMR_EXTENSIBLE MemoryReference : public J9::MemoryReferenceConnector
          TR::SymbolReference *symRef,
          TR::CodeGenerator *cg)
       : J9::MemoryReferenceConnector(node, symRef, cg) {}
+
+   public:
+
+   static TR::MemoryReference *create(TR::CodeGenerator *cg);
+   static TR::MemoryReference *createWithIndexReg(TR::CodeGenerator *cg, TR::Register *baseReg, TR::Register *indexReg, uint8_t scale = 0, TR::ARM64ExtendCode extendCode = TR::ARM64ExtendCode::EXT_UXTX);
+   static TR::MemoryReference *createWithDisplacement(TR::CodeGenerator *cg, TR::Register *baseReg, int64_t displacement);
+   static TR::MemoryReference *createWithRootLoadOrStore(TR::CodeGenerator *cg, TR::Node *rootLoadOrStore);
+   static TR::MemoryReference *createWithSymRef(TR::CodeGenerator *cg, TR::Node *node, TR::SymbolReference *symRef);
    };
 
 } // TR

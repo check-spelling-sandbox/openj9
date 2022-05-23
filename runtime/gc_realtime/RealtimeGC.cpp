@@ -533,7 +533,7 @@ MM_RealtimeGC::reportSyncGCStart(MM_EnvironmentBase *env, GCReason reason, uintp
 	
 	approximateFreeFreeMemorySize = _extensions->heap->getApproximateActiveFreeMemorySize();
 	
-	Trc_MM_SynchGCStart(env->getLanguageVMThread(),
+	Trc_MM_SyncGCStart(env->getLanguageVMThread(),
 		reason,
 		getGCReasonAsString(reason),
 		reasonParameter,

@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2015, 2020 IBM Corp. and others
+ * Copyright (c) 2015, 2022 IBM Corp. and others
  *
  * This program and the accompanying materials are made available under
  * the terms of the Eclipse Public License 2.0 which accompanies this
@@ -356,10 +356,10 @@ prepareVerificationTypeBuffer(StackMapFrame* stackMapFrame, MethodContextInfo* m
 		cpInfo.bytes = (U_8*)methodInfo->signature.bytes;
 		cpInfo.slot1 = (U_32)methodInfo->signature.length;
 
-		/* Calls isInitOrClinitImpl() to determine whether the method is either "<init>" or "<clinit>".
-		 * It returns 1) 0 if name is a normal name 2) 1 if '<init>' or 3) 2 if '<clinit>'
+		/* Calls isInitOrClinitOrNewImpl() to determine whether the method is "<init>", "<clinit>", or "<new>".
+		 * It returns 0 if name is a normal name, CFR_METHOD_NAME_INIT if '<init>', CFR_METHOD_NAME_CLINIT if '<clinit>', and CFR_METHOD_NAME_NEW if '<new>'
 		 */
-		if (CFR_METHOD_NAME_INIT == bcvIsInitOrClinit(&cpInfo)) {
+		if (CFR_METHOD_NAME_INIT == bcvIsInitOrClinitOrNew(&cpInfo)) {
 			vrfyType = CFR_STACKMAP_TYPE_INIT_OBJECT;  /* "this" of an <init> method (cfreader.h) */
 		} else {
 			vrfyType = CFR_STACKMAP_TYPE_OBJECT;
@@ -420,7 +420,7 @@ decodeStackmapFrameData(StackMapFrame* stackMapFrame, U_8* nextStackmapFrame, I_
 		 * as the stackmap table doesn't exist in the class file or currently in fallback verification
 		 * so the frame is pointing to internal created stackMap
 		 */
-		nextStackmapFrame = decodeConstuctedStackMapFrameData(stackMapFrame, nextStackmapFrame, stackmapFrameIndex, methodInfo, verifyData);
+		nextStackmapFrame = decodeConstructedStackMapFrameData(stackMapFrame, nextStackmapFrame, stackmapFrameIndex, methodInfo, verifyData);
 	} else {
 		/* Decode the specified 'Stackmap Frame' data from the compressed stackmap table in the class file */
 		nextStackmapFrame = decodeStackFrameDataFromStackMapTable(stackMapFrame, nextStackmapFrame, methodInfo);
@@ -524,7 +524,7 @@ exit:
 
 
 U_8*
-decodeConstuctedStackMapFrameData(StackMapFrame* stackMapFrame, U_8* nextStackmapFrame, I_32 stackmapFrameIndex, MethodContextInfo* methodInfo, J9BytecodeVerificationData* verifyData)
+decodeConstructedStackMapFrameData(StackMapFrame* stackMapFrame, U_8* nextStackmapFrame, I_32 stackmapFrameIndex, MethodContextInfo* methodInfo, J9BytecodeVerificationData* verifyData)
 {
 	J9BranchTargetStack * targetStackmapFrame = BCV_INDEX_STACK((UDATA)stackmapFrameIndex);
 	IDATA stackBaseIndex = targetStackmapFrame->stackBaseIndex;

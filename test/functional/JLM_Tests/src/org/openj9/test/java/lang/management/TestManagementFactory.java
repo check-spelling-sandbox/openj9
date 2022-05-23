@@ -1258,14 +1258,14 @@ public class TestManagementFactory {
 			if (!proxy.isCurrentThreadCpuTimeSupported()) {
 				try {
 					long tmp = proxy.getCurrentThreadCpuTime();
-					Assert.fail("Should have thrown an unsuported operation exception!");
+					Assert.fail("Should have thrown an unsupported operation exception!");
 				} catch (UnsupportedOperationException e) {
 					logger.debug("UnsupportedOperationException occurred, as expected: " + e.getMessage());
 				}
 
 				try {
 					long tmp = proxy.getCurrentThreadUserTime();
-					Assert.fail("Should have thrown an unsuported operation exception!");
+					Assert.fail("Should have thrown an unsupported operation exception!");
 				} catch (UnsupportedOperationException e) {
 					logger.debug("UnsupportedOperationException occurred, as expected: " + e.getMessage());
 				}
@@ -1284,14 +1284,14 @@ public class TestManagementFactory {
 			if (!proxy.isThreadCpuTimeSupported()) {
 				try {
 					long tmp = proxy.getThreadCpuTime(Thread.currentThread().getId());
-					Assert.fail("Should have thrown an unsuported operation exception!");
+					Assert.fail("Should have thrown an unsupported operation exception!");
 				} catch (UnsupportedOperationException e) {
 					logger.debug("UnsupportedOperationException occurred, as expected: " + e.getMessage());
 				}
 
 				try {
 					long tmp = proxy.getThreadUserTime(Thread.currentThread().getId());
-					Assert.fail("Should have thrown an unsuported operation exception!");
+					Assert.fail("Should have thrown an unsupported operation exception!");
 				} catch (UnsupportedOperationException e) {
 					logger.debug("UnsupportedOperationException occurred, as expected: " + e.getMessage());
 				}

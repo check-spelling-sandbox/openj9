@@ -66,7 +66,7 @@ public abstract class GCHeapRegionDescriptor
 		switch (version.getAlgorithmVersion()) {
 			// Add case statements for new algorithm versions
 			default:
-				if(isRegionSegregrated(hrd)) {
+				if(isRegionSegregated(hrd)) {
 					return new GCHeapRegionDescriptorSegregated_V1(MM_HeapRegionDescriptorSegregatedPointer.cast(hrd));
 				} else {
 					return new GCHeapRegionDescriptor_V1(hrd);
@@ -79,7 +79,7 @@ public abstract class GCHeapRegionDescriptor
 		return heapRegionDescriptor;
 	}
 	
-	private static boolean isRegionSegregrated(MM_HeapRegionDescriptorPointer hrd) throws CorruptDataException
+	private static boolean isRegionSegregated(MM_HeapRegionDescriptorPointer hrd) throws CorruptDataException
 	{
 		long regionType = hrd._regionType();
 		if (J9BuildFlags.gc_realtime) {

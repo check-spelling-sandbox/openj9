@@ -28,7 +28,7 @@ public class StringManipulator {
 
 	public String getStringElement(int elementIndex, String string){
 		
-		char seperator = ',';
+		char separator = ',';
 		int currentElement = -1;
 		int startIndex = 0;
 		int endIndex = 0;
@@ -37,7 +37,7 @@ public class StringManipulator {
 		
 		while(currentElement != elementIndex){
 			startIndex = currentIndex;
-			endIndex = string.indexOf(seperator, currentIndex);
+			endIndex = string.indexOf(separator, currentIndex);
 			if(endIndex == -1){
 				element = string.substring(currentIndex);
 			} else {
@@ -51,12 +51,12 @@ public class StringManipulator {
 	
 	public static String extractDummyNameSuffix(String string)
 	{
-		char seperator = '/';
+		char separator = '/';
 		int startIndex = 0;
 		String suffix = "";
 		
-		int lastIndex = string.lastIndexOf(seperator);
-		for(int currentIndex = 0; currentIndex < lastIndex; currentIndex = string.indexOf(seperator, startIndex)){
+		int lastIndex = string.lastIndexOf(separator);
+		for(int currentIndex = 0; currentIndex < lastIndex; currentIndex = string.indexOf(separator, startIndex)){
 			startIndex = currentIndex + 1;
 		}
 		suffix = string.substring(startIndex, lastIndex);
@@ -66,15 +66,15 @@ public class StringManipulator {
 	
 	public static String extractJarDummyNameSuffix(String string)
 	{
-		char seperator = '/';
+		char separator = '/';
 		char pling = '!';
 		int startIndex = 0;
 		String suffix = "";
 		
 		int plingIndex = string.lastIndexOf(pling);
 		String tempString = string.substring(startIndex, plingIndex);
-		int lastIndex = tempString.lastIndexOf(seperator);
-		for(int currentIndex = 0; currentIndex < lastIndex; currentIndex = tempString.indexOf(seperator, startIndex)){
+		int lastIndex = tempString.lastIndexOf(separator);
+		for(int currentIndex = 0; currentIndex < lastIndex; currentIndex = tempString.indexOf(separator, startIndex)){
 			startIndex = currentIndex + 1;
 		}
 		suffix = tempString.substring(startIndex, lastIndex);

@@ -49,7 +49,7 @@ circumstances. The PersisitentCHTable has methods to
 
 - directly find info about a specific class (`findClassInfo[AfterLocking]`), which are dangerously low-level and should probably
 be removed (details provided later).
-- query specific properties of a class (`findSingleInterfaceImplementor`, `isKnownToHaveMoreThanTwoInterfaceImplementers`, etc).
+- query specific properties of a class (`findSingleInterfaceImplementer`, `isKnownToHaveMoreThanTwoInterfaceImplementers`, etc).
 - update the table with info about newly loaded/unloaded classes (`classGotLoaded`, `methodGotExtended`, etc).
 - `commitSideEffectGuards`, which is related to the commit operation of `TR_CHTable` and seemingly has no good reason
 to be a member of `TR_PersistentCHTable` instead of being along with the rest of the commit functionality in `TR_CHTable`.

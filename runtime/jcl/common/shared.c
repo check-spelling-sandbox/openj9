@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 1998, 2020 IBM Corp. and others
+ * Copyright (c) 1998, 2022 IBM Corp. and others
  *
  * This program and the accompanying materials are made available under
  * the terms of the Eclipse Public License 2.0 which accompanies this
@@ -85,7 +85,7 @@ static void getURLMethodIDs(JNIEnv* env);
 static J9Pool* getClasspathCache(JNIEnv* env);
 static J9Pool* getURLCache(JNIEnv* env);
 static J9ClassPathEntry* getCachedToken(JNIEnv* env, jint helperID, const char* tokenChars, jsize tokenSize);
-static jint createCPEntries(JNIEnv* env, jint helperID, jint urlCount, J9ClassPathEntry** cpEntries_, URLElements* urlArrayElements);
+static jint createCPEntries(JNIEnv* env, jint helperID, jint urlCount, J9ClassPathEntry*** cpEntries_, URLElements* urlArrayElements);
 UDATA utfHashFn(void* item, void *userData);
 static UDATA getStringChars(JNIEnv* env, const char** chars, jsize* len, jstring obj);
 static UDATA getStringPair(JNIEnv* env, const char** chars1, jsize* len1, const char** chars2, jsize* len2, jstring obj1, jstring obj2);
@@ -227,11 +227,12 @@ createROMClassCookie(JNIEnv* env, J9JavaVM* vm, J9ROMClass* romClass, jbyteArray
 
 /* THREADING: Must be protected by jclCacheMutex */
 static jint
-createCPEntries(JNIEnv* env, jint helperID, jint urlCount, J9ClassPathEntry** cpEntries_, URLElements* urlArrayElements)
+createCPEntries(JNIEnv* env, jint helperID, jint urlCount, J9ClassPathEntry*** cpEntries_, URLElements* urlArrayElements)
 {
 	J9JavaVM* vm = ((J9VMThread*)env)->javaVM;
 	J9ClassPathEntry* cpEntries = NULL;
 	struct J9ClasspathByID* newCacheItem = NULL;
+	J9ClassPathEntry** cpePtrArray = NULL;
 	J9Pool* cpCachePool = getClasspathCache(env);
 	UDATA cpEntrySize = 0;
 	IDATA i;
@@ -241,13 +242,14 @@ createCPEntries(JNIEnv* env, jint helperID, jint urlCount, J9ClassPathEntry** cp
 	Trc_JCL_com_ibm_oti_shared_createCPEntries_Entry(env, helperID, urlCount);
 	Assert_JCL_true(urlCount > 0);
 
-	cpEntrySize = urlCount * sizeof(struct J9ClassPathEntry);
-	cpEntries = j9mem_allocate_memory(cpEntrySize, J9MEM_CATEGORY_VM_JCL);
-	if (NULL == cpEntries) {
+	cpEntrySize = urlCount * (sizeof(J9ClassPathEntry*) + sizeof(struct J9ClassPathEntry));
+	cpePtrArray = j9mem_allocate_memory(cpEntrySize, J9MEM_CATEGORY_VM_JCL);
+	if (NULL == cpePtrArray) {
 		Trc_JCL_com_ibm_oti_shared_createCPEntries_ExitFalse2(env);
 		goto _error;
 	}
-	memset(cpEntries, 0, cpEntrySize);
+	memset(cpePtrArray, 0, cpEntrySize);
+	cpEntries = (J9ClassPathEntry*)((char*)cpePtrArray + (urlCount * (sizeof(J9ClassPathEntry*))));
 
 	for (i=0; i<urlCount; i++) {
 		UDATA cpeType = 0;
@@ -268,6 +270,7 @@ createCPEntries(JNIEnv* env, jint helperID, jint urlCount, J9ClassPathEntry** cp
 		cpEntries[i].pathLength = (U_32)strlen(correctPath);
 		cpEntries[i].flags = 0;
 		cpEntries[i].type = (U_16)cpeType;
+		cpePtrArray[i] = &cpEntries[i];
 	}
 
 	if (!cpCachePool || !(newCacheItem = (struct J9ClasspathByID*)pool_newElement(cpCachePool))) {
@@ -283,15 +286,13 @@ createCPEntries(JNIEnv* env, jint helperID, jint urlCount, J9ClassPathEntry** cp
 	newCacheItem->entryCount = urlCount;
 	cpEntries[0].extraInfo = (void*)newCacheItem;
 
-	*cpEntries_ = cpEntries;
+	*cpEntries_ = cpePtrArray;
 
 	Trc_JCL_com_ibm_oti_shared_createCPEntries_ExitTrue(env);
 	return TRUE;
 	
 _error:
-	if (NULL != cpEntries) {
-		j9mem_free_memory(cpEntries);
-	}
+	j9mem_free_memory(cpePtrArray);
 	return FALSE;
 }
 
@@ -1000,7 +1001,7 @@ createDirectByteBuffer(JNIEnv* env, const void* address, UDATA dataLen)
 #endif /* J9VM_OPT_SHARED_CLASSES */
 
 
-jint JNICALL 
+jint JNICALL
 Java_com_ibm_oti_shared_SharedClassAbstractHelper_initializeShareableClassloaderImpl(JNIEnv* env, jobject thisObj, jobject classloader) 
 {
 #if defined(J9VM_OPT_SHARED_CLASSES)
@@ -1034,7 +1035,7 @@ Java_com_ibm_oti_shared_SharedClassAbstractHelper_initializeShareableClassloader
 #endif
 }
 
-jboolean JNICALL 
+jboolean JNICALL
 Java_com_ibm_oti_shared_SharedClassTokenHelperImpl_findSharedClassImpl2(JNIEnv* env, jobject thisObj, jint helperID, 
 		jstring classNameObj, jobject loaderObj, jstring tokenObj, jboolean doFind, jboolean doStore, jbyteArray romClassCookie) 
 {
@@ -1083,7 +1084,7 @@ Java_com_ibm_oti_shared_SharedClassTokenHelperImpl_findSharedClassImpl2(JNIEnv* 
 
 	omrthread_monitor_exit(jclCacheMutex);
 	ALWAYS_TRIGGER_J9HOOK_VM_FIND_LOCALLY_DEFINED_CLASS(vm->hookInterface, (J9VMThread*)env, classloader, NULL,
-			(const char*)nameChars, (UDATA)nameLen, token, 1, -1, NULL, !doFind, !doStore, NULL, romClass);
+			(const char*)nameChars, (UDATA)nameLen, &token, 1, -1, NULL, !doFind, !doStore, NULL, romClass);
 
 
 	releaseStringPair(env, classNameObj, nameChars, tokenObj, tokenChars);
@@ -1112,7 +1113,7 @@ _errorPostNameToken:
 	return FALSE;
 }
 
-jint JNICALL 
+jint JNICALL
 Java_com_ibm_oti_shared_SharedClassTokenHelperImpl_storeSharedClassImpl2(JNIEnv* env, jobject thisObj, jint helperID, 
 		jobject loaderObj, jstring tokenObj, jclass clazzObj, jbyteArray nativeFlags) 
 {
@@ -1168,7 +1169,7 @@ Java_com_ibm_oti_shared_SharedClassTokenHelperImpl_storeSharedClassImpl2(JNIEnv*
 	if (vm->sharedClassConfig != NULL) {
 		SCAbstractAPI * sharedapi = (SCAbstractAPI *)(vm->sharedClassConfig->sharedAPIObject);
 		omrthread_monitor_enter(vm->classTableMutex);
-		newROMClass = sharedapi->jclUpdateROMClassMetaData(vmThread, classloader, token, 1, 0, NULL, romClass);
+		newROMClass = sharedapi->jclUpdateROMClassMetaData(vmThread, classloader, &token, 1, 0, NULL, romClass);
 		omrthread_monitor_exit(vm->classTableMutex);
 	}
 
@@ -1206,7 +1207,7 @@ Java_com_ibm_oti_shared_SharedClassURLHelperImpl_init(JNIEnv *env, jclass clazz)
 	getURLMethodIDs(env);
 }
 
-jboolean JNICALL 
+jboolean JNICALL
 Java_com_ibm_oti_shared_SharedClassURLHelperImpl_findSharedClassImpl3(JNIEnv* env, jobject thisObj, jint helperID, jstring partitionObj, 
 		jstring classNameObj, jobject loaderObj, jobject urlObj, jboolean doFind, jboolean doStore, jbyteArray romClassCookie, jboolean newJarFile, jboolean minimizeUpdateChecks)
 {
@@ -1283,11 +1284,11 @@ Java_com_ibm_oti_shared_SharedClassURLHelperImpl_findSharedClassImpl3(JNIEnv* en
 	if (newJarFile && !minimizeUpdateChecks
 	&& !(config->runtimeFlags & J9SHR_RUNTIMEFLAG_ENABLE_URL_TIMESTAMP_CHECK)
 	) {
-		config->updateClasspathOpenState(vm, urlEntry, 0, 1, TRUE);
+		config->updateClasspathOpenState(vm, &urlEntry, 0, 1, TRUE);
 	}
 
 	ALWAYS_TRIGGER_J9HOOK_VM_FIND_LOCALLY_DEFINED_CLASS(vm->hookInterface, (J9VMThread*)env, classloader, NULL,
-			(const char*)nameChars, (UDATA)nameLen, urlEntry, 1, -1, partition, !doFind, !doStore, NULL, romClass);
+			(const char*)nameChars, (UDATA)nameLen, &urlEntry, 1, -1, partition, !doFind, !doStore, NULL, romClass);
 
 	releaseStringPair(env, urlElements.pathObj, urlElements.pathChars, urlElements.protocolObj, urlElements.protocolChars);
 	releaseStringPair(env, classNameObj, nameChars, partitionObj, partitionChars);
@@ -1316,7 +1317,7 @@ _error:
 	return FALSE;
 }
 
-jint JNICALL 
+jint JNICALL
 Java_com_ibm_oti_shared_SharedClassURLHelperImpl_storeSharedClassImpl3(JNIEnv* env, jobject thisObj, jint helperID, 
 		jstring partitionObj, jobject loaderObj, jobject urlObj, jclass clazzObj, jboolean newJarFile, jboolean minimizeUpdateChecks, jbyteArray nativeFlags)
 {
@@ -1395,11 +1396,11 @@ Java_com_ibm_oti_shared_SharedClassURLHelperImpl_storeSharedClassImpl3(JNIEnv* e
 	if (newJarFile && !minimizeUpdateChecks
 	&& !(config->runtimeFlags & J9SHR_RUNTIMEFLAG_ENABLE_URL_TIMESTAMP_CHECK)
 	) {
-		config->updateClasspathOpenState(vm, urlEntry, 0, 1, TRUE);
+		config->updateClasspathOpenState(vm, &urlEntry, 0, 1, TRUE);
 	}
 
 	omrthread_monitor_enter(vm->classTableMutex);
-	newROMClass = sharedapi->jclUpdateROMClassMetaData((J9VMThread*)env, classloader, urlEntry, 1, 0, partition, romClass);
+	newROMClass = sharedapi->jclUpdateROMClassMetaData((J9VMThread*)env, classloader, &urlEntry, 1, 0, partition, romClass);
 	omrthread_monitor_exit(vm->classTableMutex);
 
 	releaseStringPair(env, urlElements.pathObj, urlElements.pathChars, urlElements.protocolObj, urlElements.protocolChars);
@@ -1439,14 +1440,14 @@ Java_com_ibm_oti_shared_SharedClassURLClasspathHelperImpl_init(JNIEnv *env, jcla
 	getURLMethodIDs(env);
 }
 
-jint JNICALL 
+jint JNICALL
 Java_com_ibm_oti_shared_SharedClassURLClasspathHelperImpl_storeSharedClassImpl2(JNIEnv* env, jobject thisObj, jint helperID, 
 		jstring partitionObj, jobject loaderObj, jobjectArray urlArrayObj, jint urlCount, jint cpLoadIndex, jclass clazzObj, jbyteArray nativeFlags)
 {
 #if defined(J9VM_OPT_SHARED_CLASSES)
 	J9VMThread *vmThread;
 	J9JavaVM* vm;
-	J9ClassPathEntry* cpEntries = NULL;
+	J9ClassPathEntry** cpEntries = NULL;
 	const char* partitionChars = NULL;
 	jsize partitionLen = 0;
 	J9ROMClass* romClass = NULL;
@@ -1516,7 +1517,10 @@ Java_com_ibm_oti_shared_SharedClassURLClasspathHelperImpl_storeSharedClassImpl2(
 	}
 
 	omrthread_monitor_enter(jclCacheMutex);
-
+	/*
+	 * The classPathEntries of non-bootstrap class loader is used by shared class code only. The cp entry count (urlCount) comes directly from JCL.
+	 * classloader->classPathEntryCount is always 0. They are not supposed to be used by code outside of shared class.
+	 */
 	cpEntries = classloader->classPathEntries;
 
 	if (!cpEntries) {
@@ -1525,9 +1529,8 @@ Java_com_ibm_oti_shared_SharedClassURLClasspathHelperImpl_storeSharedClassImpl2(
 				j9mem_free_memory(cpEntries);
 			}
 			goto _errorWithMutex;
-		} else {
-			classloader->classPathEntries = cpEntries;
 		}
+		classloader->classPathEntries = cpEntries;
 	}
 
 	if (partitionChars) {
@@ -1587,7 +1590,7 @@ _error:
 	return FALSE;
 }
 
-jint JNICALL 
+jint JNICALL
 Java_com_ibm_oti_shared_SharedClassURLClasspathHelperImpl_findSharedClassImpl2(JNIEnv* env, jobject thisObj, jint helperID, 
 		jstring partitionObj, jstring classNameObj, jobject loaderObj, jobjectArray urlArrayObj, jboolean doFind, jboolean doStore,  
 		jint urlCount, jint confirmedCount, jbyteArray romClassCookie)
@@ -1600,7 +1603,7 @@ Java_com_ibm_oti_shared_SharedClassURLClasspathHelperImpl_findSharedClassImpl2(J
 	jsize nameLen = 0;
 	jsize partitionLen = 0;
 	J9ROMClass* romClass = NULL;
-	J9ClassPathEntry* cpEntries = NULL;
+	J9ClassPathEntry** cpEntries = NULL;
 	UDATA entryCount = (UDATA)urlCount;
 	IDATA indexFoundAt = 0;
 	UDATA oldState;
@@ -1667,6 +1670,10 @@ Java_com_ibm_oti_shared_SharedClassURLClasspathHelperImpl_findSharedClassImpl2(J
 
 	omrthread_monitor_enter(jclCacheMutex);
 
+	/*
+	 * The classPathEntries of non-bootstrap class loader is used by shared class code only. The cp entry count (urlCount) comes directly from JCL.
+	 * classloader->classPathEntryCount is always 0. They are not supposed to be used by code outside of shared class.
+	 */
 	cpEntries = classloader->classPathEntries;
 
 	if (!cpEntries) {
@@ -1676,9 +1683,9 @@ Java_com_ibm_oti_shared_SharedClassURLClasspathHelperImpl_findSharedClassImpl2(J
 			}
 			Trc_JCL_com_ibm_oti_shared_SharedClassURLClasspathHelperImpl_findSharedClassImpl_ExitError3_Event(env, helperID);
 			goto _errorWithMutex;
-		} else {
-			classloader->classPathEntries = cpEntries;
 		}
+		classloader->classPathEntries = cpEntries;
+		Trc_JCL_com_ibm_oti_shared_SharedClassURLClasspathHelperImpl_findSharedClassImpl_SetCPE(env, classloader, cpEntries);
 	}
 
 	if (partitionChars) {
@@ -1687,7 +1694,6 @@ Java_com_ibm_oti_shared_SharedClassURLClasspathHelperImpl_findSharedClassImpl2(J
 			goto _errorWithMutex;
 		}
 	}
-
 	omrthread_monitor_exit(jclCacheMutex);
 
 	ALWAYS_TRIGGER_J9HOOK_VM_FIND_LOCALLY_DEFINED_CLASS(vm->hookInterface, (J9VMThread*)env, classloader, NULL,
@@ -1744,7 +1750,7 @@ _errorPostClassNamePartition:
 }
 
 
-jlong JNICALL 
+jlong JNICALL
 Java_com_ibm_oti_shared_SharedClassStatistics_maxSizeBytesImpl(JNIEnv* env, jobject thisObj)
 {
 #if defined(J9VM_OPT_SHARED_CLASSES)
@@ -1863,7 +1869,7 @@ Java_com_ibm_oti_shared_SharedClassStatistics_maxJitDataBytesImpl(JNIEnv* env, j
 	return (jlong)ret;
 }
 
-jlong JNICALL 
+jlong JNICALL
 Java_com_ibm_oti_shared_SharedClassStatistics_freeSpaceBytesImpl(JNIEnv* env, jobject thisObj)
 {
 #if defined(J9VM_OPT_SHARED_CLASSES)
@@ -1884,8 +1890,56 @@ Java_com_ibm_oti_shared_SharedClassStatistics_freeSpaceBytesImpl(JNIEnv* env, jo
 #endif
 }
 
+jstring JNICALL
+Java_com_ibm_oti_shared_SharedClassStatistics_cachePathImpl(JNIEnv *env, jobject thisObj)
+{
+#if defined(J9VM_OPT_SHARED_CLASSES)
+	J9JavaVM *vm = ((J9VMThread *)env)->javaVM;
+	J9SharedClassJavacoreDataDescriptor descriptor;
+	const char *cacheDir = NULL;
+	jstring result = NULL;
 
-void JNICALL 
+	Trc_JCL_com_ibm_oti_shared_SharedClassStatistics_cachePathImpl_Entry(env);
+
+	if (NULL != vm->sharedClassConfig) {
+		if (0 != vm->sharedClassConfig->getJavacoreData(vm, &descriptor)) {
+			cacheDir = descriptor.cacheDir;
+			result = (*env)->NewStringUTF(env, cacheDir);
+		}
+	}
+
+	Trc_JCL_com_ibm_oti_shared_SharedClassStatistics_cachePathImpl_Exit(env, result, cacheDir);
+	return result;
+#else /* defined(J9VM_OPT_SHARED_CLASSES) */
+	return NULL;
+#endif /* defined(J9VM_OPT_SHARED_CLASSES) */
+}
+
+jlong JNICALL
+Java_com_ibm_oti_shared_SharedClassStatistics_numberAttachedImpl(JNIEnv *env, jobject thisObj)
+{
+#if defined(J9VM_OPT_SHARED_CLASSES)
+	J9JavaVM *vm = ((J9VMThread *)env)->javaVM;
+	jlong result = -1;
+
+	Trc_JCL_com_ibm_oti_shared_SharedClassStatistics_numberAttachedImpl_Entry(env);
+
+	if (NULL != vm->sharedClassConfig) {
+		J9SharedClassJavacoreDataDescriptor descriptor;
+		if (0 != vm->sharedClassConfig->getJavacoreData(vm, &descriptor)) {
+			result = (IDATA)descriptor.nattach;
+		}
+	}
+
+	Trc_JCL_com_ibm_oti_shared_SharedClassStatistics_numberAttachedImpl_Exit(env, result);
+	return result;
+#else /* defined(J9VM_OPT_SHARED_CLASSES) */
+	return 0;
+#endif /* defined(J9VM_OPT_SHARED_CLASSES) */
+}
+
+
+void JNICALL
 Java_com_ibm_oti_shared_SharedClassURLClasspathHelperImpl_notifyClasspathChange2(JNIEnv* env, jobject thisObj, jobject classLoaderObj)
 {
 #if defined(J9VM_OPT_SHARED_CLASSES)
@@ -1906,16 +1960,17 @@ Java_com_ibm_oti_shared_SharedClassURLClasspathHelperImpl_notifyClasspathChange2
 	/* Remove all cached classpaths for this helper ID */
 	if (NULL != classloader->classPathEntries) {
 		J9Pool* cpCachePool = vm->sharedClassConfig->jclClasspathCache;
-		J9GenericByID* cachePoolItem = (J9GenericByID *)classloader->classPathEntries->extraInfo;
+		J9GenericByID* cachePoolItem = (J9GenericByID *)classloader->classPathEntries[0]->extraInfo;
 		
 		if (NULL != cachePoolItem->cpData) {
 			vm->sharedClassConfig->freeClasspathData(vm, cachePoolItem->cpData);
 		}
 		pool_removeElement(cpCachePool, (void *)cachePoolItem);
-	
+
 		/* Free the classPathEntries before setting it to null */
 		j9mem_free_memory(classloader->classPathEntries);
-		classloader->classPathEntries = NULL;		
+		classloader->classPathEntries = NULL;
+		Trc_JCL_com_ibm_oti_shared_SharedClassURLClasspathHelperImpl_notifyClasspathChange2_SetCPE(env, classloader);
 	}
 
 	/* Tell the cache code to reset its local classpath cache array as this has likely been invalidated by the change */
@@ -1933,7 +1988,7 @@ Java_com_ibm_oti_shared_SharedClassURLClasspathHelperImpl_notifyClasspathChange2
  * Notify the open state to all the jar/zip files on the URL classpath to force a timestamp check once.
  * @param [in] env              The JNI environment
  * @param [in] thisObj          The object on which the method was invoked
- * @param [in] helperID         The ID of the classs loader
+ * @param [in] helperID         The ID of the class loader
  * @param [in] classLoaderObj   The class loader object
  * @param [in] urlArrayObj      The object of the URL array
  * @param [in] urlIndex         The index of URL entry being created/updated
@@ -1947,7 +2002,7 @@ Java_com_ibm_oti_shared_SharedClassURLClasspathHelperImpl_notifyClasspathChange3
 #if defined(J9VM_OPT_SHARED_CLASSES)
 	J9VMThread* vmThread = ((J9VMThread*)env);
 	J9JavaVM* vm = vmThread->javaVM;
-	J9ClassPathEntry* cpEntries = NULL;
+	J9ClassPathEntry** cpEntries = NULL;
 	UDATA entryIndex = (UDATA)urlIndex;
 	UDATA entryCount = (UDATA)urlCount;
 	omrthread_monitor_t jclCacheMutex = vm->sharedClassConfig->jclCacheMutex;
@@ -1979,7 +2034,6 @@ Java_com_ibm_oti_shared_SharedClassURLClasspathHelperImpl_notifyClasspathChange3
 	vm->internalVMFunctions->internalEnterVMFromJNI(vmThread);
 	classloader = J9VMJAVALANGCLASSLOADER_VMREF(vmThread, J9_JNI_UNWRAP_REFERENCE(classLoaderObj));
 	vm->internalVMFunctions->internalExitVMToJNI(vmThread);
-	Assert_JCL_true(NULL == classloader->classPathEntries);
 
 	urlGetPathID = JCL_CACHE_GET(env, MID_java_net_URL_getPath);
 	if (NULL == urlGetPathID) {
@@ -2008,18 +2062,21 @@ Java_com_ibm_oti_shared_SharedClassURLClasspathHelperImpl_notifyClasspathChange3
 	}
 
 	omrthread_monitor_enter(jclCacheMutex);
-
-	cpEntries = classloader->classPathEntries;
+	Assert_JCL_true(NULL == classloader->classPathEntries);
+	/*
+	 * The classPathEntries of non-bootstrap class loader is used by shared class code only. The cp entry count (urlCount) comes directly from JCL.
+	 * classloader->classPathEntryCount is always 0. They are not supposed to be used by code outside of shared class.
+	 */
 	if (!createCPEntries(env, helperID, urlCount, &cpEntries, urlArrayElements)) {
 		if (cpEntries) {
 			j9mem_free_memory(cpEntries);
 		}
 		Trc_JCL_com_ibm_oti_shared_SharedClassURLClasspathHelperImpl_notifyClasspathChange3_ExitError_Event(env);
 		goto _errorWithMutex;
-	} else {
-		classloader->classPathEntries = cpEntries;
 	}
-	vm->sharedClassConfig->updateClasspathOpenState(vm, cpEntries, entryIndex, entryCount, isOpen);
+	classloader->classPathEntries = cpEntries;
+	Trc_JCL_com_ibm_oti_shared_SharedClassURLClasspathHelperImpl_notifyClasspathChange3_SetCPE(env, classloader, cpEntries);
+	vm->sharedClassConfig->updateClasspathOpenState(vm, classloader->classPathEntries, entryIndex, entryCount, isOpen);
 
 _errorWithMutex:
 	omrthread_monitor_exit(jclCacheMutex);
@@ -2192,7 +2249,7 @@ _error:
 }
 
 
-jboolean JNICALL 
+jboolean JNICALL
 Java_com_ibm_oti_shared_SharedAbstractHelper_getIsVerboseImpl(JNIEnv* env, jobject thisObj) 
 {
 #if defined(J9VM_OPT_SHARED_CLASSES)

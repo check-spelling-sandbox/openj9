@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2000, 2021 IBM Corp. and others
+ * Copyright (c) 2000, 2022 IBM Corp. and others
  *
  * This program and the accompanying materials are made available under
  * the terms of the Eclipse Public License 2.0 which accompanies this
@@ -226,6 +226,7 @@ int32_t J9::X86::I386::PrivateLinkage::buildArgs(
          {
          case TR::java_lang_invoke_ComputedCalls_dispatchJ9Method:
          case TR::java_lang_invoke_ComputedCalls_dispatchVirtual:
+         case TR::com_ibm_jit_JITHelpers_dispatchVirtual:
             linkageRegChildIndex = firstArgumentChild;
             receiverChildIndex = callNode->getOpCode().isIndirect()? firstArgumentChild+1 : -1;
          }
@@ -267,6 +268,7 @@ int32_t J9::X86::I386::PrivateLinkage::buildArgs(
                      cg()->decReferenceCount(child);
                      break;
                   case TR::java_lang_invoke_ComputedCalls_dispatchVirtual:
+                  case TR::com_ibm_jit_JITHelpers_dispatchVirtual:
                      reg = cg()->evaluate(child);
                      if (reg->getRegisterPair())
                         reg = reg->getRegisterPair()->getLowOrder();
@@ -604,7 +606,7 @@ void J9::X86::I386::PrivateLinkage::buildIPIC(
    if (useLastITableCache)
       {
       if (breakBeforeIPICUsingLastITable)
-         generateInstruction(TR::InstOpCode::bad, site.getCallNode(), cg());
+         generateInstruction(TR::InstOpCode::INT3, site.getCallNode(), cg());
       if (numIPicSlotsBeforeLastITable)
          numIPicSlots = atoi(numIPicSlotsBeforeLastITable);
    }
@@ -693,7 +695,9 @@ void J9::X86::I386::PrivateLinkage::buildVirtualOrComputedCall(
       uint8_t *thunk)
    {
    TR_J9VMBase *fej9 = (TR_J9VMBase *)(fe());
-   bool resolvedSite = !(site.getSymbolReference()->isUnresolved() || fej9->forceUnresolvedDispatch());
+   bool resolvedSite = !site.getSymbolReference()->isUnresolved()
+      && fej9->isResolvedVirtualDispatchGuaranteed(comp());
+
    if (site.getSymbolReference()->getSymbol()->castToMethodSymbol()->isComputed())
       {
       // TODO:JSR292: Try to avoid the explicit VFT load
@@ -704,6 +708,8 @@ void J9::X86::I386::PrivateLinkage::buildVirtualOrComputedCall(
       }
    else if (resolvedSite && site.resolvedVirtualShouldUseVFTCall())
       {
+      // There are no J2I thunks on x86-32, so no J2I thunk validation is needed
+
       if (entryLabel)
          generateLabelInstruction(TR::InstOpCode::label, site.getCallNode(), entryLabel, cg());
 

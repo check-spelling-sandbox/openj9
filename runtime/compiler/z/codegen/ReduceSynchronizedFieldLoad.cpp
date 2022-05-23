@@ -319,7 +319,7 @@ ReduceSynchronizedFieldLoad::performOnTreeTops(TR::TreeTop* startTreeTop, TR::Tr
                      traceMsg(comp, "Children of monent and monexit are synchronizing on the same object\n", monexitNode);
                      }
 
-                  TR::Node* loadNode = findLoadInSynchornizedRegion(startTreeTop, endTreeTop, monentTreeTop, monexitTreeTop, synchronizedObjectNode);
+                  TR::Node* loadNode = findLoadInSynchronizedRegion(startTreeTop, endTreeTop, monentTreeTop, monexitTreeTop, synchronizedObjectNode);
 
                   if (loadNode != NULL)
                      {
@@ -417,7 +417,7 @@ ReduceSynchronizedFieldLoad::performOnTreeTops(TR::TreeTop* startTreeTop, TR::Tr
    }
 
 TR::Node*
-ReduceSynchronizedFieldLoad::findLoadInSynchornizedRegion(TR::TreeTop* startTreeTop, TR::TreeTop* endTreeTop, TR::TreeTop* monentTreeTop, TR::TreeTop* monexitTreeTop, TR::Node* synchronizedObjectNode)
+ReduceSynchronizedFieldLoad::findLoadInSynchronizedRegion(TR::TreeTop* startTreeTop, TR::TreeTop* endTreeTop, TR::TreeTop* monentTreeTop, TR::TreeTop* monexitTreeTop, TR::Node* synchronizedObjectNode)
    {
    TR::Compilation *comp = cg->comp();
    TR::PreorderNodeIterator iter(startTreeTop, comp);

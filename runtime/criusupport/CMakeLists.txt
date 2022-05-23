@@ -1,5 +1,5 @@
 ################################################################################
-# Copyright (c) 2021, 2021 IBM Corp. and others
+# Copyright (c) 2021, 2022 IBM Corp. and others
 #
 # This program and the accompanying materials are made available under
 # the terms of the Eclipse Public License 2.0 which accompanies this
@@ -24,7 +24,7 @@ add_tracegen(j9criu.tdf)
 
 j9vm_add_library(j9criu SHARED
 	OUTPUT_NAME j9criu${J9VM_VERSION_SUFFIX}
-	criusupport.c
+	criusupport.cpp
 
 	${CMAKE_CURRENT_BINARY_DIR}/ut_j9criu.c
 )
@@ -39,12 +39,11 @@ add_dependencies(j9vm_interface j9vm_m4gen)
 target_link_libraries(j9criu
 	PRIVATE
 		j9vm_interface
+		j9vm_gc_includes
 		j9util
-)
-
-target_sources(j9criu
-	PRIVATE
-		${CMAKE_CURRENT_SOURCE_DIR}/criusupport.c
+		j9thr
+		criu
+		dl
 )
 
 include(exports.cmake)

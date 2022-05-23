@@ -303,7 +303,7 @@ public class AsTypeTest {
 	}
 
 	public void noExceptionDuringCast(MethodHandle mh, MethodType mt) {
-		System.out.println("Casting " + mh.type() + " to " + mt + " -> did not throw WrongMethodypeException");
+		System.out.println("Casting " + mh.type() + " to " + mt + " -> did not throw WrongMethodTypeException");
 		passed = false;
 	}
 

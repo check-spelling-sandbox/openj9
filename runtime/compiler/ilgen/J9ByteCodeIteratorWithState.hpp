@@ -134,7 +134,7 @@ protected:
       TR::Node *callNode =TR::Node::copy(callTreeTop->getNode()->getFirstChild());
       callNode->setReferenceCount(1);
       //TR_ASSERT(callNode->getOpCode().isCall(), "node %p isn't a call!\n",callTreeTop->getNode()->getFirstChild());
-      ttNode->setFirst(callNode);       //copying callnode. will replace children shortly
+      ttNode->setFirst(callNode);       //copying callNode. will replace children shortly
 
 
       ListIterator<TR::ParameterSymbol> li (&_methodSymbol->getParameterList());

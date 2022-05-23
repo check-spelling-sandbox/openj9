@@ -110,7 +110,7 @@ final class LayoutStrPreprocessor {
 	 *
 	 *  Note:
 	 *  1) the prefix "ByteSize#CountOfElement" and "#CountOfElement" are not required in
-	 *  the upcall given the converted layout stirngs are further parsed for the generated
+	 *  the upcall given the converted layout strings are further parsed for the generated
 	 *  thunk in native, which is logically different from downcall.
 	 *  2) the parsing of primitives in layouts in Java 18 is based on the MemoryLayout.carrier()
 	 *  rather than the CLinker.TypeKind which is entirely removed in OpenJDK.

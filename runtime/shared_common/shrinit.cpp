@@ -3518,7 +3518,7 @@ j9shr_init(J9JavaVM *vm, UDATA loadFlags, UDATA* nonfatal)
 				SH_CacheMap* cm = (SH_CacheMap*)(vm->sharedClassConfig->sharedClassCache);
 				omrthread_monitor_t tableInternFxMutex;
 
-				/* This monitor is used to control thread access to the internavl tree.
+				/* This monitor is used to control thread access to the internal tree.
 				 * This monitor should always be uncontended, it was added during the investigation
 				 * for CMVC 147834 to check if concurrent access to the string tree was causing
 				 * corruption.

@@ -233,7 +233,7 @@ storeClassVerboseIO( J9VMThread* currentThread, ClasspathItem * classpath, I_16 
  * Create a ClasspathItem.
  *
  * @param [in] currentThread Current thread
- * @param [in] classloader The class loader from which the class path entries are from. This parameter is only used when cpePtrArray is NUUL.
+ * @param [in] classloader The class loader from which the class path entries are from. This parameter is only used when cpePtrArray is NULL.
  * @param [in] cpePtrArray The Array of class path entries pointer, which is used to create the ClasspathItem.
  * 				If this parameter is NULL, classloader->classPathEntries will be used.
  * @param [in] entryCount The number of entries in cpePtrArray.

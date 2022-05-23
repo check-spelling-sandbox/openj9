@@ -893,7 +893,7 @@ public:
     * will wait indefinitely on the Comp Monitor (in the case of a JIT Dump) or
     * it will abort after acquiring the Comp Monitor if the Shutdown Thread
     * already finished its task. Once the Hook Thread reaches the point where
-    * it waits on the CR Monitor, the scenarioes above can occur.
+    * it waits on the CR Monitor, the scenarios above can occur.
     *
     *
     * Shutdown during JIT Dump

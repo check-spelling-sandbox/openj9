@@ -1724,7 +1724,7 @@ TR_BlockFrequencyInfo::getFrequencyInfo(
       {
       // To make sure we are looking into the correct frequency data,
       // Compute the effective caller index by preparing the callStack using the callSiteInfo from
-      // current compilation and see if we have a same callchain in the blockfrequnecy information.
+      // current compilation and see if we have a same callchain in the blockfrequency information.
       TR_ByteCodeInfo bciCheck = bci;
       TR::list<std::pair<TR_OpaqueMethodBlock*, TR_ByteCodeInfo> > callStackInfo(comp->allocator());
       while (bciCheck.getCallerIndex() > -1)

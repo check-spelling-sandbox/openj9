@@ -1435,8 +1435,8 @@ generateLockwordAddressLookup(TR::CodeGenerator *cg, TR::Node *node, TR::Registe
 #endif
       generateTrg1Src2ShiftedInstruction(cg, TR::InstOpCode::addx, node, tempReg, metaReg, tempReg, TR::ARM64ShiftCode::SH_LSL, elementWidth);
 
-      int32_t offsetOfObjectMonitorLookpCache = offsetof(J9VMThread, objectMonitorLookupCache);
-      TR::MemoryReference *monitorLookupMR = TR::MemoryReference::createWithDisplacement(cg, tempReg, offsetOfObjectMonitorLookpCache);
+      int32_t offsetOfObjectMonitorLookupCache = offsetof(J9VMThread, objectMonitorLookupCache);
+      TR::MemoryReference *monitorLookupMR = TR::MemoryReference::createWithDisplacement(cg, tempReg, offsetOfObjectMonitorLookupCache);
       TR::Register *monitorReg = srm->findOrCreateScratchRegister();
 
       generateTrg1MemInstruction(cg, fej9->generateCompressedLockWord() ? TR::InstOpCode::ldrimmw : TR::InstOpCode::ldrimmx, node, monitorReg, monitorLookupMR);

@@ -2203,7 +2203,7 @@ nativeOOM:
 					/* Patch the module of HiddenClass to match hostClass
 					 *
 					 * A hiddenClass should have the same defining classLoader/runtime package as
-					 * the Loopkup class (ie. hostClass). When loading a hiddenClass, VM may use the
+					 * the Lookup class (ie. hostClass). When loading a hiddenClass, VM may use the
 					 * anonymous classLoader to load the class and update it after ramClass init to
 					 * match the hostClass. When setting moduleObject, named modules sets the
 					 * ramClass->module to the module of the hostClass before ramClass init. And for

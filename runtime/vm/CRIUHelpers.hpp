@@ -71,7 +71,7 @@ public:
 		}
 
 		{
-			J9DelayedLockingOpertionsRecord *newRecord = static_cast<J9DelayedLockingOpertionsRecord*>(pool_newElement(vm->checkpointState.delayedLockingOperationsRecords));
+			J9DelayedLockingOperationsRecord *newRecord = static_cast<J9DelayedLockingOperationsRecord*>(pool_newElement(vm->checkpointState.delayedLockingOperationsRecords));
 			if (NULL == newRecord) {
 				goto throwOOM;
 			}

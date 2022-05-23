@@ -4074,12 +4074,12 @@ typedef struct J9InternalHookRecord {
 	struct J9Pool *instanceObjects;
 } J9InternalHookRecord;
 
-typedef struct J9DelayedLockingOpertionsRecord {
+typedef struct J9DelayedLockingOperationsRecord {
 	jobject globalObjectRef;
 	UDATA operation;
-	struct J9DelayedLockingOpertionsRecord *linkNext;
-	struct J9DelayedLockingOpertionsRecord *linkPrevious;
-} J9DelayedLockingOpertionsRecord;
+	struct J9DelayedLockingOperationsRecord *linkNext;
+	struct J9DelayedLockingOperationsRecord *linkPrevious;
+} J9DelayedLockingOperationsRecord;
 
 #define J9_SINGLE_THREAD_MODE_OP_NOTIFY 0x1
 #define J9_SINGLE_THREAD_MODE_OP_NOTIFY_ALL 0x2
@@ -4088,7 +4088,7 @@ typedef struct J9CRIUCheckpointState {
 	BOOLEAN isCheckPointEnabled;
 	BOOLEAN isCheckPointAllowed;
 	BOOLEAN isNonPortableRestoreMode;
-	struct J9DelayedLockingOpertionsRecord *delayedLockingOperationsRoot;
+	struct J9DelayedLockingOperationsRecord *delayedLockingOperationsRoot;
 	struct J9Pool *hookRecords;
 	struct J9Pool *delayedLockingOperationsRecords;
 	struct J9VMThread *checkpointThread;

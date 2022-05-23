@@ -267,7 +267,7 @@ initializeCriuHooks(J9VMThread *currentThread)
 	}
 
 	if (NULL == vm->checkpointState.delayedLockingOperationsRecords) {
-		vm->checkpointState.delayedLockingOperationsRecords = pool_new(sizeof(J9DelayedLockingOpertionsRecord), 0, 0, 0, J9_GET_CALLSITE(), OMRMEM_CATEGORY_VM, POOL_FOR_PORT(vm->portLibrary));
+		vm->checkpointState.delayedLockingOperationsRecords = pool_new(sizeof(J9DelayedLockingOperationsRecord), 0, 0, 0, J9_GET_CALLSITE(), OMRMEM_CATEGORY_VM, POOL_FOR_PORT(vm->portLibrary));
 		if (NULL == vm->checkpointState.delayedLockingOperationsRecords) {
 			setNativeOutOfMemoryError(currentThread, 0, 0);
 			goto done;
@@ -407,7 +407,7 @@ runDelayedLockRelatedOperations(J9VMThread *currentThread)
 {
 	J9JavaVM *vm = currentThread->javaVM;
 	J9InternalVMFunctions* vmFuncs = vm->internalVMFunctions;
-	J9DelayedLockingOpertionsRecord *delayedLockingOperation = static_cast<J9DelayedLockingOpertionsRecord*>(J9_LINKED_LIST_START_DO(vm->checkpointState.delayedLockingOperationsRoot));
+	J9DelayedLockingOperationsRecord *delayedLockingOperation = static_cast<J9DelayedLockingOperationsRecord*>(J9_LINKED_LIST_START_DO(vm->checkpointState.delayedLockingOperationsRoot));
 	BOOLEAN rc = TRUE;
 
 	Assert_VM_true(vm->checkpointState.checkpointThread == currentThread);
@@ -465,7 +465,7 @@ next:
 		}
 
 		vmFuncs->j9jni_deleteGlobalRef((JNIEnv*) currentThread, delayedLockingOperation->globalObjectRef, JNI_FALSE);
-		J9DelayedLockingOpertionsRecord *lastOperation = delayedLockingOperation;
+		J9DelayedLockingOperationsRecord *lastOperation = delayedLockingOperation;
 		delayedLockingOperation = J9_LINKED_LIST_NEXT_DO(vm->checkpointState.delayedLockingOperationsRoot, delayedLockingOperation);
 		pool_removeElement(vm->checkpointState.delayedLockingOperationsRecords, lastOperation);
 	}

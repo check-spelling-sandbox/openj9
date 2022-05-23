@@ -95,7 +95,7 @@ j9gc_arraylet_getLeafLogSize(J9JavaVM* javaVM)
 
 /**
  * This API ensures integrity of the Ownable List, it is to be used prior to building threadinfo externally.
- * This should be called as early as possible, before gahtering any references, as this method may move the references.
+ * This should be called as early as possible, before gathering any references, as this method may move the references.
  */
 void
 j9gc_ensureLockedSynchronizersIntegrity(J9VMThread *vmThread)
